@@ -392,6 +392,7 @@ query GetHomeData {
 }
 ```
 
+
 ### Patrón Repository Screen-Based
 
 **❌ Evitar**: Repositorios por entidad individual
