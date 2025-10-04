@@ -1,49 +1,77 @@
 package com.llego.business
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import llegobusiness.composeapp.generated.resources.Res
-import llegobusiness.composeapp.generated.resources.compose_multiplatform
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.llego.shared.data.model.BusinessType
+import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.auth.LoginScreen
+import com.llego.shared.ui.navigation.*
+import com.llego.shared.ui.theme.LlegoBusinessTheme
+import com.llego.nichos.restaurant.ui.screens.RestaurantHomeScreen
+import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
+import com.llego.nichos.market.ui.screens.MarketProfileScreen
 
 @Composable
-@Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+    LlegoBusinessTheme {
+        val authViewModel: AuthViewModel = viewModel()
+
+        var isAuthenticated by remember { mutableStateOf(false) }
+        var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
+        var showProfile by remember { mutableStateOf(false) }
+
+        // Observar estado de autenticación
+        LaunchedEffect(authViewModel) {
+            authViewModel.uiState.collect { uiState ->
+                isAuthenticated = uiState.isAuthenticated
+                currentBusinessType = uiState.currentUser?.businessType
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+        }
+
+        if (isAuthenticated && currentBusinessType != null) {
+            // Usuario autenticado - mostrar pantalla según tipo de negocio
+            when (currentBusinessType) {
+                BusinessType.RESTAURANT -> {
+                    if (showProfile) {
+                        RestaurantProfileScreen(
+                            authViewModel = authViewModel,
+                            onNavigateBack = { showProfile = false }
+                        )
+                    } else {
+                        RestaurantHomeScreen(
+                            authViewModel = authViewModel,
+                            onNavigateToProfile = { showProfile = true }
+                        )
+                    }
+                }
+                BusinessType.GROCERY -> {
+                    MarketProfileScreen(
+                        authViewModel = authViewModel
+                    )
+                }
+                BusinessType.PHARMACY -> {
+                    // TODO: Implementar pantalla de pharmacy
+                    RestaurantProfileScreen(
+                        authViewModel = authViewModel
+                    )
+                }
+                else -> {
+                    LoginScreen(
+                        onLoginSuccess = { businessType ->
+                            isAuthenticated = true
+                            currentBusinessType = businessType
+                        }
+                    )
                 }
             }
+        } else {
+            // Usuario no autenticado - mostrar login
+            LoginScreen(
+                onLoginSuccess = { businessType ->
+                    isAuthenticated = true
+                    currentBusinessType = businessType
+                }
+            )
         }
     }
 }

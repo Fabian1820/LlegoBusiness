@@ -1,0 +1,176 @@
+package com.llego.business.ui.navigation
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
+import com.llego.shared.ui.navigation.*
+import com.llego.shared.ui.theme.LlegoBusinessTheme
+import com.llego.business.ui.screens.BusinessProfileScreen
+
+/**
+ * Sistema de navegación específico para la app de negocios
+ * Incluye bottom navigation y manejo de pantallas principales
+ */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BusinessAppNavigation(
+    navigationController: LlegoNavigationController,
+    startDestination: String = Routes.Auth.LOGIN
+) {
+    LlegoBusinessTheme {
+        var currentRoute by remember { mutableStateOf(startDestination) }
+        val navBackStackEntry by navigationController.navController.currentBackStackEntryAsState()
+        val currentDestination = navBackStackEntry?.destination
+
+        // Actualizar la ruta actual
+        LaunchedEffect(currentDestination) {
+            currentDestination?.route?.let { route ->
+                currentRoute = route
+            }
+        }
+
+        // Determinar si mostrar bottom navigation
+        val showBottomBar = currentRoute !in listOf(
+            Routes.Auth.LOGIN,
+            Routes.Auth.FORGOT_PASSWORD,
+            Routes.Auth.VERIFY_CODE,
+            Routes.Auth.RESET_PASSWORD
+        )
+
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    BusinessBottomNavigation(
+                        navigationController = navigationController,
+                        currentDestination = currentDestination
+                    )
+                }
+            }
+        ) { paddingValues ->
+            NavHost(
+                navController = navigationController.navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(paddingValues)
+            ) {
+                // Rutas de autenticación
+                composable(Routes.Auth.LOGIN) {
+                    // TODO: Implementar LoginScreen
+                    PlaceholderScreen("Login Business")
+                }
+
+                // Rutas principales de negocios
+                composable(Routes.Business.DASHBOARD) {
+                    // TODO: Implementar BusinessDashboardScreen
+                    PlaceholderScreen("Business Dashboard")
+                }
+
+                composable(Routes.Business.ORDERS) {
+                    // TODO: Implementar BusinessOrdersScreen
+                    PlaceholderScreen("Business Orders")
+                }
+
+                composable(Routes.Business.ORDER_DETAIL) {
+                    // TODO: Implementar BusinessOrderDetailScreen con navegacion correcta
+                    PlaceholderScreen("Order Detail")
+                }
+
+                composable(Routes.Business.PRODUCTS) {
+                    // TODO: Implementar BusinessProductsScreen
+                    PlaceholderScreen("Business Products")
+                }
+
+                composable(Routes.Business.PRODUCT_DETAIL) {
+                    // TODO: Implementar BusinessProductDetailScreen con navegacion correcta
+                    PlaceholderScreen("Product Detail")
+                }
+
+                composable(Routes.Business.ANALYTICS) {
+                    // TODO: Implementar BusinessAnalyticsScreen
+                    PlaceholderScreen("Business Analytics")
+                }
+
+                composable(Routes.Business.PROFILE) {
+                    BusinessProfileScreen(
+                        onLogout = {
+                            navigationController.handleLogout()
+                        }
+                    )
+                }
+
+                composable(Routes.Business.SETTINGS) {
+                    // TODO: Implementar BusinessSettingsScreen
+                    PlaceholderScreen("Business Settings")
+                }
+
+                composable(Routes.Business.NOTIFICATIONS) {
+                    // TODO: Implementar BusinessNotificationsScreen
+                    PlaceholderScreen("Business Notifications")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BusinessBottomNavigation(
+    navigationController: LlegoNavigationController,
+    currentDestination: androidx.navigation.NavDestination?
+) {
+    NavigationBar {
+        NavigationItems.businessItems.forEach { item ->
+            NavigationBarItem(
+                icon = {
+                    // TODO: Reemplazar con iconos reales
+                    Text(item.iconResId)
+                },
+                label = { Text(item.labelResId) },
+                selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
+                onClick = {
+                    navigationController.navController.navigate(item.route) {
+                        // Pop up to the start destination of the graph to
+                        // avoid building up a large stack of destinations
+                        // on the back stack as users select items
+                        popUpTo(navigationController.navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
+                        launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun PlaceholderScreen(title: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
