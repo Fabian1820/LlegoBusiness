@@ -1,4 +1,4 @@
-package com.llego.business
+package com.llego.app
 
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel

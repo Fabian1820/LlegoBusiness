@@ -1,4 +1,4 @@
-package com.llego.business
+package com.llego.app
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

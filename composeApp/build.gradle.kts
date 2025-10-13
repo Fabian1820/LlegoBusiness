@@ -58,7 +58,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.llego.business"
+    namespace = "com.llego.app"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -90,7 +90,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.llego.business.MainKt"
+        mainClass = "com.llego.app.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

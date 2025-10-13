@@ -4,7 +4,9 @@
       "WebSearch",
       "Bash(./gradlew build:*)",
       "Bash(./gradlew:*)",
-      "Bash(.gradlew.bat composeApp:compileCommonMainKotlinMetadata:*)"
+      "Bash(.gradlew.bat composeApp:compileCommonMainKotlinMetadata:*)",
+      "Bash(mkdir:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

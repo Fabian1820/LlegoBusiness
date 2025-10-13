@@ -1,4 +1,4 @@
-package com.llego.business
+package com.llego.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

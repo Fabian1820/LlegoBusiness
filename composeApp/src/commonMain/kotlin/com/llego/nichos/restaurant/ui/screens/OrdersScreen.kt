@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +39,17 @@ fun OrdersScreen(
     val filteredOrders by viewModel.filteredOrders.collectAsStateWithLifecycle()
     val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
 
-    var selectedOrder by remember { mutableStateOf<Order?>(null) }
+    var selectedOrderId by rememberSaveable { mutableStateOf<String?>(null) }
+    val allOrders = (uiState as? OrdersUiState.Success)?.orders.orEmpty()
+    val selectedOrder = selectedOrderId?.let { id ->
+        allOrders.firstOrNull { it.id == id }
+    }
+
+    LaunchedEffect(selectedOrderId, selectedOrder) {
+        if (selectedOrderId != null && selectedOrder == null) {
+            selectedOrderId = null
+        }
+    }
 
     Column(
         modifier = modifier
@@ -103,7 +114,7 @@ fun OrdersScreen(
                         ) { order ->
                             OrderCard(
                                 order = order,
-                                onClick = { selectedOrder = order }
+                                onClick = { selectedOrderId = order.id }
                             )
                         }
                     }
@@ -114,18 +125,18 @@ fun OrdersScreen(
 
     // Dialog de detalle del pedido
     // TODO: Reactivar cuando se corrija el diálogo
-    /*
+
     selectedOrder?.let { order ->
         OrderDetailDialog(
             order = order,
-            onDismiss = { selectedOrder = null },
+            onDismiss = { selectedOrderId = null },
             onUpdateStatus = { newStatus ->
                 viewModel.updateOrderStatus(order.id, newStatus)
-                selectedOrder = null
+                selectedOrderId = null
             }
         )
     }
-    */
+
 }
 
 /**
