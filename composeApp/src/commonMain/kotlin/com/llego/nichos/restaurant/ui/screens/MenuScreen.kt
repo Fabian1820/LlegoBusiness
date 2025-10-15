@@ -23,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +35,31 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuUiState
+import llegobusiness.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
+
+/**
+ * Helper para obtener la imagen del producto basada en su ID
+ * Mapea de forma consistente cada producto a una imagen
+ */
+@Composable
+private fun getProductImage(menuItemId: String): org.jetbrains.compose.resources.DrawableResource {
+    // Lista de imágenes disponibles
+    val images = listOf(
+        Res.drawable.pizza,
+        Res.drawable.spaggetti,
+        Res.drawable.arrozblanco,
+        Res.drawable.arrozmoro,
+        Res.drawable.pastelfresa,
+        Res.drawable.tresleches,
+        Res.drawable.batidofresa,
+        Res.drawable.batidomamey
+    )
+
+    // Usar el hashCode del ID para obtener siempre la misma imagen para el mismo producto
+    val index = menuItemId.hashCode().let { if (it < 0) -it else it } % images.size
+    return images[index]
+}
 
 /**
  * Pantalla de Menú con diseño moderno y gestión CRUD
@@ -669,47 +696,20 @@ private fun CompactMenuItemCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono/foto del producto
-            Surface(
-                modifier = Modifier.size(50.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = when (menuItem.category) {
-                    MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                },
-                border = BorderStroke(
-                    1.dp,
-                    when (menuItem.category) {
-                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                    }
-                )
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = when (menuItem.category) {
-                            MenuCategory.APPETIZERS -> Icons.Default.Restaurant
-                            MenuCategory.MAIN_COURSES -> Icons.Default.DinnerDining
-                            MenuCategory.SIDES -> Icons.Default.FoodBank
-                            MenuCategory.DESSERTS -> Icons.Default.Cake
-                            MenuCategory.BEVERAGES -> Icons.Default.LocalCafe
-                            MenuCategory.SPECIALS -> Icons.Default.Star
-                        },
-                        contentDescription = null,
-                        tint = when (menuItem.category) {
-                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.secondary
-                        },
-                        modifier = Modifier.size(26.dp)
+            // Imagen real del producto con diseño elegante
+            androidx.compose.foundation.Image(
+                painter = painterResource(getProductImage(menuItem.id)),
+                contentDescription = menuItem.name,
+                modifier = Modifier
+                    .size(60.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(12.dp),
+                        clip = false
                     )
-                }
-            }
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
 
             // Información del producto
             Column(
@@ -832,45 +832,42 @@ private fun MenuItemCard(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Imagen del producto (placeholder) con gradiente Llego
-            Surface(
-                modifier = Modifier.size(80.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = when (menuItem.category) {
-                    MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                },
-                border = BorderStroke(
-                    1.dp,
-                    when (menuItem.category) {
-                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                    }
-                )
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = when (menuItem.category) {
-                            MenuCategory.APPETIZERS -> Icons.Default.Restaurant
-                            MenuCategory.MAIN_COURSES -> Icons.Default.DinnerDining
-                            MenuCategory.SIDES -> Icons.Default.FoodBank
-                            MenuCategory.DESSERTS -> Icons.Default.Cake
-                            MenuCategory.BEVERAGES -> Icons.Default.LocalCafe
-                            MenuCategory.SPECIALS -> Icons.Default.Star
-                        },
-                        contentDescription = null,
-                        tint = when (menuItem.category) {
-                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.secondary
-                        },
-                        modifier = Modifier.size(40.dp)
+            // Imagen real del producto con diseño premium
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .shadow(
+                        elevation = 6.dp,
+                        shape = RoundedCornerShape(16.dp),
+                        clip = false
                     )
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(getProductImage(menuItem.id)),
+                    contentDescription = menuItem.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Overlay con gradiente sutil si no está disponible
+                if (!menuItem.isAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Block,
+                            contentDescription = "No disponible",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
 
