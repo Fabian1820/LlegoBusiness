@@ -51,7 +51,7 @@ class RestaurantRepository {
     }
 
     suspend fun acceptOrder(orderId: String): Boolean {
-        return updateOrderStatus(orderId, OrderStatus.ACCEPTED)
+        return updateOrderStatus(orderId, OrderStatus.PREPARING)
     }
 
     suspend fun startPreparingOrder(orderId: String): Boolean {
@@ -60,10 +60,6 @@ class RestaurantRepository {
 
     suspend fun markOrderReady(orderId: String): Boolean {
         return updateOrderStatus(orderId, OrderStatus.READY)
-    }
-
-    suspend fun markOrderDelivered(orderId: String): Boolean {
-        return updateOrderStatus(orderId, OrderStatus.DELIVERED)
     }
 
     suspend fun cancelOrder(orderId: String): Boolean {
@@ -178,7 +174,6 @@ class RestaurantRepository {
                 updatedAt = "2024-10-06T12:30:00",
                 total = 35.0,
                 paymentMethod = PaymentMethod.CASH,
-                deliveryType = DeliveryType.DELIVERY,
                 specialNotes = "Tocar el timbre dos veces",
                 estimatedTime = 45
             ),
@@ -209,7 +204,6 @@ class RestaurantRepository {
                 updatedAt = "2024-10-06T12:00:00",
                 total = 23.0,
                 paymentMethod = PaymentMethod.CARD,
-                deliveryType = DeliveryType.DELIVERY,
                 estimatedTime = 30
             ),
             Order(
@@ -218,7 +212,7 @@ class RestaurantRepository {
                 customer = Customer(
                     name = "Carlos Rodríguez",
                     phone = "+53 5555-3333",
-                    address = null
+                    address = "Calle 17 #890, Centro Habana"
                 ),
                 items = listOf(
                     OrderItem(
@@ -233,7 +227,6 @@ class RestaurantRepository {
                 updatedAt = "2024-10-06T11:30:00",
                 total = 12.0,
                 paymentMethod = PaymentMethod.TRANSFER,
-                deliveryType = DeliveryType.PICKUP,
                 estimatedTime = 15
             ),
             Order(
@@ -264,12 +257,11 @@ class RestaurantRepository {
                         subtotal = 3.0
                     )
                 ),
-                status = OrderStatus.ACCEPTED,
+                status = OrderStatus.PREPARING,
                 createdAt = "2024-10-06T12:15:00",
                 updatedAt = "2024-10-06T12:20:00",
                 total = 23.50,
                 paymentMethod = PaymentMethod.DIGITAL_WALLET,
-                deliveryType = DeliveryType.DELIVERY,
                 estimatedTime = 40
             )
         )
@@ -360,7 +352,7 @@ class RestaurantRepository {
                 name = "Mojito Cubano",
                 description = "Ron blanco, hierbabuena, limón, azúcar y soda",
                 price = 5.00,
-                category = MenuCategory.ALCOHOLIC,
+                category = MenuCategory.BEVERAGES,
                 isAvailable = true,
                 preparationTime = 5,
                 isVegetarian = true,
@@ -373,7 +365,7 @@ class RestaurantRepository {
                 name = "Ensalada Mixta",
                 description = "Lechuga, tomate, pepino, zanahoria con vinagreta",
                 price = 5.50,
-                category = MenuCategory.SALADS,
+                category = MenuCategory.APPETIZERS,
                 isAvailable = true,
                 preparationTime = 10,
                 isVegetarian = true,
@@ -398,7 +390,7 @@ class RestaurantRepository {
                 name = "Ajiaco Criollo",
                 description = "Sopa tradicional cubana con viandas y carnes",
                 price = 9.00,
-                category = MenuCategory.SOUPS,
+                category = MenuCategory.MAIN_COURSES,
                 isAvailable = true,
                 preparationTime = 20,
                 calories = 380

@@ -26,14 +26,10 @@ data class MenuItem(
 @Serializable
 enum class MenuCategory {
     APPETIZERS,     // Entradas
-    SOUPS,          // Sopas
-    SALADS,         // Ensaladas
     MAIN_COURSES,   // Platos Principales
-    SIDES,          // Acompañamientos
     DESSERTS,       // Postres
+    SIDES,          // Agregos
     BEVERAGES,      // Bebidas
-    ALCOHOLIC,      // Bebidas Alcohólicas
-    KIDS_MENU,      // Menú Infantil
     SPECIALS        // Especiales del día
 }
 
@@ -41,29 +37,21 @@ enum class MenuCategory {
 fun MenuCategory.getDisplayName(): String {
     return when (this) {
         MenuCategory.APPETIZERS -> "Entradas"
-        MenuCategory.SOUPS -> "Sopas"
-        MenuCategory.SALADS -> "Ensaladas"
-        MenuCategory.MAIN_COURSES -> "Platos Principales"
-        MenuCategory.SIDES -> "Acompañamientos"
+        MenuCategory.MAIN_COURSES -> "Principales"
         MenuCategory.DESSERTS -> "Postres"
+        MenuCategory.SIDES -> "Agregos"
         MenuCategory.BEVERAGES -> "Bebidas"
-        MenuCategory.ALCOHOLIC -> "Bebidas Alcohólicas"
-        MenuCategory.KIDS_MENU -> "Menú Infantil"
-        MenuCategory.SPECIALS -> "Especiales del Día"
+        MenuCategory.SPECIALS -> "Especial/Día"
     }
 }
 
 fun MenuCategory.getIcon(): String {
     return when (this) {
         MenuCategory.APPETIZERS -> "🥗"
-        MenuCategory.SOUPS -> "🍲"
-        MenuCategory.SALADS -> "🥙"
         MenuCategory.MAIN_COURSES -> "🍽️"
-        MenuCategory.SIDES -> "🍟"
         MenuCategory.DESSERTS -> "🍰"
+        MenuCategory.SIDES -> "🍟"
         MenuCategory.BEVERAGES -> "🥤"
-        MenuCategory.ALCOHOLIC -> "🍷"
-        MenuCategory.KIDS_MENU -> "👶"
         MenuCategory.SPECIALS -> "⭐"
     }
 }

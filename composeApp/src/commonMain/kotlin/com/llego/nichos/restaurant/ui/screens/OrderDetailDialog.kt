@@ -25,7 +25,8 @@ import com.llego.nichos.restaurant.data.model.*
 fun OrderDetailDialog(
     order: Order,
     onDismiss: () -> Unit,
-    onUpdateStatus: (OrderStatus) -> Unit
+    onUpdateStatus: (OrderStatus) -> Unit,
+    onNavigateToChat: ((String, String, String) -> Unit)? = null // orderId, orderNumber, customerName para navegar al chat
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -34,16 +35,18 @@ fun OrderDetailDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 16.dp)
                 .fillMaxHeight(0.9f),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Header
+                // Header con colores Llego
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -56,11 +59,16 @@ fun OrderDetailDialog(
                         Text(
                             text = "Pedido ${order.orderNumber}",
                             style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         )
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Cerrar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
@@ -80,11 +88,6 @@ fun OrderDetailDialog(
 
                     // Información del cliente
                     CustomerInfoSection(customer = order.customer)
-
-                    HorizontalDivider()
-
-                    // Tipo de entrega
-                    DeliveryTypeSection(deliveryType = order.deliveryType)
 
                     HorizontalDivider()
 
@@ -121,9 +124,12 @@ fun OrderDetailDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OrderActionsSection(
+                            orderId = order.id,
+                            orderNumber = order.orderNumber,
+                            customerName = order.customer.name,
                             orderStatus = order.status,
-                            deliveryType = order.deliveryType,
-                            onUpdateStatus = onUpdateStatus
+                            onUpdateStatus = onUpdateStatus,
+                            onNavigateToChat = onNavigateToChat
                         )
                     }
                 }
@@ -137,8 +143,21 @@ private fun OrderStatusSection(order: Order) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = Color(order.status.getColor()).copy(alpha = 0.1f),
-        border = BorderStroke(2.dp, Color(order.status.getColor()))
+        color = when (order.status) {
+            OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+            OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            OrderStatus.READY -> Color(0xFF4CAF50).copy(alpha = 0.15f)
+            OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+        },
+        border = BorderStroke(
+            2.dp,
+            when (order.status) {
+                OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                OrderStatus.READY -> Color(0xFF4CAF50)
+                OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+            }
+        )
     ) {
         Row(
             modifier = Modifier
@@ -150,28 +169,35 @@ private fun OrderStatusSection(order: Order) {
             Icon(
                 imageVector = when (order.status) {
                     OrderStatus.PENDING -> Icons.Default.HourglassEmpty
-                    OrderStatus.ACCEPTED -> Icons.Default.CheckCircle
                     OrderStatus.PREPARING -> Icons.Default.Restaurant
                     OrderStatus.READY -> Icons.Default.Done
-                    OrderStatus.IN_DELIVERY -> Icons.Default.DeliveryDining
-                    OrderStatus.DELIVERED -> Icons.Default.TaskAlt
                     OrderStatus.CANCELLED -> Icons.Default.Cancel
                 },
                 contentDescription = null,
-                tint = Color(order.status.getColor()),
+                tint = when (order.status) {
+                    OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                    OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                    OrderStatus.READY -> Color(0xFF4CAF50)
+                    OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                },
                 modifier = Modifier.size(32.dp)
             )
             Column {
                 Text(
                     text = "Estado Actual",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = order.status.getDisplayName(),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(order.status.getColor())
+                        color = when (order.status) {
+                            OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                            OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                            OrderStatus.READY -> Color(0xFF4CAF50)
+                            OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                        }
                     )
                 )
             }
@@ -229,26 +255,6 @@ private fun CustomerInfoSection(customer: Customer) {
     }
 }
 
-@Composable
-private fun DeliveryTypeSection(deliveryType: DeliveryType) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = if (deliveryType == DeliveryType.DELIVERY)
-                Icons.Default.DeliveryDining else Icons.Default.Store,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        Text(
-            text = deliveryType.getDisplayName(),
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.SemiBold
-            )
-        )
-    }
-}
 
 @Composable
 private fun OrderItemsSection(items: List<OrderItem>) {
@@ -313,19 +319,21 @@ private fun SpecialNotesSection(notes: String) {
         Text(
             text = "Notas Especiales",
             style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
         )
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
-            color = Color(0xFFFFF9E6),
-            border = BorderStroke(1.dp, Color(0xFFFFD700))
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f))
         ) {
             Text(
                 text = notes,
                 modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -378,7 +386,8 @@ private fun EstimatedTimeSection(estimatedTime: Int) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
@@ -390,7 +399,7 @@ private fun EstimatedTimeSection(estimatedTime: Int) {
             Icon(
                 imageVector = Icons.Default.Timer,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -406,10 +415,15 @@ private fun EstimatedTimeSection(estimatedTime: Int) {
 
 @Composable
 private fun OrderActionsSection(
+    orderId: String,
+    orderNumber: String,
+    customerName: String,
     orderStatus: OrderStatus,
-    deliveryType: DeliveryType,
-    onUpdateStatus: (OrderStatus) -> Unit
+    onUpdateStatus: (OrderStatus) -> Unit,
+    onNavigateToChat: ((String, String, String) -> Unit)?
 ) {
+    var showCancelConfirmation by remember { mutableStateOf(false) }
+
     Text(
         text = "Acciones",
         style = MaterialTheme.typography.titleSmall.copy(
@@ -419,99 +433,61 @@ private fun OrderActionsSection(
 
     when (orderStatus) {
         OrderStatus.PENDING -> {
+            // Aceptar pedido - Color Primary Llego
             Button(
-                onClick = { onUpdateStatus(OrderStatus.ACCEPTED) },
+                onClick = { onUpdateStatus(OrderStatus.PREPARING) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Aceptar Pedido")
+                Text(
+                    "Aceptar Pedido",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
+
+            // Rechazar pedido - muestra confirmación
             OutlinedButton(
-                onClick = { onUpdateStatus(OrderStatus.CANCELLED) },
+                onClick = { showCancelConfirmation = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
             ) {
                 Icon(Icons.Default.Cancel, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Rechazar Pedido")
-            }
-        }
-        OrderStatus.ACCEPTED -> {
-            Button(
-                onClick = { onUpdateStatus(OrderStatus.PREPARING) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Restaurant, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Iniciar Preparación")
+                Text(
+                    "Rechazar Pedido",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
         }
         OrderStatus.PREPARING -> {
+            // Marcar como listo - Color Success
             Button(
                 onClick = { onUpdateStatus(OrderStatus.READY) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2196F3)
-                )
-            ) {
-                Icon(Icons.Default.Done, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Marcar como Listo")
-            }
-        }
-        OrderStatus.READY -> {
-            if (deliveryType == DeliveryType.DELIVERY) {
-                Button(
-                    onClick = { onUpdateStatus(OrderStatus.IN_DELIVERY) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF9C27B0)
-                    )
-                ) {
-                    Icon(Icons.Default.DeliveryDining, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("En Camino")
-                }
-            } else {
-                Button(
-                    onClick = { onUpdateStatus(OrderStatus.DELIVERED) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4CAF50)
-                    )
-                ) {
-                    Icon(Icons.Default.TaskAlt, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Pedido Recogido")
-                }
-            }
-        }
-        OrderStatus.IN_DELIVERY -> {
-            Button(
-                onClick = { onUpdateStatus(OrderStatus.DELIVERED) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF4CAF50)
                 )
             ) {
-                Icon(Icons.Default.TaskAlt, contentDescription = null)
+                Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Pedido Entregado")
+                Text(
+                    "Marcar como Listo",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         }
-        OrderStatus.DELIVERED, OrderStatus.CANCELLED -> {
+        OrderStatus.READY -> {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
-                color = if (orderStatus == OrderStatus.DELIVERED)
-                    Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                color = Color(0xFFE8F5E9)
             ) {
                 Row(
                     modifier = Modifier
@@ -521,24 +497,114 @@ private fun OrderActionsSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (orderStatus == OrderStatus.DELIVERED)
-                            Icons.Default.CheckCircle else Icons.Default.Cancel,
+                        imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = if (orderStatus == OrderStatus.DELIVERED)
-                            Color(0xFF4CAF50) else Color(0xFFD32F2F)
+                        tint = Color(0xFF4CAF50)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (orderStatus == OrderStatus.DELIVERED)
-                            "Pedido completado" else "Pedido cancelado",
+                        text = "Pedido listo para entregar",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold,
-                            color = if (orderStatus == OrderStatus.DELIVERED)
-                                Color(0xFF4CAF50) else Color(0xFFD32F2F)
+                            color = Color(0xFF4CAF50)
                         )
                     )
                 }
             }
         }
+        OrderStatus.CANCELLED -> {
+            // Pedido cancelado - mostrar info y botón para ir al chat
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFFFEBEE)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Cancel,
+                            contentDescription = null,
+                            tint = Color(0xFFD32F2F)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Pedido cancelado",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFD32F2F)
+                            )
+                        )
+                    }
+
+                    if (onNavigateToChat != null) {
+                        TextButton(
+                            onClick = { onNavigateToChat.invoke(orderId, orderNumber, customerName) },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Ir al chat con el cliente")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Dialog de confirmación de cancelación
+    if (showCancelConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showCancelConfirmation = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text("¿Cancelar pedido?")
+            },
+            text = {
+                Text("¿Deseas explicar el motivo de la cancelación al cliente?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelConfirmation = false
+                        onUpdateStatus(OrderStatus.CANCELLED)
+                        // Redirigir al chat para explicar el motivo
+                        onNavigateToChat?.invoke(orderId, orderNumber, customerName)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Sí, ir al chat")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showCancelConfirmation = false
+                        onUpdateStatus(OrderStatus.CANCELLED)
+                    }
+                ) {
+                    Text("Solo cancelar")
+                }
+            }
+        )
     }
 }

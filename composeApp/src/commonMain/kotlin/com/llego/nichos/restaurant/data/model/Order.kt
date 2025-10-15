@@ -16,9 +16,9 @@ data class Order(
     val updatedAt: String,
     val total: Double,
     val paymentMethod: PaymentMethod,
-    val deliveryType: DeliveryType,
     val specialNotes: String? = null,
     val estimatedTime: Int? = null // minutos
+    // deliveryType eliminado - solo domicilios
 )
 
 @Serializable
@@ -46,12 +46,9 @@ data class OrderItem(
 @Serializable
 enum class OrderStatus {
     PENDING,        // Pendiente - acaba de llegar
-    ACCEPTED,       // Aceptado - confirmado por el restaurante
-    PREPARING,      // En Elaboración - se está preparando
-    READY,          // Listo - esperando entrega
-    IN_DELIVERY,    // En Camino - el repartidor lo recogió
-    DELIVERED,      // Entregado - completado
-    CANCELLED       // Cancelado
+    PREPARING,      // Elaboración - se está preparando (antes ACCEPTED + PREPARING)
+    READY,          // Listo - estado final para pedidos completados
+    CANCELLED       // Cancelado - rechazado
 }
 
 @Serializable
@@ -62,21 +59,12 @@ enum class PaymentMethod {
     DIGITAL_WALLET  // Billetera digital
 }
 
-@Serializable
-enum class DeliveryType {
-    DELIVERY,       // A domicilio
-    PICKUP          // Recoger en restaurante
-}
-
 // Extension functions para UI
 fun OrderStatus.getDisplayName(): String {
     return when (this) {
         OrderStatus.PENDING -> "Pendiente"
-        OrderStatus.ACCEPTED -> "Aceptado"
-        OrderStatus.PREPARING -> "En Elaboración"
+        OrderStatus.PREPARING -> "Elaboración"
         OrderStatus.READY -> "Listo"
-        OrderStatus.IN_DELIVERY -> "En Camino"
-        OrderStatus.DELIVERED -> "Entregado"
         OrderStatus.CANCELLED -> "Cancelado"
     }
 }
@@ -84,11 +72,8 @@ fun OrderStatus.getDisplayName(): String {
 fun OrderStatus.getColor(): Long {
     return when (this) {
         OrderStatus.PENDING -> 0xFFFF9800      // Naranja
-        OrderStatus.ACCEPTED -> 0xFF2196F3     // Azul
         OrderStatus.PREPARING -> 0xFF9C27B0    // Morado
         OrderStatus.READY -> 0xFF4CAF50        // Verde claro
-        OrderStatus.IN_DELIVERY -> 0xFF00BCD4  // Cyan
-        OrderStatus.DELIVERED -> 0xFF4CAF50    // Verde
         OrderStatus.CANCELLED -> 0xFFF44336    // Rojo
     }
 }
@@ -99,12 +84,5 @@ fun PaymentMethod.getDisplayName(): String {
         PaymentMethod.CARD -> "Tarjeta"
         PaymentMethod.TRANSFER -> "Transferencia"
         PaymentMethod.DIGITAL_WALLET -> "Billetera Digital"
-    }
-}
-
-fun DeliveryType.getDisplayName(): String {
-    return when (this) {
-        DeliveryType.DELIVERY -> "A Domicilio"
-        DeliveryType.PICKUP -> "Recoger en Restaurante"
     }
 }

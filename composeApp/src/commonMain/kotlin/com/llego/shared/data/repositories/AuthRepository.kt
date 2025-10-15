@@ -27,6 +27,11 @@ class AuthRepository {
 
     /**
      * Realiza el login del usuario
+     *
+     * USUARIOS DE PRUEBA RÁPIDOS:
+     * - Restaurante: email="r" password="r"
+     * - Supermercado: email="s" password="s"
+     * - Farmacia: email="f" password="f"
      */
     suspend fun login(loginRequest: LoginRequest): Result<LoginResponse> {
         return try {
@@ -273,7 +278,7 @@ class AuthRepository {
     }
 
     private fun isValidPassword(password: String): Boolean {
-        // Mock: acepta cualquier password con al menos 6 caracteres
-        return password.length >= 6
+        // Mock: acepta cualquier password con al menos 1 carácter (para testing rápido)
+        return password.isNotEmpty()
     }
 }

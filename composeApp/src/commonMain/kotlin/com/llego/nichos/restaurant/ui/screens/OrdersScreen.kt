@@ -5,9 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,6 +21,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +38,8 @@ import com.llego.nichos.restaurant.ui.viewmodel.OrdersUiState
 @Composable
 fun OrdersScreen(
     viewModel: OrdersViewModel,
+    onNavigateToChat: ((String, String, String) -> Unit)? = null, // orderId, orderNumber, customerName
+    onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -51,19 +58,11 @@ fun OrdersScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // Filtros de estado
-        StatusFilterChips(
-            selectedFilter = selectedFilter,
-            onFilterSelected = { viewModel.setFilter(it) },
-            onClearFilter = { viewModel.clearFilter() }
-        )
-
-        // Lista de pedidos
         when (uiState) {
             is OrdersUiState.Loading -> {
                 Box(
@@ -101,20 +100,39 @@ fun OrdersScreen(
             }
             is OrdersUiState.Success -> {
                 if (filteredOrders.isEmpty()) {
-                    EmptyOrdersView(hasFilter = selectedFilter != null)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Filtros de estado
+                        StatusFilterChips(
+                            selectedFilter = selectedFilter,
+                            onFilterSelected = { viewModel.setFilter(it) },
+                            onClearFilter = { viewModel.clearFilter() }
+                        )
+                        EmptyOrdersView(hasFilter = selectedFilter != null)
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // Filtros de estado como primer item
+                        item {
+                            StatusFilterChips(
+                                selectedFilter = selectedFilter,
+                                onFilterSelected = { viewModel.setFilter(it) },
+                                onClearFilter = { viewModel.clearFilter() }
+                            )
+                        }
+
+                        // Lista de pedidos
                         items(
                             items = filteredOrders,
                             key = { it.id }
                         ) { order ->
                             OrderCard(
                                 order = order,
-                                onClick = { selectedOrderId = order.id }
+                                onClick = { selectedOrderId = order.id },
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
@@ -131,16 +149,28 @@ fun OrdersScreen(
             order = order,
             onDismiss = { selectedOrderId = null },
             onUpdateStatus = { newStatus ->
+                // Mostrar pantalla de confirmación según el cambio de estado
+                when {
+                    // Pedido aceptado (PENDING → PREPARING)
+                    order.status == OrderStatus.PENDING && newStatus == OrderStatus.PREPARING -> {
+                        onShowConfirmation?.invoke(ConfirmationType.ORDER_ACCEPTED, order.orderNumber)
+                    }
+                    // Pedido listo (PREPARING → READY)
+                    order.status == OrderStatus.PREPARING && newStatus == OrderStatus.READY -> {
+                        onShowConfirmation?.invoke(ConfirmationType.ORDER_READY, order.orderNumber)
+                    }
+                }
+
                 viewModel.updateOrderStatus(order.id, newStatus)
                 selectedOrderId = null
-            }
+            },
+            onNavigateToChat = onNavigateToChat
         )
     }
-
 }
 
 /**
- * Chips de filtro por estado
+ * Chips de filtro por estado contenidos en un card con fade en ambos lados
  */
 @Composable
 private fun StatusFilterChips(
@@ -148,46 +178,121 @@ private fun StatusFilterChips(
     onFilterSelected: (OrderStatus) -> Unit,
     onClearFilter: () -> Unit
 ) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 2.dp
-    ) {
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Chip "Todos"
-            item {
-                FilterChip(
-                    selected = selectedFilter == null,
-                    onClick = onClearFilter,
-                    label = { Text("Todos") },
-                    leadingIcon = if (selectedFilter == null) {
-                        { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
-                    } else null
-                )
-            }
+    val listState = rememberLazyListState()
+    val allStatuses = OrderStatus.values().toList()
 
-            // Chips por estado
-            items(OrderStatus.values()) { status ->
-                FilterChip(
-                    selected = selectedFilter == status,
-                    onClick = { onFilterSelected(status) },
-                    label = {
-                        Text(
-                            text = status.getDisplayName(),
-                            style = MaterialTheme.typography.labelMedium
+    // Centrar automáticamente cuando se selecciona un filtro
+    LaunchedEffect(selectedFilter) {
+        selectedFilter?.let { filter ->
+            val index = allStatuses.indexOf(filter) + 1 // +1 porque "Todos" es el primer item
+            listState.animateScrollToItem(index)
+        } ?: run {
+            listState.animateScrollToItem(0) // Scroll a "Todos"
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Box {
+            LazyRow(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawWithContent {
+                        drawContent()
+                        // Fade izquierdo
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.White,
+                                    Color.Transparent
+                                ),
+                                startX = 0f,
+                                endX = 60f
+                            )
+                        )
+                        // Fade derecho
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.White
+                                ),
+                                startX = size.width - 80f,
+                                endX = size.width
+                            )
                         )
                     },
-                    leadingIcon = if (selectedFilter == status) {
-                        { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
-                    } else null,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(status.getColor()).copy(alpha = 0.2f),
-                        selectedLabelColor = Color(status.getColor())
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Chip "Todos"
+                item {
+                    FilterChip(
+                        selected = selectedFilter == null,
+                        onClick = onClearFilter,
+                        label = {
+                            Text(
+                                "Todos",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (selectedFilter == null) FontWeight.Bold else FontWeight.Medium
+                                )
+                            )
+                        },
+                        leadingIcon = if (selectedFilter == null) {
+                            { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                        } else null,
+                        border = BorderStroke(
+                            width = if (selectedFilter == null) 1.5.dp else 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (selectedFilter == null) 1f else 0.3f)
+                        ),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = Color.Transparent,
+                            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
                     )
-                )
+                }
+
+                // Chips por estado - Todos con color primary como el menú
+                items(OrderStatus.values()) { status ->
+                    FilterChip(
+                        selected = selectedFilter == status,
+                        onClick = { onFilterSelected(status) },
+                        label = {
+                            Text(
+                                text = status.getDisplayName(),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (selectedFilter == status) FontWeight.Bold else FontWeight.Medium
+                                )
+                            )
+                        },
+                        leadingIcon = if (selectedFilter == status) {
+                            { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                        } else null,
+                        border = BorderStroke(
+                            width = if (selectedFilter == status) 1.5.dp else 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (selectedFilter == status) 1f else 0.3f)
+                        ),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = Color.Transparent,
+                            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    )
+                }
             }
         }
     }
@@ -199,10 +304,11 @@ private fun StatusFilterChips(
 @Composable
 private fun OrderCard(
     order: Order,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
@@ -220,31 +326,69 @@ private fun OrderCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header: Número de pedido + Estado
+            // Header: Icono moto + Número de pedido + Estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Pedido ${order.orderNumber}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
+                // Icono de moto + Número de pedido
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.TwoWheeler,
+                            contentDescription = "Domicilio",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .padding(6.dp)
+                        )
+                    }
+                    Text(
+                        text = order.orderNumber,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     )
-                )
+                }
 
-                // Badge de estado
+                // Badge de estado con colores Llego
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = Color(order.status.getColor()).copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, Color(order.status.getColor()))
+                    color = when (order.status) {
+                        OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                        OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        OrderStatus.READY -> Color(0xFF4CAF50).copy(alpha = 0.15f)
+                        OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                    },
+                    border = BorderStroke(
+                        1.5.dp,
+                        when (order.status) {
+                            OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                            OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                            OrderStatus.READY -> Color(0xFF4CAF50)
+                            OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                        }
+                    )
                 ) {
                     Text(
                         text = order.status.getDisplayName(),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(order.status.getColor())
+                            fontWeight = FontWeight.Bold,
+                            color = when (order.status) {
+                                OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                                OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                                OrderStatus.READY -> Color(0xFF4CAF50)
+                                OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                            }
                         )
                     )
                 }
@@ -257,143 +401,130 @@ private fun OrderCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .padding(6.dp)
+                    )
+                }
                 Column {
                     Text(
                         text = order.customer.name,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     Text(
                         text = order.customer.phone,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // Tipo de entrega y dirección
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = if (order.deliveryType == DeliveryType.DELIVERY)
-                        Icons.Default.DeliveryDining else Icons.Default.Store,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Column {
-                    Text(
-                        text = order.deliveryType.getDisplayName(),
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-                    if (order.customer.address != null) {
-                        Text(
-                            text = order.customer.address,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+            // Dirección de entrega
+            if (order.customer.address != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(6.dp)
                         )
                     }
+                    Text(
+                        text = order.customer.address,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
-            // Items del pedido (resumen)
+            HorizontalDivider(color = Color(0xFFE0E0E0))
+
+            // Footer: Total + Método de pago + Tiempo estimado
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFF5F5F5)
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
             ) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Items del pedido",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = Color(0xFF666666)
-                    )
+                    Column {
+                        Text(
+                            text = "Total",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "$${order.total}",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
 
-                    order.items.take(2).forEach { orderItem ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                    Column(horizontalAlignment = Alignment.End) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = "${orderItem.quantity}x ${orderItem.menuItem.name}",
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "$${orderItem.subtotal}",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium
-                                )
+                                text = order.paymentMethod.getDisplayName(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-                    }
-
-                    if (order.items.size > 2) {
-                        Text(
-                            text = "+${order.items.size - 2} items más",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            Divider(color = Color(0xFFE0E0E0))
-
-            // Footer: Total + Método de pago + Tiempo estimado
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Total",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "$${order.total}",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = order.paymentMethod.getDisplayName(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                    order.estimatedTime?.let { time ->
-                        Text(
-                            text = "⏱️ $time min",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        order.estimatedTime?.let { time ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "$time min",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
                     }
                 }
             }

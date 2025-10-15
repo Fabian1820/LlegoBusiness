@@ -95,16 +95,6 @@ class OrdersViewModel : ViewModel() {
         }
     }
 
-    fun markOrderDelivered(orderId: String) {
-        viewModelScope.launch {
-            try {
-                repository.markOrderDelivered(orderId)
-            } catch (e: Exception) {
-                // TODO: Manejar error
-            }
-        }
-    }
-
     fun cancelOrder(orderId: String) {
         viewModelScope.launch {
             try {
@@ -133,7 +123,7 @@ class OrdersViewModel : ViewModel() {
 
     fun getActiveOrdersCount(): Int {
         return (uiState.value as? OrdersUiState.Success)?.orders
-            ?.count { it.status in listOf(OrderStatus.ACCEPTED, OrderStatus.PREPARING, OrderStatus.READY) } ?: 0
+            ?.count { it.status in listOf(OrderStatus.PREPARING, OrderStatus.READY) } ?: 0
     }
 }
 

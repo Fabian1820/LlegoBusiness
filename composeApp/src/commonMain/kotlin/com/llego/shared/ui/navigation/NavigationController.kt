@@ -129,14 +129,20 @@ class LlegoNavigationController(
         navController.navigate(route)
     }
 
-    fun navigateToNotifications() {
+    fun navigateToChats() {
         val route = when (businessType) {
-            BusinessType.RESTAURANT -> Routes.Restaurant.NOTIFICATIONS
+            BusinessType.RESTAURANT -> Routes.Restaurant.CHATS
             BusinessType.GROCERY -> Routes.Market.NOTIFICATIONS
             BusinessType.PHARMACY -> Routes.Pharmacy.NOTIFICATIONS
             else -> Routes.Market.NOTIFICATIONS
         }
         navController.navigate(route)
+    }
+
+    fun navigateToChatDetail(orderId: String) {
+        if (businessType == BusinessType.RESTAURANT) {
+            navController.navigate(Routes.Restaurant.chatDetail(orderId))
+        }
     }
 
     /**

@@ -27,11 +27,13 @@ object Routes {
         const val ANALYTICS = "restaurant/analytics"
         const val PROFILE = "restaurant/profile"
         const val SETTINGS = "restaurant/settings"
-        const val NOTIFICATIONS = "restaurant/notifications"
+        const val CHATS = "restaurant/chats"
+        const val CHAT_DETAIL = "restaurant/chats/{orderId}"
 
         // Funciones helper para rutas con parámetros
         fun orderDetail(orderId: String) = "restaurant/orders/$orderId"
         fun menuItemDetail(menuItemId: String) = "restaurant/menu/$menuItemId"
+        fun chatDetail(orderId: String) = "restaurant/chats/$orderId"
     }
 
     // Rutas para nicho Market/Grocery

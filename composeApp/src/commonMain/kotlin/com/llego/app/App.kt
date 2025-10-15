@@ -1,6 +1,8 @@
 package com.llego.app
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.auth.AuthViewModel
@@ -9,6 +11,11 @@ import com.llego.shared.ui.navigation.*
 import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.nichos.restaurant.ui.screens.RestaurantHomeScreen
 import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
+import com.llego.nichos.restaurant.ui.screens.ChatsScreen
+import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
+import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
+import com.llego.nichos.restaurant.ui.screens.ConfirmationType
+import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.market.ui.screens.MarketProfileScreen
 
 @Composable
@@ -19,6 +26,16 @@ fun App() {
         var isAuthenticated by remember { mutableStateOf(false) }
         var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
         var showProfile by remember { mutableStateOf(false) }
+        var showChats by remember { mutableStateOf(false) }
+        var showChatDetail by remember { mutableStateOf(false) }
+        var currentChatOrderId by remember { mutableStateOf<String?>(null) }
+
+        // Estado para confirmaciones fullscreen
+        var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
+        var confirmationOrderNumber by remember { mutableStateOf("") }
+
+        // ChatsViewModel compartido
+        val chatsViewModel: ChatsViewModel = viewModel()
 
         // Observar estado de autenticación
         LaunchedEffect(authViewModel) {
@@ -32,16 +49,66 @@ fun App() {
             // Usuario autenticado - mostrar pantalla según tipo de negocio
             when (currentBusinessType) {
                 BusinessType.RESTAURANT -> {
-                    if (showProfile) {
-                        RestaurantProfileScreen(
-                            authViewModel = authViewModel,
-                            onNavigateBack = { showProfile = false }
-                        )
-                    } else {
-                        RestaurantHomeScreen(
-                            authViewModel = authViewModel,
-                            onNavigateToProfile = { showProfile = true }
-                        )
+                    Box(modifier = Modifier) {
+                        // Contenido principal
+                        when {
+                            showChatDetail && currentChatOrderId != null -> {
+                                ChatDetailScreen(
+                                    orderId = currentChatOrderId!!,
+                                    onNavigateBack = {
+                                        showChatDetail = false
+                                        currentChatOrderId = null
+                                        showChats = true
+                                    },
+                                    viewModel = chatsViewModel
+                                )
+                            }
+                            showChats -> {
+                                ChatsScreen(
+                                    onChatClick = { orderId ->
+                                        currentChatOrderId = orderId
+                                        showChatDetail = true
+                                        showChats = false
+                                    },
+                                    onNavigateBack = { showChats = false },
+                                    viewModel = chatsViewModel
+                                )
+                            }
+                            showProfile -> {
+                                RestaurantProfileScreen(
+                                    authViewModel = authViewModel,
+                                    onNavigateBack = { showProfile = false }
+                                )
+                            }
+                            else -> {
+                                RestaurantHomeScreen(
+                                    authViewModel = authViewModel,
+                                    onNavigateToProfile = { showProfile = true },
+                                    onNavigateToChats = { showChats = true },
+                                    onNavigateToChatDetail = { orderId ->
+                                        currentChatOrderId = orderId
+                                        showChatDetail = true
+                                    },
+                                    onShowConfirmation = { type, orderNumber ->
+                                        confirmationType = type
+                                        confirmationOrderNumber = orderNumber
+                                    },
+                                    chatsViewModel = chatsViewModel
+                                )
+                            }
+                        }
+
+                        // Confirmación fullscreen sobre todo
+                        confirmationType?.let { type ->
+                            OrderConfirmationScreen(
+                                type = type,
+                                orderNumber = confirmationOrderNumber,
+                                onDismiss = {
+                                    confirmationType = null
+                                    confirmationOrderNumber = ""
+                                }
+                            )
+                        }
                     }
                 }
                 BusinessType.GROCERY -> {

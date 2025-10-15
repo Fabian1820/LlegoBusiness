@@ -1,12 +1,16 @@
 package com.llego.nichos.restaurant.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -45,70 +51,15 @@ fun MenuScreen(
     var selectedMenuItem by remember { mutableStateOf<MenuItem?>(null) }
     var showAddEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf<MenuItem?>(null) }
+    var showSearchCard by remember { mutableStateOf(false) }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    selectedMenuItem = null
-                    showAddEditDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar producto")
-            }
-        }
-    ) { paddingValues ->
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
-                .padding(paddingValues)
         ) {
-            // Barra de búsqueda
-            Surface(
-                color = Color.White,
-                shadowElevation = 2.dp
-            ) {
-                Column {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { viewModel.setSearchQuery(it) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        placeholder = { Text("Buscar productos...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { viewModel.clearSearch() }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
-                        )
-                    )
-
-                    // Filtros de categoría
-                    CategoryFilterChips(
-                        selectedCategory = selectedCategory,
-                        onCategorySelected = { viewModel.setCategory(it) },
-                        onClearCategory = { viewModel.clearCategory() },
-                        categoriesWithCount = viewModel.getCategoriesWithCount()
-                    )
-                }
-            }
-
-            // Lista de productos
+            // Lista de productos con filtros integrados
             when (uiState) {
                 is MenuUiState.Loading -> {
                     Box(
@@ -146,19 +97,37 @@ fun MenuScreen(
                 }
                 is MenuUiState.Success -> {
                     if (filteredMenuItems.isEmpty()) {
-                        EmptyMenuView(
-                            hasFilter = selectedCategory != null || searchQuery.isNotBlank(),
-                            onAddProduct = {
-                                selectedMenuItem = null
-                                showAddEditDialog = true
-                            }
-                        )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Filtros de categoría
+                            SimplifiedCategoryFilterChips(
+                                selectedCategory = selectedCategory,
+                                onCategorySelected = { viewModel.setCategory(it) },
+                                onClearCategory = { viewModel.clearCategory() }
+                            )
+                            EmptyMenuView(
+                                hasFilter = selectedCategory != null || searchQuery.isNotBlank(),
+                                onAddProduct = {
+                                    selectedMenuItem = null
+                                    showAddEditDialog = true
+                                }
+                            )
+                        }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // Filtros de categoría como primer item
+                            item {
+                                SimplifiedCategoryFilterChips(
+                                    selectedCategory = selectedCategory,
+                                    onCategorySelected = { viewModel.setCategory(it) },
+                                    onClearCategory = { viewModel.clearCategory() }
+                                )
+                            }
+
+                            // Lista de productos
                             items(
                                 items = filteredMenuItems,
                                 key = { it.id }
@@ -174,18 +143,94 @@ fun MenuScreen(
                                     },
                                     onToggleAvailability = {
                                         viewModel.toggleItemAvailability(menuItem.id)
-                                    }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
 
-                            // Espacio adicional para el FAB
+                            // Espacio adicional para los botones flotantes
                             item {
-                                Spacer(modifier = Modifier.height(80.dp))
+                                Spacer(modifier = Modifier.height(120.dp))
                             }
                         }
                     }
                 }
             }
+        }
+
+        // Botones flotantes circulares (search arriba, add abajo)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            // Botón de búsqueda - más pequeño y circular
+            FloatingActionButton(
+                onClick = { showSearchCard = true },
+                modifier = Modifier.size(56.dp),
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Buscar productos",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            // Botón de agregar - más pequeño y circular
+            FloatingActionButton(
+                onClick = {
+                    selectedMenuItem = null
+                    showAddEditDialog = true
+                },
+                modifier = Modifier.size(56.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Agregar producto",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // Card de búsqueda animado
+        AnimatedVisibility(
+            visible = showSearchCard,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(300, easing = EaseOutCubic)
+            ) + fadeIn(animationSpec = tween(300)),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(300, easing = EaseInCubic)
+            ) + fadeOut(animationSpec = tween(300))
+        ) {
+            SearchCard(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                onClose = {
+                    showSearchCard = false
+                    viewModel.clearSearch()
+                },
+                filteredMenuItems = filteredMenuItems,
+                onEditItem = { item ->
+                    selectedMenuItem = item
+                    showAddEditDialog = true
+                },
+                onDeleteItem = { item ->
+                    showDeleteConfirmation = item
+                },
+                onToggleAvailability = { itemId ->
+                    viewModel.toggleItemAvailability(itemId)
+                }
+            )
         }
     }
 
@@ -205,7 +250,7 @@ fun MenuScreen(
         )
     }
 
-    // Confirmación de eliminación
+    // Confirmación de eliminación con colores Llego
     showDeleteConfirmation?.let { item ->
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = null },
@@ -218,10 +263,19 @@ fun MenuScreen(
                 )
             },
             title = {
-                Text("¿Eliminar producto?")
+                Text(
+                    "¿Eliminar producto?",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                )
             },
             text = {
-                Text("¿Estás seguro de que deseas eliminar \"${item.name}\"? Esta acción no se puede deshacer.")
+                Text(
+                    "¿Estás seguro de que deseas eliminar \"${item.name}\"? Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             },
             confirmButton = {
                 Button(
@@ -233,61 +287,519 @@ fun MenuScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Eliminar")
+                    Text("Eliminar", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = null }) {
-                    Text("Cancelar")
+                TextButton(
+                    onClick = { showDeleteConfirmation = null },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Cancelar", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
                 }
-            }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
 
 /**
- * Chips de filtro por categoría
+ * Chips de filtro por categoría simplificados con fade en ambos lados
  */
 @Composable
-private fun CategoryFilterChips(
+private fun SimplifiedCategoryFilterChips(
     selectedCategory: MenuCategory?,
     onCategorySelected: (MenuCategory) -> Unit,
-    onClearCategory: () -> Unit,
-    categoriesWithCount: Map<MenuCategory, Int>
+    onClearCategory: () -> Unit
 ) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Chip "Todos"
-        item {
-            FilterChip(
-                selected = selectedCategory == null,
-                onClick = onClearCategory,
-                label = { Text("Todos") },
-                leadingIcon = if (selectedCategory == null) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
-                } else null
-            )
-        }
+    val listState = rememberLazyListState()
 
-        // Chips por categoría
-        items(MenuCategory.values()) { category ->
-            val count = categoriesWithCount[category] ?: 0
-            FilterChip(
-                selected = selectedCategory == category,
-                onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        text = "${category.getDisplayName()} ($count)",
-                        style = MaterialTheme.typography.labelMedium
+    // Lista de categorías simplificadas
+    val simplifiedCategories = listOf(
+        MenuCategory.APPETIZERS,     // Entrantes
+        MenuCategory.MAIN_COURSES,   // Platos Principales
+        MenuCategory.DESSERTS,       // Postres
+        MenuCategory.BEVERAGES,      // Bebidas
+        MenuCategory.SPECIALS        // Sugerencias del Chef
+    )
+
+    // Centrar automáticamente cuando se selecciona un filtro
+    LaunchedEffect(selectedCategory) {
+        selectedCategory?.let { filter ->
+            val index = simplifiedCategories.indexOf(filter) + 1 // +1 porque "Todos" es el primer item
+            if (index > 0) {
+                listState.animateScrollToItem(index)
+            }
+        } ?: run {
+            listState.animateScrollToItem(0) // Scroll a "Todos"
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Box {
+            LazyRow(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawWithContent {
+                        drawContent()
+                        // Fade izquierdo
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.White,
+                                    Color.Transparent
+                                ),
+                                startX = 0f,
+                                endX = 60f
+                            )
+                        )
+                        // Fade derecho
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.White
+                                ),
+                                startX = size.width - 80f,
+                                endX = size.width
+                            )
+                        )
+                    },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Chip "Todos"
+                item {
+                    FilterChip(
+                        selected = selectedCategory == null,
+                        onClick = onClearCategory,
+                        label = { Text("Todos") },
+                        leadingIcon = if (selectedCategory == null) {
+                            { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                        } else null,
+                        border = null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
                     )
+                }
+
+                // Chips por categoría simplificada
+                items(simplifiedCategories) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { onCategorySelected(category) },
+                        label = {
+                            Text(
+                                text = category.getDisplayName(),
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        },
+                        leadingIcon = if (selectedCategory == category) {
+                            { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
+                        } else null,
+                        border = null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card de búsqueda animado que aparece desde abajo con resultados en tiempo real
+ */
+@Composable
+private fun SearchCard(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    filteredMenuItems: List<MenuItem> = emptyList(),
+    onEditItem: (MenuItem) -> Unit = {},
+    onDeleteItem: (MenuItem) -> Unit = {},
+    onToggleAvailability: (String) -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(onClick = onClose)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.9f)
+                .align(Alignment.BottomCenter)
+                .clickable(onClick = {}), // Prevenir cierre al hacer click en el card
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header con título y botón cerrar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Buscar productos",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar búsqueda",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                // Barra de búsqueda con colores Llego
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            "Buscar en el menú...",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Limpiar",
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+
+                // Ayuda o resultados de búsqueda
+                if (searchQuery.isBlank()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Text(
+                            text = "Escribe para buscar productos",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Busca por nombre, descripción o categoría",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                } else {
+                    // Resultados de búsqueda
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Header con contador de resultados
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "${filteredMenuItems.size} producto${if (filteredMenuItems.size != 1) "s" else ""} encontrado${if (filteredMenuItems.size != 1) "s" else ""}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
+                        }
+
+                        // Lista de resultados
+                        if (filteredMenuItems.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Text(
+                                    text = "No se encontraron productos",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = "Intenta con otras palabras clave",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(
+                                    items = filteredMenuItems,
+                                    key = { it.id }
+                                ) { menuItem ->
+                                    CompactMenuItemCard(
+                                        menuItem = menuItem,
+                                        onEdit = {
+                                            onEditItem(menuItem)
+                                            onClose()
+                                        },
+                                        onDelete = { onDeleteItem(menuItem) },
+                                        onToggleAvailability = { onToggleAvailability(menuItem.id) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card compacto de producto para resultados de búsqueda
+ */
+@Composable
+private fun CompactMenuItemCard(
+    menuItem: MenuItem,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleAvailability: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onEdit),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (menuItem.isAvailable) Color.White else Color(0xFFF5F5F5)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono/foto del producto
+            Surface(
+                modifier = Modifier.size(50.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = when (menuItem.category) {
+                    MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
                 },
-                leadingIcon = if (selectedCategory == category) {
-                    { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
-                } else null
-            )
+                border = BorderStroke(
+                    1.dp,
+                    when (menuItem.category) {
+                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                    }
+                )
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = when (menuItem.category) {
+                            MenuCategory.APPETIZERS -> Icons.Default.Restaurant
+                            MenuCategory.MAIN_COURSES -> Icons.Default.DinnerDining
+                            MenuCategory.SIDES -> Icons.Default.FoodBank
+                            MenuCategory.DESSERTS -> Icons.Default.Cake
+                            MenuCategory.BEVERAGES -> Icons.Default.LocalCafe
+                            MenuCategory.SPECIALS -> Icons.Default.Star
+                        },
+                        contentDescription = null,
+                        tint = when (menuItem.category) {
+                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.secondary
+                        },
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+
+            // Información del producto
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Nombre
+                Text(
+                    text = menuItem.name,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = if (!menuItem.isAvailable)
+                            TextDecoration.LineThrough else TextDecoration.None
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Categoría y precio
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Badge de categoría
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = when (menuItem.category) {
+                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                        }
+                    ) {
+                        Text(
+                            text = menuItem.category.getDisplayName(),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                            ),
+                            color = when (menuItem.category) {
+                                MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                    MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.secondary
+                            }
+                        )
+                    }
+
+                    // Precio
+                    Text(
+                        text = "$${menuItem.price}",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            // Botones de acción
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Toggle disponibilidad
+                IconButton(
+                    onClick = onToggleAvailability,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (menuItem.isAvailable)
+                            Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (menuItem.isAvailable)
+                            "Marcar como no disponible" else "Marcar como disponible",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Eliminar
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -300,10 +812,11 @@ private fun MenuItemCard(
     menuItem: MenuItem,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleAvailability: () -> Unit
+    onToggleAvailability: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (menuItem.isAvailable) Color.White else Color(0xFFF5F5F5)
@@ -319,11 +832,23 @@ private fun MenuItemCard(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Imagen del producto (placeholder)
+            // Imagen del producto (placeholder) con gradiente Llego
             Surface(
                 modifier = Modifier.size(80.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = when (menuItem.category) {
+                    MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                },
+                border = BorderStroke(
+                    1.dp,
+                    when (menuItem.category) {
+                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                    }
+                )
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -332,18 +857,18 @@ private fun MenuItemCard(
                     Icon(
                         imageVector = when (menuItem.category) {
                             MenuCategory.APPETIZERS -> Icons.Default.Restaurant
-                            MenuCategory.SOUPS -> Icons.Default.LocalDining
-                            MenuCategory.SALADS -> Icons.Default.Eco
                             MenuCategory.MAIN_COURSES -> Icons.Default.DinnerDining
                             MenuCategory.SIDES -> Icons.Default.FoodBank
                             MenuCategory.DESSERTS -> Icons.Default.Cake
                             MenuCategory.BEVERAGES -> Icons.Default.LocalCafe
-                            MenuCategory.ALCOHOLIC -> Icons.Default.LocalBar
-                            MenuCategory.KIDS_MENU -> Icons.Default.ChildCare
                             MenuCategory.SPECIALS -> Icons.Default.Star
                         },
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = when (menuItem.category) {
+                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.secondary
+                        },
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -371,16 +896,34 @@ private fun MenuItemCard(
                     )
                 }
 
-                // Badge de categoría
+                // Badge de categoría con colores Llego
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer
+                    shape = RoundedCornerShape(8.dp),
+                    color = when (menuItem.category) {
+                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        when (menuItem.category) {
+                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                        }
+                    )
                 ) {
                     Text(
                         text = menuItem.category.getDisplayName(),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = when (menuItem.category) {
+                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
+                                MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.secondary
+                        }
                     )
                 }
 
@@ -409,34 +952,50 @@ private fun MenuItemCard(
                     }
                 }
 
-                // Precio y tiempo de preparación
-                Row(
+                // Precio y tiempo de preparación con fondo
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
                 ) {
-                    Text(
-                        text = "$${menuItem.price}",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.Timer,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.Gray
-                        )
                         Text(
-                            text = "${menuItem.preparationTime} min",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
+                            text = "$${menuItem.price}",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Timer,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    text = "${menuItem.preparationTime} min",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -622,7 +1181,8 @@ private fun AddEditMenuItemDialog(
             Text(
                 text = if (menuItem == null) "Agregar Producto" else "Editar Producto",
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -793,14 +1353,25 @@ private fun AddEditMenuItemDialog(
                     onSave(newItem)
                 },
                 enabled = name.isNotBlank() && description.isNotBlank() &&
-                         price.toDoubleOrNull() != null
+                         price.toDoubleOrNull() != null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
-                Text(if (menuItem == null) "Agregar" else "Guardar")
+                Text(
+                    if (menuItem == null) "Agregar" else "Guardar",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Cancelar", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
             }
         },
         containerColor = Color.White,
