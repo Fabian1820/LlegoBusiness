@@ -26,8 +26,19 @@ import com.llego.shared.ui.auth.AuthViewModel
 import kotlinx.coroutines.delay
 
 /**
- * Pantalla de Perfil - Información personal del usuario y del restaurante
- * Objetivo: Datos del responsable, información del local, estadísticas y opciones de cuenta
+ * Pantalla de Perfil del Restaurante
+ *
+ * OBJETIVO: Información personal del usuario responsable y datos del negocio
+ *
+ * Contenido:
+ * - Información personal del responsable (nombre, email, teléfono)
+ * - Datos del restaurante (nombre, logo, dirección, descripción)
+ * - Estadísticas generales (pedidos, calificación, ingresos)
+ * - Opciones de cuenta personal (editar perfil, cambiar contraseña, notificaciones, logout)
+ *
+ * NO incluye:
+ * - Configuración operacional (horarios, entregas, métodos de pago)
+ * - Esas opciones están en RestaurantSettingsScreen (tab Gestión)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +99,7 @@ fun RestaurantProfileScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header con foto de perfil y datos principales
+                // Header con foto de perfil y datos principales del responsable
                 item {
                     ProfileHeaderCard()
                 }
@@ -103,10 +114,13 @@ fun RestaurantProfileScreen(
                     QuickStatsSection()
                 }
 
-                // Opciones de cuenta
+                // Opciones de cuenta personal
                 item {
                     AccountOptionsSection(
                         onEditProfile = { showEditProfileDialog = true },
+                        onChangePassword = { /* TODO */ },
+                        onNotificationPreferences = { /* TODO */ },
+                        onHelpSupport = { /* TODO */ },
                         onLogout = { showLogoutDialog = true }
                     )
                 }
@@ -512,11 +526,14 @@ private fun StatCard(
 }
 
 /**
- * Sección de opciones de cuenta
+ * Sección de opciones de cuenta personal
  */
 @Composable
 private fun AccountOptionsSection(
     onEditProfile: () -> Unit,
+    onChangePassword: () -> Unit,
+    onNotificationPreferences: () -> Unit,
+    onHelpSupport: () -> Unit,
     onLogout: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -541,7 +558,7 @@ private fun AccountOptionsSection(
             title = "Cambiar Contraseña",
             subtitle = "Modificar tu contraseña de acceso",
             iconColor = MaterialTheme.colorScheme.secondary,
-            onClick = { /* TODO */ }
+            onClick = onChangePassword
         )
 
         AccountOptionCard(
@@ -549,7 +566,7 @@ private fun AccountOptionsSection(
             title = "Preferencias de Notificaciones",
             subtitle = "Gestionar alertas y avisos",
             iconColor = Color(0xFFFF9800),
-            onClick = { /* TODO */ }
+            onClick = onNotificationPreferences
         )
 
         AccountOptionCard(
@@ -557,7 +574,7 @@ private fun AccountOptionsSection(
             title = "Ayuda y Soporte",
             subtitle = "Centro de ayuda y contacto",
             iconColor = Color(0xFF2196F3),
-            onClick = { /* TODO */ }
+            onClick = onHelpSupport
         )
 
         // Botón de cerrar sesión destacado

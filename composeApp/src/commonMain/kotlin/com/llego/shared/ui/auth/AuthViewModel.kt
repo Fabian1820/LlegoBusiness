@@ -80,17 +80,26 @@ class AuthViewModel : ViewModel() {
 
     /**
      * Realiza el login del usuario
+     * NOTA: Validaciones deshabilitadas para testing - cualquier usuario puede entrar
      */
     fun login() {
         viewModelScope.launch {
-            if (!isValidLoginInput()) return@launch
+            // Validaciones básicas deshabilitadas - solo requerimos tipo de negocio
+            if (_selectedBusinessType.value == null) {
+                _loginError.value = "Selecciona un tipo de negocio"
+                return@launch
+            }
 
             _uiState.value = _uiState.value.copy(isLoading = true)
             _loginError.value = null
 
+            // Usar email genérico si está vacío
+            val email = if (_email.value.isBlank()) "test@llego.com" else _email.value.trim()
+            val password = if (_password.value.isBlank()) "123456" else _password.value
+
             val result = authManager.login(
-                email = _email.value.trim(),
-                password = _password.value,
+                email = email,
+                password = password,
                 businessType = _selectedBusinessType.value!!
             )
 

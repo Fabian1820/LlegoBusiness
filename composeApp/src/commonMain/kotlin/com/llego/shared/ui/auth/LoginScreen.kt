@@ -150,7 +150,9 @@ fun LoginScreen(
                                 onPasswordChange = viewModel::updatePassword,
                                 onContinueClick = viewModel::login,
                                 isLoading = uiState.isLoading,
-                                errorMessage = loginError
+                                errorMessage = loginError,
+                                selectedBusinessType = selectedBusinessType,
+                                onBusinessTypeSelected = viewModel::selectBusinessType
                             )
                         }
 
@@ -212,6 +214,7 @@ private fun LlegoLogo() {
 
 /**
  * Formulario de login con email y contraseña
+ * NOTA: Ahora solo requiere tipo de negocio para testing
  */
 @Composable
 private fun LoginForm(
@@ -221,17 +224,37 @@ private fun LoginForm(
     onPasswordChange: (String) -> Unit,
     onContinueClick: () -> Unit,
     isLoading: Boolean,
-    errorMessage: String?
+    errorMessage: String?,
+    selectedBusinessType: BusinessType? = null,
+    onBusinessTypeSelected: ((BusinessType) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Campo de email
+        // Selector de tipo de negocio primero
+        Text(
+            text = "Tipo de negocio",
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+
+        onBusinessTypeSelected?.let { onSelect ->
+            BusinessTypeChips(
+                selectedBusinessType = selectedBusinessType,
+                onBusinessTypeSelected = onSelect
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Campo de email (opcional para testing)
         ModernTextField(
             value = email,
             onValueChange = onEmailChange,
-            placeholder = "Correo electrónico",
+            placeholder = "Correo electrónico (opcional)",
             leadingIcon = Icons.Default.Email,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -240,11 +263,11 @@ private fun LoginForm(
             isError = errorMessage != null
         )
 
-        // Campo de contraseña
+        // Campo de contraseña (opcional para testing)
         ModernTextField(
             value = password,
             onValueChange = onPasswordChange,
-            placeholder = "Contraseña",
+            placeholder = "Contraseña (opcional)",
             leadingIcon = Icons.Default.Lock,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -270,11 +293,11 @@ private fun LoginForm(
                 .clickable { /* TODO: Navegar a recuperar contraseña */ }
         )
 
-        // Botón Continue
+        // Botón Continue - solo requiere tipo de negocio
         PrimaryButton(
             text = "Continuar",
             onClick = onContinueClick,
-            enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
+            enabled = !isLoading && selectedBusinessType != null,
             isLoading = isLoading
         )
 
