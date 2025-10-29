@@ -3,6 +3,7 @@ package com.llego.nichos.restaurant.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -261,8 +263,18 @@ fun MenuScreen(
         }
     }
 
-    // Diálogo de agregar/editar
-    if (showAddEditDialog) {
+    // Diálogo de agregar/editar con animación
+    AnimatedVisibility(
+        visible = showAddEditDialog,
+        enter = scaleIn(
+            animationSpec = tween(300, easing = EaseOutCubic),
+            initialScale = 0.8f
+        ) + fadeIn(animationSpec = tween(300)),
+        exit = scaleOut(
+            animationSpec = tween(200, easing = EaseInCubic),
+            targetScale = 0.8f
+        ) + fadeOut(animationSpec = tween(200))
+    ) {
         AddEditMenuItemDialog(
             menuItem = selectedMenuItem,
             onDismiss = { showAddEditDialog = false },
@@ -353,17 +365,6 @@ private fun SimplifiedCategoryFilterChips(
         MenuCategory.SPECIALS        // Sugerencias del Chef
     )
 
-    // Centrar automáticamente cuando se selecciona un filtro
-    LaunchedEffect(selectedCategory) {
-        selectedCategory?.let { filter ->
-            val index = simplifiedCategories.indexOf(filter) + 1 // +1 porque "Todos" es el primer item
-            if (index > 0) {
-                listState.animateScrollToItem(index)
-            }
-        } ?: run {
-            listState.animateScrollToItem(0) // Scroll a "Todos"
-        }
-    }
 
     Card(
         modifier = Modifier
@@ -716,13 +717,12 @@ private fun CompactMenuItemCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Nombre
-                Text(
+                // Nombre con animación de subrayado
+                AnimatedTextWithUnderline(
                     text = menuItem.name,
+                    isUnavailable = !menuItem.isAvailable,
                     style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        textDecoration = if (!menuItem.isAvailable)
-                            TextDecoration.LineThrough else TextDecoration.None
+                        fontWeight = FontWeight.Bold
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -882,12 +882,11 @@ private fun MenuItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
+                    AnimatedTextWithUnderline(
                         text = menuItem.name,
+                        isUnavailable = !menuItem.isAvailable,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            textDecoration = if (!menuItem.isAvailable)
-                                TextDecoration.LineThrough else TextDecoration.None
+                            fontWeight = FontWeight.Bold
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -1017,7 +1016,9 @@ private fun MenuItemCard(
                         )
                         Text(
                             text = if (menuItem.isAvailable) "Disponible" else "No disponible",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
+                            ),
                             color = if (menuItem.isAvailable) Color(0xFF4CAF50)
                             else Color(0xFFE53935)
                         )
@@ -1373,5 +1374,42 @@ private fun AddEditMenuItemDialog(
         },
         containerColor = Color.White,
         shape = RoundedCornerShape(20.dp)
+    )
+}
+
+/**
+ * Texto con animación de subrayado para productos no disponibles
+ */
+@Composable
+private fun AnimatedTextWithUnderline(
+    text: String,
+    isUnavailable: Boolean,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip
+) {
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (isUnavailable) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 800,
+            easing = EaseOutCubic
+        ),
+        label = "underline_animation"
+    )
+
+    Text(
+        text = text,
+        style = style.copy(
+            textDecoration = if (isUnavailable) TextDecoration.LineThrough else TextDecoration.None,
+            color = if (isUnavailable) {
+                MaterialTheme.colorScheme.error.copy(alpha = animatedAlpha)
+            } else {
+                style.color ?: MaterialTheme.colorScheme.onSurface
+            }
+        ),
+        modifier = modifier,
+        maxLines = maxLines,
+        overflow = overflow
     )
 }

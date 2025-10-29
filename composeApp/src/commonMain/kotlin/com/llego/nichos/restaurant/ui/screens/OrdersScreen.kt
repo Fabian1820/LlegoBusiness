@@ -181,15 +181,6 @@ private fun StatusFilterChips(
     val listState = rememberLazyListState()
     val allStatuses = OrderStatus.values().toList()
 
-    // Centrar automáticamente cuando se selecciona un filtro
-    LaunchedEffect(selectedFilter) {
-        selectedFilter?.let { filter ->
-            val index = allStatuses.indexOf(filter) + 1 // +1 porque "Todos" es el primer item
-            listState.animateScrollToItem(index)
-        } ?: run {
-            listState.animateScrollToItem(0) // Scroll a "Todos"
-        }
-    }
 
     Card(
         modifier = Modifier
@@ -252,15 +243,10 @@ private fun StatusFilterChips(
                         leadingIcon = if (selectedFilter == null) {
                             { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                         } else null,
-                        border = BorderStroke(
-                            width = if (selectedFilter == null) 1.5.dp else 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (selectedFilter == null) 1f else 0.3f)
-                        ),
+                        border = null,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            containerColor = Color.Transparent,
-                            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -281,15 +267,10 @@ private fun StatusFilterChips(
                         leadingIcon = if (selectedFilter == status) {
                             { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                         } else null,
-                        border = BorderStroke(
-                            width = if (selectedFilter == status) 1.5.dp else 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (selectedFilter == status) 1f else 0.3f)
-                        ),
+                        border = null,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            containerColor = Color.Transparent,
-                            labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -394,7 +375,7 @@ private fun OrderCard(
                 }
             }
 
-            Divider(color = Color(0xFFE0E0E0))
+            HorizontalDivider(color = Color(0xFFE0E0E0))
 
             // Cliente
             Row(

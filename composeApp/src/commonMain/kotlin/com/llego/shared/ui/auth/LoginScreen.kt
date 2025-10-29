@@ -1,8 +1,12 @@
 package com.llego.shared.ui.auth
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -28,12 +34,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.components.background.CurvedBackground
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
 import llegobusiness.composeapp.generated.resources.Res
@@ -62,6 +70,34 @@ fun LoginScreen(
 
     var isRegisterMode by remember { mutableStateOf(false) }
 
+    // Estados de animación de entrada
+    var headerVisible by remember { mutableStateOf(false) }
+    var cardVisible by remember { mutableStateOf(false) }
+
+    // Animaciones de entrada al cargar la pantalla
+    val headerOffsetY by animateFloatAsState(
+        targetValue = if (headerVisible) 0f else -300f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    val cardOffsetY by animateFloatAsState(
+        targetValue = if (cardVisible) 0f else 1000f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    // Iniciar animaciones de entrada
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        delay(100)
+        cardVisible = true
+    }
+
     // Manejar login exitoso
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated && uiState.currentUser != null) {
@@ -70,115 +106,175 @@ fun LoginScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Fondo verde superior fijo (no hace scroll)
-        CurvedBackground(
-            curveStart = 0.18f,
-            curveEnd = 0.18f,
-            curveInclination = 0.06f,
-            showCurve = true
+        // Fondo verde superior fijo con degradado en bordes
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Box(modifier = Modifier.fillMaxSize())
-        }
+            CurvedBackground(
+                curveStart = 0.18f,
+                curveEnd = 0.18f,
+                curveInclination = 0.06f,
+                showCurve = true
+            ) {
+                Box(modifier = Modifier.fillMaxSize())
+            }
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Header fijo con logo (no scroll)
+            // Degradado sutil en los bordes superiores
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(200.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF023133).copy(alpha = 0.3f),
+                                Color.Transparent
+                            ),
+                            startY = 0f,
+                            endY = 100f
+                        )
+                    )
+            )
+        }
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header fijo con logo (no scroll) - ANIMADO DE ARRIBA A ABAJO
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .graphicsLayer {
+                        translationY = headerOffsetY
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 LlegoLogo()
             }
 
-            // Card blanco con contenido scrolleable
+            // Card blanco con contenido scrolleable (incluye título) - ANIMADO DE ABAJO A ARRIBA
             Surface(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = cardOffsetY
+                    },
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 color = Color.White,
                 shadowElevation = 12.dp
             ) {
+                // Todo el contenido scrolleable (incluye título)
                 Column(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp)
+                        .imePadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Título con fondo sutil (parte del card, no hace scroll)
-                    Surface(
-                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Título con degradado sutil - AHORA ES SCROLLEABLE
+                    Text(
+                        text = if (isRegisterMode) "Crea tu cuenta" else "Inicia sesión",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                                )
+                            )
+                        ),
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = if (isRegisterMode) "Crea tu cuenta" else "Inicia sesión",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            ),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 20.dp)
-                        )
-                    }
+                    )
 
-                    // Contenido scrolleable
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 24.dp)
-                            .imePadding(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                        // Formulario de login/registro
-                        if (isRegisterMode) {
-                            RegisterForm(
-                                email = email,
-                                password = password,
-                                onEmailChange = viewModel::updateEmail,
-                                onPasswordChange = viewModel::updatePassword,
-                                onRegisterClick = viewModel::login, // TODO: Implementar registro real
-                                isLoading = uiState.isLoading,
-                                errorMessage = loginError,
-                                selectedBusinessType = selectedBusinessType,
-                                onBusinessTypeSelected = viewModel::selectBusinessType
-                            )
-                        } else {
-                            LoginForm(
-                                email = email,
-                                password = password,
-                                onEmailChange = viewModel::updateEmail,
-                                onPasswordChange = viewModel::updatePassword,
-                                onContinueClick = viewModel::login,
-                                isLoading = uiState.isLoading,
-                                errorMessage = loginError,
-                                selectedBusinessType = selectedBusinessType,
-                                onBusinessTypeSelected = viewModel::selectBusinessType
-                            )
+                    // TRANSICIÓN ANIMADA DE TODO EL CONTENIDO
+                    // Login -> Registro: TODO el contenido se desplaza a la IZQUIERDA
+                    // Registro -> Login: TODO el contenido se desplaza a la DERECHA
+                    AnimatedContent(
+                        targetState = isRegisterMode,
+                        transitionSpec = {
+                            if (targetState) {
+                                // Ir a REGISTRO: todo sale a la izquierda, registro entra desde la derecha
+                                slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> fullWidth }, // Entra desde la derecha completa
+                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
+                                ) togetherWith
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> -fullWidth }, // Sale completamente a la izquierda
+                                            animationSpec = tween(400, easing = FastOutSlowInEasing)
+                                        )
+                            } else {
+                                // Volver a LOGIN: todo sale a la derecha, login entra desde la izquierda
+                                slideInHorizontally(
+                                    initialOffsetX = { fullWidth -> -fullWidth }, // Entra desde la izquierda completa
+                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
+                                ) togetherWith
+                                        slideOutHorizontally(
+                                            targetOffsetX = { fullWidth -> fullWidth }, // Sale completamente a la derecha
+                                            animationSpec = tween(400, easing = FastOutSlowInEasing)
+                                        )
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Solo mostrar botones sociales en login, no en registro
-                        if (!isRegisterMode) {
-                            // Divider con "or"
-                            DividerWithText(text = "o")
+                    ) { targetIsRegister ->
+                        // TODO EL CONTENIDO SE ANIMA JUNTO
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Formulario (login o registro)
+                            if (targetIsRegister) {
+                                RegisterForm(
+                                    email = email,
+                                    password = password,
+                                    onEmailChange = viewModel::updateEmail,
+                                    onPasswordChange = viewModel::updatePassword,
+                                    onRegisterClick = viewModel::login, // TODO: Implementar registro real
+                                    isLoading = uiState.isLoading,
+                                    errorMessage = loginError,
+                                    selectedBusinessType = selectedBusinessType,
+                                    onBusinessTypeSelected = viewModel::selectBusinessType
+                                )
+                            } else {
+                                LoginForm(
+                                    email = email,
+                                    password = password,
+                                    onEmailChange = viewModel::updateEmail,
+                                    onPasswordChange = viewModel::updatePassword,
+                                    onContinueClick = viewModel::login,
+                                    isLoading = uiState.isLoading,
+                                    errorMessage = loginError
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Botones sociales
-                            SocialButtons()
+                            // Botones sociales (solo en login)
+                            if (!targetIsRegister) {
+                                // Divider con "or"
+                                DividerWithText(text = "o")
 
-                            Spacer(modifier = Modifier.height(32.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                // Botones sociales
+                                SocialButtons()
+
+                                Spacer(modifier = Modifier.height(48.dp))
+                            }
+
+                            // Toggle entre login y registro
+                            ToggleAuthMode(
+                                isRegisterMode = targetIsRegister,
+                                onToggle = { isRegisterMode = !isRegisterMode }
+                            )
                         }
-
-                        // Toggle entre login y registro
-                        ToggleAuthMode(
-                            isRegisterMode = isRegisterMode,
-                            onToggle = { isRegisterMode = !isRegisterMode }
-                        )
-
-                        Spacer(modifier = Modifier.height(40.dp))
                     }
+
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
@@ -214,7 +310,7 @@ private fun LlegoLogo() {
 
 /**
  * Formulario de login con email y contraseña
- * NOTA: Ahora solo requiere tipo de negocio para testing
+ * NOTA: Campos opcionales para testing rápido
  */
 @Composable
 private fun LoginForm(
@@ -224,90 +320,82 @@ private fun LoginForm(
     onPasswordChange: (String) -> Unit,
     onContinueClick: () -> Unit,
     isLoading: Boolean,
-    errorMessage: String?,
-    selectedBusinessType: BusinessType? = null,
-    onBusinessTypeSelected: ((BusinessType) -> Unit)? = null
+    errorMessage: String?
 ) {
+    // Contenedor centrado con ancho reducido
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Selector de tipo de negocio primero
-        Text(
-            text = "Tipo de negocio",
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        )
-
-        onBusinessTypeSelected?.let { onSelect ->
-            BusinessTypeChips(
-                selectedBusinessType = selectedBusinessType,
-                onBusinessTypeSelected = onSelect
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Campo de email (opcional para testing)
-        ModernTextField(
-            value = email,
-            onValueChange = onEmailChange,
-            placeholder = "Correo electrónico (opcional)",
-            leadingIcon = Icons.Default.Email,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            isError = errorMessage != null
-        )
-
-        // Campo de contraseña (opcional para testing)
-        ModernTextField(
-            value = password,
-            onValueChange = onPasswordChange,
-            placeholder = "Contraseña (opcional)",
-            leadingIcon = Icons.Default.Lock,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { if (!isLoading) onContinueClick() }
-            ),
-            isPassword = true,
-            isError = errorMessage != null
-        )
-
-        // Link "Olvidaste tu contraseña?"
-        Text(
-            text = "¿Olvidaste tu contraseña?",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                textDecoration = TextDecoration.Underline
-            ),
+        Column(
             modifier = Modifier
-                .align(Alignment.End)
-                .clickable { /* TODO: Navegar a recuperar contraseña */ }
-        )
-
-        // Botón Continue - solo requiere tipo de negocio
-        PrimaryButton(
-            text = "Continuar",
-            onClick = onContinueClick,
-            enabled = !isLoading && selectedBusinessType != null,
-            isLoading = isLoading
-        )
-
-        if (errorMessage != null) {
-            Text(
-                text = errorMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                .fillMaxWidth(0.95f), // 90% del ancho para campos más estrechos
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Campo de email
+            ModernTextField(
+                value = email,
+                onValueChange = onEmailChange,
+                placeholder = "Correo electrónico",
+                leadingIcon = Icons.Default.Email,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                isError = errorMessage != null
             )
+
+            // Campo de contraseña
+            ModernTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                placeholder = "Contraseña",
+                leadingIcon = Icons.Default.Lock,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (!isLoading) onContinueClick() }
+                ),
+                isPassword = true,
+                isError = errorMessage != null
+            )
+
+            // Link "Olvidaste tu contraseña?" - Texto más pequeño sin ripple
+            Text(
+                text = "¿Olvidaste tu contraseña?",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = TextDecoration.Underline,
+                    fontSize = 13.sp
+                ),
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .clickable(
+                        onClick = { /* TODO: Navegar a recuperar contraseña */ },
+                        indication = null, // Sin efecto ripple
+                        interactionSource = remember { MutableInteractionSource() }
+                    )
+            )
+
+            // Botón Iniciar sesión
+            PrimaryButton(
+                text = "Iniciar sesión",
+                onClick = onContinueClick,
+                enabled = !isLoading,
+                isLoading = isLoading
+            )
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
         }
     }
 }
@@ -501,7 +589,8 @@ private fun BusinessTypeChips(
 }
 
 /**
- * Chip seleccionable con texto más pequeño
+ * Chip seleccionable con elevación y sombra
+ * Color secundario cuando está seleccionado
  */
 @Composable
 private fun SelectableChip(
@@ -514,12 +603,14 @@ private fun SelectableChip(
         onClick = onClick,
         modifier = modifier.height(48.dp),
         shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        color = if (isSelected) MaterialTheme.colorScheme.secondary else Color.White,
         border = BorderStroke(
             width = 1.5.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
+            color = if (isSelected) MaterialTheme.colorScheme.secondary
                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-        )
+        ),
+        shadowElevation = if (isSelected) 6.dp else 3.dp, // Elevación con sombra
+        tonalElevation = if (isSelected) 4.dp else 2.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -531,7 +622,7 @@ private fun SelectableChip(
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     fontSize = 14.sp
                 ),
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                color = if (isSelected) Color(0xFF023133) // Verde oscuro para contraste con dorado
                         else MaterialTheme.colorScheme.onSurface
             )
         }
@@ -540,6 +631,7 @@ private fun SelectableChip(
 
 /**
  * TextField moderno con fondo gris claro más visible
+ * Altura reducida para diseño compacto
  */
 @Composable
 private fun ModernTextField(
@@ -570,7 +662,8 @@ private fun ModernTextField(
                     imageVector = it,
                     contentDescription = null,
                     tint = if (isError) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                           else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp) // Ícono más pequeño
                 )
             }
         },
@@ -582,7 +675,8 @@ private fun ModernTextField(
                             imageVector = if (passwordVisible) Icons.Default.Visibility
                                          else Icons.Default.VisibilityOff,
                             contentDescription = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -591,7 +685,8 @@ private fun ModernTextField(
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = "Limpiar",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -617,7 +712,7 @@ private fun ModernTextField(
 }
 
 /**
- * Botón principal estilo iOS (altura 56dp según especificaciones)
+ * Botón principal con altura reducida
  */
 @Composable
 private fun PrimaryButton(
@@ -631,7 +726,7 @@ private fun PrimaryButton(
         enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(48.dp), // Altura reducida de 56dp a 48dp
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -646,7 +741,7 @@ private fun PrimaryButton(
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(20.dp), // Tamaño reducido
                 color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
@@ -689,12 +784,13 @@ private fun DividerWithText(text: String) {
 
 /**
  * Botones sociales (Google y Apple) - Solo para login
+ * Diseño minimalista con línea inferior
  */
 @Composable
 private fun SocialButtons() {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Botón Google
         SocialButton(
@@ -713,7 +809,8 @@ private fun SocialButtons() {
 }
 
 /**
- * Botón social outlined estilo iOS
+ * Botón social minimalista con línea inferior
+ * Sin efecto ripple/fondo gris al presionar
  */
 @Composable
 private fun SocialButton(
@@ -721,51 +818,63 @@ private fun SocialButton(
     icon: DrawableResource,
     onClick: () -> Unit
 ) {
-    OutlinedButton(
-        onClick = onClick,
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onBackground
-        )
+            .clickable(
+                onClick = onClick,
+                indication = null, // SIN efecto ripple
+                interactionSource = remember { MutableInteractionSource() }
+            )
+            .padding(vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Logo real con bordes redondeados
+            // Logo con tamaño consistente
             Surface(
                 shape = CircleShape,
                 color = Color.White,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(28.dp),
+                shadowElevation = 2.dp
             ) {
                 Image(
                     painter = painterResource(icon),
                     contentDescription = null,
-                    modifier = Modifier.padding(2.dp),
+                    modifier = Modifier.padding(4.dp),
                     contentScale = ContentScale.Fit
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
+            // Texto alineado a la izquierda del ícono - Más pequeño
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium
-                )
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Línea inferior sutil
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(),
+            thickness = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        )
     }
 }
 
 /**
  * Toggle entre login y registro
+ * Color secundario para el botón de acción
  */
 @Composable
 private fun ToggleAuthMode(
@@ -784,12 +893,13 @@ private fun ToggleAuthMode(
 
         Spacer(modifier = Modifier.width(4.dp))
 
+        // Texto con color secundario (dorado)
         Text(
             text = if (isRegisterMode) "Inicia sesión" else "Regístrate",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.secondary, // Color secundario #E1C78E
             modifier = Modifier.clickable { onToggle() }
         )
     }
