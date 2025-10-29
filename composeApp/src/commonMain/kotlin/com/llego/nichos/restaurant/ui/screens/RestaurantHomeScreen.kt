@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
@@ -29,10 +28,10 @@ fun RestaurantHomeScreen(
     onNavigateToChats: () -> Unit,
     onNavigateToChatDetail: (String) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
-    chatsViewModel: ChatsViewModel? = null,
-    ordersViewModel: OrdersViewModel = viewModel(),
-    menuViewModel: MenuViewModel = viewModel(),
-    settingsViewModel: SettingsViewModel = viewModel()
+    chatsViewModel: ChatsViewModel,
+    ordersViewModel: OrdersViewModel,
+    menuViewModel: MenuViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     var selectedTab by remember { mutableStateOf(RestaurantTab.ORDERS) }
 
@@ -169,7 +168,7 @@ fun RestaurantHomeScreen(
                     viewModel = ordersViewModel,
                     onNavigateToChat = { orderId, orderNumber, customerName ->
                         // Crear chat automáticamente y navegar al detalle
-                        chatsViewModel?.createCancellationChat(orderId, orderNumber, customerName)
+                        chatsViewModel.createCancellationChat(orderId, orderNumber, customerName)
                         onNavigateToChatDetail(orderId)
                     },
                     onShowConfirmation = onShowConfirmation

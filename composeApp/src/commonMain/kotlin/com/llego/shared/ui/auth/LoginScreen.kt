@@ -37,8 +37,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.components.background.CurvedBackground
 import kotlinx.coroutines.delay
@@ -60,13 +59,13 @@ import llegobusiness.composeapp.generated.resources.logo
 fun LoginScreen(
     onLoginSuccess: (BusinessType) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val email by viewModel.email.collectAsStateWithLifecycle()
-    val password by viewModel.password.collectAsStateWithLifecycle()
-    val selectedBusinessType by viewModel.selectedBusinessType.collectAsStateWithLifecycle()
-    val loginError by viewModel.loginError.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
+    val email by viewModel.email.collectAsState()
+    val password by viewModel.password.collectAsState()
+    val selectedBusinessType by viewModel.selectedBusinessType.collectAsState()
+    val loginError by viewModel.loginError.collectAsState()
 
     var isRegisterMode by remember { mutableStateOf(false) }
 

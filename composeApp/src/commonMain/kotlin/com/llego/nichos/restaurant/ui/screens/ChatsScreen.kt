@@ -18,8 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.Chat
 import com.llego.nichos.restaurant.data.model.hasUnreadMessages
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
@@ -33,10 +32,10 @@ import com.llego.nichos.restaurant.ui.viewmodel.ChatsUiState
 fun ChatsScreen(
     onChatClick: (String) -> Unit, // orderId
     onNavigateBack: (() -> Unit)? = null,
-    viewModel: ChatsViewModel = viewModel(),
+    viewModel: ChatsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val chatsState by viewModel.chatsState.collectAsStateWithLifecycle()
+    val chatsState by viewModel.chatsState.collectAsState()
 
     // Recargar chats al entrar
     LaunchedEffect(Unit) {

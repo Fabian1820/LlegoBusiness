@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsUiState
@@ -27,8 +27,8 @@ fun RestaurantSettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
     Column(
         modifier = modifier

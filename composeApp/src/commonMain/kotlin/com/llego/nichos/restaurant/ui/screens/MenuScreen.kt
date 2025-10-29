@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuUiState
@@ -72,10 +72,10 @@ fun MenuScreen(
     viewModel: MenuViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val filteredMenuItems by viewModel.filteredMenuItems.collectAsStateWithLifecycle()
-    val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
+    val filteredMenuItems by viewModel.filteredMenuItems.collectAsState()
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     var selectedMenuItem by remember { mutableStateOf<MenuItem?>(null) }
     var showAddEditDialog by remember { mutableStateOf(false) }

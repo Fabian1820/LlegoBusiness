@@ -3,7 +3,6 @@ package com.llego.app
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
@@ -16,12 +15,23 @@ import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
 import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
 import com.llego.nichos.restaurant.ui.screens.ConfirmationType
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
+import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
+import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
+import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.nichos.market.ui.screens.MarketProfileScreen
 
+data class AppViewModels(
+    val auth: AuthViewModel,
+    val chats: ChatsViewModel,
+    val orders: OrdersViewModel,
+    val menu: MenuViewModel,
+    val settings: SettingsViewModel
+)
+
 @Composable
-fun App() {
+fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
-        val authViewModel: AuthViewModel = viewModel()
+        val authViewModel = viewModels.auth
 
         var isAuthenticated by remember { mutableStateOf(false) }
         var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
@@ -34,8 +44,10 @@ fun App() {
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
         var confirmationOrderNumber by remember { mutableStateOf("") }
 
-        // ChatsViewModel compartido
-        val chatsViewModel: ChatsViewModel = viewModel()
+        val chatsViewModel = viewModels.chats
+        val ordersViewModel = viewModels.orders
+        val menuViewModel = viewModels.menu
+        val settingsViewModel = viewModels.settings
 
         // Observar estado de autenticación
         LaunchedEffect(authViewModel) {
@@ -93,7 +105,10 @@ fun App() {
                                         confirmationType = type
                                         confirmationOrderNumber = orderNumber
                                     },
-                                    chatsViewModel = chatsViewModel
+                                    chatsViewModel = chatsViewModel,
+                                    ordersViewModel = ordersViewModel,
+                                    menuViewModel = menuViewModel,
+                                    settingsViewModel = settingsViewModel
                                 )
                             }
                         }
@@ -124,6 +139,7 @@ fun App() {
                 }
                 else -> {
                     LoginScreen(
+                        viewModel = authViewModel,
                         onLoginSuccess = { businessType ->
                             isAuthenticated = true
                             currentBusinessType = businessType
@@ -134,6 +150,7 @@ fun App() {
         } else {
             // Usuario no autenticado - mostrar login
             LoginScreen(
+                viewModel = authViewModel,
                 onLoginSuccess = { businessType ->
                     isAuthenticated = true
                     currentBusinessType = businessType

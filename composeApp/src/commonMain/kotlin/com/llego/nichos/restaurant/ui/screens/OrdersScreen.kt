@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersUiState
@@ -42,9 +42,9 @@ fun OrdersScreen(
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val filteredOrders by viewModel.filteredOrders.collectAsStateWithLifecycle()
-    val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
+    val filteredOrders by viewModel.filteredOrders.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
 
     var selectedOrderId by rememberSaveable { mutableStateOf<String?>(null) }
     val allOrders = (uiState as? OrdersUiState.Success)?.orders.orEmpty()

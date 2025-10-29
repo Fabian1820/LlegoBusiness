@@ -20,8 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import kotlinx.coroutines.launch
@@ -35,11 +34,11 @@ import kotlinx.coroutines.launch
 fun ChatDetailScreen(
     orderId: String,
     onNavigateBack: () -> Unit,
-    viewModel: ChatsViewModel = viewModel(),
+    viewModel: ChatsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val currentChat by viewModel.currentChat.collectAsStateWithLifecycle()
-    val messageInput by viewModel.messageInput.collectAsStateWithLifecycle()
+    val currentChat by viewModel.currentChat.collectAsState()
+    val messageInput by viewModel.messageInput.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
