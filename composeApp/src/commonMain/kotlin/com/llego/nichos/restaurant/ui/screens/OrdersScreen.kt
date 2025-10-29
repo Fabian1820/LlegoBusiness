@@ -1,5 +1,7 @@
 package com.llego.nichos.restaurant.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersUiState
+import kotlinx.coroutines.delay
 
 /**
  * Pantalla de Pedidos con diseño moderno y profesional
@@ -50,6 +53,13 @@ fun OrdersScreen(
     val allOrders = (uiState as? OrdersUiState.Success)?.orders.orEmpty()
     val selectedOrder = selectedOrderId?.let { id ->
         allOrders.firstOrNull { it.id == id }
+    }
+    var animateContent by remember { mutableStateOf(false) }
+
+    // Animación de entrada idéntica a Perfil, Gestión y Menú
+    LaunchedEffect(Unit) {
+        delay(100)
+        animateContent = true
     }
 
     LaunchedEffect(selectedOrderId, selectedOrder) {
@@ -99,41 +109,50 @@ fun OrdersScreen(
                 }
             }
             is OrdersUiState.Success -> {
-                if (filteredOrders.isEmpty()) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Filtros de estado
-                        StatusFilterChips(
-                            selectedFilter = selectedFilter,
-                            onFilterSelected = { viewModel.setFilter(it) },
-                            onClearFilter = { viewModel.clearFilter() }
-                        )
-                        EmptyOrdersView(hasFilter = selectedFilter != null)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Filtros de estado como primer item
-                        item {
+                AnimatedVisibility(
+                    visible = animateContent,
+                    enter = fadeIn(animationSpec = tween(600)) +
+                            slideInVertically(
+                                initialOffsetY = { it / 4 },
+                                animationSpec = tween(600, easing = EaseOutCubic)
+                            )
+                ) {
+                    if (filteredOrders.isEmpty()) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Filtros de estado
                             StatusFilterChips(
                                 selectedFilter = selectedFilter,
                                 onFilterSelected = { viewModel.setFilter(it) },
                                 onClearFilter = { viewModel.clearFilter() }
                             )
+                            EmptyOrdersView(hasFilter = selectedFilter != null)
                         }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Filtros de estado como primer item
+                            item {
+                                StatusFilterChips(
+                                    selectedFilter = selectedFilter,
+                                    onFilterSelected = { viewModel.setFilter(it) },
+                                    onClearFilter = { viewModel.clearFilter() }
+                                )
+                            }
 
-                        // Lista de pedidos
-                        items(
-                            items = filteredOrders,
-                            key = { it.id }
-                        ) { order ->
-                            OrderCard(
-                                order = order,
-                                onClick = { selectedOrderId = order.id },
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
+                            // Lista de pedidos
+                            items(
+                                items = filteredOrders,
+                                key = { it.id }
+                            ) { order ->
+                                OrderCard(
+                                    order = order,
+                                    onClick = { selectedOrderId = order.id },
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
                         }
                     }
                 }

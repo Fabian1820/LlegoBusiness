@@ -81,6 +81,13 @@ fun MenuScreen(
     var showAddEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf<MenuItem?>(null) }
     var showSearchCard by remember { mutableStateOf(false) }
+    var animateContent by remember { mutableStateOf(false) }
+
+    // Animación de entrada idéntica a Perfil y Gestión
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(100)
+        animateContent = true
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -125,24 +132,32 @@ fun MenuScreen(
                     }
                 }
                 is MenuUiState.Success -> {
-                    if (filteredMenuItems.isEmpty()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Filtros de categoría
-                            SimplifiedCategoryFilterChips(
-                                selectedCategory = selectedCategory,
-                                onCategorySelected = { viewModel.setCategory(it) },
-                                onClearCategory = { viewModel.clearCategory() }
-                            )
-                            EmptyMenuView(
-                                hasFilter = selectedCategory != null || searchQuery.isNotBlank(),
-                                onAddProduct = {
-                                    selectedMenuItem = null
-                                    showAddEditDialog = true
-                                }
-                            )
-                        }
-                    } else {
-                        LazyColumn(
+                    AnimatedVisibility(
+                        visible = animateContent,
+                        enter = fadeIn(animationSpec = tween(600)) +
+                                slideInVertically(
+                                    initialOffsetY = { it / 4 },
+                                    animationSpec = tween(600, easing = EaseOutCubic)
+                                )
+                    ) {
+                        if (filteredMenuItems.isEmpty()) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Filtros de categoría
+                                SimplifiedCategoryFilterChips(
+                                    selectedCategory = selectedCategory,
+                                    onCategorySelected = { viewModel.setCategory(it) },
+                                    onClearCategory = { viewModel.clearCategory() }
+                                )
+                                EmptyMenuView(
+                                    hasFilter = selectedCategory != null || searchQuery.isNotBlank(),
+                                    onAddProduct = {
+                                        selectedMenuItem = null
+                                        showAddEditDialog = true
+                                    }
+                                )
+                            }
+                        } else {
+                            LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -181,6 +196,7 @@ fun MenuScreen(
                             item {
                                 Spacer(modifier = Modifier.height(120.dp))
                             }
+                        }
                         }
                     }
                 }
@@ -486,6 +502,7 @@ private fun SearchCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding() // Respeta el teclado
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -697,17 +714,12 @@ private fun CompactMenuItemCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen real del producto con diseño elegante
+            // Imagen real del producto con diseño limpio
             androidx.compose.foundation.Image(
                 painter = painterResource(getProductImage(menuItem.id)),
                 contentDescription = menuItem.name,
                 modifier = Modifier
                     .size(60.dp)
-                    .shadow(
-                        elevation = 4.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        clip = false
-                    )
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )

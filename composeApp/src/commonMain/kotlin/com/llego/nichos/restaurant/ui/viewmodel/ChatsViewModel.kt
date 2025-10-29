@@ -23,6 +23,9 @@ class ChatsViewModel : ViewModel() {
     private val _messageInput = MutableStateFlow("")
     val messageInput: StateFlow<String> = _messageInput.asStateFlow()
 
+    private val _replyingTo = MutableStateFlow<ChatMessage?>(null)
+    val replyingTo: StateFlow<ChatMessage?> = _replyingTo.asStateFlow()
+
     // Mock timestamp counter - en producción usaríamos un timestamp real
     private var mockTimestampCounter = 1700000000000L
 
@@ -77,6 +80,14 @@ class ChatsViewModel : ViewModel() {
         _messageInput.value = text
     }
 
+    fun setReplyingTo(message: ChatMessage?) {
+        _replyingTo.value = message
+    }
+
+    fun cancelReply() {
+        _replyingTo.value = null
+    }
+
     fun sendMessage(orderId: String) {
         val messageText = _messageInput.value.trim()
         if (messageText.isEmpty()) return
@@ -108,8 +119,9 @@ class ChatsViewModel : ViewModel() {
                 _currentChat.value = updatedChat
             }
 
-            // Limpiar input
+            // Limpiar input y estado de respuesta
             _messageInput.value = ""
+            _replyingTo.value = null
 
             // Simular respuesta automática del cliente
             simulateCustomerResponse(orderId, currentTime)

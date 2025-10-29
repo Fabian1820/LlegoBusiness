@@ -28,6 +28,7 @@ import com.llego.nichos.restaurant.ui.viewmodel.ChatsUiState
  * Pantalla de Chats - Lista de conversaciones con clientes
  * Diseño moderno estilo WhatsApp con identidad Llego
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatsScreen(
     onChatClick: (String) -> Unit, // orderId
@@ -42,79 +43,79 @@ fun ChatsScreen(
         viewModel.loadChats()
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
-    ) {
-        // Header mejorado
-        Surface(
-            color = MaterialTheme.colorScheme.primary,
-            shadowElevation = 4.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Botón de volver si existe onNavigateBack
-                if (onNavigateBack != null) {
-                    IconButton(onClick = onNavigateBack) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
+                            imageVector = Icons.Default.Forum,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Text(
+                            text = "Conversaciones",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
-                }
-
-                Icon(
-                    imageVector = Icons.Default.Forum,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = "Conversaciones",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Contador de chats con mensajes no leídos
-                when (chatsState) {
-                    is ChatsUiState.Success -> {
-                        val unreadChats = (chatsState as ChatsUiState.Success).chats.count { it.hasUnreadMessages() }
-                        if (unreadChats > 0) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondary
-                            ) {
-                                Text(
-                                    text = unreadChats.toString(),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
+                },
+                navigationIcon = {
+                    if (onNavigateBack != null) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
-                    else -> {}
-                }
-            }
-        }
-
+                },
+                actions = {
+                    // Contador de chats con mensajes no leídos
+                    when (chatsState) {
+                        is ChatsUiState.Success -> {
+                            val unreadChats = (chatsState as ChatsUiState.Success).chats.count { it.hasUnreadMessages() }
+                            if (unreadChats > 0) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.error
+                                ) {
+                                    Text(
+                                        text = unreadChats.toString(),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        else -> {}
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
+        containerColor = Color(0xFFF8F9FA)
+    ) { paddingValues ->
         // Contenido según estado
         when (chatsState) {
             is ChatsUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -124,7 +125,9 @@ fun ChatsScreen(
             }
             is ChatsUiState.Error -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -151,11 +154,20 @@ fun ChatsScreen(
             is ChatsUiState.Success -> {
                 val chats = (chatsState as ChatsUiState.Success).chats
                 if (chats.isEmpty()) {
-                    EmptyChatsView()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    ) {
+                        EmptyChatsView()
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp),
+                        contentPadding = PaddingValues(
+                            top = paddingValues.calculateTopPadding() + 8.dp,
+                            bottom = paddingValues.calculateBottomPadding() + 8.dp
+                        ),
                         verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         items(

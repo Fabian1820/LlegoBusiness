@@ -3,6 +3,7 @@ package com.llego.nichos.restaurant.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
@@ -39,6 +41,7 @@ fun ChatDetailScreen(
 ) {
     val currentChat by viewModel.currentChat.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
+    val replyingTo by viewModel.replyingTo.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -57,16 +60,94 @@ fun ChatDetailScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
-            ChatDetailTopBar(
-                chat = currentChat,
-                onNavigateBack = onNavigateBack
+            TopAppBar(
+                title = {
+                    val chat = currentChat
+                    if (chat != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Avatar del cliente
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            // Info del cliente
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = chat.customerName,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                ) {
+                                    Text(
+                                        text = chat.orderNumber,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Text("Cargando...")
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* TODO: Implementar llamada */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Llamar",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         bottomBar = {
             ChatInputBar(
                 messageInput = messageInput,
+                replyingTo = replyingTo,
                 onMessageInputChange = { viewModel.setMessageInput(it) },
+                onCancelReply = { viewModel.cancelReply() },
                 onSendMessage = {
                     if (messageInput.trim().isNotEmpty()) {
                         viewModel.sendMessage(orderId)
@@ -74,118 +155,47 @@ fun ChatDetailScreen(
                 }
             )
         },
-        containerColor = Color(0xFFECE5DD) // Fondo estilo WhatsApp
+        containerColor = Color(0xFFF8F9FA) // Fondo claro consistente con Llego
     ) { paddingValues ->
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (currentChat == null) {
-                // Estado de carga
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            } else {
-                // Lista de mensajes
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(
-                        items = currentChat!!.messages,
-                        key = { it.id }
-                    ) { message ->
-                        AnimatedMessageBubble(message = message)
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * TopBar del chat con info del cliente
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ChatDetailTopBar(
-    chat: Chat?,
-    onNavigateBack: () -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.primary,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Botón de volver
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = Color.White
-                )
-            }
-
-            // Avatar del cliente
-            Surface(
-                modifier = Modifier.size(42.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondary
+        val chat = currentChat
+        if (chat == null) {
+            // Estado de carga
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            // Lista de mensajes
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 8.dp,
+                    end = 8.dp,
+                    top = paddingValues.calculateTopPadding() + 8.dp,
+                    bottom = paddingValues.calculateBottomPadding() + 8.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = chat.messages,
+                    key = { it.id }
+                ) { message ->
+                    AnimatedMessageBubble(
+                        message = message,
+                        onLongPress = {
+                            if (!message.isSystemMessage()) {
+                                viewModel.setReplyingTo(message)
+                            }
+                        }
                     )
                 }
-            }
-
-            // Info del cliente
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = chat?.customerName ?: "Cargando...",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                )
-                Text(
-                    text = chat?.orderNumber ?: "",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                )
-            }
-
-            // Icono de llamada (opcional)
-            IconButton(onClick = { /* TODO: Implementar llamada */ }) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = "Llamar",
-                    tint = Color.White
-                )
             }
         }
     }
@@ -195,7 +205,10 @@ private fun ChatDetailTopBar(
  * Burbuja de mensaje animada
  */
 @Composable
-private fun AnimatedMessageBubble(message: ChatMessage) {
+private fun AnimatedMessageBubble(
+    message: ChatMessage,
+    onLongPress: () -> Unit = {}
+) {
     // Animación de entrada
     var visible by remember { mutableStateOf(false) }
 
@@ -214,31 +227,38 @@ private fun AnimatedMessageBubble(message: ChatMessage) {
     ) {
         when {
             message.isSystemMessage() -> SystemMessageBubble(message)
-            message.isFromBusiness() -> BusinessMessageBubble(message)
-            else -> CustomerMessageBubble(message)
+            message.isFromBusiness() -> BusinessMessageBubble(message, onLongPress)
+            else -> CustomerMessageBubble(message, onLongPress)
         }
     }
 }
 
 /**
- * Mensaje del negocio (derecha, verde)
+ * Mensaje del negocio (derecha, color primario Llego)
  */
 @Composable
-private fun BusinessMessageBubble(message: ChatMessage) {
+private fun BusinessMessageBubble(
+    message: ChatMessage,
+    onLongPress: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
     ) {
         Surface(
             modifier = Modifier
-                .widthIn(max = 280.dp),
+                .widthIn(max = 280.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongPress
+                ),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
                 bottomStart = 16.dp,
                 bottomEnd = 4.dp
             ),
-            color = Color(0xFFDCF8C6), // Verde claro estilo WhatsApp
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
             shadowElevation = 1.dp
         ) {
             Column(
@@ -247,7 +267,7 @@ private fun BusinessMessageBubble(message: ChatMessage) {
                 Text(
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF303030)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
@@ -258,14 +278,17 @@ private fun BusinessMessageBubble(message: ChatMessage) {
                     Text(
                         text = message.timestamp,
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF667781)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    // Check de leído
+                    // Check de leído con colores Llego
                     Icon(
                         imageVector = Icons.Default.DoneAll,
                         contentDescription = null,
-                        tint = if (message.isRead) Color(0xFF53BDEB) else Color(0xFF667781),
+                        tint = if (message.isRead)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -275,17 +298,24 @@ private fun BusinessMessageBubble(message: ChatMessage) {
 }
 
 /**
- * Mensaje del cliente (izquierda, blanco)
+ * Mensaje del cliente (izquierda, blanco con borde Llego)
  */
 @Composable
-private fun CustomerMessageBubble(message: ChatMessage) {
+private fun CustomerMessageBubble(
+    message: ChatMessage,
+    onLongPress: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
         Surface(
             modifier = Modifier
-                .widthIn(max = 280.dp),
+                .widthIn(max = 280.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongPress
+                ),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
@@ -293,7 +323,7 @@ private fun CustomerMessageBubble(message: ChatMessage) {
                 bottomEnd = 16.dp
             ),
             color = Color.White,
-            shadowElevation = 1.dp
+            shadowElevation = 2.dp
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -301,13 +331,13 @@ private fun CustomerMessageBubble(message: ChatMessage) {
                 Text(
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF303030)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = message.timestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF667781),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -316,7 +346,7 @@ private fun CustomerMessageBubble(message: ChatMessage) {
 }
 
 /**
- * Mensaje del sistema (centro, gris)
+ * Mensaje del sistema (centro, color secundario Llego)
  */
 @Composable
 private fun SystemMessageBubble(message: ChatMessage) {
@@ -327,7 +357,7 @@ private fun SystemMessageBubble(message: ChatMessage) {
         Surface(
             modifier = Modifier.widthIn(max = 280.dp),
             shape = RoundedCornerShape(12.dp),
-            color = Color(0xFFFFF9E6), // Amarillo suave para avisos
+            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
             shadowElevation = 1.dp
         ) {
             Column(
@@ -336,9 +366,9 @@ private fun SystemMessageBubble(message: ChatMessage) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
+                    imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = Color(0xFFFFA726),
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -346,13 +376,13 @@ private fun SystemMessageBubble(message: ChatMessage) {
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = Color(0xFF856404),
+                    color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = message.timestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF856404).copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -360,61 +390,145 @@ private fun SystemMessageBubble(message: ChatMessage) {
 }
 
 /**
- * Barra de input para enviar mensajes
+ * Barra de input para enviar mensajes - Diseño Llego con preview de respuesta
  */
 @Composable
 private fun ChatInputBar(
     messageInput: String,
+    replyingTo: ChatMessage?,
     onMessageInputChange: (String) -> Unit,
+    onCancelReply: () -> Unit,
     onSendMessage: () -> Unit
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.White,
         shadowElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Campo de texto
-            TextField(
-                value = messageInput,
-                onValueChange = onMessageInputChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "Escribe un mensaje...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                },
-                shape = RoundedCornerShape(24.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
-                maxLines = 4
-            )
-
-            // Botón de enviar
-            FloatingActionButton(
-                onClick = onSendMessage,
-                modifier = Modifier.size(48.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                shape = CircleShape
+            // Preview de respuesta estilo WhatsApp
+            AnimatedVisibility(
+                visible = replyingTo != null,
+                enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Enviar mensaje",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
+                if (replyingTo != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Línea vertical de color
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(40.dp)
+                                    .background(
+                                        color = if (replyingTo.isFromBusiness())
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.secondary,
+                                        shape = RoundedCornerShape(2.dp)
+                                    )
+                            )
+
+                            // Contenido del mensaje
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = if (replyingTo.isFromBusiness()) "Tú" else "Cliente",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (replyingTo.isFromBusiness())
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.secondary
+                                    )
+                                )
+                                Text(
+                                    text = replyingTo.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // Botón cerrar
+                            IconButton(
+                                onClick = onCancelReply,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Cancelar respuesta",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Input bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Campo de texto con estilo Llego
+                TextField(
+                    value = messageInput,
+                    onValueChange = onMessageInputChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "Escribe un mensaje...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = Color(0xFFF5F5F5),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    maxLines = 4
                 )
+
+                // Botón de enviar con color Llego
+                FloatingActionButton(
+                    onClick = onSendMessage,
+                    modifier = Modifier.size(48.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 2.dp,
+                        pressedElevation = 4.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Enviar mensaje",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }

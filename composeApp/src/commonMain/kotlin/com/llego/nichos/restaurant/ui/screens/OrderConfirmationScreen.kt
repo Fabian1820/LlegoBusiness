@@ -52,12 +52,12 @@ fun OrderConfirmationScreen(
         onDismiss()
     }
 
-    // Gradiente vertical con color primario de la app
+    // Gradiente vertical con color primario de la app (sin opacidad)
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
-            primaryColor.copy(alpha = 0.9f),
-            primaryColor.copy(alpha = 0.7f),
-            primaryColor.copy(alpha = 0.95f)
+            primaryColor,
+            primaryColor.copy(alpha = 0.95f),
+            primaryColor
         )
     )
 
