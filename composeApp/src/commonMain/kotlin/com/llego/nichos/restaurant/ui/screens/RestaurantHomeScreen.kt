@@ -97,7 +97,8 @@ fun RestaurantHomeScreen(
                 NavigationBar(
                     containerColor = Color.White,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.height(72.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
                 ) {
                     val pendingCount = ordersViewModel.getPendingOrdersCount()
 
