@@ -35,37 +35,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
+import com.llego.nichos.restaurant.ui.components.menu.AddEditMenuItemDialog
+import com.llego.nichos.restaurant.ui.components.menu.EmptyMenuView
+import com.llego.nichos.restaurant.ui.components.menu.getProductImage
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuUiState
 import llegobusiness.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
-/**
- * Helper para obtener la imagen del producto basada en su ID
- * Mapea de forma consistente cada producto a una imagen
- */
-@Composable
-private fun getProductImage(menuItemId: String): org.jetbrains.compose.resources.DrawableResource {
-    // Lista de imágenes disponibles
-    val images = listOf(
-        Res.drawable.pizza,
-        Res.drawable.spaggetti,
-        Res.drawable.arrozblanco,
-        Res.drawable.arrozmoro,
-        Res.drawable.pastelfresa,
-        Res.drawable.tresleches,
-        Res.drawable.batidofresa,
-        Res.drawable.batidomamey
-    )
-
-    // Usar el hashCode del ID para obtener siempre la misma imagen para el mismo producto
-    val index = menuItemId.hashCode().let { if (it < 0) -it else it } % images.size
-    return images[index]
-}
-
-/**
- * Pantalla de Menú con diseño moderno y gestión CRUD
- */
+//Pantalla de Menú con diseño moderno y gestión CRUD
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuScreen(
@@ -361,9 +339,7 @@ fun MenuScreen(
     }
 }
 
-/**
- * Chips de filtro por categoría simplificados con fade en ambos lados
- */
+ // Chips de filtro por categoría simplificados con fade en ambos lados
 @Composable
 private fun SimplifiedCategoryFilterChips(
     selectedCategory: MenuCategory?,
@@ -470,9 +446,7 @@ private fun SimplifiedCategoryFilterChips(
     }
 }
 
-/**
- * Card de búsqueda animado que aparece desde abajo con resultados en tiempo real
- */
+ // Card de búsqueda animado que aparece desde abajo con resultados en tiempo real
 @Composable
 private fun SearchCard(
     searchQuery: String,
@@ -686,9 +660,7 @@ private fun SearchCard(
     }
 }
 
-/**
- * Card compacto de producto para resultados de búsqueda
- */
+ // Card compacto de producto para resultados de búsqueda
 @Composable
 private fun CompactMenuItemCard(
     menuItem: MenuItem,
@@ -816,9 +788,7 @@ private fun CompactMenuItemCard(
     }
 }
 
-/**
- * Card de producto del menú
- */
+ // Card de producto del menú
 @Composable
 private fun MenuItemCard(
     menuItem: MenuItem,
@@ -1084,9 +1054,7 @@ private fun MenuItemCard(
     }
 }
 
-/**
- * Badge para características dietéticas
- */
+ // Badge para características dietéticas
 @Composable
 private fun DietaryBadge(emoji: String, label: String, color: Color) {
     Surface(
@@ -1114,284 +1082,6 @@ private fun DietaryBadge(emoji: String, label: String, color: Color) {
     }
 }
 
-/**
- * Vista cuando no hay productos
- */
-@Composable
-private fun EmptyMenuView(
-    hasFilter: Boolean,
-    onAddProduct: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Restaurant,
-                contentDescription = null,
-                tint = Color.Gray.copy(alpha = 0.3f),
-                modifier = Modifier.size(80.dp)
-            )
-            Text(
-                text = if (hasFilter) {
-                    "No hay productos con este filtro"
-                } else {
-                    "No hay productos en el menú"
-                },
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
-            )
-            if (hasFilter) {
-                Text(
-                    text = "Intenta con otro filtro o búsqueda",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-            } else {
-                Button(onClick = onAddProduct) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Agregar primer producto")
-                }
-            }
-        }
-    }
-}
-
-/**
- * Diálogo para agregar o editar producto del menú
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddEditMenuItemDialog(
-    menuItem: MenuItem?,
-    onDismiss: () -> Unit,
-    onSave: (MenuItem) -> Unit
-) {
-    var name by remember { mutableStateOf(menuItem?.name ?: "") }
-    var description by remember { mutableStateOf(menuItem?.description ?: "") }
-    var price by remember { mutableStateOf(menuItem?.price?.toString() ?: "") }
-    var category by remember { mutableStateOf(menuItem?.category ?: MenuCategory.MAIN_COURSES) }
-    var preparationTime by remember { mutableStateOf(menuItem?.preparationTime?.toString() ?: "15") }
-    var isAvailable by remember { mutableStateOf(menuItem?.isAvailable ?: true) }
-    var isVegetarian by remember { mutableStateOf(menuItem?.isVegetarian ?: false) }
-    var isVegan by remember { mutableStateOf(menuItem?.isVegan ?: false) }
-    var isGlutenFree by remember { mutableStateOf(menuItem?.isGlutenFree ?: false) }
-
-    var showCategoryDropdown by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = if (menuItem == null) "Agregar Producto" else "Editar Producto",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Nombre
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nombre del producto") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                // Descripción
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 3
-                )
-
-                // Precio y tiempo de preparación
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = price,
-                        onValueChange = { price = it },
-                        label = { Text("Precio ($)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = preparationTime,
-                        onValueChange = { preparationTime = it },
-                        label = { Text("Tiempo (min)") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
-
-                // Selector de categoría
-                ExposedDropdownMenuBox(
-                    expanded = showCategoryDropdown,
-                    onExpandedChange = { showCategoryDropdown = it }
-                ) {
-                    OutlinedTextField(
-                        value = category.getDisplayName(),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Categoría") },
-                        trailingIcon = {
-                            Icon(
-                                imageVector = if (showCategoryDropdown)
-                                    Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = showCategoryDropdown,
-                        onDismissRequest = { showCategoryDropdown = false }
-                    ) {
-                        MenuCategory.values().forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat.getDisplayName()) },
-                                onClick = {
-                                    category = cat
-                                    showCategoryDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Divider()
-
-                // Opciones dietéticas
-                Text(
-                    text = "Características dietéticas",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isVegetarian,
-                        onCheckedChange = { isVegetarian = it }
-                    )
-                    Text("🌱 Vegetariano", modifier = Modifier.weight(1f))
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isVegan,
-                        onCheckedChange = { isVegan = it }
-                    )
-                    Text("🥬 Vegano", modifier = Modifier.weight(1f))
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isGlutenFree,
-                        onCheckedChange = { isGlutenFree = it }
-                    )
-                    Text("🌾 Sin Gluten", modifier = Modifier.weight(1f))
-                }
-
-                Divider()
-
-                // Disponibilidad
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Disponible para ordenar",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Switch(
-                        checked = isAvailable,
-                        onCheckedChange = { isAvailable = it }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val newItem = MenuItem(
-                        id = menuItem?.id ?: "item_${(0..999999).random()}",
-                        name = name,
-                        description = description,
-                        price = price.toDoubleOrNull() ?: 0.0,
-                        category = category,
-                        preparationTime = preparationTime.toIntOrNull() ?: 15,
-                        isAvailable = isAvailable,
-                        isVegetarian = isVegetarian,
-                        isVegan = isVegan,
-                        isGlutenFree = isGlutenFree
-                    )
-                    onSave(newItem)
-                },
-                enabled = name.isNotBlank() && description.isNotBlank() &&
-                         price.toDoubleOrNull() != null,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text(
-                    if (menuItem == null) "Agregar" else "Guardar",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text("Cancelar", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
-            }
-        },
-        containerColor = Color.White,
-        shape = RoundedCornerShape(20.dp)
-    )
-}
-
-/**
- * Texto con animación de subrayado para productos no disponibles
- */
 @Composable
 private fun AnimatedTextWithUnderline(
     text: String,
