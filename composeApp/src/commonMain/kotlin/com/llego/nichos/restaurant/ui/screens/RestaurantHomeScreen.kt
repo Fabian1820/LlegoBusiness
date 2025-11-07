@@ -15,6 +15,7 @@ import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
+import com.llego.nichos.common.ui.screens.WalletScreen
 import com.llego.shared.ui.auth.AuthViewModel
 
 /**
@@ -177,8 +178,11 @@ fun RestaurantHomeScreen(
                 RestaurantTab.MENU -> MenuScreen(
                     viewModel = menuViewModel
                 )
-                RestaurantTab.SETTINGS -> RestaurantSettingsScreen(
-                    viewModel = settingsViewModel
+                RestaurantTab.WALLET -> WalletScreen(
+                    onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                )
+                RestaurantTab.TUTORIALS -> TutorialsScreen(
+                    onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
                 )
             }
         }
@@ -194,5 +198,6 @@ enum class RestaurantTab(
 ) {
     ORDERS("Pedidos", Icons.Default.ShoppingCart),
     MENU("Menú", Icons.Default.Restaurant),
-    SETTINGS("Gestión", Icons.Default.Settings)
+    WALLET("Wallet", Icons.Default.AccountBalanceWallet),
+    TUTORIALS("Tutoriales", Icons.Default.School)
 }

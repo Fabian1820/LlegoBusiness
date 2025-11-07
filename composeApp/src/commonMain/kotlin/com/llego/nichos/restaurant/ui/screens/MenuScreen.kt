@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -29,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -457,18 +459,42 @@ private fun SearchCard(
     onDeleteItem: (MenuItem) -> Unit = {},
     onToggleAvailability: (String) -> Unit = {}
 ) {
-    Box(
+    val dismissInteraction = remember { MutableInteractionSource() }
+    val sheetInteraction = remember { MutableInteractionSource() }
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
-            .clickable(onClick = onClose)
+            .clickable(
+                interactionSource = dismissInteraction,
+                indication = null,
+                onClick = onClose
+            )
     ) {
+        val minSheetHeight = 320.dp
+        // Mantener siempre un pequeño espacio bajo la navbar superior (bordes redondeados)
+        val topGap = 12.dp
+        val preferredHeight = (maxHeight * 0.85f).coerceAtMost(maxHeight - topGap)
+        // Altura fija independientemente del IME; el movimiento lo gestiona imePadding
+        val sheetHeight = preferredHeight.coerceAtLeast(minSheetHeight)
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.9f)
+                .height(sheetHeight)
                 .align(Alignment.BottomCenter)
-                .clickable(onClick = {}), // Prevenir cierre al hacer click en el card
+                .imePadding() // Posicionar justo sobre el teclado sin empujar la pantalla completa
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+                .clickable(
+                    interactionSource = sheetInteraction,
+                    indication = null,
+                    onClick = {}
+                ), // Prevenir cierre al hacer click en el card
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -476,8 +502,7 @@ private fun SearchCard(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding() // Respeta el teclado
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header con título y botón cerrar
@@ -548,6 +573,7 @@ private fun SearchCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .weight(1f, fill = false)
                             .padding(top = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -574,7 +600,7 @@ private fun SearchCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(),
+                            .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Header con contador de resultados

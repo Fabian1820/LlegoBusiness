@@ -29,7 +29,8 @@ data class ChatMessage(
     val timestamp: String, // Formato: "HH:mm" o "dd/MM/yyyy HH:mm"
     val fullTimestamp: Long, // Unix timestamp para ordenar
     val isRead: Boolean = false,
-    val messageType: MessageType = MessageType.TEXT
+    val messageType: MessageType = MessageType.TEXT,
+    val replyToMessage: String? = null // Texto del mensaje al que se está respondiendo
 )
 
 @Serializable

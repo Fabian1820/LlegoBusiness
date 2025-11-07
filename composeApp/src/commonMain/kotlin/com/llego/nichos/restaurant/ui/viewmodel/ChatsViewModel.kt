@@ -94,6 +94,8 @@ class ChatsViewModel : ViewModel() {
 
         viewModelScope.launch {
             val currentTime = getCurrentTimestamp()
+            val replyText = _replyingTo.value?.message
+
             val newMessage = ChatMessage(
                 id = "msg_${currentTime}",
                 senderId = "business_001",
@@ -102,7 +104,8 @@ class ChatsViewModel : ViewModel() {
                 timestamp = formatTimestamp(currentTime),
                 fullTimestamp = currentTime,
                 isRead = true,
-                messageType = MessageType.TEXT
+                messageType = MessageType.TEXT,
+                replyToMessage = replyText
             )
 
             // Actualizar chat con nuevo mensaje

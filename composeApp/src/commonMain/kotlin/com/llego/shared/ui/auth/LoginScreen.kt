@@ -133,7 +133,7 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(220.dp)
                     .graphicsLayer { translationY = headerOffsetY },
                 contentAlignment = Alignment.Center
             ) {
@@ -142,7 +142,8 @@ fun LoginScreen(
 
             Surface(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .weight(1f)
                     .graphicsLayer { translationY = cardOffsetY },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(
                     topStart = 32.dp,

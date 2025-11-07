@@ -19,6 +19,7 @@ val LlegoOnBackground = Color(0xFF1B1B1B)              // Texto principal
 val LlegoOnSurfaceVariant = Color(19, 45, 47)          // Texto secundario
 
 // Colores de acento
+val LlegoAccent = Color(178, 214, 154)                 // #B2D69A - Verde claro (alias principal)
 val LlegoAccentPrimary = Color(178, 214, 154)          // #B2D69A - Verde claro
 val LlegoAccentSecondary = Color(157, 205, 120)        // #9DCD78 - Verde medio
 val LlegoSurfaceVariant = Color(236, 240, 233)         // #ECF0E9 - Fondo suave

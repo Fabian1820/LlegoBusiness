@@ -4,7 +4,10 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -18,14 +21,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Pantalla de detalle de chat individual con el cliente
@@ -60,86 +68,11 @@ fun ChatDetailScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
-                    val chat = currentChat
-                    if (chat != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // Avatar del cliente
-                            Surface(
-                                modifier = Modifier.size(40.dp),
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-
-                            // Info del cliente
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    text = chat.customerName,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                ) {
-                                    Text(
-                                        text = chat.orderNumber,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        Text("Cargando...")
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Implementar llamada */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = "Llamar",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+            ChatTopBar(
+                chat = currentChat,
+                onNavigateBack = onNavigateBack
             )
         },
         bottomBar = {
@@ -174,12 +107,12 @@ fun ChatDetailScreen(
             // Lista de mensajes
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
                 contentPadding = PaddingValues(
-                    start = 8.dp,
-                    end = 8.dp,
-                    top = paddingValues.calculateTopPadding() + 8.dp,
-                    bottom = paddingValues.calculateBottomPadding() + 8.dp
+                    horizontal = 8.dp,
+                    vertical = 8.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -187,9 +120,9 @@ fun ChatDetailScreen(
                     items = chat.messages,
                     key = { it.id }
                 ) { message ->
-                    AnimatedMessageBubble(
+                    SwipeableMessageBubble(
                         message = message,
-                        onLongPress = {
+                        onSwipeToReply = {
                             if (!message.isSystemMessage()) {
                                 viewModel.setReplyingTo(message)
                             }
@@ -202,15 +135,108 @@ fun ChatDetailScreen(
 }
 
 /**
- * Burbuja de mensaje animada
+ * TopBar del chat con información del cliente
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatTopBar(
+    chat: Chat?,
+    onNavigateBack: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            if (chat != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Avatar del cliente
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    // Info del cliente
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = chat.customerName,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = chat.orderNumber,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text("Cargando...")
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = { /* TODO: Implementar llamada */ }) {
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = "Llamar",
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+/**
+ * Burbuja de mensaje con swipe-to-reply (estilo WhatsApp)
  */
 @Composable
-private fun AnimatedMessageBubble(
+private fun SwipeableMessageBubble(
     message: ChatMessage,
-    onLongPress: () -> Unit = {}
+    onSwipeToReply: () -> Unit = {}
 ) {
     // Animación de entrada
     var visible by remember { mutableStateOf(false) }
+
+    // Estado del swipe
+    var offsetX by remember { mutableStateOf(0f) }
+    val swipeThreshold = 120f
 
     LaunchedEffect(message.id) {
         visible = true
@@ -225,10 +251,68 @@ private fun AnimatedMessageBubble(
             animationSpec = tween(300, easing = EaseOutCubic)
         )
     ) {
-        when {
-            message.isSystemMessage() -> SystemMessageBubble(message)
-            message.isFromBusiness() -> BusinessMessageBubble(message, onLongPress)
-            else -> CustomerMessageBubble(message, onLongPress)
+        // Solo permitir swipe si no es mensaje del sistema
+        if (message.isSystemMessage()) {
+            SystemMessageBubble(message)
+        } else {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Icono de respuesta que aparece al hacer swipe
+                val iconAlpha = (abs(offsetX) / swipeThreshold).coerceIn(0f, 1f)
+                if (iconAlpha > 0f) {
+                    Icon(
+                        imageVector = Icons.Default.Reply,
+                        contentDescription = "Responder",
+                        tint = MaterialTheme.colorScheme.secondary.copy(alpha = iconAlpha),
+                        modifier = Modifier
+                            .align(if (message.isFromBusiness()) Alignment.CenterEnd else Alignment.CenterStart)
+                            .padding(horizontal = 16.dp)
+                            .size(24.dp)
+                            .graphicsLayer {
+                                alpha = iconAlpha
+                                scaleX = iconAlpha
+                                scaleY = iconAlpha
+                            }
+                    )
+                }
+
+                // Contenido del mensaje con gesture
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset { IntOffset(offsetX.roundToInt(), 0) }
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    if (abs(offsetX) >= swipeThreshold) {
+                                        onSwipeToReply()
+                                    }
+                                    offsetX = 0f
+                                },
+                                onDragCancel = {
+                                    offsetX = 0f
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    // Solo permitir swipe hacia la dirección correcta
+                                    val newOffset = offsetX + dragAmount
+                                    offsetX = if (message.isFromBusiness()) {
+                                        // Mensaje del negocio: swipe hacia la izquierda
+                                        newOffset.coerceIn(-swipeThreshold * 1.5f, 0f)
+                                    } else {
+                                        // Mensaje del cliente: swipe hacia la derecha
+                                        newOffset.coerceIn(0f, swipeThreshold * 1.5f)
+                                    }
+                                }
+                            )
+                        }
+                ) {
+                    when {
+                        message.isFromBusiness() -> BusinessMessageBubble(message)
+                        else -> CustomerMessageBubble(message)
+                    }
+                }
+            }
         }
     }
 }
@@ -238,20 +322,14 @@ private fun AnimatedMessageBubble(
  */
 @Composable
 private fun BusinessMessageBubble(
-    message: ChatMessage,
-    onLongPress: () -> Unit = {}
+    message: ChatMessage
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
     ) {
         Surface(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = onLongPress
-                ),
+            modifier = Modifier.widthIn(max = 280.dp),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
@@ -264,6 +342,15 @@ private fun BusinessMessageBubble(
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
+                // Indicador de respuesta si existe
+                message.replyToMessage?.let { replyTo ->
+                    ReplyIndicator(
+                        replyToMessage = replyTo,
+                        isOwnMessage = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 Text(
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -302,20 +389,14 @@ private fun BusinessMessageBubble(
  */
 @Composable
 private fun CustomerMessageBubble(
-    message: ChatMessage,
-    onLongPress: () -> Unit = {}
+    message: ChatMessage
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
         Surface(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .combinedClickable(
-                    onClick = {},
-                    onLongClick = onLongPress
-                ),
+            modifier = Modifier.widthIn(max = 280.dp),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
@@ -328,6 +409,15 @@ private fun CustomerMessageBubble(
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
+                // Indicador de respuesta si existe
+                message.replyToMessage?.let { replyTo ->
+                    ReplyIndicator(
+                        replyToMessage = replyTo,
+                        isOwnMessage = false
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 Text(
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
@@ -390,6 +480,66 @@ private fun SystemMessageBubble(message: ChatMessage) {
 }
 
 /**
+ * Indicador visual de respuesta estilo WhatsApp
+ */
+@Composable
+private fun ReplyIndicator(
+    replyToMessage: String,
+    isOwnMessage: Boolean
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isOwnMessage)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        else
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Línea vertical de color
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(40.dp)
+                    .background(
+                        color = if (isOwnMessage)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.secondary,
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = if (isOwnMessage) "Tú" else "Cliente",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOwnMessage)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.secondary
+                    )
+                )
+                Text(
+                    text = replyToMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
  * Barra de input para enviar mensajes - Diseño Llego con preview de respuesta
  */
 @Composable
@@ -402,7 +552,10 @@ private fun ChatInputBar(
 ) {
     Surface(
         color = Color.White,
-        shadowElevation = 8.dp
+        shadowElevation = 8.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.ime)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -485,31 +638,41 @@ private fun ChatInputBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Bottom,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Campo de texto con estilo Llego
-                TextField(
-                    value = messageInput,
-                    onValueChange = onMessageInputChange,
+                // Campo de texto con estilo Llego y borde
+                Surface(
                     modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text(
-                            "Escribe un mensaje...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    },
                     shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = Color(0xFFF5F5F5),
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    ),
-                    maxLines = 4
-                )
+                    color = Color(0xFFF5F5F5),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    )
+                ) {
+                    TextField(
+                        value = messageInput,
+                        onValueChange = onMessageInputChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                "Escribe un mensaje...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        ),
+                        maxLines = 4
+                    )
+                }
 
                 // Botón de enviar con color Llego
                 FloatingActionButton(

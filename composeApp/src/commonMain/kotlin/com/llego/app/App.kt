@@ -89,6 +89,7 @@ fun App(viewModels: AppViewModels) {
                             showProfile -> {
                                 RestaurantProfileScreen(
                                     authViewModel = authViewModel,
+                                    settingsViewModel = settingsViewModel,
                                     onNavigateBack = { showProfile = false }
                                 )
                             }
@@ -134,7 +135,8 @@ fun App(viewModels: AppViewModels) {
                 BusinessType.PHARMACY -> {
                     // TODO: Implementar pantalla de pharmacy
                     RestaurantProfileScreen(
-                        authViewModel = authViewModel
+                        authViewModel = authViewModel,
+                        settingsViewModel = settingsViewModel
                     )
                 }
                 else -> {
