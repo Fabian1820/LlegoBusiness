@@ -42,6 +42,8 @@ import com.llego.nichos.restaurant.ui.components.menu.EmptyMenuView
 import com.llego.nichos.restaurant.ui.components.menu.getProductImage
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuUiState
+import com.llego.shared.data.model.BusinessType
+import com.llego.nichos.common.ui.components.CategoryFilterChipsForRestaurant
 import llegobusiness.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -50,6 +52,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun MenuScreen(
     viewModel: MenuViewModel,
+    businessType: BusinessType = BusinessType.RESTAURANT,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -122,8 +125,9 @@ fun MenuScreen(
                     ) {
                         if (filteredMenuItems.isEmpty()) {
                             Column(modifier = Modifier.fillMaxSize()) {
-                                // Filtros de categoría
-                                SimplifiedCategoryFilterChips(
+                                // Filtros de categoría adaptados por nicho
+                                CategoryFilterChipsForRestaurant(
+                                    businessType = businessType,
                                     selectedCategory = selectedCategory,
                                     onCategorySelected = { viewModel.setCategory(it) },
                                     onClearCategory = { viewModel.clearCategory() }
@@ -142,9 +146,10 @@ fun MenuScreen(
                             contentPadding = PaddingValues(bottom = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Filtros de categoría como primer item
+                            // Filtros de categoría como primer item (adaptados por nicho)
                             item {
-                                SimplifiedCategoryFilterChips(
+                                CategoryFilterChipsForRestaurant(
+                                    businessType = businessType,
                                     selectedCategory = selectedCategory,
                                     onCategorySelected = { viewModel.setCategory(it) },
                                     onClearCategory = { viewModel.clearCategory() }

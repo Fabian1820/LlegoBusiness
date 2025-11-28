@@ -1,4 +1,4 @@
-package com.llego.nichos.restaurant.ui.screens
+package com.llego.nichos.common.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,23 +8,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llego.nichos.common.config.BusinessConfigProvider
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
-import com.llego.nichos.common.ui.screens.WalletScreen
+import com.llego.nichos.restaurant.ui.screens.OrdersScreen
+import com.llego.nichos.restaurant.ui.screens.MenuScreen
+import com.llego.nichos.restaurant.ui.screens.TutorialsScreen
+import com.llego.nichos.restaurant.ui.screens.ConfirmationType
+import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.auth.AuthViewModel
 
 /**
- * Pantalla principal del Restaurante con Bottom Navigation
+ * Pantalla principal genérica para todos los nichos
+ * Se adapta automáticamente según el BusinessType usando BusinessConfigProvider
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RestaurantHomeScreen(
+fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
+    businessType: BusinessType,
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
     onNavigateToChatDetail: (String) -> Unit = {},
@@ -34,14 +40,19 @@ fun RestaurantHomeScreen(
     menuViewModel: MenuViewModel,
     settingsViewModel: SettingsViewModel
 ) {
-    var selectedTab by remember { mutableStateOf(RestaurantTab.ORDERS) }
+    // Obtener configuración dinámica según el nicho
+    val tabs = BusinessConfigProvider.getTabsForBusiness(businessType)
+    val currentUser by authViewModel.uiState.collectAsState()
+    val businessName = currentUser.currentUser?.businessProfile?.businessName ?: "Mi Negocio"
+
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Restaurante La Habana",
+                        businessName, // ✅ Dinámico según el negocio logueado
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
@@ -103,15 +114,15 @@ fun RestaurantHomeScreen(
                 ) {
                     val pendingCount = ordersViewModel.getPendingOrdersCount()
 
-                    RestaurantTab.values().forEach { tab ->
-                        val isSelected = selectedTab == tab
+                    tabs.forEachIndexed { index, tab ->
+                        val isSelected = selectedTabIndex == index
 
                         NavigationBarItem(
                             selected = isSelected,
-                            onClick = { selectedTab = tab },
+                            onClick = { selectedTabIndex = index },
                             icon = {
                                 // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
-                                if (tab == RestaurantTab.ORDERS && pendingCount > 0) {
+                                if (tab.id == "orders" && pendingCount > 0) {
                                     BadgedBox(
                                         badge = {
                                             Badge(
@@ -130,14 +141,14 @@ fun RestaurantHomeScreen(
                                         }
                                     ) {
                                         Icon(
-                                            imageVector = tab.icon,
+                                            imageVector = tab.icon, // ✅ Icono específico por nicho
                                             contentDescription = tab.title,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
                                 } else {
                                     Icon(
-                                        imageVector = tab.icon,
+                                        imageVector = tab.icon, // ✅ Icono específico por nicho
                                         contentDescription = tab.title,
                                         modifier = Modifier.size(24.dp)
                                     )
@@ -145,7 +156,7 @@ fun RestaurantHomeScreen(
                             },
                             label = {
                                 Text(
-                                    text = tab.title,
+                                    text = tab.title, // ✅ Texto específico por nicho
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     )
@@ -165,40 +176,56 @@ fun RestaurantHomeScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            when (selectedTab) {
-                RestaurantTab.ORDERS -> OrdersScreen(
-                    viewModel = ordersViewModel,
-                    onNavigateToChat = { orderId, orderNumber, customerName ->
-                        // Crear chat automáticamente y navegar al detalle
-                        chatsViewModel.createCancellationChat(orderId, orderNumber, customerName)
-                        onNavigateToChatDetail(orderId)
-                    },
-                    onShowConfirmation = onShowConfirmation
-                )
-                RestaurantTab.MENU -> MenuScreen(
-                    viewModel = menuViewModel,
-                    businessType = com.llego.shared.data.model.BusinessType.RESTAURANT
-                )
-                RestaurantTab.WALLET -> WalletScreen(
-                    onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
-                )
-                RestaurantTab.TUTORIALS -> TutorialsScreen(
-                    onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
-                )
+            // Renderizar contenido según el tab seleccionado y el tipo de negocio
+            when (tabs[selectedTabIndex].id) {
+                "orders" -> {
+                    // Pantalla de Pedidos (común para todos)
+                    OrdersScreen(
+                        viewModel = ordersViewModel,
+                        onNavigateToChat = { orderId, orderNumber, customerName ->
+                            chatsViewModel.createCancellationChat(orderId, orderNumber, customerName)
+                            onNavigateToChatDetail(orderId)
+                        },
+                        onShowConfirmation = onShowConfirmation
+                    )
+                }
+                "menu" -> {
+                    // Pantalla de Menú (solo para restaurantes)
+                    MenuScreen(
+                        viewModel = menuViewModel,
+                        businessType = businessType
+                    )
+                }
+                "products", "stock" -> {
+                    // Pantalla de Productos/Stock (mercados, agromercados, tiendas)
+                    // TODO: Implementar ProductsScreen cuando esté listo
+                    // Por ahora mostramos MenuScreen como placeholder con categorías adaptadas
+                    MenuScreen(
+                        viewModel = menuViewModel,
+                        businessType = businessType
+                    )
+                }
+                "medicines" -> {
+                    // Pantalla de Medicinas (farmacias)
+                    // TODO: Implementar MedicinesScreen cuando esté listo
+                    MenuScreen(
+                        viewModel = menuViewModel,
+                        businessType = businessType
+                    )
+                }
+                "wallet" -> {
+                    // Pantalla de Wallet (común para todos)
+                    WalletScreen(
+                        onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                    )
+                }
+                "tutorials" -> {
+                    // Pantalla de Tutoriales (común para todos)
+                    TutorialsScreen(
+                        onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                    )
+                }
             }
         }
     }
-}
-
-/**
- * Tabs de navegación del restaurante
- */
-enum class RestaurantTab(
-    val title: String,
-    val icon: ImageVector
-) {
-    ORDERS("Pedidos", Icons.Default.ShoppingCart),
-    MENU("Menú", Icons.Default.Restaurant),
-    WALLET("Wallet", Icons.Default.AccountBalanceWallet),
-    TUTORIALS("Tutoriales", Icons.Default.School)
 }

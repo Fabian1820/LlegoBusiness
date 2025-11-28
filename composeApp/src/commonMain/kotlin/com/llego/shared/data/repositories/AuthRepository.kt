@@ -30,7 +30,9 @@ class AuthRepository {
      *
      * USUARIOS DE PRUEBA RÁPIDOS:
      * - Restaurante: email="r" password="r"
-     * - Supermercado: email="s" password="s"
+     * - Mercado: email="m" password="m"
+     * - Agromercado: email="a" password="a"
+     * - Tienda Ropa: email="t" password="t"
      * - Farmacia: email="f" password="f"
      */
     suspend fun login(loginRequest: LoginRequest): Result<LoginResponse> {
@@ -157,9 +159,10 @@ class AuthRepository {
     private fun getMockUser(email: String, businessType: BusinessType): User? {
         return when (businessType) {
             BusinessType.RESTAURANT -> getMockRestaurantUser(email)
-            BusinessType.GROCERY -> getMockMarketUser(email)
+            BusinessType.MARKET -> getMockMarketUser(email)
+            BusinessType.AGROMARKET -> getMockAgromarketUser(email)
+            BusinessType.CLOTHING_STORE -> getMockClothingStoreUser(email)
             BusinessType.PHARMACY -> getMockPharmacyUser(email)
-            else -> getMockRestaurantUser(email) // Default
         }
     }
 
@@ -205,23 +208,23 @@ class AuthRepository {
         return User(
             id = "market_001",
             email = email,
-            name = "Supermercado El Ahorro",
+            name = "Mercado El Ahorro",
             phone = "+53 5555-5678",
-            businessType = BusinessType.GROCERY,
+            businessType = BusinessType.MARKET,
             profileImage = null,
             isActive = true,
             createdAt = "2024-01-01T00:00:00Z",
             updatedAt = "2024-01-01T00:00:00Z",
             businessProfile = BusinessProfile(
                 businessId = "market_001",
-                businessName = "Supermercado El Ahorro",
-                businessType = BusinessType.GROCERY,
+                businessName = "Mercado El Ahorro",
+                businessType = BusinessType.MARKET,
                 address = "Avenida Central 123",
                 city = "La Habana",
                 state = "La Habana",
                 zipCode = "10500",
                 businessPhone = "+53 7831-5678",
-                description = "Tu supermercado de confianza con los mejores productos",
+                description = "Tu mercado de confianza con los mejores productos",
                 isVerified = true,
                 operatingHours = OperatingHours(
                     monday = DaySchedule(true, "08:00", "20:00"),
@@ -235,6 +238,82 @@ class AuthRepository {
                 deliveryRadius = 10.0,
                 averageRating = 4.7,
                 totalOrders = 2500
+            )
+        )
+    }
+
+    private fun getMockAgromarketUser(email: String): User {
+        return User(
+            id = "agromarket_001",
+            email = email,
+            name = "Agromercado La Finca",
+            phone = "+53 5555-7890",
+            businessType = BusinessType.AGROMARKET,
+            profileImage = null,
+            isActive = true,
+            createdAt = "2024-01-01T00:00:00Z",
+            updatedAt = "2024-01-01T00:00:00Z",
+            businessProfile = BusinessProfile(
+                businessId = "agromarket_001",
+                businessName = "Agromercado La Finca",
+                businessType = BusinessType.AGROMARKET,
+                address = "Carretera Central Km 5",
+                city = "La Habana",
+                state = "La Habana",
+                zipCode = "10700",
+                businessPhone = "+53 7831-7890",
+                description = "Productos frescos directo del campo",
+                isVerified = true,
+                operatingHours = OperatingHours(
+                    monday = DaySchedule(true, "07:00", "19:00"),
+                    tuesday = DaySchedule(true, "07:00", "19:00"),
+                    wednesday = DaySchedule(true, "07:00", "19:00"),
+                    thursday = DaySchedule(true, "07:00", "19:00"),
+                    friday = DaySchedule(true, "07:00", "19:00"),
+                    saturday = DaySchedule(true, "07:00", "20:00"),
+                    sunday = DaySchedule(true, "08:00", "15:00")
+                ),
+                deliveryRadius = 12.0,
+                averageRating = 4.6,
+                totalOrders = 1800
+            )
+        )
+    }
+
+    private fun getMockClothingStoreUser(email: String): User {
+        return User(
+            id = "clothing_001",
+            email = email,
+            name = "Tienda Moda Actual",
+            phone = "+53 5555-3456",
+            businessType = BusinessType.CLOTHING_STORE,
+            profileImage = null,
+            isActive = true,
+            createdAt = "2024-01-01T00:00:00Z",
+            updatedAt = "2024-01-01T00:00:00Z",
+            businessProfile = BusinessProfile(
+                businessId = "clothing_001",
+                businessName = "Tienda Moda Actual",
+                businessType = BusinessType.CLOTHING_STORE,
+                address = "Calle Obispo 234",
+                city = "La Habana",
+                state = "La Habana",
+                zipCode = "10800",
+                businessPhone = "+53 7831-3456",
+                description = "Las últimas tendencias en moda y estilo",
+                isVerified = true,
+                operatingHours = OperatingHours(
+                    monday = DaySchedule(true, "10:00", "20:00"),
+                    tuesday = DaySchedule(true, "10:00", "20:00"),
+                    wednesday = DaySchedule(true, "10:00", "20:00"),
+                    thursday = DaySchedule(true, "10:00", "20:00"),
+                    friday = DaySchedule(true, "10:00", "21:00"),
+                    saturday = DaySchedule(true, "10:00", "21:00"),
+                    sunday = DaySchedule(true, "11:00", "18:00")
+                ),
+                deliveryRadius = 7.0,
+                averageRating = 4.8,
+                totalOrders = 950
             )
         )
     }

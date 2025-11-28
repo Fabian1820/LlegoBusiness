@@ -59,7 +59,9 @@ internal fun LoginForm(
     onPasswordChange: (String) -> Unit,
     onContinueClick: () -> Unit,
     isLoading: Boolean,
-    errorMessage: String?
+    errorMessage: String?,
+    selectedBusinessType: BusinessType? = null,
+    onBusinessTypeSelected: ((BusinessType) -> Unit)? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -70,6 +72,25 @@ internal fun LoginForm(
                 .fillMaxWidth(0.95f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 🆕 Selector de nicho
+            if (onBusinessTypeSelected != null) {
+                Text(
+                    text = "Selecciona tu tipo de negocio",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+
+                BusinessTypeChips(
+                    selectedBusinessType = selectedBusinessType,
+                    onBusinessTypeSelected = onBusinessTypeSelected
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Campos de email y contraseña (visuales, sin validación obligatoria)
             ModernTextField(
                 value = email,
                 onValueChange = onEmailChange,
@@ -94,31 +115,32 @@ internal fun LoginForm(
                 keyboardActions = KeyboardActions(
                     onDone = { if (!isLoading) onContinueClick() }
                 ),
-                isPassword = true,
-                isError = errorMessage != null
+                isPassword = true
             )
 
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = TextDecoration.Underline,
-                    fontSize = 13.sp
-                ),
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clickable(
-                        onClick = { /* TODO: Recuperar contraseña */ },
+            // Link de olvidaste tu contraseña
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "¿Olvidaste tu contraseña?",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
+                        onClick = { /* TODO: Implementar recuperación de contraseña */ }
                     )
-            )
+                )
+            }
 
             PrimaryButton(
-                text = "Iniciar sesión",
+                text = "Continuar",
                 onClick = onContinueClick,
-                enabled = !isLoading,
+                enabled = !isLoading && selectedBusinessType != null, // Solo requiere tipo de negocio
                 isLoading = isLoading
             )
 
@@ -130,6 +152,11 @@ internal fun LoginForm(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botones sociales
+            SocialButtons()
         }
     }
 }
@@ -258,15 +285,7 @@ internal fun RegisterForm(
         PrimaryButton(
             text = "Registrarse",
             onClick = onRegisterClick,
-            enabled = !isLoading &&
-                email.isNotBlank() &&
-                password.isNotBlank() &&
-                businessName.isNotBlank() &&
-                contactName.isNotBlank() &&
-                phone.isNotBlank() &&
-                address.isNotBlank() &&
-                confirmPassword == password &&
-                selectedBusinessType != null,
+            enabled = !isLoading && selectedBusinessType != null, // Solo requiere tipo de negocio para desarrollo
             isLoading = isLoading
         )
 
@@ -286,23 +305,49 @@ internal fun BusinessTypeChips(
     selectedBusinessType: BusinessType?,
     onBusinessTypeSelected: (BusinessType) -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        SelectableChip(
-            text = "🍽️ Restaurante",
-            isSelected = selectedBusinessType == BusinessType.RESTAURANT,
-            onClick = { onBusinessTypeSelected(BusinessType.RESTAURANT) },
-            modifier = Modifier.weight(1f)
-        )
+        // Primera fila
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SelectableChip(
+                text = "🍽️ Restaurante",
+                isSelected = selectedBusinessType == BusinessType.RESTAURANT,
+                onClick = { onBusinessTypeSelected(BusinessType.RESTAURANT) },
+                modifier = Modifier.weight(1f)
+            )
 
-        SelectableChip(
-            text = "🛒 Supermercado",
-            isSelected = selectedBusinessType == BusinessType.GROCERY,
-            onClick = { onBusinessTypeSelected(BusinessType.GROCERY) },
-            modifier = Modifier.weight(1f)
-        )
+            SelectableChip(
+                text = "🛒 Mercado",
+                isSelected = selectedBusinessType == BusinessType.MARKET,
+                onClick = { onBusinessTypeSelected(BusinessType.MARKET) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Segunda fila
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SelectableChip(
+                text = "🌾 Agromercado",
+                isSelected = selectedBusinessType == BusinessType.AGROMARKET,
+                onClick = { onBusinessTypeSelected(BusinessType.AGROMARKET) },
+                modifier = Modifier.weight(1f)
+            )
+
+            SelectableChip(
+                text = "👕 Tienda Ropa",
+                isSelected = selectedBusinessType == BusinessType.CLOTHING_STORE,
+                onClick = { onBusinessTypeSelected(BusinessType.CLOTHING_STORE) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 

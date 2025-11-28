@@ -170,6 +170,8 @@ data class AuthUiState(
 ) {
     val businessType: BusinessType? = currentUser?.businessType
     val isRestaurant: Boolean = businessType == BusinessType.RESTAURANT
-    val isMarket: Boolean = businessType == BusinessType.GROCERY
+    val isMarket: Boolean = businessType == BusinessType.MARKET
+    val isAgromarket: Boolean = businessType == BusinessType.AGROMARKET
+    val isClothingStore: Boolean = businessType == BusinessType.CLOTHING_STORE
     val isPharmacy: Boolean = businessType == BusinessType.PHARMACY
 }

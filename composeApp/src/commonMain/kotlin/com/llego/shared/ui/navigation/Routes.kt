@@ -88,18 +88,20 @@ object Routes {
     fun getDashboardRoute(businessType: BusinessType): String {
         return when (businessType) {
             BusinessType.RESTAURANT -> Restaurant.DASHBOARD
-            BusinessType.GROCERY -> Market.DASHBOARD
+            BusinessType.MARKET -> Market.DASHBOARD
+            BusinessType.AGROMARKET -> Market.DASHBOARD
+            BusinessType.CLOTHING_STORE -> Market.DASHBOARD
             BusinessType.PHARMACY -> Pharmacy.DASHBOARD
-            else -> Market.DASHBOARD // Default
         }
     }
 
     fun getProfileRoute(businessType: BusinessType): String {
         return when (businessType) {
             BusinessType.RESTAURANT -> Restaurant.PROFILE
-            BusinessType.GROCERY -> Market.PROFILE
+            BusinessType.MARKET -> Market.PROFILE
+            BusinessType.AGROMARKET -> Market.PROFILE
+            BusinessType.CLOTHING_STORE -> Market.PROFILE
             BusinessType.PHARMACY -> Pharmacy.PROFILE
-            else -> Market.PROFILE // Default
         }
     }
 }

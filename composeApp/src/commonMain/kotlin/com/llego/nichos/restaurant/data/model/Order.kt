@@ -46,7 +46,7 @@ data class OrderItem(
 @Serializable
 enum class OrderStatus {
     PENDING,        // Pendiente - acaba de llegar
-    PREPARING,      // Elaboración - se está preparando (antes ACCEPTED + PREPARING)
+    PREPARING,      // Procesando - se está preparando (neutral para todos los nichos)
     READY,          // Listo - estado final para pedidos completados
     CANCELLED       // Cancelado - rechazado
 }
@@ -63,7 +63,7 @@ enum class PaymentMethod {
 fun OrderStatus.getDisplayName(): String {
     return when (this) {
         OrderStatus.PENDING -> "Pendiente"
-        OrderStatus.PREPARING -> "Elaboración"
+        OrderStatus.PREPARING -> "Procesando"
         OrderStatus.READY -> "Listo"
         OrderStatus.CANCELLED -> "Cancelado"
     }

@@ -52,12 +52,11 @@ data class BusinessProfile(
 
 @Serializable
 enum class BusinessType {
-    RESTAURANT,
-    GROCERY,
-    PHARMACY,
-    ELECTRONICS,
-    CLOTHING,
-    OTHER
+    RESTAURANT,      // Restaurante
+    MARKET,          // Mercado (antes GROCERY)
+    AGROMARKET,      // Agromercado
+    CLOTHING_STORE,  // Tienda de Ropa
+    PHARMACY         // Farmacia (futuro)
 }
 
 @Serializable

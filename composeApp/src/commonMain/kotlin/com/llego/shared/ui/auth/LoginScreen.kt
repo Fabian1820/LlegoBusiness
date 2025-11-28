@@ -227,21 +227,13 @@ fun LoginScreen(
                                     onPasswordChange = viewModel::updatePassword,
                                     onContinueClick = viewModel::login,
                                     isLoading = uiState.isLoading,
-                                    errorMessage = loginError
+                                    errorMessage = loginError,
+                                    selectedBusinessType = selectedBusinessType,
+                                    onBusinessTypeSelected = viewModel::selectBusinessType
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(24.dp))
-
-                            if (!targetIsRegister) {
-                                DividerWithText(text = "o")
-
-                                Spacer(modifier = Modifier.height(32.dp))
-
-                                SocialButtons()
-
-                                Spacer(modifier = Modifier.height(48.dp))
-                            }
 
                             ToggleAuthMode(
                                 isRegisterMode = targetIsRegister,
