@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,13 +39,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
-import com.llego.nichos.restaurant.ui.components.menu.AddEditMenuItemDialog
 import com.llego.nichos.restaurant.ui.components.menu.EmptyMenuView
-import com.llego.nichos.restaurant.ui.components.menu.getProductImage
+import com.llego.nichos.common.utils.getProductImage
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuUiState
 import com.llego.shared.data.model.BusinessType
 import com.llego.nichos.common.ui.components.CategoryFilterChipsForRestaurant
+import com.llego.nichos.common.ui.components.ProductCard
+import com.llego.nichos.common.ui.components.getCategoryDisplayNameForProduct
+import com.llego.nichos.common.data.model.Product
 import llegobusiness.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -53,18 +57,23 @@ import org.jetbrains.compose.resources.painterResource
 fun MenuScreen(
     viewModel: MenuViewModel,
     businessType: BusinessType = BusinessType.RESTAURANT,
+    onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val filteredMenuItems by viewModel.filteredMenuItems.collectAsState()
+    val filteredProducts by viewModel.filteredProducts.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
 
-    var selectedMenuItem by remember { mutableStateOf<MenuItem?>(null) }
-    var showAddEditDialog by remember { mutableStateOf(false) }
-    var showDeleteConfirmation by remember { mutableStateOf<MenuItem?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf<Product?>(null) }
     var showSearchCard by remember { mutableStateOf(false) }
     var animateContent by remember { mutableStateOf(false) }
+
+    // Actualizar el tipo de negocio en el ViewModel cuando cambie
+    LaunchedEffect(businessType) {
+        viewModel.updateBusinessType(businessType)
+    }
 
     // Animación de entrada idéntica a Perfil y Gestión
     LaunchedEffect(Unit) {
@@ -123,20 +132,21 @@ fun MenuScreen(
                                     animationSpec = tween(600, easing = EaseOutCubic)
                                 )
                     ) {
-                        if (filteredMenuItems.isEmpty()) {
+                        if (filteredProducts.isEmpty()) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 // Filtros de categoría adaptados por nicho
                                 CategoryFilterChipsForRestaurant(
                                     businessType = businessType,
                                     selectedCategory = selectedCategory,
+                                    selectedCategoryId = selectedCategoryId,
                                     onCategorySelected = { viewModel.setCategory(it) },
+                                    onCategoryIdSelected = { viewModel.setCategoryId(it) },
                                     onClearCategory = { viewModel.clearCategory() }
                                 )
                                 EmptyMenuView(
-                                    hasFilter = selectedCategory != null || searchQuery.isNotBlank(),
+                                    hasFilter = selectedCategory != null || selectedCategoryId != null || searchQuery.isNotBlank(),
                                     onAddProduct = {
-                                        selectedMenuItem = null
-                                        showAddEditDialog = true
+                                        onNavigateToAddProduct(null)
                                     }
                                 )
                             }
@@ -151,27 +161,30 @@ fun MenuScreen(
                                 CategoryFilterChipsForRestaurant(
                                     businessType = businessType,
                                     selectedCategory = selectedCategory,
+                                    selectedCategoryId = selectedCategoryId,
                                     onCategorySelected = { viewModel.setCategory(it) },
+                                    onCategoryIdSelected = { viewModel.setCategoryId(it) },
                                     onClearCategory = { viewModel.clearCategory() }
                                 )
                             }
 
                             // Lista de productos
                             items(
-                                items = filteredMenuItems,
+                                items = filteredProducts,
                                 key = { it.id }
-                            ) { menuItem ->
-                                MenuItemCard(
-                                    menuItem = menuItem,
+                            ) { product ->
+                                // Usar ProductCard unificado para todos los nichos
+                                ProductCard(
+                                    product = product,
+                                    businessType = businessType,
                                     onEdit = {
-                                        selectedMenuItem = menuItem
-                                        showAddEditDialog = true
+                                        onNavigateToAddProduct(product)
                                     },
                                     onDelete = {
-                                        showDeleteConfirmation = menuItem
+                                        showDeleteConfirmation = product
                                     },
                                     onToggleAvailability = {
-                                        viewModel.toggleItemAvailability(menuItem.id)
+                                        viewModel.toggleProductAvailability(product.id)
                                     },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
@@ -214,8 +227,7 @@ fun MenuScreen(
             // Botón de agregar - más pequeño y circular
             FloatingActionButton(
                 onClick = {
-                    selectedMenuItem = null
-                    showAddEditDialog = true
+                    onNavigateToAddProduct(null)
                 },
                 modifier = Modifier.size(56.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -249,46 +261,21 @@ fun MenuScreen(
                     showSearchCard = false
                     viewModel.clearSearch()
                 },
-                filteredMenuItems = filteredMenuItems,
+                filteredProducts = filteredProducts,
                 onEditItem = { item ->
-                    selectedMenuItem = item
-                    showAddEditDialog = true
+                    onNavigateToAddProduct(item)
                 },
                 onDeleteItem = { item ->
                     showDeleteConfirmation = item
                 },
                 onToggleAvailability = { itemId ->
-                    viewModel.toggleItemAvailability(itemId)
-                }
+                    viewModel.toggleProductAvailability(itemId)
+                },
+                businessType = businessType
             )
         }
     }
 
-    // Diálogo de agregar/editar con animación
-    AnimatedVisibility(
-        visible = showAddEditDialog,
-        enter = scaleIn(
-            animationSpec = tween(300, easing = EaseOutCubic),
-            initialScale = 0.8f
-        ) + fadeIn(animationSpec = tween(300)),
-        exit = scaleOut(
-            animationSpec = tween(200, easing = EaseInCubic),
-            targetScale = 0.8f
-        ) + fadeOut(animationSpec = tween(200))
-    ) {
-        AddEditMenuItemDialog(
-            menuItem = selectedMenuItem,
-            onDismiss = { showAddEditDialog = false },
-            onSave = { item ->
-                if (selectedMenuItem == null) {
-                    viewModel.addMenuItem(item)
-                } else {
-                    viewModel.updateMenuItem(item)
-                }
-                showAddEditDialog = false
-            }
-        )
-    }
 
     // Confirmación de eliminación con colores Llego
     showDeleteConfirmation?.let { item ->
@@ -320,7 +307,7 @@ fun MenuScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deleteMenuItem(item.id)
+                        viewModel.deleteProduct(item.id)
                         showDeleteConfirmation = null
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -459,10 +446,11 @@ private fun SearchCard(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onClose: () -> Unit,
-    filteredMenuItems: List<MenuItem> = emptyList(),
-    onEditItem: (MenuItem) -> Unit = {},
-    onDeleteItem: (MenuItem) -> Unit = {},
-    onToggleAvailability: (String) -> Unit = {}
+    filteredProducts: List<Product> = emptyList(),
+    onEditItem: (Product) -> Unit = {},
+    onDeleteItem: (Product) -> Unit = {},
+    onToggleAvailability: (String) -> Unit = {},
+    businessType: BusinessType = BusinessType.RESTAURANT
 ) {
     val dismissInteraction = remember { MutableInteractionSource() }
     val sheetInteraction = remember { MutableInteractionSource() }
@@ -488,7 +476,7 @@ private fun SearchCard(
                 .fillMaxWidth()
                 .height(sheetHeight)
                 .align(Alignment.BottomCenter)
-                .imePadding() // Posicionar justo sobre el teclado sin empujar la pantalla completa
+                .windowInsetsPadding(WindowInsets.ime) // Manejar el teclado de forma responsiva
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -601,7 +589,7 @@ private fun SearchCard(
                         )
                     }
                 } else {
-                    // Resultados de búsqueda
+                    // Resultados de búsqueda - contenido scrolleable para manejar el teclado
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -626,7 +614,7 @@ private fun SearchCard(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = "${filteredMenuItems.size} producto${if (filteredMenuItems.size != 1) "s" else ""} encontrado${if (filteredMenuItems.size != 1) "s" else ""}",
+                                    text = "${filteredProducts.size} producto${if (filteredProducts.size != 1) "s" else ""} encontrado${if (filteredProducts.size != 1) "s" else ""}",
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -635,11 +623,13 @@ private fun SearchCard(
                             }
                         }
 
-                        // Lista de resultados
-                        if (filteredMenuItems.isEmpty()) {
+                        // Lista de resultados scrolleable
+                        if (filteredProducts.isEmpty()) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
                                     .padding(vertical = 32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -666,20 +656,22 @@ private fun SearchCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
                                 items(
-                                    items = filteredMenuItems,
+                                    items = filteredProducts,
                                     key = { it.id }
-                                ) { menuItem ->
+                                ) { product ->
                                     CompactMenuItemCard(
-                                        menuItem = menuItem,
+                                        product = product,
+                                        businessType = businessType,
                                         onEdit = {
-                                            onEditItem(menuItem)
+                                            onEditItem(product)
                                             onClose()
                                         },
-                                        onDelete = { onDeleteItem(menuItem) },
-                                        onToggleAvailability = { onToggleAvailability(menuItem.id) }
+                                        onDelete = { onDeleteItem(product) },
+                                        onToggleAvailability = { onToggleAvailability(product.id) }
                                     )
                                 }
                             }
@@ -694,7 +686,8 @@ private fun SearchCard(
  // Card compacto de producto para resultados de búsqueda
 @Composable
 private fun CompactMenuItemCard(
-    menuItem: MenuItem,
+    product: Product,
+    businessType: BusinessType,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: () -> Unit,
@@ -706,7 +699,7 @@ private fun CompactMenuItemCard(
             .clickable(onClick = onEdit),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (menuItem.isAvailable) Color.White else Color(0xFFF5F5F5)
+            containerColor = if (product.isAvailable) Color.White else Color(0xFFF5F5F5)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -717,10 +710,10 @@ private fun CompactMenuItemCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen real del producto con diseño limpio
+            // Imagen real del producto con diseño limpio (reutiliza imágenes de restaurante)
             androidx.compose.foundation.Image(
-                painter = painterResource(getProductImage(menuItem.id)),
-                contentDescription = menuItem.name,
+                painter = painterResource(getProductImage(product.id)),
+                contentDescription = product.name,
                 modifier = Modifier
                     .size(60.dp)
                     .clip(RoundedCornerShape(12.dp)),
@@ -734,8 +727,8 @@ private fun CompactMenuItemCard(
             ) {
                 // Nombre con animación de subrayado
                 AnimatedTextWithUnderline(
-                    text = menuItem.name,
-                    isUnavailable = !menuItem.isAvailable,
+                    text = product.name,
+                    isUnavailable = !product.isAvailable,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -748,32 +741,28 @@ private fun CompactMenuItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Badge de categoría
+                    // Badge de categoría (usar helper para obtener nombre correcto)
+                    val categoryDisplayName = getCategoryDisplayNameForProduct(
+                        product.category,
+                        businessType
+                    )
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = when (menuItem.category) {
-                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                        }
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     ) {
                         Text(
-                            text = menuItem.category.getDisplayName(),
+                            text = categoryDisplayName,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
                             ),
-                            color = when (menuItem.category) {
-                                MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                    MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.secondary
-                            }
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
 
                     // Precio
                     Text(
-                        text = "$${menuItem.price}",
+                        text = "$${product.price}",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -793,9 +782,9 @@ private fun CompactMenuItemCard(
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
-                        imageVector = if (menuItem.isAvailable)
+                        imageVector = if (product.isAvailable)
                             Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (menuItem.isAvailable)
+                        contentDescription = if (product.isAvailable)
                             "Marcar como no disponible" else "Marcar como disponible",
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(20.dp)
@@ -822,7 +811,8 @@ private fun CompactMenuItemCard(
  // Card de producto del menú
 @Composable
 private fun MenuItemCard(
-    menuItem: MenuItem,
+    product: Product,
+    businessType: BusinessType,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: () -> Unit,
@@ -832,7 +822,7 @@ private fun MenuItemCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (menuItem.isAvailable) Color.White else Color(0xFFF5F5F5)
+            containerColor = if (product.isAvailable) Color.White else Color(0xFFF5F5F5)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp
@@ -856,8 +846,8 @@ private fun MenuItemCard(
                     )
             ) {
                 androidx.compose.foundation.Image(
-                    painter = painterResource(getProductImage(menuItem.id)),
-                    contentDescription = menuItem.name,
+                    painter = painterResource(getProductImage(product.id)),
+                    contentDescription = product.name,
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
@@ -866,7 +856,7 @@ private fun MenuItemCard(
                 )
 
                 // Overlay con gradiente sutil si no está disponible
-                if (!menuItem.isAvailable) {
+                if (!product.isAvailable) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -896,8 +886,8 @@ private fun MenuItemCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AnimatedTextWithUnderline(
-                        text = menuItem.name,
-                        isUnavailable = !menuItem.isAvailable,
+                        text = product.name,
+                        isUnavailable = !product.isAvailable,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -906,39 +896,31 @@ private fun MenuItemCard(
                 }
 
                 // Badge de categoría con colores Llego
+                val categoryDisplayName2 = getCategoryDisplayNameForProduct(
+                    product.category,
+                    businessType
+                )
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = when (menuItem.category) {
-                        MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                    },
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     border = BorderStroke(
                         1.dp,
-                        when (menuItem.category) {
-                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                        }
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                     )
                 ) {
                     Text(
-                        text = menuItem.category.getDisplayName(),
+                        text = categoryDisplayName2,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = when (menuItem.category) {
-                            MenuCategory.APPETIZERS, MenuCategory.MAIN_COURSES, MenuCategory.SPECIALS ->
-                                MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.secondary
-                        }
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
                 // Descripción
                 Text(
-                    text = menuItem.description,
+                    text = product.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     maxLines = 2,
@@ -950,13 +932,13 @@ private fun MenuItemCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (menuItem.isVegetarian) {
+                    if (product.isVegetarian) {
                         DietaryBadge("🌱", "Vegetariano", Color(0xFF4CAF50))
                     }
-                    if (menuItem.isVegan) {
+                    if (product.isVegan) {
                         DietaryBadge("🥬", "Vegano", Color(0xFF8BC34A))
                     }
-                    if (menuItem.isGlutenFree) {
+                    if (product.isGlutenFree) {
                         DietaryBadge("🌾", "Sin Gluten", Color(0xFFFFC107))
                     }
                 }
@@ -975,7 +957,7 @@ private fun MenuItemCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "$${menuItem.price}",
+                            text = "$${product.price}",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -997,7 +979,7 @@ private fun MenuItemCard(
                                     tint = MaterialTheme.colorScheme.secondary
                                 )
                                 Text(
-                                    text = "${menuItem.preparationTime} min",
+                                    text = "${product.preparationTime} min",
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
@@ -1023,16 +1005,16 @@ private fun MenuItemCard(
                                 .size(8.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (menuItem.isAvailable) Color(0xFF4CAF50)
+                                    if (product.isAvailable) Color(0xFF4CAF50)
                                     else Color(0xFFE53935)
                                 )
                         )
                         Text(
-                            text = if (menuItem.isAvailable) "Disponible" else "No disponible",
+                            text = if (product.isAvailable) "Disponible" else "No disponible",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
                             ),
-                            color = if (menuItem.isAvailable) Color(0xFF4CAF50)
+                            color = if (product.isAvailable) Color(0xFF4CAF50)
                             else Color(0xFFE53935)
                         )
                     }
@@ -1045,7 +1027,7 @@ private fun MenuItemCard(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = if (menuItem.isAvailable)
+                                imageVector = if (product.isAvailable)
                                     Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                 contentDescription = "Cambiar disponibilidad",
                                 tint = MaterialTheme.colorScheme.secondary,

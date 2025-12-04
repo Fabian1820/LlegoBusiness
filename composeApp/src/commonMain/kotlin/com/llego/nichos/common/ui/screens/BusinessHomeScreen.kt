@@ -34,6 +34,7 @@ fun BusinessHomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
     onNavigateToChatDetail: (String) -> Unit = {},
+    onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     chatsViewModel: ChatsViewModel,
     ordersViewModel: OrdersViewModel,
@@ -193,7 +194,8 @@ fun BusinessHomeScreen(
                     // Pantalla de Menú (solo para restaurantes)
                     MenuScreen(
                         viewModel = menuViewModel,
-                        businessType = businessType
+                        businessType = businessType,
+                        onNavigateToAddProduct = onNavigateToAddProduct
                     )
                 }
                 "products", "stock" -> {
@@ -202,7 +204,8 @@ fun BusinessHomeScreen(
                     // Por ahora mostramos MenuScreen como placeholder con categorías adaptadas
                     MenuScreen(
                         viewModel = menuViewModel,
-                        businessType = businessType
+                        businessType = businessType,
+                        onNavigateToAddProduct = onNavigateToAddProduct
                     )
                 }
                 "medicines" -> {
@@ -210,7 +213,8 @@ fun BusinessHomeScreen(
                     // TODO: Implementar MedicinesScreen cuando esté listo
                     MenuScreen(
                         viewModel = menuViewModel,
-                        businessType = businessType
+                        businessType = businessType,
+                        onNavigateToAddProduct = onNavigateToAddProduct
                     )
                 }
                 "wallet" -> {

@@ -29,7 +29,7 @@ class AuthViewModel : ViewModel() {
     private val _password = MutableStateFlow("")
     val password: StateFlow<String> = _password.asStateFlow()
 
-    private val _selectedBusinessType = MutableStateFlow<BusinessType?>(null)
+    private val _selectedBusinessType = MutableStateFlow<BusinessType?>(BusinessType.RESTAURANT) // Default para login
     val selectedBusinessType: StateFlow<BusinessType?> = _selectedBusinessType.asStateFlow()
 
     private val _loginError = MutableStateFlow<String?>(null)

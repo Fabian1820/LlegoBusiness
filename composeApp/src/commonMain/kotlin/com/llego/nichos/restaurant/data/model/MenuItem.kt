@@ -1,5 +1,6 @@
 package com.llego.nichos.restaurant.data.model
 
+import com.llego.nichos.common.data.model.Product
 import kotlinx.serialization.Serializable
 
 /**
@@ -54,4 +55,27 @@ fun MenuCategory.getIcon(): String {
         MenuCategory.BEVERAGES -> "🥤"
         MenuCategory.SPECIALS -> "⭐"
     }
+}
+
+/**
+ * Convierte MenuItem (restaurant) a Product (genérico) para usar ProductCard
+ * @Deprecated Usar Product directamente en su lugar
+ */
+@Deprecated("Usar Product directamente", ReplaceWith("Product(...)"))
+fun MenuItem.toProduct(): Product {
+    return Product(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        price = this.price,
+        imageUrl = this.imageUrl ?: "",
+        category = this.category.getDisplayName(),
+        isAvailable = this.isAvailable,
+        preparationTime = this.preparationTime,
+        isVegetarian = this.isVegetarian,
+        isVegan = this.isVegan,
+        isGlutenFree = this.isGlutenFree,
+        allergens = this.allergens,
+        calories = this.calories
+    )
 }

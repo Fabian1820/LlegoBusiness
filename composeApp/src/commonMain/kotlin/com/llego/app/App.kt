@@ -9,11 +9,13 @@ import com.llego.shared.ui.auth.LoginScreen
 import com.llego.shared.ui.navigation.*
 import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.nichos.common.ui.screens.BusinessHomeScreen
+import com.llego.nichos.common.ui.screens.AddProductScreen
 import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
 import com.llego.nichos.restaurant.ui.screens.ChatsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
 import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
 import com.llego.nichos.restaurant.ui.screens.ConfirmationType
+import com.llego.nichos.common.data.model.Product
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
@@ -38,6 +40,8 @@ fun App(viewModels: AppViewModels) {
         var showChats by remember { mutableStateOf(false) }
         var showChatDetail by remember { mutableStateOf(false) }
         var currentChatOrderId by remember { mutableStateOf<String?>(null) }
+        var showAddProduct by remember { mutableStateOf(false) }
+        var productToEdit by remember { mutableStateOf<Product?>(null) }
 
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
@@ -61,6 +65,28 @@ fun App(viewModels: AppViewModels) {
             Box(modifier = Modifier) {
                 // Contenido principal
                 when {
+                    showAddProduct -> {
+                        AddProductScreen(
+                            businessType = currentBusinessType!!,
+                            onNavigateBack = {
+                                showAddProduct = false
+                                productToEdit = null
+                            },
+                            onSave = { product ->
+                                val productToSave = product.copy(
+                                    id = productToEdit?.id ?: "product_${kotlin.random.Random.nextLong()}"
+                                )
+                                if (productToEdit == null) {
+                                    menuViewModel.addProduct(productToSave)
+                                } else {
+                                    menuViewModel.updateProduct(productToSave)
+                                }
+                                showAddProduct = false
+                                productToEdit = null
+                            },
+                            existingProduct = productToEdit
+                        )
+                    }
                     showChatDetail && currentChatOrderId != null -> {
                         ChatDetailScreen(
                             orderId = currentChatOrderId!!,
@@ -100,6 +126,10 @@ fun App(viewModels: AppViewModels) {
                             onNavigateToChatDetail = { orderId ->
                                 currentChatOrderId = orderId
                                 showChatDetail = true
+                            },
+                            onNavigateToAddProduct = { product ->
+                                productToEdit = product
+                                showAddProduct = true
                             },
                             onShowConfirmation = { type, orderNumber ->
                                 confirmationType = type

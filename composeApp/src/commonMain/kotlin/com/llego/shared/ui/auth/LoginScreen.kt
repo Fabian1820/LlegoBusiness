@@ -227,9 +227,7 @@ fun LoginScreen(
                                     onPasswordChange = viewModel::updatePassword,
                                     onContinueClick = viewModel::login,
                                     isLoading = uiState.isLoading,
-                                    errorMessage = loginError,
-                                    selectedBusinessType = selectedBusinessType,
-                                    onBusinessTypeSelected = viewModel::selectBusinessType
+                                    errorMessage = loginError
                                 )
                             }
 

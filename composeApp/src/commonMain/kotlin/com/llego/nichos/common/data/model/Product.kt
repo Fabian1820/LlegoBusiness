@@ -22,6 +22,13 @@ data class Product(
     val unit: ProductUnit? = null,          // Para mercados/agromercados
     val stock: Int? = null,                 // Para todos
     val preparationTime: Int? = null,       // Para restaurantes (minutos)
+    
+    // Campos específicos para restaurantes
+    val isVegetarian: Boolean = false,
+    val isVegan: Boolean = false,
+    val isGlutenFree: Boolean = false,
+    val allergens: List<String> = emptyList(),
+    val calories: Int? = null,
 
     // Campos específicos para ropa
     val sizes: List<String>? = null,        // ["XS", "S", "M", "L", "XL"]
@@ -123,4 +130,28 @@ fun Product.shouldShowUnit(businessType: BusinessType): Boolean {
 
 fun Product.shouldShowPreparationTime(businessType: BusinessType): Boolean {
     return businessType == BusinessType.RESTAURANT && preparationTime != null
+}
+
+/**
+ * Convierte Product (genérico) a MenuItem para compatibilidad con MenuScreen
+ * Mapea la categoría correctamente según el tipo de negocio
+ */
+fun Product.toMenuItem(businessType: com.llego.shared.data.model.BusinessType = com.llego.shared.data.model.BusinessType.RESTAURANT): com.llego.nichos.restaurant.data.model.MenuItem {
+    val menuCategory = com.llego.nichos.common.utils.mapToMenuCategory(this.category, businessType)
+    
+    return com.llego.nichos.restaurant.data.model.MenuItem(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        price = this.price,
+        category = menuCategory,
+        imageUrl = this.imageUrl,
+        isAvailable = this.isAvailable,
+        preparationTime = this.preparationTime ?: 0, // Usa 0 si es null
+        allergens = this.allergens,
+        isVegetarian = this.isVegetarian,
+        isVegan = this.isVegan,
+        isGlutenFree = this.isGlutenFree,
+        calories = this.calories
+    )
 }

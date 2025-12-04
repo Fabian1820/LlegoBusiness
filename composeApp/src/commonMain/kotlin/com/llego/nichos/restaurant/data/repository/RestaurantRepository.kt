@@ -1,9 +1,12 @@
 package com.llego.nichos.restaurant.data.repository
 
 import com.llego.nichos.restaurant.data.model.*
+import com.llego.nichos.common.data.model.Product
+import com.llego.nichos.common.data.model.toMenuItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
 
 /**
@@ -16,8 +19,14 @@ class RestaurantRepository {
     private val _orders = MutableStateFlow(getMockOrders())
     val orders: Flow<List<Order>> = _orders.asStateFlow()
 
-    private val _menuItems = MutableStateFlow(getMockMenuItems())
-    val menuItems: Flow<List<MenuItem>> = _menuItems.asStateFlow()
+    private val _products = MutableStateFlow(getMockProducts())
+    val products: Flow<List<Product>> = _products.asStateFlow()
+    
+    // Compatibilidad: mantener menuItems para código legacy
+    @Deprecated("Usar products en su lugar", ReplaceWith("products"))
+    val menuItems: Flow<List<MenuItem>> = _products.map { products ->
+        products.map { it.toMenuItem() }
+    }
 
     private val _settings = MutableStateFlow(getMockSettings())
     val settings: Flow<RestaurantSettings> = _settings.asStateFlow()
@@ -66,67 +75,94 @@ class RestaurantRepository {
         return updateOrderStatus(orderId, OrderStatus.CANCELLED)
     }
 
-    // ==================== MENU ITEMS ====================
+    // ==================== PRODUCTS (unificado) ====================
 
-    suspend fun getMenuItems(): List<MenuItem> {
+    suspend fun getProducts(): List<Product> {
         delay(500)
-        return _menuItems.value
+        return _products.value
     }
 
-    suspend fun getMenuItemsByCategory(category: MenuCategory): List<MenuItem> {
-        delay(300)
-        return _menuItems.value.filter { it.category == category }
-    }
-
-    suspend fun getMenuItemById(itemId: String): MenuItem? {
+    suspend fun getProductById(productId: String): Product? {
         delay(200)
-        return _menuItems.value.find { it.id == itemId }
+        return _products.value.find { it.id == productId }
     }
 
-    suspend fun addMenuItem(item: MenuItem): Boolean {
+    suspend fun addProduct(product: Product): Boolean {
         delay(500)
-        val currentItems = _menuItems.value.toMutableList()
-        currentItems.add(item)
-        _menuItems.value = currentItems
+        val currentProducts = _products.value.toMutableList()
+        currentProducts.add(product)
+        _products.value = currentProducts
         return true
     }
 
-    suspend fun updateMenuItem(item: MenuItem): Boolean {
+    suspend fun updateProduct(product: Product): Boolean {
         delay(500)
-        val currentItems = _menuItems.value.toMutableList()
-        val index = currentItems.indexOfFirst { it.id == item.id }
+        val currentProducts = _products.value.toMutableList()
+        val index = currentProducts.indexOfFirst { it.id == product.id }
 
         if (index != -1) {
-            currentItems[index] = item
-            _menuItems.value = currentItems
+            currentProducts[index] = product
+            _products.value = currentProducts
             return true
         }
         return false
     }
 
-    suspend fun deleteMenuItem(itemId: String): Boolean {
+    suspend fun deleteProduct(productId: String): Boolean {
         delay(500)
-        val currentItems = _menuItems.value.toMutableList()
-        val removed = currentItems.removeAll { it.id == itemId }
+        val currentProducts = _products.value.toMutableList()
+        val removed = currentProducts.removeAll { it.id == productId }
         if (removed) {
-            _menuItems.value = currentItems
+            _products.value = currentProducts
         }
         return removed
     }
 
-    suspend fun toggleItemAvailability(itemId: String): Boolean {
+    suspend fun toggleProductAvailability(productId: String): Boolean {
         delay(300)
-        val currentItems = _menuItems.value.toMutableList()
-        val index = currentItems.indexOfFirst { it.id == itemId }
+        val currentProducts = _products.value.toMutableList()
+        val index = currentProducts.indexOfFirst { it.id == productId }
 
         if (index != -1) {
-            currentItems[index] = currentItems[index].copy(
-                isAvailable = !currentItems[index].isAvailable
+            currentProducts[index] = currentProducts[index].copy(
+                isAvailable = !currentProducts[index].isAvailable
             )
-            _menuItems.value = currentItems
+            _products.value = currentProducts
             return true
         }
         return false
+    }
+    
+    // ==================== COMPATIBILIDAD CON MENUITEM (legacy) ====================
+    
+    suspend fun getMenuItems(): List<MenuItem> {
+        return _products.value.map { it.toMenuItem() }
+    }
+
+    suspend fun getMenuItemsByCategory(category: MenuCategory): List<MenuItem> {
+        return _products.value
+            .map { it.toMenuItem() }
+            .filter { it.category == category }
+    }
+
+    suspend fun getMenuItemById(itemId: String): MenuItem? {
+        return _products.value.find { it.id == itemId }?.toMenuItem()
+    }
+
+    suspend fun addMenuItem(item: MenuItem): Boolean {
+        return addProduct(item.toProduct())
+    }
+
+    suspend fun updateMenuItem(item: MenuItem): Boolean {
+        return updateProduct(item.toProduct())
+    }
+
+    suspend fun deleteMenuItem(itemId: String): Boolean {
+        return deleteProduct(itemId)
+    }
+
+    suspend fun toggleItemAvailability(itemId: String): Boolean {
+        return toggleProductAvailability(itemId)
     }
 
     // ==================== SETTINGS ====================
@@ -157,13 +193,13 @@ class RestaurantRepository {
                 ),
                 items = listOf(
                     OrderItem(
-                        menuItem = getMockMenuItems()[0], // Ropa Vieja
+                        menuItem = getMockProducts().map { it.toMenuItem() }[0], // Ropa Vieja
                         quantity = 2,
                         specialInstructions = "Poco picante",
                         subtotal = 25.0
                     ),
                     OrderItem(
-                        menuItem = getMockMenuItems()[6], // Mojito
+                        menuItem = getMockProducts().map { it.toMenuItem() }[6], // Mojito
                         quantity = 2,
                         specialInstructions = null,
                         subtotal = 10.0
@@ -187,13 +223,13 @@ class RestaurantRepository {
                 ),
                 items = listOf(
                     OrderItem(
-                        menuItem = getMockMenuItems()[1], // Moros y Cristianos
+                        menuItem = getMockProducts().map { it.toMenuItem() }[1], // Moros y Cristianos
                         quantity = 1,
                         specialInstructions = null,
                         subtotal = 8.0
                     ),
                     OrderItem(
-                        menuItem = getMockMenuItems()[2], // Lechón Asado
+                        menuItem = getMockProducts().map { it.toMenuItem() }[2], // Lechón Asado
                         quantity = 1,
                         specialInstructions = "Bien dorado",
                         subtotal = 15.0
@@ -216,7 +252,7 @@ class RestaurantRepository {
                 ),
                 items = listOf(
                     OrderItem(
-                        menuItem = getMockMenuItems()[4], // Flan de Caramelo
+                        menuItem = getMockProducts().map { it.toMenuItem() }[4], // Flan de Caramelo
                         quantity = 3,
                         specialInstructions = null,
                         subtotal = 12.0
@@ -239,19 +275,19 @@ class RestaurantRepository {
                 ),
                 items = listOf(
                     OrderItem(
-                        menuItem = getMockMenuItems()[0], // Ropa Vieja
+                        menuItem = getMockProducts().map { it.toMenuItem() }[0], // Ropa Vieja
                         quantity = 1,
                         specialInstructions = null,
                         subtotal = 12.50
                     ),
                     OrderItem(
-                        menuItem = getMockMenuItems()[3], // Tostones
+                        menuItem = getMockProducts().map { it.toMenuItem() }[3], // Tostones
                         quantity = 2,
                         specialInstructions = "Extra crujientes",
                         subtotal = 8.0
                     ),
                     OrderItem(
-                        menuItem = getMockMenuItems()[5], // Guarapo
+                        menuItem = getMockProducts().map { it.toMenuItem() }[5], // Guarapo
                         quantity = 1,
                         specialInstructions = null,
                         subtotal = 3.0
@@ -267,133 +303,120 @@ class RestaurantRepository {
         )
     }
 
-    private fun getMockMenuItems(): List<MenuItem> {
+    private fun getMockProducts(): List<Product> {
         return listOf(
             // Platos Principales
-            MenuItem(
+            Product(
                 id = "ITEM001",
                 name = "Ropa Vieja",
                 description = "Carne de res desmenuzada en salsa criolla con pimientos y cebolla",
                 price = 12.50,
-                category = MenuCategory.MAIN_COURSES,
-                imageUrl = null,
+                imageUrl = "",
+                category = "Platos Fuertes", // Mapea a MenuCategory.MAIN_COURSES
                 isAvailable = true,
-                preparationTime = 25,
-                allergens = listOf("Gluten"),
-                isVegetarian = false,
-                calories = 450
+                preparationTime = 25
             ),
-            MenuItem(
+            Product(
                 id = "ITEM002",
                 name = "Moros y Cristianos",
                 description = "Arroz con frijoles negros al estilo cubano",
                 price = 8.00,
-                category = MenuCategory.MAIN_COURSES,
+                imageUrl = "",
+                category = "Platos Fuertes",
                 isAvailable = true,
                 preparationTime = 20,
                 isVegetarian = true,
-                isVegan = true,
-                calories = 320
+                isVegan = true
             ),
-            MenuItem(
+            Product(
                 id = "ITEM003",
                 name = "Lechón Asado",
                 description = "Cerdo asado marinado con mojo criollo",
                 price = 15.00,
-                category = MenuCategory.MAIN_COURSES,
+                imageUrl = "",
+                category = "Platos Fuertes",
                 isAvailable = true,
-                preparationTime = 30,
-                calories = 520
+                preparationTime = 30
             ),
 
             // Acompañamientos
-            MenuItem(
+            Product(
                 id = "ITEM004",
                 name = "Tostones",
                 description = "Plátanos verdes fritos y aplastados",
                 price = 4.00,
-                category = MenuCategory.SIDES,
+                imageUrl = "",
+                category = "Agregos",
                 isAvailable = true,
-                preparationTime = 10,
-                isVegetarian = true,
-                isVegan = true,
-                calories = 180
+                preparationTime = 10
             ),
 
             // Postres
-            MenuItem(
+            Product(
                 id = "ITEM005",
                 name = "Flan de Caramelo",
                 description = "Postre cremoso de huevo con caramelo",
                 price = 4.00,
-                category = MenuCategory.DESSERTS,
+                imageUrl = "",
+                category = "Postres",
                 isAvailable = true,
-                preparationTime = 5,
-                allergens = listOf("Huevo", "Lácteos"),
-                isVegetarian = true,
-                calories = 280
+                preparationTime = 5
             ),
 
             // Bebidas
-            MenuItem(
+            Product(
                 id = "ITEM006",
                 name = "Guarapo",
                 description = "Jugo natural de caña de azúcar",
                 price = 3.00,
-                category = MenuCategory.BEVERAGES,
+                imageUrl = "",
+                category = "Bebidas",
                 isAvailable = true,
-                preparationTime = 5,
-                isVegetarian = true,
-                isVegan = true,
-                calories = 120
+                preparationTime = 5
             ),
-            MenuItem(
+            Product(
                 id = "ITEM007",
                 name = "Mojito Cubano",
                 description = "Ron blanco, hierbabuena, limón, azúcar y soda",
                 price = 5.00,
-                category = MenuCategory.BEVERAGES,
+                imageUrl = "",
+                category = "Bebidas",
                 isAvailable = true,
-                preparationTime = 5,
-                isVegetarian = true,
-                calories = 150
+                preparationTime = 5
             ),
 
             // Entradas
-            MenuItem(
+            Product(
                 id = "ITEM008",
                 name = "Ensalada Mixta",
                 description = "Lechuga, tomate, pepino, zanahoria con vinagreta",
                 price = 5.50,
-                category = MenuCategory.APPETIZERS,
+                imageUrl = "",
+                category = "Entradas",
                 isAvailable = true,
-                preparationTime = 10,
-                isVegetarian = true,
-                isVegan = true,
-                calories = 80
+                preparationTime = 10
             ),
-            MenuItem(
+            Product(
                 id = "ITEM009",
                 name = "Croquetas de Jamón",
                 description = "Croquetas caseras de jamón (6 unidades)",
                 price = 6.00,
-                category = MenuCategory.APPETIZERS,
+                imageUrl = "",
+                category = "Entradas",
                 isAvailable = true,
-                preparationTime = 15,
-                allergens = listOf("Gluten", "Lácteos"),
-                calories = 320
+                preparationTime = 15
             ),
 
             // Sopas
-            MenuItem(
+            Product(
                 id = "ITEM010",
                 name = "Ajiaco Criollo",
                 description = "Sopa tradicional cubana con viandas y carnes",
                 price = 9.00,
-                category = MenuCategory.MAIN_COURSES,
+                imageUrl = "",
+                category = "Platos Fuertes",
                 isAvailable = true,
-                preparationTime = 20,
-                calories = 380
+                preparationTime = 20
             )
         )
     }

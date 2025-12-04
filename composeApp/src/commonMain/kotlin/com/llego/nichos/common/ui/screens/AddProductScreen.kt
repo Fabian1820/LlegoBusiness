@@ -3,6 +3,7 @@ package com.llego.nichos.common.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.nichos.common.config.BusinessConfigProvider
 import com.llego.nichos.common.data.model.*
+import com.llego.nichos.common.utils.mapToCategoryId
+import com.llego.nichos.common.utils.mapToMenuCategory
+import com.llego.nichos.common.utils.toCategoryId
+import com.llego.nichos.restaurant.data.model.MenuCategory
+import com.llego.nichos.restaurant.data.model.getDisplayName
 import com.llego.shared.data.model.BusinessType
 
 /**
@@ -37,16 +43,43 @@ fun AddProductScreen(
     existingProduct: Product? = null,
     modifier: Modifier = Modifier
 ) {
+    val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
+    
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
-    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
+    
+    // Inicializar categoría desde existingProduct
+    var selectedCategoryId by remember(businessType, existingProduct?.category) { 
+        mutableStateOf<String?>(
+            existingProduct?.let { product ->
+                // Si es restaurante, mapear MenuCategory a categoryId
+                if (businessType == BusinessType.RESTAURANT) {
+                    val menuCategory = com.llego.nichos.common.utils.mapToMenuCategory(product.category, businessType)
+                    menuCategory?.toCategoryId()
+                } else {
+                    // Para otros nichos, buscar el categoryId desde la categoría
+                    com.llego.nichos.common.utils.mapToCategoryId(product.category, businessType) 
+                        ?: categories.find { it.displayName.equals(product.category, ignoreCase = true) }?.id
+                }
+            }
+        )
+    }
 
     // Campos específicos por nicho
     var brand by remember { mutableStateOf(existingProduct?.brand ?: "") }
     var selectedUnit by remember { mutableStateOf(existingProduct?.unit) }
     var stock by remember { mutableStateOf(existingProduct?.stock?.toString() ?: "") }
     var preparationTime by remember { mutableStateOf(existingProduct?.preparationTime?.toString() ?: "") }
+    
+    // Campos específicos para restaurante
+    var isVegetarian by remember { mutableStateOf(existingProduct?.isVegetarian ?: false) }
+    var isVegan by remember { mutableStateOf(existingProduct?.isVegan ?: false) }
+    var isGlutenFree by remember { mutableStateOf(existingProduct?.isGlutenFree ?: false) }
+    var allergens by remember { mutableStateOf(existingProduct?.allergens ?: emptyList()) }
+    var allergensText by remember { mutableStateOf(existingProduct?.allergens?.joinToString(", ") ?: "") }
+    var calories by remember { mutableStateOf(existingProduct?.calories?.toString() ?: "") }
+    var isAvailable by remember { mutableStateOf(existingProduct?.isAvailable ?: true) }
 
     // Campos para ropa
     var selectedSizes by remember { mutableStateOf<List<String>>(existingProduct?.sizes ?: emptyList()) }
@@ -64,10 +97,11 @@ fun AddProductScreen(
     var showSizeSelector by remember { mutableStateOf(false) }
     var showColorPicker by remember { mutableStateOf(false) }
 
-    val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
     val scrollState = rememberScrollState()
 
+    // Pantalla completamente fullscreen e independiente (como ChatDetailScreen)
     Scaffold(
+        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {
@@ -89,17 +123,101 @@ fun AddProductScreen(
                     navigationIconContentColor = Color.White
                 )
             )
+        },
+        containerColor = Color(0xFFF5F5F5),
+        bottomBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 12.dp,
+                tonalElevation = 4.dp,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.secondary
+                        ),
+                        border = BorderStroke(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Text(
+                            "Cancelar",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            if (name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null) {
+                                val categoryString = if (businessType == BusinessType.RESTAURANT) {
+                                    val menuCategory = MenuCategory.values().find { it.toCategoryId() == selectedCategoryId }
+                                    menuCategory?.getDisplayName() ?: selectedCategoryId ?: ""
+                                } else {
+                                    categories.find { it.id == selectedCategoryId }?.displayName ?: selectedCategoryId ?: ""
+                                }
+
+                                val product = Product(
+                                    id = existingProduct?.id ?: generateId(),
+                                    name = name,
+                                    description = description,
+                                    price = price.toDouble(),
+                                    imageUrl = existingProduct?.imageUrl ?: "",
+                                    category = categoryString,
+                                    isAvailable = isAvailable,
+                                    brand = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET, BusinessType.PHARMACY)) brand.takeIf { it.isNotBlank() } else null,
+                                    unit = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET)) selectedUnit else null,
+                                    stock = stock.toIntOrNull(),
+                                    preparationTime = if (businessType == BusinessType.RESTAURANT) preparationTime.toIntOrNull() else null,
+                                    sizes = if (businessType == BusinessType.CLOTHING_STORE && selectedSizes.isNotEmpty()) selectedSizes else null,
+                                    colors = if (businessType == BusinessType.CLOTHING_STORE && selectedColors.isNotEmpty()) selectedColors else null,
+                                    material = if (businessType == BusinessType.CLOTHING_STORE) material.takeIf { it.isNotBlank() } else null,
+                                    gender = if (businessType == BusinessType.CLOTHING_STORE) selectedGender else null,
+                                    requiresPrescription = if (businessType == BusinessType.PHARMACY) requiresPrescription else false,
+                                    genericName = if (businessType == BusinessType.PHARMACY) genericName.takeIf { it.isNotBlank() } else null,
+                                    isVegetarian = if (businessType == BusinessType.RESTAURANT) isVegetarian else false,
+                                    isVegan = if (businessType == BusinessType.RESTAURANT) isVegan else false,
+                                    isGlutenFree = if (businessType == BusinessType.RESTAURANT) isGlutenFree else false,
+                                    allergens = if (businessType == BusinessType.RESTAURANT) {
+                                        allergensText.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                                    } else emptyList(),
+                                    calories = if (businessType == BusinessType.RESTAURANT) calories.toIntOrNull() else null
+                                )
+                                onSave(product)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null,
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Guardar")
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF5F5F5))
         ) {
+            // Contenido scrolleable de la pantalla
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
                     .verticalScroll(scrollState)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -214,7 +332,19 @@ fun AddProductScreen(
                 when (businessType) {
                     BusinessType.RESTAURANT -> RestaurantSpecificFields(
                         preparationTime = preparationTime,
-                        onPreparationTimeChange = { preparationTime = it }
+                        onPreparationTimeChange = { preparationTime = it },
+                        isVegetarian = isVegetarian,
+                        onIsVegetarianChange = { isVegetarian = it },
+                        isVegan = isVegan,
+                        onIsVeganChange = { isVegan = it },
+                        isGlutenFree = isGlutenFree,
+                        onIsGlutenFreeChange = { isGlutenFree = it },
+                        allergensText = allergensText,
+                        onAllergensTextChange = { allergensText = it },
+                        calories = calories,
+                        onCaloriesChange = { calories = it },
+                        isAvailable = isAvailable,
+                        onIsAvailableChange = { isAvailable = it }
                     )
                     BusinessType.MARKET, BusinessType.AGROMARKET -> MarketSpecificFields(
                         brand = brand,
@@ -244,61 +374,6 @@ fun AddProductScreen(
                         brand = brand,
                         onBrandChange = { brand = it }
                     )
-                }
-            }
-
-            // Botones de acción
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp,
-                color = Color.White
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancelar")
-                    }
-
-                    Button(
-                        onClick = {
-                            // Validación básica
-                            if (name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null) {
-                                val product = Product(
-                                    id = existingProduct?.id ?: generateId(),
-                                    name = name,
-                                    description = description,
-                                    price = price.toDouble(),
-                                    imageUrl = "", // TODO: Implementar subida de imagen
-                                    category = selectedCategoryId ?: "",
-                                    isAvailable = true,
-                                    brand = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET, BusinessType.PHARMACY)) brand.takeIf { it.isNotBlank() } else null,
-                                    unit = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET)) selectedUnit else null,
-                                    stock = stock.toIntOrNull(),
-                                    preparationTime = if (businessType == BusinessType.RESTAURANT) preparationTime.toIntOrNull() else null,
-                                    sizes = if (businessType == BusinessType.CLOTHING_STORE && selectedSizes.isNotEmpty()) selectedSizes else null,
-                                    colors = if (businessType == BusinessType.CLOTHING_STORE && selectedColors.isNotEmpty()) selectedColors else null,
-                                    material = if (businessType == BusinessType.CLOTHING_STORE) material.takeIf { it.isNotBlank() } else null,
-                                    gender = if (businessType == BusinessType.CLOTHING_STORE) selectedGender else null,
-                                    requiresPrescription = if (businessType == BusinessType.PHARMACY) requiresPrescription else false,
-                                    genericName = if (businessType == BusinessType.PHARMACY) genericName.takeIf { it.isNotBlank() } else null
-                                )
-                                onSave(product)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Guardar Producto")
-                    }
                 }
             }
         }
@@ -360,7 +435,19 @@ private fun ProductImageSection() {
 @Composable
 private fun RestaurantSpecificFields(
     preparationTime: String,
-    onPreparationTimeChange: (String) -> Unit
+    onPreparationTimeChange: (String) -> Unit,
+    isVegetarian: Boolean,
+    onIsVegetarianChange: (Boolean) -> Unit,
+    isVegan: Boolean,
+    onIsVeganChange: (Boolean) -> Unit,
+    isGlutenFree: Boolean,
+    onIsGlutenFreeChange: (Boolean) -> Unit,
+    allergensText: String,
+    onAllergensTextChange: (String) -> Unit,
+    calories: String,
+    onCaloriesChange: (String) -> Unit,
+    isAvailable: Boolean,
+    onIsAvailableChange: (Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -380,18 +467,135 @@ private fun RestaurantSpecificFields(
                 )
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = preparationTime,
+                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) onPreparationTimeChange(it) },
+                    label = { Text("Tiempo de preparación (min)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(Icons.Default.Timer, contentDescription = null)
+                    }
+                )
+
+                OutlinedTextField(
+                    value = calories,
+                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) onCaloriesChange(it) },
+                    label = { Text("Calorías") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
             OutlinedTextField(
-                value = preparationTime,
-                onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) onPreparationTimeChange(it) },
-                label = { Text("Tiempo de preparación (min)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                value = allergensText,
+                onValueChange = onAllergensTextChange,
+                label = { Text("Alérgenos (separados por comas)") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                leadingIcon = {
-                    Icon(Icons.Default.Timer, contentDescription = null)
-                }
+                placeholder = { Text("Ej: Gluten, Lácteos, Huevo") }
             )
+
+            Divider()
+
+            Text(
+                text = "Características dietéticas",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Eco,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50)
+                    )
+                    Text("Vegetariano", style = MaterialTheme.typography.bodyMedium)
+                }
+                Switch(
+                    checked = isVegetarian,
+                    onCheckedChange = onIsVegetarianChange
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Eco,
+                        contentDescription = null,
+                        tint = Color(0xFF8BC34A)
+                    )
+                    Text("Vegano", style = MaterialTheme.typography.bodyMedium)
+                }
+                Switch(
+                    checked = isVegan,
+                    onCheckedChange = onIsVeganChange
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Grain,
+                        contentDescription = null,
+                        tint = Color(0xFFFFC107)
+                    )
+                    Text("Sin Gluten", style = MaterialTheme.typography.bodyMedium)
+                }
+                Switch(
+                    checked = isGlutenFree,
+                    onCheckedChange = onIsGlutenFreeChange
+                )
+            }
+
+            Divider()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Disponible para ordenar",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Switch(
+                    checked = isAvailable,
+                    onCheckedChange = onIsAvailableChange
+                )
+            }
         }
     }
 }
@@ -579,6 +783,13 @@ private fun ClothingSpecificFields(
                                 )
                             },
                             label = { Text(size) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                labelColor = MaterialTheme.colorScheme.onSurface
+                            ),
                             leadingIcon = if (selectedSizes.contains(size)) {
                                 { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                             } else null
@@ -607,7 +818,7 @@ private fun ClothingSpecificFields(
                                 .background(parseHexColor(color.hexCode))
                                 .border(
                                     width = if (isSelected) 3.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
                                     shape = CircleShape
                                 )
                                 .clickable {

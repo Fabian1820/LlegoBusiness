@@ -72,25 +72,7 @@ internal fun LoginForm(
                 .fillMaxWidth(0.95f),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🆕 Selector de nicho
-            if (onBusinessTypeSelected != null) {
-                Text(
-                    text = "Selecciona tu tipo de negocio",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-
-                BusinessTypeChips(
-                    selectedBusinessType = selectedBusinessType,
-                    onBusinessTypeSelected = onBusinessTypeSelected
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Campos de email y contraseña (visuales, sin validación obligatoria)
+            // Campos de email y contraseña
             ModernTextField(
                 value = email,
                 onValueChange = onEmailChange,
@@ -140,7 +122,7 @@ internal fun LoginForm(
             PrimaryButton(
                 text = "Continuar",
                 onClick = onContinueClick,
-                enabled = !isLoading && selectedBusinessType != null, // Solo requiere tipo de negocio
+                enabled = !isLoading, // Sin validaciones para desarrollo
                 isLoading = isLoading
             )
 
