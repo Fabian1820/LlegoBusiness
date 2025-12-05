@@ -36,6 +36,7 @@ fun BusinessHomeScreen(
     onNavigateToChatDetail: (String) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
+    onNavigateToProductDetail: (com.llego.nichos.common.data.model.Product) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     chatsViewModel: ChatsViewModel,
     ordersViewModel: OrdersViewModel,
@@ -197,7 +198,8 @@ fun BusinessHomeScreen(
                     MenuScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
-                        onNavigateToAddProduct = onNavigateToAddProduct
+                        onNavigateToAddProduct = onNavigateToAddProduct,
+                        onNavigateToProductDetail = onNavigateToProductDetail
                     )
                 }
                 "products", "stock" -> {
@@ -207,7 +209,8 @@ fun BusinessHomeScreen(
                     MenuScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
-                        onNavigateToAddProduct = onNavigateToAddProduct
+                        onNavigateToAddProduct = onNavigateToAddProduct,
+                        onNavigateToProductDetail = onNavigateToProductDetail
                     )
                 }
                 "medicines" -> {
@@ -216,7 +219,8 @@ fun BusinessHomeScreen(
                     MenuScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
-                        onNavigateToAddProduct = onNavigateToAddProduct
+                        onNavigateToAddProduct = onNavigateToAddProduct,
+                        onNavigateToProductDetail = onNavigateToProductDetail
                     )
                 }
                 "wallet" -> {

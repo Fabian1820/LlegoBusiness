@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.collectAsState
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.components.menu.EmptyMenuView
@@ -58,6 +59,7 @@ fun MenuScreen(
     viewModel: MenuViewModel,
     businessType: BusinessType = BusinessType.RESTAURANT,
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
+    onNavigateToProductDetail: (com.llego.nichos.common.data.model.Product) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -153,8 +155,8 @@ fun MenuScreen(
                         } else {
                             LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             // Filtros de categoría como primer item (adaptados por nicho)
                             item {
@@ -185,6 +187,9 @@ fun MenuScreen(
                                     },
                                     onToggleAvailability = {
                                         viewModel.toggleProductAvailability(product.id)
+                                    },
+                                    onViewDetail = {
+                                        onNavigateToProductDetail(product)
                                     },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
@@ -683,7 +688,7 @@ private fun SearchCard(
     }
 }
 
- // Card compacto de producto para resultados de búsqueda
+ // Card compacto de producto para resultados de búsqueda - versión limpia
 @Composable
 private fun CompactMenuItemCard(
     product: Product,
@@ -697,68 +702,49 @@ private fun CompactMenuItemCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (product.isAvailable) Color.White else Color(0xFFF5F5F5)
+            containerColor = Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Imagen real del producto con diseño limpio (reutiliza imágenes de restaurante)
-            androidx.compose.foundation.Image(
-                painter = painterResource(getProductImage(product.id)),
-                contentDescription = product.name,
+        Box {
+            Row(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-
-            // Información del producto
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Nombre con animación de subrayado
-                AnimatedTextWithUnderline(
-                    text = product.name,
-                    isUnavailable = !product.isAvailable,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                // Imagen del producto más pequeña
+                androidx.compose.foundation.Image(
+                    painter = painterResource(getProductImage(product.id)),
+                    contentDescription = product.name,
+                    modifier = Modifier
+                        .size(55.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
                 )
 
-                // Categoría y precio
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Información del producto
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 32.dp), // Espacio para el botón de editar
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    // Badge de categoría (usar helper para obtener nombre correcto)
-                    val categoryDisplayName = getCategoryDisplayNameForProduct(
-                        product.category,
-                        businessType
+                    // Nombre
+                    Text(
+                        text = product.name,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (!product.isAvailable)
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        else MaterialTheme.colorScheme.onSurface
                     )
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = categoryDisplayName,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
 
                     // Precio
                     Text(
@@ -768,41 +754,58 @@ private fun CompactMenuItemCard(
                             color = MaterialTheme.colorScheme.primary
                         )
                     )
+
+                    // Variedades/modificadores (si existen)
+                    if (product.varieties.isNotEmpty()) {
+                        Text(
+                            text = product.varieties.take(3).joinToString(" • "),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 10.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // Indicador de no disponible (solo si aplica)
+                    if (!product.isAvailable) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(5.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFE53935))
+                            )
+                            Text(
+                                text = "No disponible",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp
+                                ),
+                                color = Color(0xFFE53935)
+                            )
+                        }
+                    }
                 }
             }
 
-            // Botones de acción
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Botón de editar sutil
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(2.dp)
+                    .size(28.dp)
             ) {
-                // Toggle disponibilidad
-                IconButton(
-                    onClick = onToggleAvailability,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = if (product.isAvailable)
-                            Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (product.isAvailable)
-                            "Marcar como no disponible" else "Marcar como disponible",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Eliminar
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Editar",
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

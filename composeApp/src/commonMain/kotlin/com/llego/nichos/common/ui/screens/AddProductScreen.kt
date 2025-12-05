@@ -29,6 +29,7 @@ import com.llego.nichos.common.utils.toCategoryId
 import com.llego.nichos.restaurant.data.model.MenuCategory
 import com.llego.nichos.restaurant.data.model.getDisplayName
 import com.llego.shared.data.model.BusinessType
+import com.llego.nichos.common.ui.components.rememberImagePickerController
 
 /**
  * Pantalla fullscreen para agregar/editar productos
@@ -44,10 +45,14 @@ fun AddProductScreen(
     modifier: Modifier = Modifier
 ) {
     val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
-    
+
+    // Tipo de producto (Individual o Varios)
+    var selectedProductType by remember { mutableStateOf(existingProduct?.productType ?: ProductType.INDIVIDUAL) }
+
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
+    var selectedImageUrl by remember { mutableStateOf(existingProduct?.imageUrl ?: "") }
     
     // Inicializar categoría desde existingProduct
     var selectedCategoryId by remember(businessType, existingProduct?.category) { 
@@ -70,15 +75,10 @@ fun AddProductScreen(
     var brand by remember { mutableStateOf(existingProduct?.brand ?: "") }
     var selectedUnit by remember { mutableStateOf(existingProduct?.unit) }
     var stock by remember { mutableStateOf(existingProduct?.stock?.toString() ?: "") }
-    var preparationTime by remember { mutableStateOf(existingProduct?.preparationTime?.toString() ?: "") }
-    
-    // Campos específicos para restaurante
-    var isVegetarian by remember { mutableStateOf(existingProduct?.isVegetarian ?: false) }
-    var isVegan by remember { mutableStateOf(existingProduct?.isVegan ?: false) }
-    var isGlutenFree by remember { mutableStateOf(existingProduct?.isGlutenFree ?: false) }
-    var allergens by remember { mutableStateOf(existingProduct?.allergens ?: emptyList()) }
-    var allergensText by remember { mutableStateOf(existingProduct?.allergens?.joinToString(", ") ?: "") }
-    var calories by remember { mutableStateOf(existingProduct?.calories?.toString() ?: "") }
+
+    // Variantes del producto (para Individual)
+    var variantGroups by remember { mutableStateOf(existingProduct?.variants ?: emptyList()) }
+
     var isAvailable by remember { mutableStateOf(existingProduct?.isAvailable ?: true) }
 
     // Campos para ropa
@@ -161,45 +161,63 @@ fun AddProductScreen(
 
                     Button(
                         onClick = {
-                            if (name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null) {
-                                val categoryString = if (businessType == BusinessType.RESTAURANT) {
-                                    val menuCategory = MenuCategory.values().find { it.toCategoryId() == selectedCategoryId }
-                                    menuCategory?.getDisplayName() ?: selectedCategoryId ?: ""
+                            // Validación según el tipo de producto
+                            val isValid = if (selectedProductType == ProductType.MULTIPLE) {
+                                // Para MULTIPLE solo requiere descripción
+                                description.isNotBlank()
+                            } else {
+                                // Para INDIVIDUAL requiere nombre, precio y categoría
+                                name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null
+                            }
+
+                            if (isValid) {
+                                val categoryString = if (selectedProductType == ProductType.INDIVIDUAL && selectedCategoryId != null) {
+                                    if (businessType == BusinessType.RESTAURANT) {
+                                        val menuCategory = MenuCategory.values().find { it.toCategoryId() == selectedCategoryId }
+                                        menuCategory?.getDisplayName() ?: selectedCategoryId ?: ""
+                                    } else {
+                                        categories.find { it.id == selectedCategoryId }?.displayName ?: selectedCategoryId ?: ""
+                                    }
                                 } else {
-                                    categories.find { it.id == selectedCategoryId }?.displayName ?: selectedCategoryId ?: ""
+                                    existingProduct?.category ?: ""
                                 }
 
                                 val product = Product(
                                     id = existingProduct?.id ?: generateId(),
-                                    name = name,
+                                    name = if (selectedProductType == ProductType.INDIVIDUAL) name else existingProduct?.name ?: "Producto Múltiple",
                                     description = description,
-                                    price = price.toDouble(),
-                                    imageUrl = existingProduct?.imageUrl ?: "",
+                                    price = if (selectedProductType == ProductType.INDIVIDUAL) price.toDoubleOrNull() ?: 0.0 else 0.0,
+                                    imageUrl = selectedImageUrl,
                                     category = categoryString,
+                                    productType = selectedProductType,
                                     isAvailable = isAvailable,
-                                    brand = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET, BusinessType.PHARMACY)) brand.takeIf { it.isNotBlank() } else null,
-                                    unit = if (businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET)) selectedUnit else null,
-                                    stock = stock.toIntOrNull(),
-                                    preparationTime = if (businessType == BusinessType.RESTAURANT) preparationTime.toIntOrNull() else null,
-                                    sizes = if (businessType == BusinessType.CLOTHING_STORE && selectedSizes.isNotEmpty()) selectedSizes else null,
-                                    colors = if (businessType == BusinessType.CLOTHING_STORE && selectedColors.isNotEmpty()) selectedColors else null,
-                                    material = if (businessType == BusinessType.CLOTHING_STORE) material.takeIf { it.isNotBlank() } else null,
-                                    gender = if (businessType == BusinessType.CLOTHING_STORE) selectedGender else null,
-                                    requiresPrescription = if (businessType == BusinessType.PHARMACY) requiresPrescription else false,
-                                    genericName = if (businessType == BusinessType.PHARMACY) genericName.takeIf { it.isNotBlank() } else null,
-                                    isVegetarian = if (businessType == BusinessType.RESTAURANT) isVegetarian else false,
-                                    isVegan = if (businessType == BusinessType.RESTAURANT) isVegan else false,
-                                    isGlutenFree = if (businessType == BusinessType.RESTAURANT) isGlutenFree else false,
-                                    allergens = if (businessType == BusinessType.RESTAURANT) {
-                                        allergensText.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                                    } else emptyList(),
-                                    calories = if (businessType == BusinessType.RESTAURANT) calories.toIntOrNull() else null
+                                    brand = if (selectedProductType == ProductType.INDIVIDUAL && businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET, BusinessType.PHARMACY)) brand.takeIf { it.isNotBlank() } else null,
+                                    unit = if (selectedProductType == ProductType.INDIVIDUAL && businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET)) selectedUnit else null,
+                                    stock = if (selectedProductType == ProductType.INDIVIDUAL) stock.toIntOrNull() else null,
+                                    preparationTime = null,  // Removido para MVP
+                                    variants = if (selectedProductType == ProductType.INDIVIDUAL) variantGroups else emptyList(),
+                                    sizes = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE && selectedSizes.isNotEmpty()) selectedSizes else null,
+                                    colors = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE && selectedColors.isNotEmpty()) selectedColors else null,
+                                    material = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE) material.takeIf { it.isNotBlank() } else null,
+                                    gender = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE) selectedGender else null,
+                                    requiresPrescription = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.PHARMACY) requiresPrescription else false,
+                                    genericName = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.PHARMACY) genericName.takeIf { it.isNotBlank() } else null,
+                                    // Campos de dieta removidos para MVP
+                                    isVegetarian = false,
+                                    isVegan = false,
+                                    isGlutenFree = false,
+                                    allergens = emptyList(),
+                                    calories = null
                                 )
                                 onSave(product)
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null,
+                        enabled = if (selectedProductType == ProductType.MULTIPLE) {
+                            description.isNotBlank()
+                        } else {
+                            name.isNotBlank() && price.toDoubleOrNull() != null && selectedCategoryId != null
+                        },
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text("Guardar")
@@ -222,158 +240,219 @@ fun AddProductScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Sección de Imagen (placeholder)
-                ProductImageSection()
+                // Selector de tipo de producto
+                ProductTypeSelector(
+                    selectedType = selectedProductType,
+                    onTypeSelected = { selectedProductType = it }
+                )
 
-                // Información básica
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Sección de Imagen
+                ProductImageSection(
+                    imageUrl = selectedImageUrl,
+                    onImageSelected = { newUrl -> selectedImageUrl = newUrl }
+                )
+
+                // Información básica - Simplificada para MULTIPLE
+                if (selectedProductType == ProductType.MULTIPLE) {
+                    // Modo VARIOS: Solo descripción
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Text(
-                            text = "Información Básica",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            label = { Text("Nombre del producto *") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = description,
-                            onValueChange = { description = it },
-                            label = { Text("Descripción") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            maxLines = 5,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-
-                        // Selector de categoría
-                        ExposedDropdownMenuBox(
-                            expanded = showCategoryDropdown,
-                            onExpandedChange = { showCategoryDropdown = it }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            OutlinedTextField(
-                                value = categories.find { it.id == selectedCategoryId }?.displayName ?: "",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Categoría *") },
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryDropdown)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                shape = RoundedCornerShape(12.dp)
+                            Text(
+                                text = "Información del Producto",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
                             )
-                            ExposedDropdownMenu(
-                                expanded = showCategoryDropdown,
-                                onDismissRequest = { showCategoryDropdown = false }
-                            ) {
-                                categories.forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text(category.displayName) },
-                                        onClick = {
-                                            selectedCategoryId = category.id
-                                            showCategoryDropdown = false
-                                        }
-                                    )
-                                }
-                            }
+
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = { Text("Descripción *") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 3,
+                                maxLines = 5,
+                                shape = RoundedCornerShape(12.dp),
+                                placeholder = { Text("Describe los productos que se muestran en la imagen") }
+                            )
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    }
+                } else {
+                    // Modo INDIVIDUAL: Campos completos
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            Text(
+                                text = "Información Básica",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+
                             OutlinedTextField(
-                                value = price,
-                                onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) price = it },
-                                label = { Text("Precio *") },
-                                leadingIcon = { Text("$") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Nombre del producto *") },
+                                modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp)
                             )
 
-                            // Stock (para todos excepto restaurante)
-                            if (businessType != BusinessType.RESTAURANT) {
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = { description = it },
+                                label = { Text("Descripción") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 3,
+                                maxLines = 5,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            // Selector de categoría
+                            ExposedDropdownMenuBox(
+                                expanded = showCategoryDropdown,
+                                onExpandedChange = { showCategoryDropdown = it }
+                            ) {
                                 OutlinedTextField(
-                                    value = stock,
-                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) stock = it },
-                                    label = { Text("Stock") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    value = categories.find { it.id == selectedCategoryId }?.displayName ?: "",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Categoría *") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryDropdown)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = showCategoryDropdown,
+                                    onDismissRequest = { showCategoryDropdown = false }
+                                ) {
+                                    categories.forEach { category ->
+                                        DropdownMenuItem(
+                                            text = { Text(category.displayName) },
+                                            onClick = {
+                                                selectedCategoryId = category.id
+                                                showCategoryDropdown = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = price,
+                                    onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) price = it },
+                                    label = { Text("Precio *") },
+                                    leadingIcon = { Text("$") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
                                     shape = RoundedCornerShape(12.dp)
                                 )
+
+                                // Stock (para todos excepto restaurante)
+                                if (businessType != BusinessType.RESTAURANT) {
+                                    OutlinedTextField(
+                                        value = stock,
+                                        onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) stock = it },
+                                        label = { Text("Stock") },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                // Detalles específicos por nicho
-                when (businessType) {
-                    BusinessType.RESTAURANT -> RestaurantSpecificFields(
-                        preparationTime = preparationTime,
-                        onPreparationTimeChange = { preparationTime = it },
-                        isVegetarian = isVegetarian,
-                        onIsVegetarianChange = { isVegetarian = it },
-                        isVegan = isVegan,
-                        onIsVeganChange = { isVegan = it },
-                        isGlutenFree = isGlutenFree,
-                        onIsGlutenFreeChange = { isGlutenFree = it },
-                        allergensText = allergensText,
-                        onAllergensTextChange = { allergensText = it },
-                        calories = calories,
-                        onCaloriesChange = { calories = it },
-                        isAvailable = isAvailable,
-                        onIsAvailableChange = { isAvailable = it }
-                    )
-                    BusinessType.MARKET, BusinessType.AGROMARKET -> MarketSpecificFields(
-                        brand = brand,
-                        onBrandChange = { brand = it },
-                        selectedUnit = selectedUnit,
-                        onUnitChange = { selectedUnit = it },
-                        showUnitDropdown = showUnitDropdown,
-                        onShowUnitDropdownChange = { showUnitDropdown = it }
-                    )
-                    BusinessType.CLOTHING_STORE -> ClothingSpecificFields(
-                        selectedSizes = selectedSizes,
-                        onSizesChange = { selectedSizes = it },
-                        selectedColors = selectedColors,
-                        onColorsChange = { selectedColors = it },
-                        material = material,
-                        onMaterialChange = { material = it },
-                        selectedGender = selectedGender,
-                        onGenderChange = { selectedGender = it },
-                        showGenderDropdown = showGenderDropdown,
-                        onShowGenderDropdownChange = { showGenderDropdown = it }
-                    )
-                    BusinessType.PHARMACY -> PharmacySpecificFields(
-                        genericName = genericName,
-                        onGenericNameChange = { genericName = it },
-                        requiresPrescription = requiresPrescription,
-                        onRequiresPrescriptionChange = { requiresPrescription = it },
-                        brand = brand,
-                        onBrandChange = { brand = it }
-                    )
+                // Detalles específicos por nicho (solo para modo INDIVIDUAL)
+                if (selectedProductType == ProductType.INDIVIDUAL) {
+                    when (businessType) {
+                        BusinessType.RESTAURANT -> {
+                            // Sección de variantes
+                            VariantsSection(
+                                variantGroups = variantGroups,
+                                onVariantsChange = { variantGroups = it }
+                            )
+
+                            // Disponibilidad
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Disponible para ordenar",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Switch(
+                                        checked = isAvailable,
+                                        onCheckedChange = { isAvailable = it }
+                                    )
+                                }
+                            }
+                        }
+                        BusinessType.MARKET, BusinessType.AGROMARKET -> MarketSpecificFields(
+                            brand = brand,
+                            onBrandChange = { brand = it },
+                            selectedUnit = selectedUnit,
+                            onUnitChange = { selectedUnit = it },
+                            showUnitDropdown = showUnitDropdown,
+                            onShowUnitDropdownChange = { showUnitDropdown = it }
+                        )
+                        BusinessType.CLOTHING_STORE -> ClothingSpecificFields(
+                            selectedSizes = selectedSizes,
+                            onSizesChange = { selectedSizes = it },
+                            selectedColors = selectedColors,
+                            onColorsChange = { selectedColors = it },
+                            material = material,
+                            onMaterialChange = { material = it },
+                            selectedGender = selectedGender,
+                            onGenderChange = { selectedGender = it },
+                            showGenderDropdown = showGenderDropdown,
+                            onShowGenderDropdownChange = { showGenderDropdown = it }
+                        )
+                        BusinessType.PHARMACY -> PharmacySpecificFields(
+                            genericName = genericName,
+                            onGenericNameChange = { genericName = it },
+                            requiresPrescription = requiresPrescription,
+                            onRequiresPrescriptionChange = { requiresPrescription = it },
+                            brand = brand,
+                            onBrandChange = { brand = it }
+                        )
+                    }
                 }
             }
         }
@@ -381,7 +460,379 @@ fun AddProductScreen(
 }
 
 @Composable
-private fun ProductImageSection() {
+private fun VariantsSection(
+    variantGroups: List<ProductVariantGroup>,
+    onVariantsChange: (List<ProductVariantGroup>) -> Unit
+) {
+    var showAddVariantDialog by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Variantes y Opciones",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                IconButton(
+                    onClick = { showAddVariantDialog = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar variante",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (variantGroups.isEmpty()) {
+                Text(
+                    text = "Agrega variantes como guarniciones, agregos, tamaños, etc.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                variantGroups.forEach { group ->
+                    VariantGroupItem(
+                        group = group,
+                        onDelete = {
+                            onVariantsChange(variantGroups.filter { it.id != group.id })
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showAddVariantDialog) {
+        AddVariantDialog(
+            onDismiss = { showAddVariantDialog = false },
+            onAdd = { newGroup ->
+                onVariantsChange(variantGroups + newGroup)
+                showAddVariantDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun VariantGroupItem(
+    group: ProductVariantGroup,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = group.name,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                    Text(
+                        text = "${group.options.size} opciones",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // Mostrar las opciones
+            group.options.forEach { option ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "• ${option.name}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (option.priceModifier != 0.0) {
+                        Text(
+                            text = if (option.priceModifier > 0) "+$${option.priceModifier}" else "-$${-option.priceModifier}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddVariantDialog(
+    onDismiss: () -> Unit,
+    onAdd: (ProductVariantGroup) -> Unit
+) {
+    var groupName by remember { mutableStateOf("") }
+    var optionName by remember { mutableStateOf("") }
+    var optionPrice by remember { mutableStateOf("") }
+    var options by remember { mutableStateOf<List<VariantOption>>(emptyList()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "Agregar Variante",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = groupName,
+                    onValueChange = { groupName = it },
+                    label = { Text("Nombre del grupo") },
+                    placeholder = { Text("Ej: Guarniciones, Agregos, Tamaño") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Divider()
+
+                Text(
+                    text = "Opciones (${options.size})",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                if (options.isNotEmpty()) {
+                    options.forEach { option ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = option.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (option.priceModifier != 0.0) {
+                                Text(
+                                    text = if (option.priceModifier > 0) "+$${option.priceModifier}" else "$${option.priceModifier}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            IconButton(
+                                onClick = { options = options.filter { it.id != option.id } },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Eliminar",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = optionName,
+                    onValueChange = { optionName = it },
+                    label = { Text("Nombre de opción") },
+                    placeholder = { Text("Ej: Extra queso") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = optionPrice,
+                    onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null || it == "-") optionPrice = it },
+                    label = { Text("Precio adicional (opcional)") },
+                    leadingIcon = { Text("$") },
+                    placeholder = { Text("0.00") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = {
+                        if (optionName.isNotBlank()) {
+                            val newOption = VariantOption(
+                                id = "opt_${(0..999999).random()}",
+                                name = optionName,
+                                priceModifier = optionPrice.toDoubleOrNull() ?: 0.0
+                            )
+                            options = options + newOption
+                            optionName = ""
+                            optionPrice = ""
+                        }
+                    },
+                    enabled = optionName.isNotBlank(),
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Agregar opción")
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (groupName.isNotBlank() && options.isNotEmpty()) {
+                        val newGroup = ProductVariantGroup(
+                            id = "vg_${(0..999999).random()}",
+                            name = groupName,
+                            options = options
+                        )
+                        onAdd(newGroup)
+                    }
+                },
+                enabled = groupName.isNotBlank() && options.isNotEmpty()
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
+private fun ProductTypeSelector(
+    selectedType: ProductType,
+    onTypeSelected: (ProductType) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Tipo de Producto",
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ProductType.entries.forEach { type ->
+                val isSelected = selectedType == type
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onTypeSelected(type) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    },
+                    border = if (isSelected) {
+                        BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (type == ProductType.INDIVIDUAL) {
+                                Icons.Default.Restaurant
+                            } else {
+                                Icons.Default.GridView
+                            },
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = type.getDisplayName(),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if (selectedType == ProductType.MULTIPLE) {
+            Text(
+                text = "💡 Varios productos en una sola imagen",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProductImageSection(
+    imageUrl: String,
+    onImageSelected: (String) -> Unit
+) {
+    val imagePickerController = rememberImagePickerController()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -408,193 +859,94 @@ private fun ProductImageSection() {
                     .height(200.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { /* TODO: Implementar selector de imagen */ },
+                    .clickable {
+                        imagePickerController.pickImage { selectedImageUrl ->
+                            onImageSelected(selectedImageUrl)
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AddPhotoAlternate,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "Toca para agregar imagen",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
-    }
-}
+                if (imageUrl.isNotEmpty()) {
+                    // Si hay imagen, mostrarla con un overlay y botón de editar
+                    Box(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Placeholder para la imagen (simulación)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Image,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Imagen cargada",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = imageUrl.take(30) + if (imageUrl.length > 30) "..." else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
 
-@Composable
-private fun RestaurantSpecificFields(
-    preparationTime: String,
-    onPreparationTimeChange: (String) -> Unit,
-    isVegetarian: Boolean,
-    onIsVegetarianChange: (Boolean) -> Unit,
-    isVegan: Boolean,
-    onIsVeganChange: (Boolean) -> Unit,
-    isGlutenFree: Boolean,
-    onIsGlutenFreeChange: (Boolean) -> Unit,
-    allergensText: String,
-    onAllergensTextChange: (String) -> Unit,
-    calories: String,
-    onCaloriesChange: (String) -> Unit,
-    isAvailable: Boolean,
-    onIsAvailableChange: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Detalles del Restaurante",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = preparationTime,
-                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) onPreparationTimeChange(it) },
-                    label = { Text("Tiempo de preparación (min)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    leadingIcon = {
-                        Icon(Icons.Default.Timer, contentDescription = null)
+                        // Botón de editar flotante en la esquina superior derecha
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            shadowElevation = 4.dp
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    imagePickerController.pickImage { selectedImageUrl ->
+                                        onImageSelected(selectedImageUrl)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Editar imagen",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
-                )
-
-                OutlinedTextField(
-                    value = calories,
-                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) onCaloriesChange(it) },
-                    label = { Text("Calorías") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-
-            OutlinedTextField(
-                value = allergensText,
-                onValueChange = onAllergensTextChange,
-                label = { Text("Alérgenos (separados por comas)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                placeholder = { Text("Ej: Gluten, Lácteos, Huevo") }
-            )
-
-            Divider()
-
-            Text(
-                text = "Características dietéticas",
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Eco,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50)
-                    )
-                    Text("Vegetariano", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    // Si no hay imagen, mostrar placeholder para agregar
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddPhotoAlternate,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Toca para agregar imagen",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
-                Switch(
-                    checked = isVegetarian,
-                    onCheckedChange = onIsVegetarianChange
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Eco,
-                        contentDescription = null,
-                        tint = Color(0xFF8BC34A)
-                    )
-                    Text("Vegano", style = MaterialTheme.typography.bodyMedium)
-                }
-                Switch(
-                    checked = isVegan,
-                    onCheckedChange = onIsVeganChange
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Grain,
-                        contentDescription = null,
-                        tint = Color(0xFFFFC107)
-                    )
-                    Text("Sin Gluten", style = MaterialTheme.typography.bodyMedium)
-                }
-                Switch(
-                    checked = isGlutenFree,
-                    onCheckedChange = onIsGlutenFreeChange
-                )
-            }
-
-            Divider()
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Disponible para ordenar",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Switch(
-                    checked = isAvailable,
-                    onCheckedChange = onIsAvailableChange
-                )
             }
         }
     }

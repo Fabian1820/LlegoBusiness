@@ -314,7 +314,8 @@ class RestaurantRepository {
                 imageUrl = "",
                 category = "Platos Fuertes", // Mapea a MenuCategory.MAIN_COURSES
                 isAvailable = true,
-                preparationTime = 25
+                preparationTime = 25,
+                varieties = listOf("Con arroz blanco", "Con tostones", "Con yuca frita")
             ),
             Product(
                 id = "ITEM002",
@@ -326,7 +327,8 @@ class RestaurantRepository {
                 isAvailable = true,
                 preparationTime = 20,
                 isVegetarian = true,
-                isVegan = true
+                isVegan = true,
+                varieties = listOf("Porción regular", "Porción grande")
             ),
             Product(
                 id = "ITEM003",
@@ -336,7 +338,8 @@ class RestaurantRepository {
                 imageUrl = "",
                 category = "Platos Fuertes",
                 isAvailable = true,
-                preparationTime = 30
+                preparationTime = 30,
+                varieties = listOf("Con mojo extra", "Con yuca", "Con ensalada", "Con papas")
             ),
 
             // Acompañamientos
@@ -348,7 +351,8 @@ class RestaurantRepository {
                 imageUrl = "",
                 category = "Agregos",
                 isAvailable = true,
-                preparationTime = 10
+                preparationTime = 10,
+                varieties = listOf("Con mojo", "Con ajo", "Sal solamente")
             ),
 
             // Postres

@@ -10,6 +10,7 @@ import com.llego.shared.ui.navigation.*
 import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.nichos.common.ui.screens.BusinessHomeScreen
 import com.llego.nichos.common.ui.screens.AddProductScreen
+import com.llego.nichos.common.ui.screens.ProductDetailScreen
 import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
 import com.llego.nichos.restaurant.ui.screens.ChatsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
@@ -43,6 +44,8 @@ fun App(viewModels: AppViewModels) {
         var currentChatOrderId by remember { mutableStateOf<String?>(null) }
         var showAddProduct by remember { mutableStateOf(false) }
         var productToEdit by remember { mutableStateOf<Product?>(null) }
+        var showProductDetail by remember { mutableStateOf(false) }
+        var productToView by remember { mutableStateOf<Product?>(null) }
         var showOrderDetail by remember { mutableStateOf(false) }
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
 
@@ -99,6 +102,24 @@ fun App(viewModels: AppViewModels) {
                                 onNavigateToChat = null // Chat aún no implementado
                             )
                         }
+                    }
+                    showProductDetail && productToView != null -> {
+                        // Pantalla de detalle del producto (solo lectura)
+                        ProductDetailScreen(
+                            product = productToView!!,
+                            businessType = currentBusinessType!!,
+                            onNavigateBack = {
+                                showProductDetail = false
+                                productToView = null
+                            },
+                            onEdit = {
+                                // Cambiar a modo edición
+                                productToEdit = productToView
+                                showProductDetail = false
+                                productToView = null
+                                showAddProduct = true
+                            }
+                        )
                     }
                     showAddProduct -> {
                         AddProductScreen(
@@ -169,6 +190,10 @@ fun App(viewModels: AppViewModels) {
                             onNavigateToAddProduct = { product ->
                                 productToEdit = product
                                 showAddProduct = true
+                            },
+                            onNavigateToProductDetail = { product ->
+                                productToView = product
+                                showProductDetail = true
                             },
                             onShowConfirmation = { type, orderNumber ->
                                 confirmationType = type

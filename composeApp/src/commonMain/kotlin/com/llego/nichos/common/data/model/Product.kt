@@ -17,12 +17,20 @@ data class Product(
     val category: String,
     val isAvailable: Boolean = true,
 
+    // Tipo de producto (Individual o Varios)
+    val productType: ProductType = ProductType.INDIVIDUAL,
+
     // Campos específicos por nicho (opcionales)
     val brand: String? = null,              // Para mercados
     val unit: ProductUnit? = null,          // Para mercados/agromercados
     val stock: Int? = null,                 // Para todos
     val preparationTime: Int? = null,       // Para restaurantes (minutos)
-    
+
+    // Variantes del producto (para agregos, guarniciones, etc.)
+    val variants: List<ProductVariantGroup> = emptyList(),
+
+    val varieties: List<String> = emptyList(), // Variedades/modificadores/agregos (ej: "Extra queso", "Con papas", etc.)
+
     // Campos específicos para restaurantes
     val isVegetarian: Boolean = false,
     val isVegan: Boolean = false,
@@ -65,6 +73,38 @@ enum class ClothingGender {
     KIDS        // Niños
 }
 
+/**
+ * Tipo de producto
+ */
+@Serializable
+enum class ProductType {
+    INDIVIDUAL,  // Producto individual con variantes
+    MULTIPLE     // Varios productos en una imagen
+}
+
+/**
+ * Grupo de variantes para un producto
+ * Ejemplo: "Guarniciones" -> ["Papas fritas", "Ensalada", "Arroz"]
+ */
+@Serializable
+data class ProductVariantGroup(
+    val id: String,
+    val name: String,                    // Nombre del grupo (ej: "Guarniciones", "Agregos", "Tamaño")
+    val options: List<VariantOption>,    // Opciones disponibles
+    val isRequired: Boolean = false,     // Si es obligatorio seleccionar una opción
+    val allowMultiple: Boolean = true    // Si se pueden seleccionar múltiples opciones
+)
+
+/**
+ * Opción individual dentro de un grupo de variantes
+ */
+@Serializable
+data class VariantOption(
+    val id: String,
+    val name: String,           // Nombre de la opción (ej: "Extra queso")
+    val priceModifier: Double = 0.0  // Modificador de precio (+/- precio)
+)
+
 // Extension functions para UI
 fun Product.getDisplayPrice(): String {
     val formattedPrice = price.formatPrice()
@@ -99,6 +139,13 @@ fun ClothingGender.getDisplayName(): String {
         ClothingGender.WOMEN -> "Mujer"
         ClothingGender.UNISEX -> "Unisex"
         ClothingGender.KIDS -> "Niños"
+    }
+}
+
+fun ProductType.getDisplayName(): String {
+    return when (this) {
+        ProductType.INDIVIDUAL -> "Individual"
+        ProductType.MULTIPLE -> "Varios"
     }
 }
 
