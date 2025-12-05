@@ -34,6 +34,7 @@ fun BusinessHomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
     onNavigateToChatDetail: (String) -> Unit = {},
+    onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     chatsViewModel: ChatsViewModel,
@@ -183,6 +184,7 @@ fun BusinessHomeScreen(
                     // Pantalla de Pedidos (común para todos)
                     OrdersScreen(
                         viewModel = ordersViewModel,
+                        onNavigateToOrderDetail = onNavigateToOrderDetail,
                         onNavigateToChat = { orderId, orderNumber, customerName ->
                             chatsViewModel.createCancellationChat(orderId, orderNumber, customerName)
                             onNavigateToChatDetail(orderId)

@@ -41,6 +41,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun OrdersScreen(
     viewModel: OrdersViewModel,
+    onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToChat: ((String, String, String) -> Unit)? = null, // orderId, orderNumber, customerName
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -49,23 +50,12 @@ fun OrdersScreen(
     val filteredOrders by viewModel.filteredOrders.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
 
-    var selectedOrderId by rememberSaveable { mutableStateOf<String?>(null) }
-    val allOrders = (uiState as? OrdersUiState.Success)?.orders.orEmpty()
-    val selectedOrder = selectedOrderId?.let { id ->
-        allOrders.firstOrNull { it.id == id }
-    }
     var animateContent by remember { mutableStateOf(false) }
 
     // Animación de entrada idéntica a Perfil, Gestión y Menú
     LaunchedEffect(Unit) {
         delay(100)
         animateContent = true
-    }
-
-    LaunchedEffect(selectedOrderId, selectedOrder) {
-        if (selectedOrderId != null && selectedOrder == null) {
-            selectedOrderId = null
-        }
     }
 
     Box(
@@ -149,7 +139,7 @@ fun OrdersScreen(
                             ) { order ->
                                 OrderCard(
                                     order = order,
-                                    onClick = { selectedOrderId = order.id },
+                                    onClick = { onNavigateToOrderDetail(order.id) },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
                             }
@@ -158,33 +148,6 @@ fun OrdersScreen(
                 }
             }
         }
-    }
-
-    // Dialog de detalle del pedido
-    // TODO: Reactivar cuando se corrija el diálogo
-
-    selectedOrder?.let { order ->
-        OrderDetailDialog(
-            order = order,
-            onDismiss = { selectedOrderId = null },
-            onUpdateStatus = { newStatus ->
-                // Mostrar pantalla de confirmación según el cambio de estado
-                when {
-                    // Pedido aceptado (PENDING → PREPARING)
-                    order.status == OrderStatus.PENDING && newStatus == OrderStatus.PREPARING -> {
-                        onShowConfirmation?.invoke(ConfirmationType.ORDER_ACCEPTED, order.orderNumber)
-                    }
-                    // Pedido listo (PREPARING → READY)
-                    order.status == OrderStatus.PREPARING && newStatus == OrderStatus.READY -> {
-                        onShowConfirmation?.invoke(ConfirmationType.ORDER_READY, order.orderNumber)
-                    }
-                }
-
-                viewModel.updateOrderStatus(order.id, newStatus)
-                selectedOrderId = null
-            },
-            onNavigateToChat = onNavigateToChat
-        )
     }
 }
 
@@ -390,72 +353,6 @@ private fun OrderCard(
                                 OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
                             }
                         )
-                    )
-                }
-            }
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            // Cliente
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .padding(6.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        text = order.customer.name,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    Text(
-                        text = order.customer.phone,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Dirección de entrega
-            if (order.customer.address != null) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .padding(6.dp)
-                        )
-                    }
-                    Text(
-                        text = order.customer.address,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
                     )
                 }
             }

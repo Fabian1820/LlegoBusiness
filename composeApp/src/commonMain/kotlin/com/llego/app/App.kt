@@ -14,6 +14,7 @@ import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
 import com.llego.nichos.restaurant.ui.screens.ChatsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
 import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
+import com.llego.nichos.restaurant.ui.screens.OrderDetailScreen
 import com.llego.nichos.restaurant.ui.screens.ConfirmationType
 import com.llego.nichos.common.data.model.Product
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
@@ -42,6 +43,8 @@ fun App(viewModels: AppViewModels) {
         var currentChatOrderId by remember { mutableStateOf<String?>(null) }
         var showAddProduct by remember { mutableStateOf(false) }
         var productToEdit by remember { mutableStateOf<Product?>(null) }
+        var showOrderDetail by remember { mutableStateOf(false) }
+        var selectedOrderId by remember { mutableStateOf<String?>(null) }
 
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
@@ -65,6 +68,38 @@ fun App(viewModels: AppViewModels) {
             Box(modifier = Modifier) {
                 // Contenido principal
                 when {
+                    showOrderDetail && selectedOrderId != null -> {
+                        // Pantalla de detalle del pedido
+                        val order = ordersViewModel.getOrderById(selectedOrderId!!)
+                        if (order != null) {
+                            OrderDetailScreen(
+                                order = order,
+                                onNavigateBack = {
+                                    showOrderDetail = false
+                                    selectedOrderId = null
+                                },
+                                onUpdateStatus = { newStatus ->
+                                    // Mostrar pantalla de confirmación según el cambio de estado
+                                    when {
+                                        // Pedido aceptado
+                                        order.status.name == "PENDING" && newStatus.name == "PREPARING" -> {
+                                            confirmationType = ConfirmationType.ORDER_ACCEPTED
+                                            confirmationOrderNumber = order.orderNumber
+                                        }
+                                        // Pedido listo
+                                        order.status.name == "PREPARING" && newStatus.name == "READY" -> {
+                                            confirmationType = ConfirmationType.ORDER_READY
+                                            confirmationOrderNumber = order.orderNumber
+                                        }
+                                    }
+                                    ordersViewModel.updateOrderStatus(order.id, newStatus)
+                                    showOrderDetail = false
+                                    selectedOrderId = null
+                                },
+                                onNavigateToChat = null // Chat aún no implementado
+                            )
+                        }
+                    }
                     showAddProduct -> {
                         AddProductScreen(
                             businessType = currentBusinessType!!,
@@ -126,6 +161,10 @@ fun App(viewModels: AppViewModels) {
                             onNavigateToChatDetail = { orderId ->
                                 currentChatOrderId = orderId
                                 showChatDetail = true
+                            },
+                            onNavigateToOrderDetail = { orderId ->
+                                selectedOrderId = orderId
+                                showOrderDetail = true
                             },
                             onNavigateToAddProduct = { product ->
                                 productToEdit = product

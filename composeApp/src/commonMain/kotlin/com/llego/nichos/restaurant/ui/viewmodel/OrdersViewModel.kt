@@ -115,6 +115,12 @@ class OrdersViewModel : ViewModel() {
         }
     }
 
+    // Obtener pedido por ID
+    fun getOrderById(orderId: String): Order? {
+        return (uiState.value as? OrdersUiState.Success)?.orders
+            ?.firstOrNull { it.id == orderId }
+    }
+
     // Estadísticas útiles
     fun getPendingOrdersCount(): Int {
         return (uiState.value as? OrdersUiState.Success)?.orders

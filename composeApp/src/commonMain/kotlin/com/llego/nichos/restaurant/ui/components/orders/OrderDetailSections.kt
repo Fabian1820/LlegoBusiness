@@ -333,6 +333,9 @@ internal fun OrderActionsSection(
     onNavigateToChat: ((String, String, String) -> Unit)?
 ) {
     var showCancelConfirmation by remember { mutableStateOf(false) }
+    var showAcceptConfirmation by remember { mutableStateOf(false) }
+    var acceptNotes by remember { mutableStateOf("") }
+    var cancelNotes by remember { mutableStateOf("") }
 
     Text(
         text = "Acciones",
@@ -344,7 +347,7 @@ internal fun OrderActionsSection(
     when (orderStatus) {
         OrderStatus.PENDING -> {
             Button(
-                onClick = { onUpdateStatus(OrderStatus.PREPARING) },
+                onClick = { showAcceptConfirmation = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
@@ -454,6 +457,8 @@ internal fun OrderActionsSection(
                         )
                     }
 
+                    // TODO: Funcionalidad de chat aún no implementada
+                    /*
                     onNavigateToChat?.let { navigate ->
                         TextButton(
                             onClick = { navigate(orderId, orderNumber, customerName) },
@@ -466,14 +471,84 @@ internal fun OrderActionsSection(
                             Text("Ir al chat con el cliente")
                         }
                     }
+                    */
                 }
             }
         }
     }
 
+    // Diálogo de confirmación para aceptar pedido
+    if (showAcceptConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showAcceptConfirmation = false
+                acceptNotes = ""
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = { Text("Aceptar pedido") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("¿Deseas agregar alguna nota sobre este pedido?")
+                    androidx.compose.material3.OutlinedTextField(
+                        value = acceptNotes,
+                        onValueChange = { acceptNotes = it },
+                        placeholder = { Text("Ejemplo: Aceptado pero sin cebolla disponible") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                        )
+                    )
+                    Text(
+                        text = "Opcional",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showAcceptConfirmation = false
+                        onUpdateStatus(OrderStatus.PREPARING)
+                        // TODO: Guardar las notas (acceptNotes) en el backend
+                        acceptNotes = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Aceptar pedido")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showAcceptConfirmation = false
+                        acceptNotes = ""
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Diálogo de confirmación para cancelar pedido
     if (showCancelConfirmation) {
         AlertDialog(
-            onDismissRequest = { showCancelConfirmation = false },
+            onDismissRequest = {
+                showCancelConfirmation = false
+                cancelNotes = ""
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Default.Cancel,
@@ -483,29 +558,52 @@ internal fun OrderActionsSection(
                 )
             },
             title = { Text("¿Cancelar pedido?") },
-            text = { Text("¿Deseas explicar el motivo de la cancelación al cliente?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("¿Por qué deseas cancelar este pedido?")
+                    androidx.compose.material3.OutlinedTextField(
+                        value = cancelNotes,
+                        onValueChange = { cancelNotes = it },
+                        placeholder = { Text("Ejemplo: Cancelado por falta de ingredientes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.error,
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                        )
+                    )
+                    Text(
+                        text = "Opcional",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         showCancelConfirmation = false
                         onUpdateStatus(OrderStatus.CANCELLED)
-                        onNavigateToChat?.invoke(orderId, orderNumber, customerName)
+                        // TODO: Guardar las notas (cancelNotes) en el backend
+                        // TODO: Chat aún no implementado
+                        // onNavigateToChat?.invoke(orderId, orderNumber, customerName)
+                        cancelNotes = ""
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Sí, ir al chat")
+                    Text("Sí, cancelar")
                 }
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = {
                         showCancelConfirmation = false
-                        onUpdateStatus(OrderStatus.CANCELLED)
+                        cancelNotes = ""
                     }
                 ) {
-                    Text("Solo cancelar")
+                    Text("No, mantener")
                 }
             }
         )
