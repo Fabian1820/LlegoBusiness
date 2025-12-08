@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.apolloGraphQl)
 }
 
 kotlin {
@@ -48,6 +49,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.apollo.runtime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -98,6 +100,21 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "com.llego.business"
             packageVersion = "1.0.0"
+        }
+    }
+}
+
+apollo {
+    service("service") {
+        packageName.set("com.llego.multiplatform.graphql")
+
+        // Tells Apollo to generate Kotlin models
+        generateKotlinModels.set(true)
+
+        // Introspection configuration to download schema via Gradle
+        introspection {
+            endpointUrl.set("https://llegobackend-production.up.railway.app/graphql")
+            schemaFile.set(file("src/commonMain/graphql/schema.graphqls"))
         }
     }
 }

@@ -3,24 +3,41 @@ package com.llego.nichos.restaurant.data.repository
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.common.data.model.Product
 import com.llego.nichos.common.data.model.toMenuItem
+import com.llego.shared.data.repositories.ProductRepository as GraphQLProductRepository
+import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.data.mappers.toLocalProducts
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Repositorio para datos del Restaurante
- * Por ahora usa datos mock, preparado para integración con backend
+ * Ahora carga productos desde GraphQL backend
  */
 class RestaurantRepository {
+
+    private val graphQLRepository = GraphQLProductRepository()
+    private val scope = CoroutineScope(Dispatchers.Default)
 
     // StateFlows para datos reactivos
     private val _orders = MutableStateFlow(getMockOrders())
     val orders: Flow<List<Order>> = _orders.asStateFlow()
 
-    private val _products = MutableStateFlow(getMockProducts())
+    private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: Flow<List<Product>> = _products.asStateFlow()
+
+    private val _isLoadingProducts = MutableStateFlow(false)
+    val isLoadingProducts: Flow<Boolean> = _isLoadingProducts.asStateFlow()
+
+    init {
+        // Cargar productos desde GraphQL al inicializar
+        loadProductsFromBackend()
+    }
     
     // Compatibilidad: mantener menuItems para código legacy
     @Deprecated("Usar products en su lugar", ReplaceWith("products"))
@@ -176,6 +193,47 @@ class RestaurantRepository {
         delay(500)
         _settings.value = settings
         return true
+    }
+
+    // ==================== GRAPHQL INTEGRATION ====================
+
+    /**
+     * Carga productos desde el backend GraphQL
+     */
+    fun loadProductsFromBackend(branchId: String? = null) {
+        scope.launch {
+            _isLoadingProducts.value = true
+            try {
+                when (val result = graphQLRepository.getProducts(branchId = branchId)) {
+                    is ProductsResult.Success -> {
+                        // Convertir productos de GraphQL a productos locales
+                        val localProducts = result.products.toLocalProducts()
+                        _products.value = localProducts
+                    }
+                    is ProductsResult.Error -> {
+                        println("Error cargando productos desde GraphQL: ${result.message}")
+                        // Si falla, usar mock data como fallback
+                        _products.value = getMockProducts()
+                    }
+                    is ProductsResult.Loading -> {
+                        // Estado de carga
+                    }
+                }
+            } catch (e: Exception) {
+                println("Excepción cargando productos: ${e.message}")
+                // Fallback a mock data en caso de error
+                _products.value = getMockProducts()
+            } finally {
+                _isLoadingProducts.value = false
+            }
+        }
+    }
+
+    /**
+     * Recarga los productos desde el backend
+     */
+    fun refreshProducts() {
+        loadProductsFromBackend()
     }
 
     // ==================== MOCK DATA ====================

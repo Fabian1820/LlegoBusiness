@@ -3,19 +3,35 @@ package com.llego.nichos.market.data.repository
 import com.llego.nichos.common.data.model.*
 import com.llego.nichos.restaurant.data.model.MenuItem
 import com.llego.nichos.restaurant.data.model.MenuCategory
+import com.llego.shared.data.repositories.ProductRepository as GraphQLProductRepository
+import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.data.mappers.toLocalProducts
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Repositorio para datos del Mercado
- * Por ahora usa datos mock, preparado para integración con backend
+ * Ahora carga productos desde GraphQL backend
  */
 class MarketRepository {
 
-    private val _products = MutableStateFlow(getMockProducts())
+    private val graphQLRepository = GraphQLProductRepository()
+    private val scope = CoroutineScope(Dispatchers.Default)
+
+    private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: Flow<List<Product>> = _products.asStateFlow()
+
+    private val _isLoadingProducts = MutableStateFlow(false)
+    val isLoadingProducts: Flow<Boolean> = _isLoadingProducts.asStateFlow()
+
+    init {
+        loadProductsFromBackend()
+    }
 
     suspend fun getProducts(): List<Product> {
         delay(500) // Simular red
@@ -88,6 +104,37 @@ class MarketRepository {
             )
         }
     }
+
+    // ==================== GRAPHQL INTEGRATION ====================
+
+    fun loadProductsFromBackend(branchId: String? = null) {
+        scope.launch {
+            _isLoadingProducts.value = true
+            try {
+                when (val result = graphQLRepository.getProducts(branchId = branchId)) {
+                    is ProductsResult.Success -> {
+                        _products.value = result.products.toLocalProducts()
+                    }
+                    is ProductsResult.Error -> {
+                        println("Error cargando productos Market: ${result.message}")
+                        _products.value = getMockProducts()
+                    }
+                    is ProductsResult.Loading -> {}
+                }
+            } catch (e: Exception) {
+                println("Excepción Market: ${e.message}")
+                _products.value = getMockProducts()
+            } finally {
+                _isLoadingProducts.value = false
+            }
+        }
+    }
+
+    fun refreshProducts() {
+        loadProductsFromBackend()
+    }
+
+    // ==================== MOCK DATA ====================
 
     private fun getMockProducts(): List<Product> {
         return listOf(

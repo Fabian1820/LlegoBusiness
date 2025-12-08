@@ -1,0 +1,15 @@
+query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolean = false) {
+  products(branchId: $branchId, categoryId: $categoryId, availableOnly: $availableOnly) {
+    id
+    branchId
+    name
+    description
+    weight
+    price
+    currency
+    image
+    availability
+    categoryId
+    createdAt
+  }
+}

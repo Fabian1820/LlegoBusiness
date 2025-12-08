@@ -84,6 +84,11 @@ object Routes {
         const val ABOUT = "settings/about"
     }
 
+    // Rutas de prueba y desarrollo
+    object Test {
+        const val PRODUCTS_GRAPHQL = "test/products-graphql"
+    }
+
     // Helper para obtener rutas por tipo de negocio
     fun getDashboardRoute(businessType: BusinessType): String {
         return when (businessType) {
