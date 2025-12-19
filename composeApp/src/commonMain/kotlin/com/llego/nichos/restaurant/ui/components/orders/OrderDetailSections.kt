@@ -330,149 +330,94 @@ internal fun OrderActionsSection(
     customerName: String,
     orderStatus: OrderStatus,
     onUpdateStatus: (OrderStatus) -> Unit,
-    onNavigateToChat: ((String, String, String) -> Unit)?
+    onNavigateToChat: ((String, String, String) -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     var showCancelConfirmation by remember { mutableStateOf(false) }
     var showAcceptConfirmation by remember { mutableStateOf(false) }
     var acceptNotes by remember { mutableStateOf("") }
     var cancelNotes by remember { mutableStateOf("") }
 
-    Text(
-        text = "Acciones",
-        style = MaterialTheme.typography.titleSmall.copy(
-            fontWeight = FontWeight.Bold
-        )
-    )
-
-    when (orderStatus) {
-        OrderStatus.PENDING -> {
-            Button(
-                onClick = { showAcceptConfirmation = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Aceptar Pedido",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            OutlinedButton(
-                onClick = { showCancelConfirmation = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
-            ) {
-                Icon(Icons.Default.Cancel, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Rechazar Pedido",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                )
-            }
-        }
-
-        OrderStatus.PREPARING -> {
-            Button(
-                onClick = { onUpdateStatus(OrderStatus.READY) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50)
-                )
-            ) {
-                Icon(Icons.Default.Done, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Marcar como Listo",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        }
-
-        OrderStatus.READY -> {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFE8F5E9)
-            ) {
+    Column(modifier = modifier) {
+        when (orderStatus) {
+            OrderStatus.PENDING -> {
+                // Dos botones lado a lado con sombra
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Pedido listo para entregar",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF4CAF50)
+                    androidx.compose.material3.ElevatedButton(
+                        onClick = { showAcceptConfirmation = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.elevatedButtonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
                         )
-                    )
-                }
-            }
-        }
-
-        OrderStatus.CANCELLED -> {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFFFEBEE)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Cancel,
-                            contentDescription = null,
-                            tint = Color(0xFFD32F2F)
-                        )
+                        Icon(Icons.Default.CheckCircle, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Pedido cancelado",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFD32F2F)
-                            )
+                            "Aceptar",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
 
-                    // TODO: Funcionalidad de chat aún no implementada
-                    /*
-                    onNavigateToChat?.let { navigate ->
-                        TextButton(
-                            onClick = { navigate(orderId, orderNumber, customerName) },
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Ir al chat con el cliente")
-                        }
+                    androidx.compose.material3.ElevatedButton(
+                        onClick = { showCancelConfirmation = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        elevation = ButtonDefaults.elevatedButtonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        ),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.Cancel, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Rechazar",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
                     }
-                    */
                 }
+            }
+
+            OrderStatus.PREPARING -> {
+                // Un botón centrado con sombra, ajustado al contenido
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    androidx.compose.material3.ElevatedButton(
+                        onClick = { onUpdateStatus(OrderStatus.READY) },
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.elevatedButtonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        )
+                    ) {
+                        Icon(Icons.Default.Done, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Marcar como Listo",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+            }
+
+            OrderStatus.READY, OrderStatus.CANCELLED -> {
+                // No mostrar ningún cartel cuando no hay acciones disponibles
             }
         }
     }
@@ -518,9 +463,9 @@ internal fun OrderActionsSection(
                 Button(
                     onClick = {
                         showAcceptConfirmation = false
-                        onUpdateStatus(OrderStatus.PREPARING)
                         // TODO: Guardar las notas (acceptNotes) en el backend
                         acceptNotes = ""
+                        onUpdateStatus(OrderStatus.PREPARING)
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -583,11 +528,11 @@ internal fun OrderActionsSection(
                 Button(
                     onClick = {
                         showCancelConfirmation = false
-                        onUpdateStatus(OrderStatus.CANCELLED)
                         // TODO: Guardar las notas (cancelNotes) en el backend
                         // TODO: Chat aún no implementado
                         // onNavigateToChat?.invoke(orderId, orderNumber, customerName)
                         cancelNotes = ""
+                        onUpdateStatus(OrderStatus.CANCELLED)
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error

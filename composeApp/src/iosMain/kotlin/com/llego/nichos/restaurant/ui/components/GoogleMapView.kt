@@ -20,8 +20,11 @@ import platform.objc.sel_registerName
 @OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun BusinessLocationMap(
+    latitude: Double,
+    longitude: Double,
     onLocationSelected: (Double, Double) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    isInteractive: Boolean
 ) {
     val coordinator = remember { MapCoordinator(onLocationSelected) }
 
@@ -29,14 +32,13 @@ actual fun BusinessLocationMap(
         factory = {
             val mapView = MKMapView()
             
-            // Set initial region to Havana (23.1136, -82.3666)
-            val havana = CLLocationCoordinate2DMake(23.1136, -82.3666)
-            val region = MKCoordinateRegionMakeWithDistance(havana, 1000.0, 1000.0)
+            val initialCoordinate = CLLocationCoordinate2DMake(latitude, longitude)
+            val region = MKCoordinateRegionMakeWithDistance(initialCoordinate, 1000.0, 1000.0)
             mapView.setRegion(region, animated = false)
             
             // Add initial annotation
             val annotation = MKPointAnnotation()
-            annotation.setCoordinate(havana)
+            annotation.setCoordinate(initialCoordinate)
             mapView.addAnnotation(annotation)
             
             val tapGesture = UITapGestureRecognizer(
@@ -45,7 +47,19 @@ actual fun BusinessLocationMap(
             )
             mapView.addGestureRecognizer(tapGesture)
             coordinator.mapView = mapView
+            mapView.setUserInteractionEnabled(isInteractive)
             mapView
+        },
+        update = { mapView ->
+            val coordinate = CLLocationCoordinate2DMake(latitude, longitude)
+            val region = MKCoordinateRegionMakeWithDistance(coordinate, 1000.0, 1000.0)
+            mapView.setRegion(region, animated = true)
+            mapView.removeAnnotations(mapView.annotations)
+            
+            val annotation = MKPointAnnotation()
+            annotation.setCoordinate(coordinate)
+            mapView.addAnnotation(annotation)
+            mapView.setUserInteractionEnabled(isInteractive)
         },
         modifier = modifier,
     )

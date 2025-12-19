@@ -253,22 +253,70 @@ class RestaurantRepository {
                     OrderItem(
                         menuItem = getMockProducts().map { it.toMenuItem() }[0], // Ropa Vieja
                         quantity = 2,
-                        specialInstructions = "Poco picante",
+                        specialInstructions = "Poco picante por favor, sin cebolla y con extra de pimientos",
                         subtotal = 25.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[1], // Moros y Cristianos
+                        quantity = 3,
+                        specialInstructions = "Bien cocidos, con bastante ajo",
+                        subtotal = 24.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[2], // Lechón Asado
+                        quantity = 1,
+                        specialInstructions = "Bien dorado y crujiente, con mojo extra",
+                        subtotal = 15.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[3], // Tostones
+                        quantity = 4,
+                        specialInstructions = "Extra crujientes con bastante sal",
+                        subtotal = 16.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[4], // Flan de Caramelo
+                        quantity = 2,
+                        specialInstructions = "Con extra de caramelo líquido",
+                        subtotal = 8.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[5], // Guarapo
+                        quantity = 3,
+                        specialInstructions = "Bien frío con hielo",
+                        subtotal = 9.0
                     ),
                     OrderItem(
                         menuItem = getMockProducts().map { it.toMenuItem() }[6], // Mojito
                         quantity = 2,
-                        specialInstructions = null,
+                        specialInstructions = "Con mucha hierbabuena y poco azúcar",
                         subtotal = 10.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[0], // Ropa Vieja (otro)
+                        quantity = 1,
+                        specialInstructions = "Para llevar en envase separado",
+                        subtotal = 12.50
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[3], // Tostones (otro)
+                        quantity = 2,
+                        specialInstructions = "Sin sal, para niños",
+                        subtotal = 8.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[1], // Moros y Cristianos (otro)
+                        quantity = 1,
+                        specialInstructions = null,
+                        subtotal = 8.0
                     )
                 ),
                 status = OrderStatus.PENDING,
                 createdAt = "2024-10-06T12:30:00",
                 updatedAt = "2024-10-06T12:30:00",
-                total = 35.0,
+                total = 135.50,
                 paymentMethod = PaymentMethod.CASH,
-                specialNotes = "Tocar el timbre dos veces",
+                specialNotes = "Tocar el timbre dos veces. Por favor incluir cubiertos desechables y servilletas extra. El pedido es para una reunión familiar, así que necesitamos que todo llegue bien caliente. Si falta algún ingrediente, llamar antes de preparar. Gracias!",
                 estimatedTime = 45
             ),
             Order(

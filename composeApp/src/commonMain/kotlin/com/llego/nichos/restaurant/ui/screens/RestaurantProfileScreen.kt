@@ -27,6 +27,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import kotlin.math.abs
+import kotlin.math.roundToLong
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.nichos.restaurant.ui.components.BusinessLocationMap
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
@@ -203,7 +207,7 @@ fun RestaurantProfileScreen(
                                         title = "Horarios de Operación",
                                         subtitle = "Configura cuando tu negocio está abierto",
                                         icon = Icons.Default.Schedule,
-                                        iconColor = Color(0xFF2196F3)
+                                        iconColor = MaterialTheme.colorScheme.primary
                                     ) {
                                         BusinessHoursSection(
                                             businessHours = currentSettings.businessHours,
@@ -245,7 +249,7 @@ fun RestaurantProfileScreen(
                                         title = "Configuración de Pedidos",
                                         subtitle = "Auto-aceptación, tiempos y límites",
                                         icon = Icons.Default.ShoppingCart,
-                                        iconColor = Color(0xFFFF9800)
+                                        iconColor = MaterialTheme.colorScheme.tertiary
                                     ) {
                                         OrderSettingsSection(
                                             orderSettings = currentSettings.orderSettings,
@@ -266,7 +270,7 @@ fun RestaurantProfileScreen(
                                         title = "Métodos de Pago",
                                         subtitle = "Selecciona formas de pago aceptadas",
                                         icon = Icons.Default.Payment,
-                                        iconColor = Color(0xFF4CAF50)
+                                        iconColor = Color(178, 214, 154)
                                     ) {
                                         PaymentMethodsSection(
                                             acceptedPaymentMethods = currentSettings.acceptedPaymentMethods,
@@ -287,7 +291,7 @@ fun RestaurantProfileScreen(
                                         title = "Notificaciones",
                                         subtitle = "Alertas de pedidos y operaciones",
                                         icon = Icons.Default.Notifications,
-                                        iconColor = Color(0xFFE91E63)
+                                        iconColor = MaterialTheme.colorScheme.secondary
                                     ) {
                                         NotificationSettingsSection(
                                             notificationSettings = currentSettings.notifications,
@@ -499,7 +503,7 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -586,7 +590,7 @@ private fun SocialLinksSection() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Instagram button
+                // Instagram button - Colores originales de Instagram
                 Button(
                     onClick = { /* TODO */ },
                     modifier = Modifier.weight(1f),
@@ -633,7 +637,7 @@ private fun SocialLinksSection() {
                     }
                 }
 
-                // Facebook button
+                // Facebook button - Color original de Facebook
                 Button(
                     onClick = { /* TODO */ },
                     modifier = Modifier.weight(1f),
@@ -678,9 +682,48 @@ private fun SocialLinksSection() {
  */
 @Composable
 private fun LocationMapSection() {
-    var selectedLatitude by remember { mutableStateOf(23.1136) } // La Habana, Cuba
-    var selectedLongitude by remember { mutableStateOf(-82.3666) }
+    val originalLatitude = 23.1136 // La Habana, Cuba
+    val originalLongitude = -82.3666
+
+    var selectedLatitude by remember { mutableStateOf(originalLatitude) }
+    var selectedLongitude by remember { mutableStateOf(originalLongitude) }
     var showSaveButton by remember { mutableStateOf(false) }
+    var showFullScreenMap by remember { mutableStateOf(false) }
+
+    val hasLocationChange by remember(selectedLatitude, selectedLongitude) {
+        mutableStateOf(
+            abs(selectedLatitude - originalLatitude) > 0.000001 ||
+                    abs(selectedLongitude - originalLongitude) > 0.000001
+        )
+    }
+    val formattedLatitude by remember(selectedLatitude) { mutableStateOf(formatCoordinate(selectedLatitude)) }
+    val formattedLongitude by remember(selectedLongitude) { mutableStateOf(formatCoordinate(selectedLongitude)) }
+
+    val onLocationSelected: (Double, Double) -> Unit = { lat, lng ->
+        selectedLatitude = lat
+        selectedLongitude = lng
+        showSaveButton = abs(lat - originalLatitude) > 0.000001 ||
+                abs(lng - originalLongitude) > 0.000001
+    }
+
+    if (showFullScreenMap) {
+        FullScreenMapDialog(
+            latitude = selectedLatitude,
+            longitude = selectedLongitude,
+            onLocationChange = onLocationSelected,
+            onReset = {
+                selectedLatitude = originalLatitude
+                selectedLongitude = originalLongitude
+                showSaveButton = false
+            },
+            onConfirm = {
+                // TODO: Guardar ubicación en backend
+                showSaveButton = false
+            },
+            onDismiss = { showFullScreenMap = false },
+            hasLocationChange = hasLocationChange
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -696,124 +739,175 @@ private fun LocationMapSection() {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Text(
-                        text = "Ubicación del Negocio",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp
-                        ),
-                        color = Color.Black
-                    )
-                }
-
-                // Botón de editar
-                IconButton(onClick = { showSaveButton = !showSaveButton }) {
-                    Icon(
-                        imageVector = if (showSaveButton) Icons.Default.Close else Icons.Default.Edit,
-                        contentDescription = if (showSaveButton) "Cancelar" else "Editar ubicación",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            // Mapa interactivo de Google Maps
-            BusinessLocationMap(
-                onLocationSelected = { lat, lng ->
-                    selectedLatitude = lat
-                    selectedLongitude = lng
-                    showSaveButton = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .clip(RoundedCornerShape(16.dp))
-            )
-
-            // Información de coordenadas
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "Coordenadas seleccionadas:",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Latitud: $selectedLatitude",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "Longitud: $selectedLongitude",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-            }
-
-            // Botón de guardar ubicación
-            if (showSaveButton) {
-                Button(
-                    onClick = {
-                        // TODO: Guardar ubicación en backend
-                        showSaveButton = false
-                        // Aquí irá la lógica para guardar la ubicación
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color.White
+                    Column {
+                        Text(
+                            text = "Ubicación del negocio",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            ),
+                            color = Color.Black
                         )
                         Text(
-                            text = "Guardar Ubicación",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color.White
+                            text = "Toca para abrir el mapa y ajustar",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                Surface(
+                    onClick = { showFullScreenMap = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    tonalElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fullscreen,
+                            contentDescription = "Ampliar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Ampliar mapa",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
 
-            // Instrucciones
+            BusinessLocationMap(
+                latitude = selectedLatitude,
+                longitude = selectedLongitude,
+                onLocationSelected = onLocationSelected,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                isInteractive = false
+            )
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Coordenadas actuales:",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Latitud: $formattedLatitude",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = "Longitud: $formattedLongitude",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray.copy(alpha = 0.9f)
+                    )
+                }
+            }
+
+            if (showSaveButton) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            selectedLatitude = originalLatitude
+                            selectedLongitude = originalLongitude
+                            showSaveButton = false
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.5.dp, Color.Gray),
+                        enabled = hasLocationChange
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 2.dp, horizontal = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                            )
+                            Text(
+                                text = "Deshacer",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.2.sp
+                                ),
+                                color = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            // TODO: Guardar ubicación en backend
+                            showSaveButton = false
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                            Text(
+                                text = "Guardar",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+
             Text(
-                text = "💡 Toca el mapa para seleccionar la ubicación exacta de tu negocio",
+                text = "💡 Toca el mapa para abrir en pantalla completa y seleccionar la ubicación exacta",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -821,6 +915,201 @@ private fun LocationMapSection() {
     }
 
     Spacer(modifier = Modifier.height(8.dp))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FullScreenMapDialog(
+    latitude: Double,
+    longitude: Double,
+    onLocationChange: (Double, Double) -> Unit,
+    onReset: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    hasLocationChange: Boolean
+) {
+    var contentVisible by remember { mutableStateOf(false) }
+    val formattedLat by remember(latitude) { mutableStateOf(formatCoordinate(latitude)) }
+    val formattedLng by remember(longitude) { mutableStateOf(formatCoordinate(longitude)) }
+
+    LaunchedEffect(Unit) { contentVisible = true }
+
+    LaunchedEffect(contentVisible) {
+        if (!contentVisible) {
+            delay(180)
+            onDismiss()
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    Dialog(
+        onDismissRequest = { contentVisible = false },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        AnimatedVisibility(
+            visible = contentVisible,
+            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.96f, animationSpec = tween(200)),
+            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(180))
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.Black.copy(alpha = 0.35f)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    TopAppBar(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding(),
+                        title = {
+                            Text(
+                                text = "Seleccionar ubicación",
+                                color = Color.White
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { contentVisible = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = Color.White
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        windowInsets = WindowInsets(0)
+                    )
+
+                    BusinessLocationMap(
+                        latitude = latitude,
+                        longitude = longitude,
+                        onLocationSelected = onLocationChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        isInteractive = true
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding(),
+                        color = Color.White,
+                        shadowElevation = 12.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "📍 Lat: $formattedLat | Lng: $formattedLng",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "Arrastra el pin o toca el mapa para ajustar la ubicación.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.Gray.copy(alpha = 0.9f)
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        onReset()
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.5.dp, Color.Gray),
+                                    enabled = hasLocationChange
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(vertical = 2.dp, horizontal = 4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            tint = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                                        )
+                                        Text(
+                                            text = "Deshacer",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        onConfirm()
+                                        contentVisible = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color.White
+                                        )
+                                        Text(
+                                            text = "Confirmar",
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatCoordinate(value: Double): String {
+    val rounded = (value * 1_000_000.0).roundToLong() / 1_000_000.0
+    val text = rounded.toString()
+    return if (text.contains(".")) {
+        val parts = text.split(".")
+        val decimals = parts[1].padEnd(6, '0').take(6)
+        parts[0] + "." + decimals
+    } else {
+        text + ".000000"
+    }
 }
 
 /**
@@ -944,7 +1233,7 @@ private fun BranchCard(branchName: String) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
+                            tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
@@ -1124,7 +1413,7 @@ private fun BusinessStatusCard(
 
     // Colores Llego
     val openColor = Color(178, 214, 154)      // LlegoAccentPrimary - Verde claro
-    val closedColor = Color(0xFFD32F2F)       // LlegoError
+    val closedColor = MaterialTheme.colorScheme.error       // LlegoError
 
     // Animación de pulso para el estado abierto
     val pulseAlpha by infiniteTransition.animateFloat(

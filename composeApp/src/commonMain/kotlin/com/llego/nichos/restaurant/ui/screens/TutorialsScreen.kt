@@ -55,72 +55,34 @@ fun TutorialsScreen(
         animateContent = true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.School,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Tutoriales",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 22.sp
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "Aprende a usar Llego Business",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    if (selectedTutorial != null) {
-                        IconButton(onClick = { selectedTutorial = null }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    } else if (selectedCategory != null) {
-                        IconButton(onClick = { selectedCategory = null }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
+        // Botón de navegación flotante
+        IconButton(
+            onClick = {
+                when {
+                    selectedTutorial != null -> selectedTutorial = null
+                    selectedCategory != null -> selectedCategory = null
+                    else -> onNavigateBack()
+                }
+            },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+                .shadow(4.dp, CircleShape)
+                .background(Color.White, CircleShape)
+                .size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBack,
+                contentDescription = "Volver",
+                tint = MaterialTheme.colorScheme.primary
             )
-        },
-        containerColor = Color(0xFFF8F9FA)
-    ) { paddingValues ->
+        }
+
         AnimatedVisibility(
             visible = animateContent,
             enter = fadeIn(animationSpec = tween(600)) +
@@ -134,23 +96,20 @@ fun TutorialsScreen(
                     // Vista de reproducción de tutorial individual
                     TutorialPlayerView(
                         tutorial = selectedTutorial!!,
-                        onClose = { selectedTutorial = null },
-                        paddingValues = paddingValues
+                        onClose = { selectedTutorial = null }
                     )
                 }
                 selectedCategory != null -> {
                     // Vista de tutoriales de una categoría específica
                     CategoryTutorialsView(
                         category = selectedCategory!!,
-                        onTutorialClick = { tutorial -> selectedTutorial = tutorial },
-                        paddingValues = paddingValues
+                        onTutorialClick = { tutorial -> selectedTutorial = tutorial }
                     )
                 }
                 else -> {
                     // Vista principal con todas las categorías
                     TutorialCategoriesView(
-                        onCategoryClick = { category -> selectedCategory = category },
-                        paddingValues = paddingValues
+                        onCategoryClick = { category -> selectedCategory = category }
                     )
                 }
             }
@@ -163,14 +122,11 @@ fun TutorialsScreen(
  */
 @Composable
 private fun TutorialCategoriesView(
-    onCategoryClick: (TutorialCategory) -> Unit,
-    paddingValues: PaddingValues
+    onCategoryClick: (TutorialCategory) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 72.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Header con estadísticas
@@ -272,7 +228,7 @@ private fun TutorialsHeaderCard() {
                         value = "18",
                         label = "Videos",
                         icon = Icons.Default.VideoLibrary,
-                        color = Color(0xFF2196F3)
+                        color = MaterialTheme.colorScheme.primary // Llego Primary
                     )
                     VerticalDivider(
                         modifier = Modifier
@@ -284,7 +240,7 @@ private fun TutorialsHeaderCard() {
                         value = "2-5",
                         label = "Minutos",
                         icon = Icons.Default.Timer,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary // Llego Secondary
                     )
                     VerticalDivider(
                         modifier = Modifier
@@ -296,7 +252,7 @@ private fun TutorialsHeaderCard() {
                         value = "5",
                         label = "Categorías",
                         icon = Icons.Default.Category,
-                        color = Color(0xFF4CAF50)
+                        color = Color(0xFF035658) // Llego Primary Variante
                     )
                 }
             }
@@ -462,14 +418,11 @@ private fun CategoryCard(
 @Composable
 private fun CategoryTutorialsView(
     category: TutorialCategory,
-    onTutorialClick: (Tutorial) -> Unit,
-    paddingValues: PaddingValues
+    onTutorialClick: (Tutorial) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 72.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Header de categoría
@@ -674,7 +627,7 @@ private fun TutorialCard(
             if (tutorial.isNew) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFF5722)
+                    color = Color(0xFFE1C78E) // Llego Secondary
                 ) {
                     Text(
                         text = "NUEVO",
@@ -683,7 +636,7 @@ private fun TutorialCard(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp
                         ),
-                        color = Color.White
+                        color = Color(0xFF023133) // Llego Primary
                     )
                 }
             }
@@ -697,13 +650,12 @@ private fun TutorialCard(
 @Composable
 private fun TutorialPlayerView(
     tutorial: Tutorial,
-    onClose: () -> Unit,
-    paddingValues: PaddingValues
+    onClose: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)
+            .padding(top = 64.dp)
             .background(Color.Black)
     ) {
         // Player simulado
@@ -814,7 +766,7 @@ private fun TutorialInfoCard(tutorial: Tutorial) {
                 InfoChip(
                     icon = Icons.Default.AccessTime,
                     label = tutorial.duration,
-                    color = Color(0xFF2196F3)
+                    color = Color(0xFF023133) // Llego Primary
                 )
                 InfoChip(
                     icon = Icons.Default.BarChart,
@@ -824,7 +776,7 @@ private fun TutorialInfoCard(tutorial: Tutorial) {
                 if (tutorial.isNew) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFF5722)
+                        color = Color(0xFFE1C78E) // Llego Secondary para badge NUEVO
                     ) {
                         Text(
                             text = "NUEVO",
@@ -832,7 +784,7 @@ private fun TutorialInfoCard(tutorial: Tutorial) {
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = Color.White
+                            color = Color(0xFF023133) // Texto en color primario
                         )
                     }
                 }
@@ -926,31 +878,31 @@ enum class TutorialCategory(
         title = "Primeros Pasos",
         description = "Configura tu cuenta y conoce la app",
         icon = Icons.Default.RocketLaunch,
-        color = Color(0xFF2196F3)
+        color = Color(0xFF023133) // Llego Primary
     ),
     PRODUCTS(
         title = "Gestión de Productos",
         description = "Crea, edita y organiza tu menú",
         icon = Icons.Default.Restaurant,
-        color = Color(0xFFFF9800)
+        color = Color(0xFFE1C78E) // Llego Secondary
     ),
     SETTINGS(
         title = "Configuración",
         description = "Personaliza tu negocio",
         icon = Icons.Default.Settings,
-        color = Color(0xFF9C27B0)
+        color = Color(0xFF035658) // Llego Primary Variante
     ),
     ORDERS(
         title = "Pedidos y Entregas",
         description = "Gestiona pedidos eficientemente",
         icon = Icons.Default.DeliveryDining,
-        color = Color(0xFF4CAF50)
+        color = Color(0xFF023133) // Llego Primary
     ),
     WALLET(
         title = "Wallet y Pagos",
         description = "Administra tus finanzas",
         icon = Icons.Default.AccountBalanceWallet,
-        color = Color(0xFFE91E63)
+        color = Color(0xFFC9A963) // Llego Secondary Variante
     );
 
     fun getTutorials(): List<Tutorial> = when (this) {
@@ -1115,9 +1067,9 @@ enum class TutorialCategory(
  * Nivel de dificultad del tutorial
  */
 enum class TutorialLevel(val displayName: String, val color: Color) {
-    BEGINNER("Básico", Color(0xFF4CAF50)),
-    INTERMEDIATE("Intermedio", Color(0xFFFF9800)),
-    ADVANCED("Avanzado", Color(0xFFE91E63))
+    BEGINNER("Básico", Color(0xFF035658)), // Llego Primary Variante
+    INTERMEDIATE("Intermedio", Color(0xFFE1C78E)), // Llego Secondary
+    ADVANCED("Avanzado", Color(0xFFC9A963)) // Llego Secondary Variante
 }
 
 /**

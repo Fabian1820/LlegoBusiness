@@ -38,7 +38,8 @@ fun OrderDetailScreen(
                         text = "Pedido ${order.orderNumber}",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
-                        )
+                        ),
+                        color = Color.White
                     )
                 },
                 navigationIcon = {
@@ -46,13 +47,14 @@ fun OrderDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = Color.White
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         },
@@ -100,24 +102,17 @@ fun OrderDetailScreen(
             }
 
             // Footer con acciones
-            Surface(
-                color = Color(0xFFF5F5F5),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OrderActionsSection(
-                        orderId = order.id,
-                        orderNumber = order.orderNumber,
-                        customerName = order.customer.name,
-                        orderStatus = order.status,
-                        onUpdateStatus = onUpdateStatus,
-                        onNavigateToChat = onNavigateToChat
-                    )
-                }
-            }
+            OrderActionsSection(
+                orderId = order.id,
+                orderNumber = order.orderNumber,
+                customerName = order.customer.name,
+                orderStatus = order.status,
+                onUpdateStatus = onUpdateStatus,
+                onNavigateToChat = onNavigateToChat,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            )
         }
     }
 }

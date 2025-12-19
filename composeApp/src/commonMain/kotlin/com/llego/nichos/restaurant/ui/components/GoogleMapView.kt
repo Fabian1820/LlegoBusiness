@@ -9,6 +9,9 @@ import androidx.compose.ui.Modifier
  */
 @Composable
 expect fun BusinessLocationMap(
+    latitude: Double,
+    longitude: Double,
     onLocationSelected: (Double, Double) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isInteractive: Boolean = true
 )

@@ -25,19 +25,18 @@ val LocalLlegoTheme = staticCompositionLocalOf { LlegoThemeConfig() }
 
 /**
  * Tema principal de Llego que envuelve todas las configuraciones
+ * Forzado a modo claro para mantener consistencia de marca
  */
 @Composable
 fun LlegoTheme(
     config: LlegoThemeConfig = LlegoThemeConfig(),
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Siempre modo claro
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        darkTheme -> LlegoDarkColorScheme
-        else -> LlegoLightColorScheme
-    }
+    // Siempre usar el esquema de colores claro
+    val colorScheme = LlegoLightColorScheme
 
-    val updatedConfig = config.copy(isDarkMode = darkTheme)
+    val updatedConfig = config.copy(isDarkMode = false)
 
     CompositionLocalProvider(LocalLlegoTheme provides updatedConfig) {
         MaterialTheme(
@@ -51,38 +50,40 @@ fun LlegoTheme(
 
 /**
  * Tema específico para la app de negocios
+ * Siempre en modo claro para consistencia de marca
  */
 @Composable
 fun LlegoBusinessTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Siempre modo claro
     content: @Composable () -> Unit
 ) {
     LlegoTheme(
         config = LlegoThemeConfig(
             userType = UserType.BUSINESS,
             enableAnimations = true,
-            isDarkMode = darkTheme
+            isDarkMode = false
         ),
-        darkTheme = darkTheme,
+        darkTheme = false,
         content = content
     )
 }
 
 /**
  * Tema específico para la app de mensajeros/choferes
+ * Siempre en modo claro para consistencia de marca
  */
 @Composable
 fun LlegoDriverTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Siempre modo claro
     content: @Composable () -> Unit
 ) {
     LlegoTheme(
         config = LlegoThemeConfig(
             userType = UserType.DRIVER,
             enableAnimations = true,
-            isDarkMode = darkTheme
+            isDarkMode = false
         ),
-        darkTheme = darkTheme,
+        darkTheme = false,
         content = content
     )
 }

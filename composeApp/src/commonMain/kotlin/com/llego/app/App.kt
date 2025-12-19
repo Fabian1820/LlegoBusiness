@@ -1,5 +1,7 @@
 package com.llego.app
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +24,8 @@ import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 data class AppViewModels(
     val auth: AuthViewModel,
@@ -57,6 +61,9 @@ fun App(viewModels: AppViewModels) {
         val ordersViewModel = viewModels.orders
         val menuViewModel = viewModels.menu
         val settingsViewModel = viewModels.settings
+        
+        // Scope para operaciones asíncronas
+        val scope = rememberCoroutineScope()
 
         // Observar estado de autenticación
         LaunchedEffect(authViewModel) {
@@ -69,38 +76,62 @@ fun App(viewModels: AppViewModels) {
         if (isAuthenticated && currentBusinessType != null) {
             // Usuario autenticado - Usa BusinessHomeScreen genérico que se adapta por nicho
             Box(modifier = Modifier) {
-                // Contenido principal
+                // Contenido principal con navegación condicional
                 when {
                     showOrderDetail && selectedOrderId != null -> {
-                        // Pantalla de detalle del pedido
-                        val order = ordersViewModel.getOrderById(selectedOrderId!!)
-                        if (order != null) {
-                            OrderDetailScreen(
-                                order = order,
-                                onNavigateBack = {
-                                    showOrderDetail = false
-                                    selectedOrderId = null
-                                },
-                                onUpdateStatus = { newStatus ->
-                                    // Mostrar pantalla de confirmación según el cambio de estado
-                                    when {
-                                        // Pedido aceptado
-                                        order.status.name == "PENDING" && newStatus.name == "PREPARING" -> {
-                                            confirmationType = ConfirmationType.ORDER_ACCEPTED
-                                            confirmationOrderNumber = order.orderNumber
+                        // Pantalla de detalle del pedido con animación
+                        AnimatedVisibility(
+                            visible = showOrderDetail && selectedOrderId != null,
+                            enter = slideInVertically(
+                                initialOffsetY = { it }, // Empieza desde abajo (altura completa)
+                                animationSpec = tween(durationMillis = 350)
+                            ) + fadeIn(animationSpec = tween(durationMillis = 350)),
+                            exit = slideOutVertically(
+                                targetOffsetY = { it }, // Sale hacia abajo (altura completa)
+                                animationSpec = tween(durationMillis = 350)
+                            ) + fadeOut(animationSpec = tween(durationMillis = 350))
+                        ) {
+                            val order = ordersViewModel.getOrderById(selectedOrderId!!)
+                            if (order != null) {
+                                OrderDetailScreen(
+                                    order = order,
+                                    onNavigateBack = {
+                                        showOrderDetail = false
+                                        selectedOrderId = null
+                                    },
+                                    onUpdateStatus = { newStatus ->
+                                        // Primero cerrar la pantalla con animación
+                                        showOrderDetail = false
+                                        selectedOrderId = null
+
+                                        // Esperar a que la animación de salida termine
+                                        scope.launch {
+                                            delay(350) // Duración de la animación de salida
+
+                                            // Actualizar el estado del pedido
+                                            ordersViewModel.updateOrderStatus(order.id, newStatus)
+
+                                            // Pequeño delay adicional para suavizar
+                                            delay(100)
+
+                                            // Mostrar pantalla de confirmación
+                                            when {
+                                                // Pedido aceptado
+                                                order.status.name == "PENDING" && newStatus.name == "PREPARING" -> {
+                                                    confirmationType = ConfirmationType.ORDER_ACCEPTED
+                                                    confirmationOrderNumber = order.orderNumber
+                                                }
+                                                // Pedido listo
+                                                order.status.name == "PREPARING" && newStatus.name == "READY" -> {
+                                                    confirmationType = ConfirmationType.ORDER_READY
+                                                    confirmationOrderNumber = order.orderNumber
+                                                }
+                                            }
                                         }
-                                        // Pedido listo
-                                        order.status.name == "PREPARING" && newStatus.name == "READY" -> {
-                                            confirmationType = ConfirmationType.ORDER_READY
-                                            confirmationOrderNumber = order.orderNumber
-                                        }
-                                    }
-                                    ordersViewModel.updateOrderStatus(order.id, newStatus)
-                                    showOrderDetail = false
-                                    selectedOrderId = null
-                                },
-                                onNavigateToChat = null // Chat aún no implementado
-                            )
+                                    },
+                                    onNavigateToChat = null // Chat aún no implementado
+                                )
+                            }
                         }
                     }
                     showProductDetail && productToView != null -> {
