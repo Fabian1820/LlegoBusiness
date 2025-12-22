@@ -49,6 +49,7 @@ fun OrdersScreen(
     val uiState by viewModel.uiState.collectAsState()
     val filteredOrders by viewModel.filteredOrders.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val statusFilterListState = rememberLazyListState()
 
     var animateContent by remember { mutableStateOf(false) }
 
@@ -113,7 +114,8 @@ fun OrdersScreen(
                             StatusFilterChips(
                                 selectedFilter = selectedFilter,
                                 onFilterSelected = { viewModel.setFilter(it) },
-                                onClearFilter = { viewModel.clearFilter() }
+                                onClearFilter = { viewModel.clearFilter() },
+                                listState = statusFilterListState
                             )
                             EmptyOrdersView(hasFilter = selectedFilter != null)
                         }
@@ -128,7 +130,8 @@ fun OrdersScreen(
                                 StatusFilterChips(
                                     selectedFilter = selectedFilter,
                                     onFilterSelected = { viewModel.setFilter(it) },
-                                    onClearFilter = { viewModel.clearFilter() }
+                                    onClearFilter = { viewModel.clearFilter() },
+                                    listState = statusFilterListState
                                 )
                             }
 
@@ -158,11 +161,35 @@ fun OrdersScreen(
 private fun StatusFilterChips(
     selectedFilter: OrderStatus?,
     onFilterSelected: (OrderStatus) -> Unit,
-    onClearFilter: () -> Unit
+    onClearFilter: () -> Unit,
+    listState: LazyListState
 ) {
-    val listState = rememberLazyListState()
     val allStatuses = OrderStatus.values().toList()
 
+    LaunchedEffect(selectedFilter, allStatuses) {
+        val targetIndex = if (selectedFilter == null) {
+            0
+        } else {
+            val index = allStatuses.indexOf(selectedFilter)
+            if (index >= 0) index + 1 else 0 // +1 para compensar el chip "Todos"
+        }
+        val layoutInfo = listState.layoutInfo
+        if (layoutInfo.visibleItemsInfo.isEmpty()) {
+            listState.scrollToItem(targetIndex)
+            return@LaunchedEffect
+        }
+        val targetInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+        if (targetInfo != null) {
+            val start = targetInfo.offset
+            val end = targetInfo.offset + targetInfo.size
+            val viewportStart = layoutInfo.viewportStartOffset
+            val viewportEnd = layoutInfo.viewportEndOffset
+            if (start >= viewportStart && end <= viewportEnd) {
+                return@LaunchedEffect
+            }
+        }
+        listState.animateScrollToItem(targetIndex)
+    }
 
     Card(
         modifier = Modifier

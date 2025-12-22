@@ -3,7 +3,7 @@ package com.llego.nichos.restaurant.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,19 +53,111 @@ fun ChatDetailScreen(
     val replyingTo by viewModel.replyingTo.collectAsState()
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val bottomTolerancePx = with(density) { 2.dp.roundToPx() }
+    val imeBottom = WindowInsets.ime.getBottom(density)
+
+    var hasInitialScroll by remember { mutableStateOf(false) }
+    var lastMessageCount by remember { mutableStateOf(0) }
+    var unreadCount by remember { mutableStateOf(0) }
+    var lastReadIndex by remember { mutableStateOf(-1) }
+
+    val isAtBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) {
+                return@derivedStateOf true
+            }
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
+            val endOffset = lastVisible.offset + lastVisible.size
+            val isLastItem = lastVisible.index == totalItems - 1
+            val endLimit = layoutInfo.viewportEndOffset - layoutInfo.afterContentPadding
+            isLastItem && endOffset <= endLimit + bottomTolerancePx
+        }
+    }
 
     // Cargar chat al entrar
     LaunchedEffect(orderId) {
         viewModel.loadChatDetail(orderId)
     }
 
-    // Auto-scroll al último mensaje cuando hay nuevos mensajes
+    LaunchedEffect(currentChat?.orderId) {
+        hasInitialScroll = false
+        lastMessageCount = 0
+        unreadCount = 0
+        lastReadIndex = -1
+    }
+
+    suspend fun scrollToLatest(animate: Boolean) {
+        val messageCount = currentChat?.messages?.size ?: 0
+        if (messageCount == 0) {
+            return
+        }
+        val lastIndex = messageCount - 1
+        val listNotReady = listState.layoutInfo.visibleItemsInfo.isEmpty()
+        when {
+            listNotReady || !animate -> listState.scrollToItem(lastIndex)
+            else -> listState.animateScrollToItem(lastIndex)
+        }
+    }
+
+    // Auto-scroll solo si estamos al final; si no, marcar mensajes no leidos
     LaunchedEffect(currentChat?.messages?.size) {
-        if (currentChat?.messages?.isNotEmpty() == true) {
-            coroutineScope.launch {
-                listState.animateScrollToItem(currentChat!!.messages.size - 1)
+        val messages = currentChat?.messages.orEmpty()
+        val messageCount = messages.size
+        if (messageCount == 0) {
+            lastMessageCount = 0
+            return@LaunchedEffect
+        }
+
+        if (!hasInitialScroll) {
+            scrollToLatest(animate = false)
+            hasInitialScroll = true
+            lastMessageCount = messageCount
+            unreadCount = 0
+            return@LaunchedEffect
+        }
+
+        val added = messageCount - lastMessageCount
+        if (added <= 0) {
+            lastMessageCount = messageCount
+            return@LaunchedEffect
+        }
+
+        if (isAtBottom) {
+            scrollToLatest(animate = true)
+            unreadCount = 0
+        } else {
+            val unreadAdded = messages
+                .drop(lastMessageCount)
+                .count { it.isFromCustomer() }
+            if (unreadAdded > 0) {
+                unreadCount += unreadAdded
             }
         }
+        lastMessageCount = messageCount
+    }
+
+    LaunchedEffect(isAtBottom) {
+        if (isAtBottom) {
+            unreadCount = 0
+        }
+    }
+
+    LaunchedEffect(imeBottom) {
+        if (imeBottom > 0 && isAtBottom) {
+            scrollToLatest(animate = false)
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null && lastVisibleIndex > lastReadIndex) {
+                    lastReadIndex = lastVisibleIndex
+                }
+            }
     }
 
     Scaffold(
@@ -104,30 +197,104 @@ fun ChatDetailScreen(
                 )
             }
         } else {
-            // Lista de mensajes
-            LazyColumn(
-                state = listState,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(
-                    horizontal = 8.dp,
-                    vertical = 8.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(paddingValues)
             ) {
-                items(
-                    items = chat.messages,
-                    key = { it.id }
-                ) { message ->
-                    SwipeableMessageBubble(
-                        message = message,
-                        onSwipeToReply = {
-                            if (!message.isSystemMessage()) {
-                                viewModel.setReplyingTo(message)
+                // Lista de mensajes
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        horizontal = 8.dp,
+                        vertical = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        items = chat.messages,
+                        key = { it.id }
+                    ) { message ->
+                        SwipeableMessageBubble(
+                            message = message,
+                            onSwipeToReply = {
+                                if (!message.isSystemMessage()) {
+                                    viewModel.setReplyingTo(message)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                val localUnreadSnapshot by remember(chat, lastReadIndex) {
+                    derivedStateOf {
+                        if (chat.messages.isEmpty()) {
+                            return@derivedStateOf (-1 to 0)
+                        }
+                        val safeLastReadIndex = lastReadIndex.coerceAtMost(chat.messages.lastIndex)
+                        var count = 0
+                        var firstUnreadIndex = -1
+                        for (index in (safeLastReadIndex + 1) until chat.messages.size) {
+                            if (chat.messages[index].isFromCustomer()) {
+                                if (firstUnreadIndex == -1) {
+                                    firstUnreadIndex = index
+                                }
+                                count++
                             }
                         }
-                    )
+                        firstUnreadIndex to count
+                    }
+                }
+                val oldestUnreadIndex = localUnreadSnapshot.first
+                val displayUnreadCount = localUnreadSnapshot.second
+
+                AnimatedVisibility(
+                    visible = displayUnreadCount > 0,
+                    enter = fadeIn(animationSpec = tween(180)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = tween(220, easing = EaseOutCubic)
+                        ),
+                    exit = fadeOut(animationSpec = tween(140)) +
+                        slideOutVertically(
+                            targetOffsetY = { it / 2 },
+                            animationSpec = tween(180, easing = EaseInCubic)
+                        ),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 8.dp)
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                val targetIndex = oldestUnreadIndex
+                                if (targetIndex >= 0) {
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(targetIndex)
+                                    }
+                                }
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = displayUnreadCount.toString(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -555,7 +722,7 @@ private fun ChatInputBar(
         shadowElevation = 8.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.ime)
+            .windowInsetsPadding(WindowInsets.ime.only(WindowInsetsSides.Bottom))
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()

@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
@@ -35,130 +36,136 @@ fun RestaurantHomeScreen(
     settingsViewModel: SettingsViewModel
 ) {
     var selectedTab by remember { mutableStateOf(RestaurantTab.ORDERS) }
+    val density = LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    var isSearchOverlayVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Restaurante La Habana",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+            if (!isSearchOverlayVisible) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Restaurante La Habana",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                },
-                actions = {
-                    // Botón de Chats/Mensajes con badge
-                    val pendingCount = ordersViewModel.getPendingOrdersCount()
-                    IconButton(onClick = onNavigateToChats) {
-                        BadgedBox(
-                            badge = {
-                                if (pendingCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    ) {
-                                        Text(
-                                            text = pendingCount.toString(),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
+                    },
+                    actions = {
+                        val pendingCount = ordersViewModel.getPendingOrdersCount()
+                        IconButton(onClick = onNavigateToChats) {
+                            BadgedBox(
+                                badge = {
+                                    if (pendingCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        ) {
+                                            Text(
+                                                text = pendingCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
                                     }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ModeComment,
+                                    contentDescription = "Chats",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        ) {
+                        }
+
+                        IconButton(onClick = onNavigateToProfile) {
                             Icon(
-                                imageVector = Icons.Default.ModeComment,
-                                contentDescription = "Chats",
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Perfil",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
                             )
                         }
-                    }
-
-                    // Botón de perfil
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Perfil",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
+            }
         },
         bottomBar = {
-            Surface(
-                shadowElevation = 16.dp,
-                tonalElevation = 0.dp,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-            ) {
-                NavigationBar(
-                    containerColor = Color.White,
+            val showBottomBar = !isKeyboardVisible && !isSearchOverlayVisible
+            if (showBottomBar) {
+                Surface(
+                    shadowElevation = 16.dp,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 ) {
-                    val pendingCount = ordersViewModel.getPendingOrdersCount()
+                    NavigationBar(
+                        containerColor = Color.White,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    ) {
+                        val pendingCount = ordersViewModel.getPendingOrdersCount()
 
-                    RestaurantTab.values().forEach { tab ->
-                        val isSelected = selectedTab == tab
+                        RestaurantTab.values().forEach { tab ->
+                            val isSelected = selectedTab == tab
 
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = { selectedTab = tab },
-                            icon = {
-                                // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
-                                if (tab == RestaurantTab.ORDERS && pendingCount > 0) {
-                                    BadgedBox(
-                                        badge = {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Text(
-                                                    text = pendingCount.toString(),
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
-                                                    ),
-                                                    color = Color.White
-                                                )
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { selectedTab = tab },
+                                icon = {
+                                    // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
+                                    if (tab == RestaurantTab.ORDERS && pendingCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(
+                                                    containerColor = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                ) {
+                                                    Text(
+                                                        text = pendingCount.toString(),
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                                                        ),
+                                                        color = Color.White
+                                                    )
+                                                }
                                             }
+                                        ) {
+                                            Icon(
+                                                imageVector = tab.icon,
+                                                contentDescription = tab.title,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
-                                    ) {
+                                    } else {
                                         Icon(
                                             imageVector = tab.icon,
                                             contentDescription = tab.title,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
-                                } else {
-                                    Icon(
-                                        imageVector = tab.icon,
-                                        contentDescription = tab.title,
-                                        modifier = Modifier.size(24.dp)
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.title,
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        )
                                     )
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text = tab.title,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
+                                    unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                                 )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
-                                unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -177,7 +184,8 @@ fun RestaurantHomeScreen(
                 )
                 RestaurantTab.MENU -> MenuScreen(
                     viewModel = menuViewModel,
-                    businessType = com.llego.shared.data.model.BusinessType.RESTAURANT
+                    businessType = com.llego.shared.data.model.BusinessType.RESTAURANT,
+                    onSearchVisibilityChange = { isSearchOverlayVisible = it }
                 )
                 RestaurantTab.WALLET -> WalletScreen(
                     onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }

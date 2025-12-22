@@ -1,6 +1,7 @@
 package com.llego.nichos.common.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -61,22 +62,35 @@ fun CategoryFilterChips(
     selectedCategoryId: String?,
     onCategorySelected: (String) -> Unit,
     onClearCategory: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState()
 ) {
     val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
-    val listState = rememberLazyListState()
     
     // Scroll automático cuando se selecciona una categoría
-    LaunchedEffect(selectedCategoryId) {
-        if (selectedCategoryId != null) {
-            val index = categories.indexOfFirst { it.id == selectedCategoryId }
-            if (index >= 0) {
-                listState.animateScrollToItem(index)
-            }
+    LaunchedEffect(selectedCategoryId, categories) {
+        val targetIndex = if (selectedCategoryId == null) {
+            0
         } else {
-            // Si se deselecciona, scroll al inicio
-            listState.animateScrollToItem(0)
+            val index = categories.indexOfFirst { it.id == selectedCategoryId }
+            if (index >= 0) index + 1 else 0 // +1 para compensar el chip "Todos"
         }
+        val layoutInfo = listState.layoutInfo
+        if (layoutInfo.visibleItemsInfo.isEmpty()) {
+            listState.scrollToItem(targetIndex)
+            return@LaunchedEffect
+        }
+        val targetInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+        if (targetInfo != null) {
+            val start = targetInfo.offset
+            val end = targetInfo.offset + targetInfo.size
+            val viewportStart = layoutInfo.viewportStartOffset
+            val viewportEnd = layoutInfo.viewportEndOffset
+            if (start >= viewportStart && end <= viewportEnd) {
+                return@LaunchedEffect
+            }
+        }
+        listState.animateScrollToItem(targetIndex)
     }
 
     Card(
@@ -188,7 +202,8 @@ fun CategoryFilterChipsForRestaurant(
     onCategorySelected: ((MenuCategory) -> Unit)? = null,
     onCategoryIdSelected: ((String) -> Unit)? = null,
     onClearCategory: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState()
 ) {
     val effectiveCategoryId = if (businessType == BusinessType.RESTAURANT) {
         selectedCategory?.toCategoryId()
@@ -207,6 +222,7 @@ fun CategoryFilterChipsForRestaurant(
             }
         },
         onClearCategory = onClearCategory,
-        modifier = modifier
+        modifier = modifier,
+        listState = listState
     )
 }

@@ -6,10 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,7 +29,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,6 +56,7 @@ fun MenuScreen(
     businessType: BusinessType = BusinessType.RESTAURANT,
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
     onNavigateToProductDetail: (com.llego.nichos.common.data.model.Product) -> Unit = {},
+    onSearchVisibilityChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -67,10 +64,20 @@ fun MenuScreen(
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val categoryFilterListState = rememberLazyListState()
 
     var showDeleteConfirmation by remember { mutableStateOf<Product?>(null) }
-    var showSearchCard by remember { mutableStateOf(false) }
+    var showSearchScreen by remember { mutableStateOf(false) }
     var animateContent by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showSearchScreen) {
+        onSearchVisibilityChange(showSearchScreen)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            onSearchVisibilityChange(false)
+        }
+    }
 
     // Actualizar el tipo de negocio en el ViewModel cuando cambie
     LaunchedEffect(businessType) {
@@ -84,204 +91,226 @@ fun MenuScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-        ) {
-            // Lista de productos con filtros integrados
-            when (uiState) {
-                is MenuUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+        AnimatedContent(
+            targetState = showSearchScreen,
+            transitionSpec = {
+                val enterSearch = slideInVertically(
+                    initialOffsetY = { height -> height / 6 },
+                    animationSpec = tween(260, easing = EaseOutCubic)
+                ) + fadeIn(animationSpec = tween(200))
+                val exitSearch = slideOutVertically(
+                    targetOffsetY = { height -> height / 6 },
+                    animationSpec = tween(220, easing = EaseInCubic)
+                ) + fadeOut(animationSpec = tween(120))
+                val enterMenu = slideInVertically(
+                    initialOffsetY = { height -> -height / 12 },
+                    animationSpec = tween(220, easing = EaseOutCubic)
+                ) + fadeIn(animationSpec = tween(200))
+                val exitMenu = slideOutVertically(
+                    targetOffsetY = { height -> height / 6 },
+                    animationSpec = tween(200, easing = EaseInCubic)
+                ) + fadeOut(animationSpec = tween(120))
+                if (targetState) {
+                    enterSearch togetherWith exitMenu
+                } else {
+                    enterMenu togetherWith exitSearch
+                }.using(SizeTransform(clip = false))
+            },
+            modifier = Modifier.fillMaxSize(),
+            label = "menu_search_transition"
+        ) { isSearchVisible ->
+            if (isSearchVisible) {
+                MenuSearchScreen(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                    onClose = {
+                        showSearchScreen = false
+                        viewModel.clearSearch()
+                    },
+                    filteredProducts = filteredProducts,
+                    onEditItem = { item ->
+                        onNavigateToAddProduct(item)
+                    },
+                    onDeleteItem = { item ->
+                        showDeleteConfirmation = item
+                    },
+                    onToggleAvailability = { itemId ->
+                        viewModel.toggleProductAvailability(itemId)
+                    },
+                    businessType = businessType
+                )
+            } else {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFF5F5F5))
                     ) {
-                        CircularProgressIndicator()
+                        // Lista de productos con filtros integrados
+                        when (uiState) {
+                            is MenuUiState.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                            is MenuUiState.Error -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Error,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(64.dp)
+                                        )
+                                        Text(
+                                            text = (uiState as MenuUiState.Error).message,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        Button(onClick = { viewModel.loadMenuItems() }) {
+                                            Text("Reintentar")
+                                        }
+                                    }
+                                }
+                            }
+                            is MenuUiState.Success -> {
+                                AnimatedVisibility(
+                                    visible = animateContent,
+                                    enter = fadeIn(animationSpec = tween(600)) +
+                                        slideInVertically(
+                                            initialOffsetY = { it / 4 },
+                                            animationSpec = tween(600, easing = EaseOutCubic)
+                                        )
+                                ) {
+                                    if (filteredProducts.isEmpty()) {
+                                        Column(modifier = Modifier.fillMaxSize()) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            // Filtros de categor?a adaptados por nicho
+                                            CategoryFilterChipsForRestaurant(
+                                                businessType = businessType,
+                                                selectedCategory = selectedCategory,
+                                                selectedCategoryId = selectedCategoryId,
+                                                onCategorySelected = { viewModel.setCategory(it) },
+                                                onCategoryIdSelected = { viewModel.setCategoryId(it) },
+                                                onClearCategory = { viewModel.clearCategory() },
+                                                listState = categoryFilterListState
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            EmptyMenuView(
+                                                hasFilter = selectedCategory != null || selectedCategoryId != null || searchQuery.isNotBlank(),
+                                                onAddProduct = {
+                                                    onNavigateToAddProduct(null)
+                                                }
+                                            )
+                                        }
+                                    } else {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // Filtros de categor?a como primer item (adaptados por nicho)
+                                            item {
+                                                CategoryFilterChipsForRestaurant(
+                                                    businessType = businessType,
+                                                    selectedCategory = selectedCategory,
+                                                    selectedCategoryId = selectedCategoryId,
+                                                    onCategorySelected = { viewModel.setCategory(it) },
+                                                    onCategoryIdSelected = { viewModel.setCategoryId(it) },
+                                                    onClearCategory = { viewModel.clearCategory() },
+                                                    listState = categoryFilterListState
+                                                )
+                                            }
+
+                                            // Lista de productos
+                                            items(
+                                                items = filteredProducts,
+                                                key = { it.id }
+                                            ) { product ->
+                                                // Usar ProductCard unificado para todos los nichos
+                                                ProductCard(
+                                                    product = product,
+                                                    businessType = businessType,
+                                                    onEdit = {
+                                                        onNavigateToAddProduct(product)
+                                                    },
+                                                    onDelete = {
+                                                        showDeleteConfirmation = product
+                                                    },
+                                                    onToggleAvailability = {
+                                                        viewModel.toggleProductAvailability(product.id)
+                                                    },
+                                                    onViewDetail = {
+                                                        onNavigateToProductDetail(product)
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                                )
+                                            }
+
+                                            // Espacio adicional para los botones flotantes
+                                            item {
+                                                Spacer(modifier = Modifier.height(120.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                is MenuUiState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+
+                    // Botones flotantes circulares (search arriba, add abajo)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.End
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        // Botón de búsqueda - más pequeño y circular
+                        FloatingActionButton(
+                            onClick = { showSearchScreen = true },
+                            modifier = Modifier.size(56.dp),
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = Color.White,
+                            shape = CircleShape
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(64.dp)
+                                Icons.Default.Search,
+                                contentDescription = "Buscar productos",
+                                modifier = Modifier.size(24.dp)
                             )
-                            Text(
-                                text = (uiState as MenuUiState.Error).message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Button(onClick = { viewModel.loadMenuItems() }) {
-                                Text("Reintentar")
-                            }
                         }
-                    }
-                }
-                is MenuUiState.Success -> {
-                    AnimatedVisibility(
-                        visible = animateContent,
-                        enter = fadeIn(animationSpec = tween(600)) +
-                                slideInVertically(
-                                    initialOffsetY = { it / 4 },
-                                    animationSpec = tween(600, easing = EaseOutCubic)
-                                )
-                    ) {
-                        if (filteredProducts.isEmpty()) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                // Filtros de categoría adaptados por nicho
-                                CategoryFilterChipsForRestaurant(
-                                    businessType = businessType,
-                                    selectedCategory = selectedCategory,
-                                    selectedCategoryId = selectedCategoryId,
-                                    onCategorySelected = { viewModel.setCategory(it) },
-                                    onCategoryIdSelected = { viewModel.setCategoryId(it) },
-                                    onClearCategory = { viewModel.clearCategory() }
-                                )
-                                EmptyMenuView(
-                                    hasFilter = selectedCategory != null || selectedCategoryId != null || searchQuery.isNotBlank(),
-                                    onAddProduct = {
-                                        onNavigateToAddProduct(null)
-                                    }
-                                )
-                            }
-                        } else {
-                            LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+
+                        // Botón de agregar - más pequeño y circular
+                        FloatingActionButton(
+                            onClick = {
+                                onNavigateToAddProduct(null)
+                            },
+                            modifier = Modifier.size(56.dp),
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White,
+                            shape = CircleShape
                         ) {
-                            // Filtros de categoría como primer item (adaptados por nicho)
-                            item {
-                                CategoryFilterChipsForRestaurant(
-                                    businessType = businessType,
-                                    selectedCategory = selectedCategory,
-                                    selectedCategoryId = selectedCategoryId,
-                                    onCategorySelected = { viewModel.setCategory(it) },
-                                    onCategoryIdSelected = { viewModel.setCategoryId(it) },
-                                    onClearCategory = { viewModel.clearCategory() }
-                                )
-                            }
-
-                            // Lista de productos
-                            items(
-                                items = filteredProducts,
-                                key = { it.id }
-                            ) { product ->
-                                // Usar ProductCard unificado para todos los nichos
-                                ProductCard(
-                                    product = product,
-                                    businessType = businessType,
-                                    onEdit = {
-                                        onNavigateToAddProduct(product)
-                                    },
-                                    onDelete = {
-                                        showDeleteConfirmation = product
-                                    },
-                                    onToggleAvailability = {
-                                        viewModel.toggleProductAvailability(product.id)
-                                    },
-                                    onViewDetail = {
-                                        onNavigateToProductDetail(product)
-                                    },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
-
-                            // Espacio adicional para los botones flotantes
-                            item {
-                                Spacer(modifier = Modifier.height(120.dp))
-                            }
-                        }
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar producto",
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }
             }
-        }
-
-        // Botones flotantes circulares (search arriba, add abajo)
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.End
-        ) {
-            // Botón de búsqueda - más pequeño y circular
-            FloatingActionButton(
-                onClick = { showSearchCard = true },
-                modifier = Modifier.size(56.dp),
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Buscar productos",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            // Botón de agregar - más pequeño y circular
-            FloatingActionButton(
-                onClick = {
-                    onNavigateToAddProduct(null)
-                },
-                modifier = Modifier.size(56.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Agregar producto",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        // Card de búsqueda animado
-        AnimatedVisibility(
-            visible = showSearchCard,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = tween(300, easing = EaseOutCubic)
-            ) + fadeIn(animationSpec = tween(300)),
-            exit = slideOutVertically(
-                targetOffsetY = { it },
-                animationSpec = tween(300, easing = EaseInCubic)
-            ) + fadeOut(animationSpec = tween(300))
-        ) {
-            SearchCard(
-                searchQuery = searchQuery,
-                onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                onClose = {
-                    showSearchCard = false
-                    viewModel.clearSearch()
-                },
-                filteredProducts = filteredProducts,
-                onEditItem = { item ->
-                    onNavigateToAddProduct(item)
-                },
-                onDeleteItem = { item ->
-                    showDeleteConfirmation = item
-                },
-                onToggleAvailability = { itemId ->
-                    viewModel.toggleProductAvailability(itemId)
-                },
-                businessType = businessType
-            )
         }
     }
-
-
     // Confirmación de eliminación con colores Llego
     showDeleteConfirmation?.let { item ->
         AlertDialog(
@@ -445,9 +474,9 @@ private fun SimplifiedCategoryFilterChips(
     }
 }
 
- // Card de búsqueda animado que aparece desde abajo con resultados en tiempo real
+// Pantalla de busqueda en pantalla completa con navegacion propia
 @Composable
-private fun SearchCard(
+private fun MenuSearchScreen(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onClose: () -> Unit,
@@ -457,82 +486,39 @@ private fun SearchCard(
     onToggleAvailability: (String) -> Unit = {},
     businessType: BusinessType = BusinessType.RESTAURANT
 ) {
-    val dismissInteraction = remember { MutableInteractionSource() }
-    val sheetInteraction = remember { MutableInteractionSource() }
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable(
-                interactionSource = dismissInteraction,
-                indication = null,
-                onClick = onClose
-            )
+            .background(Color(0xFFF5F5F5))
     ) {
-        val minSheetHeight = 320.dp
-        // Mantener siempre un pequeño espacio bajo la navbar superior (bordes redondeados)
-        val topGap = 12.dp
-        val preferredHeight = (maxHeight * 0.85f).coerceAtMost(maxHeight - topGap)
-        // Altura fija independientemente del IME; el movimiento lo gestiona imePadding
-        val sheetHeight = preferredHeight.coerceAtLeast(minSheetHeight)
-
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(sheetHeight)
-                .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.ime) // Manejar el teclado de forma responsiva
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                )
-                .clickable(
-                    interactionSource = sheetInteraction,
-                    indication = null,
-                    onClick = {}
-                ), // Prevenir cierre al hacer click en el card
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 12.dp)
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header con título y botón cerrar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Buscar productos",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    IconButton(onClick = onClose) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cerrar búsqueda",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
                 }
-
-                // Barra de búsqueda con colores Llego
                 TextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            "Buscar en el menú...",
+                            "Buscar productos...",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     },
@@ -565,14 +551,16 @@ private fun SearchCard(
                         cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
+            }
 
-                // Ayuda o resultados de búsqueda
-                if (searchQuery.isBlank()) {
+            if (searchQuery.isBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .padding(top = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -588,97 +576,77 @@ private fun SearchCard(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = "Busca por nombre, descripción o categoría",
+                            text = "Busca por nombre, descripcion o categoria",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
                     }
-                } else {
-                    // Resultados de búsqueda - contenido scrolleable para manejar el teclado
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Header con contador de resultados
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (filteredProducts.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                            Icon(
+                                imageVector = Icons.Default.SearchOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Text(
+                                text = "No se encontraron productos",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "Intenta con otras palabras clave",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(
+                                items = filteredProducts,
+                                key = { it.id }
+                            ) { product ->
+                                CompactMenuItemCard(
+                                    product = product,
+                                    businessType = businessType,
+                                    onEdit = {
+                                        onEditItem(product)
+                                        onClose()
+                                    },
+                                    onDelete = { onDeleteItem(product) },
+                                    onToggleAvailability = { onToggleAvailability(product.id) }
                                 )
+                            }
+                            item {
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = "${filteredProducts.size} producto${if (filteredProducts.size != 1) "s" else ""} encontrado${if (filteredProducts.size != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                                 )
-                            }
-                        }
-
-                        // Lista de resultados scrolleable
-                        if (filteredProducts.isEmpty()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(vertical = 32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SearchOff,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                Text(
-                                    text = "No se encontraron productos",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                                Text(
-                                    text = "Intenta con otras palabras clave",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                )
-                            }
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(vertical = 8.dp)
-                            ) {
-                                items(
-                                    items = filteredProducts,
-                                    key = { it.id }
-                                ) { product ->
-                                    CompactMenuItemCard(
-                                        product = product,
-                                        businessType = businessType,
-                                        onEdit = {
-                                            onEditItem(product)
-                                            onClose()
-                                        },
-                                        onDelete = { onDeleteItem(product) },
-                                        onToggleAvailability = { onToggleAvailability(product.id) }
-                                    )
-                                }
                             }
                         }
                     }
@@ -687,8 +655,6 @@ private fun SearchCard(
         }
     }
 }
-
- // Card compacto de producto para resultados de búsqueda - versión limpia
 @Composable
 private fun CompactMenuItemCard(
     product: Product,

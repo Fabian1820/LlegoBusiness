@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.nichos.common.config.BusinessConfigProvider
@@ -49,130 +50,136 @@ fun BusinessHomeScreen(
     val businessName = currentUser.currentUser?.businessProfile?.businessName ?: "Mi Negocio"
 
     var selectedTabIndex by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    var isSearchOverlayVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        businessName, // ✅ Dinámico según el negocio logueado
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+            if (!isSearchOverlayVisible) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            businessName,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                },
-                actions = {
-                    // Botón de Chats/Mensajes con badge
-                    val pendingCount = ordersViewModel.getPendingOrdersCount()
-                    IconButton(onClick = onNavigateToChats) {
-                        BadgedBox(
-                            badge = {
-                                if (pendingCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    ) {
-                                        Text(
-                                            text = pendingCount.toString(),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
+                    },
+                    actions = {
+                        val pendingCount = ordersViewModel.getPendingOrdersCount()
+                        IconButton(onClick = onNavigateToChats) {
+                            BadgedBox(
+                                badge = {
+                                    if (pendingCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        ) {
+                                            Text(
+                                                text = pendingCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
                                     }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ModeComment,
+                                    contentDescription = "Chats",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        ) {
+                        }
+
+                        IconButton(onClick = onNavigateToProfile) {
                             Icon(
-                                imageVector = Icons.Default.ModeComment,
-                                contentDescription = "Chats",
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Perfil",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
                             )
                         }
-                    }
-
-                    // Botón de perfil
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Perfil",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            )
+            }
         },
         bottomBar = {
-            Surface(
-                shadowElevation = 16.dp,
-                tonalElevation = 0.dp,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-            ) {
-                NavigationBar(
-                    containerColor = Color.White,
+            val showBottomBar = !isKeyboardVisible && !isSearchOverlayVisible
+            if (showBottomBar) {
+                Surface(
+                    shadowElevation = 16.dp,
                     tonalElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 ) {
-                    val pendingCount = ordersViewModel.getPendingOrdersCount()
+                    NavigationBar(
+                        containerColor = Color.White,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    ) {
+                        val pendingCount = ordersViewModel.getPendingOrdersCount()
 
-                    tabs.forEachIndexed { index, tab ->
-                        val isSelected = selectedTabIndex == index
+                        tabs.forEachIndexed { index, tab ->
+                            val isSelected = selectedTabIndex == index
 
-                        NavigationBarItem(
-                            selected = isSelected,
-                            onClick = { selectedTabIndex = index },
-                            icon = {
-                                // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
-                                if (tab.id == "orders" && pendingCount > 0) {
-                                    BadgedBox(
-                                        badge = {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Text(
-                                                    text = pendingCount.toString(),
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
-                                                    ),
-                                                    color = Color.White
-                                                )
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { selectedTabIndex = index },
+                                icon = {
+                                    // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
+                                    if (tab.id == "orders" && pendingCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(
+                                                    containerColor = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                ) {
+                                                    Text(
+                                                        text = pendingCount.toString(),
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                                                        ),
+                                                        color = Color.White
+                                                    )
+                                                }
                                             }
+                                        ) {
+                                            Icon(
+                                                imageVector = tab.icon, // ✅ Icono específico por nicho
+                                                contentDescription = tab.title,
+                                                modifier = Modifier.size(24.dp)
+                                            )
                                         }
-                                    ) {
+                                    } else {
                                         Icon(
                                             imageVector = tab.icon, // ✅ Icono específico por nicho
                                             contentDescription = tab.title,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
-                                } else {
-                                    Icon(
-                                        imageVector = tab.icon, // ✅ Icono específico por nicho
-                                        contentDescription = tab.title,
-                                        modifier = Modifier.size(24.dp)
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.title, // ✅ Texto específico por nicho
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        )
                                     )
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text = tab.title, // ✅ Texto específico por nicho
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
+                                    unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                                 )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
-                                unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -199,7 +206,8 @@ fun BusinessHomeScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
                         onNavigateToAddProduct = onNavigateToAddProduct,
-                        onNavigateToProductDetail = onNavigateToProductDetail
+                        onNavigateToProductDetail = onNavigateToProductDetail,
+                        onSearchVisibilityChange = { isSearchOverlayVisible = it }
                     )
                 }
                 "products", "stock" -> {
@@ -210,7 +218,8 @@ fun BusinessHomeScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
                         onNavigateToAddProduct = onNavigateToAddProduct,
-                        onNavigateToProductDetail = onNavigateToProductDetail
+                        onNavigateToProductDetail = onNavigateToProductDetail,
+                        onSearchVisibilityChange = { isSearchOverlayVisible = it }
                     )
                 }
                 "medicines" -> {
@@ -220,7 +229,8 @@ fun BusinessHomeScreen(
                         viewModel = menuViewModel,
                         businessType = businessType,
                         onNavigateToAddProduct = onNavigateToAddProduct,
-                        onNavigateToProductDetail = onNavigateToProductDetail
+                        onNavigateToProductDetail = onNavigateToProductDetail,
+                        onSearchVisibilityChange = { isSearchOverlayVisible = it }
                     )
                 }
                 "wallet" -> {
