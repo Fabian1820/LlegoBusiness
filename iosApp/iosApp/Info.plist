@@ -8,5 +8,13 @@
 	<string>Necesitamos acceso a tu galería de fotos para que puedas seleccionar imágenes de tus productos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Necesitamos acceso a tu galería de fotos para guardar las imágenes de tus productos.</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
 </dict>
 </plist>
