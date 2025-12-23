@@ -14,6 +14,7 @@ import com.llego.nichos.common.ui.screens.BusinessHomeScreen
 import com.llego.nichos.common.ui.screens.AddProductScreen
 import com.llego.nichos.common.ui.screens.ProductDetailScreen
 import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
+import com.llego.nichos.restaurant.ui.screens.StatisticsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
 import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
@@ -44,6 +45,7 @@ fun App(viewModels: AppViewModels) {
         var isAuthenticated by remember { mutableStateOf(false) }
         var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
         var showProfile by remember { mutableStateOf(false) }
+        var showStatistics by remember { mutableStateOf(false) }
         var showChats by remember { mutableStateOf(false) }
         var showChatDetail by remember { mutableStateOf(false) }
         var currentChatOrderId by remember { mutableStateOf<String?>(null) }
@@ -230,10 +232,15 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     */
+                    showStatistics -> {
+                        StatisticsScreen(
+                            ordersViewModel = ordersViewModel,
+                            onNavigateBack = { showStatistics = false }
+                        )
+                    }
                     showProfile -> {
                         RestaurantProfileScreen(
                             authViewModel = authViewModel,
-                            settingsViewModel = settingsViewModel,
                             onNavigateBack = { showProfile = false }
                         )
                     }
@@ -243,6 +250,7 @@ fun App(viewModels: AppViewModels) {
                             authViewModel = authViewModel,
                             businessType = currentBusinessType!!, // Pasa el tipo de negocio
                             onNavigateToProfile = { showProfile = true },
+                            onNavigateToStatistics = { showStatistics = true },
                             onNavigateToChats = { showChats = true },
                             onNavigateToChatDetail = { orderId ->
                                 currentChatOrderId = orderId

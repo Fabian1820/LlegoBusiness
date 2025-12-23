@@ -36,7 +36,8 @@ object BusinessConfigProvider {
             BusinessType.RESTAURANT -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("menu", "Menú", Icons.Default.Restaurant),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
+                BusinessTabConfig("settings", "Configuración", Icons.Default.Settings)
                 // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 

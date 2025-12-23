@@ -34,6 +34,7 @@ fun BusinessHomeScreen(
     businessType: BusinessType,
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
+    onNavigateToStatistics: () -> Unit = {},
     onNavigateToChatDetail: (String) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
@@ -68,6 +69,15 @@ fun BusinessHomeScreen(
                     },
                     actions = {
                         // Chats ocultos en MVP
+
+                        IconButton(onClick = onNavigateToStatistics) {
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = "Estadísticas",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
 
                         IconButton(onClick = onNavigateToProfile) {
                             Icon(
@@ -212,6 +222,15 @@ fun BusinessHomeScreen(
                     WalletScreen(
                         onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
                     )
+                }
+                "settings" -> {
+                    // Pantalla de Configuración (solo para restaurantes por ahora)
+                    if (businessType == BusinessType.RESTAURANT) {
+                        com.llego.nichos.restaurant.ui.screens.SettingsScreen(
+                            settingsViewModel = settingsViewModel,
+                            onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                        )
+                    }
                 }
                 // "tutorials" -> {
                 //     // Pantalla de Tutoriales (común para todos) - oculto en MVP

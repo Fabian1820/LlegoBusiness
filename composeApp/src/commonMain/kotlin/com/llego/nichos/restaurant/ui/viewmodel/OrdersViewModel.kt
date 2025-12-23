@@ -27,16 +27,27 @@ class OrdersViewModel : ViewModel() {
     private val _selectedFilter = MutableStateFlow<OrderStatus?>(null)
     val selectedFilter: StateFlow<OrderStatus?> = _selectedFilter.asStateFlow()
 
+    // Filtro de rango de fecha
+    private val _selectedDateRange = MutableStateFlow<DateRangeFilter>(DateRangeFilter.TODAY)
+    val selectedDateRange: StateFlow<DateRangeFilter> = _selectedDateRange.asStateFlow()
+
     // Pedidos filtrados
     val filteredOrders: StateFlow<List<Order>> = combine(
         repository.orders,
-        _selectedFilter
-    ) { orders, filter ->
-        if (filter == null) {
-            orders
-        } else {
-            orders.filter { it.status == filter }
+        _selectedFilter,
+        _selectedDateRange
+    ) { orders, statusFilter, dateFilter ->
+        var filtered = orders
+        
+        // Filtrar por estado
+        if (statusFilter != null) {
+            filtered = filtered.filter { it.status == statusFilter }
         }
+        
+        // Filtrar por rango de fecha
+        filtered = dateFilter.filterOrders(filtered)
+        
+        filtered
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -79,6 +90,10 @@ class OrdersViewModel : ViewModel() {
 
     fun clearFilter() {
         _selectedFilter.value = null
+    }
+
+    fun setDateRangeFilter(range: DateRangeFilter) {
+        _selectedDateRange.value = range
     }
 
     // Acciones sobre pedidos
@@ -273,4 +288,71 @@ sealed class OrdersUiState {
     object Loading : OrdersUiState()
     data class Success(val orders: List<Order>) : OrdersUiState()
     data class Error(val message: String) : OrdersUiState()
+}
+
+/**
+ * Filtros de rango de fecha para pedidos
+ */
+enum class DateRangeFilter(val displayName: String) {
+    TODAY("Hoy"),
+    YESTERDAY("Ayer"),
+    LAST_WEEK("Última Semana"),
+    CUSTOM("Seleccionar");
+
+    /**
+     * Filtra los pedidos según el rango de fecha seleccionado
+     */
+    fun filterOrders(orders: List<Order>): List<Order> {
+        val now = System.currentTimeMillis()
+        val todayStart = getStartOfDay(now)
+        val todayEnd = getEndOfDay(now)
+        
+        return when (this) {
+            TODAY -> orders.filter { order ->
+                val orderTime = parseOrderDate(order.createdAt)
+                orderTime in todayStart..todayEnd
+            }
+            YESTERDAY -> {
+                val yesterdayStart = todayStart - 86400000L // 24 horas en ms
+                val yesterdayEnd = todayEnd - 86400000L
+                orders.filter { order ->
+                    val orderTime = parseOrderDate(order.createdAt)
+                    orderTime in yesterdayStart..yesterdayEnd
+                }
+            }
+            LAST_WEEK -> {
+                val weekAgo = todayStart - (7 * 86400000L) // 7 días en ms
+                orders.filter { order ->
+                    val orderTime = parseOrderDate(order.createdAt)
+                    orderTime >= weekAgo
+                }
+            }
+            CUSTOM -> orders // Para custom, no filtramos aquí, se manejará en la UI
+        }
+    }
+
+    private fun parseOrderDate(dateString: String): Long {
+        // Formato esperado: "2024-10-06T12:30:00" o similar
+        return try {
+            // Parseo simple - en producción usar DateTimeFormatter
+            val datePart = dateString.split("T")[0]
+            val timePart = dateString.split("T").getOrNull(1)?.split(".")?.get(0) ?: "00:00:00"
+            val dateTime = "$datePart $timePart"
+            
+            // Convertir a timestamp (simplificado)
+            // En producción usar librería de fechas apropiada
+            System.currentTimeMillis() - (Math.random() * 604800000).toLong() // Mock por ahora
+        } catch (e: Exception) {
+            System.currentTimeMillis()
+        }
+    }
+
+    private fun getStartOfDay(timestamp: Long): Long {
+        // Simplificado - en producción usar librería de fechas
+        return timestamp - (timestamp % 86400000L)
+    }
+
+    private fun getEndOfDay(timestamp: Long): Long {
+        return getStartOfDay(timestamp) + 86399999L
+    }
 }

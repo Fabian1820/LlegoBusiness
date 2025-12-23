@@ -28,6 +28,7 @@ fun RestaurantHomeScreen(
     authViewModel: AuthViewModel,
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
+    onNavigateToStatistics: () -> Unit = {},
     onNavigateToChatDetail: (String) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     chatsViewModel: ChatsViewModel,
@@ -75,6 +76,15 @@ fun RestaurantHomeScreen(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
+                        }
+
+                        IconButton(onClick = onNavigateToStatistics) {
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = "Estadísticas",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
                         }
 
                         IconButton(onClick = onNavigateToProfile) {
@@ -190,6 +200,10 @@ fun RestaurantHomeScreen(
                 RestaurantTab.WALLET -> WalletScreen(
                     onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
                 )
+                RestaurantTab.SETTINGS -> SettingsScreen(
+                    settingsViewModel = settingsViewModel,
+                    onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                )
                 RestaurantTab.TUTORIALS -> TutorialsScreen(
                     onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
                 )
@@ -208,5 +222,6 @@ enum class RestaurantTab(
     ORDERS("Pedidos", Icons.Default.ShoppingCart),
     MENU("Menú", Icons.Default.Restaurant),
     WALLET("Wallet", Icons.Default.AccountBalanceWallet),
+    SETTINGS("Configuración", Icons.Default.Settings),
     TUTORIALS("Tutoriales", Icons.Default.School)
 }
