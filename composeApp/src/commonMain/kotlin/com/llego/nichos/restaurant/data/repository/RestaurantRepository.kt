@@ -60,14 +60,37 @@ class RestaurantRepository {
         return _orders.value.find { it.id == orderId }
     }
 
-    suspend fun updateOrderStatus(orderId: String, newStatus: OrderStatus): Boolean {
+    suspend fun updateOrderStatus(
+        orderId: String,
+        newStatus: OrderStatus,
+        estimatedTime: Int? = null
+    ): Boolean {
+        delay(500)
+        val currentOrders = _orders.value.toMutableList()
+        val index = currentOrders.indexOfFirst { it.id == orderId }
+
+        if (index != -1) {
+            val currentOrder = currentOrders[index]
+            currentOrders[index] = currentOrders[index].copy(
+                status = newStatus,
+                estimatedTime = estimatedTime ?: currentOrder.estimatedTime,
+                updatedAt = getCurrentTimestamp()
+            )
+            _orders.value = currentOrders
+            return true
+        }
+        return false
+    }
+
+    suspend fun updateOrderItems(orderId: String, items: List<OrderItem>, total: Double): Boolean {
         delay(500)
         val currentOrders = _orders.value.toMutableList()
         val index = currentOrders.indexOfFirst { it.id == orderId }
 
         if (index != -1) {
             currentOrders[index] = currentOrders[index].copy(
-                status = newStatus,
+                items = items,
+                total = total,
                 updatedAt = getCurrentTimestamp()
             )
             _orders.value = currentOrders
@@ -317,7 +340,7 @@ class RestaurantRepository {
                 total = 135.50,
                 paymentMethod = PaymentMethod.CASH,
                 specialNotes = "Tocar el timbre dos veces. Por favor incluir cubiertos desechables y servilletas extra. El pedido es para una reunión familiar, así que necesitamos que todo llegue bien caliente. Si falta algún ingrediente, llamar antes de preparar. Gracias!",
-                estimatedTime = 45
+                estimatedTime = null
             ),
             Order(
                 id = "ORD002",
@@ -405,6 +428,47 @@ class RestaurantRepository {
                 total = 23.50,
                 paymentMethod = PaymentMethod.DIGITAL_WALLET,
                 estimatedTime = 40
+            ),
+            Order(
+                id = "ORD005",
+                orderNumber = "#1238",
+                customer = Customer(
+                    name = "Lucia Ramirez",
+                    phone = "+53 5555-5555",
+                    address = "Calle 8 #120, Playa"
+                ),
+                items = listOf(
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[7], // Ensalada Mixta
+                        quantity = 1,
+                        specialInstructions = "Sin tomate",
+                        subtotal = 5.50
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[0], // Ropa Vieja
+                        quantity = 1,
+                        specialInstructions = null,
+                        subtotal = 12.50
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[5], // Guarapo
+                        quantity = 2,
+                        specialInstructions = "Sin azucar",
+                        subtotal = 6.0
+                    ),
+                    OrderItem(
+                        menuItem = getMockProducts().map { it.toMenuItem() }[8], // Croquetas de Jamon
+                        quantity = 1,
+                        specialInstructions = "Bien doradas",
+                        subtotal = 6.0
+                    )
+                ),
+                status = OrderStatus.PENDING,
+                createdAt = "2024-10-06T12:40:00",
+                updatedAt = "2024-10-06T12:40:00",
+                total = 30.0,
+                paymentMethod = PaymentMethod.CARD,
+                estimatedTime = null
             )
         )
     }

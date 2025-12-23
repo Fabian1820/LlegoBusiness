@@ -31,9 +31,9 @@ class ChatsViewModel : ViewModel() {
 
     // Mock data storage - en producción esto vendría de un repositorio
     private val mockChatsData = mutableListOf(
-        createMockChat("order_001", "#1234", "Juan Pérez", 2),
-        createMockChat("order_002", "#1235", "María García", 0),
-        createMockChat("order_003", "#1236", "Carlos López", 0)
+        createMockChat("ORD001", "#1234", "Juan Perez", 2),
+        createMockChat("ORD005", "#1238", "Lucia Ramirez", 0),
+        createMockChat("ORD003", "#1236", "Carlos Lopez", 0)
     )
 
     private fun getCurrentTimestamp(): Long {
@@ -240,6 +240,132 @@ class ChatsViewModel : ViewModel() {
         return orderId
     }
 
+    fun createModificationMessage(
+        orderId: String,
+        orderNumber: String,
+        customerName: String,
+        note: String,
+        originalItems: List<OrderItem>,
+        modifiedItems: List<OrderItem>,
+        originalTotal: Double,
+        newTotal: Double
+    ): String {
+        viewModelScope.launch {
+            val currentTime = getCurrentTimestamp()
+            val summary = buildModificationSummary(
+                orderNumber = orderNumber,
+                note = note,
+                originalItems = originalItems,
+                modifiedItems = modifiedItems,
+                originalTotal = originalTotal,
+                newTotal = newTotal
+            )
+            val systemMessage = ChatMessage(
+                id = "msg_${currentTime}",
+                senderId = "system",
+                senderType = SenderType.SYSTEM,
+                message = summary,
+                timestamp = formatTimestamp(currentTime),
+                fullTimestamp = currentTime,
+                isRead = false,
+                messageType = MessageType.ORDER_MODIFIED
+            )
+
+            val existingChat = mockChatsData.find { it.orderId == orderId }
+            if (existingChat == null) {
+                val newChat = Chat(
+                    orderId = orderId,
+                    orderNumber = orderNumber,
+                    customerName = customerName,
+                    messages = listOf(systemMessage),
+                    lastMessage = systemMessage,
+                    unreadCount = 0,
+                    createdAt = formatTimestamp(currentTime),
+                    updatedAt = formatTimestamp(currentTime)
+                )
+                mockChatsData.add(0, newChat)
+                _currentChat.value = newChat
+                loadChats()
+            } else {
+                val chatIndex = mockChatsData.indexOfFirst { it.orderId == orderId }
+                if (chatIndex != -1) {
+                    val updatedMessages = existingChat.messages + systemMessage
+                    val updatedChat = existingChat.copy(
+                        messages = updatedMessages,
+                        lastMessage = systemMessage,
+                        updatedAt = formatTimestamp(currentTime)
+                    )
+                    mockChatsData[chatIndex] = updatedChat
+                    mockChatsData.removeAt(chatIndex)
+                    mockChatsData.add(0, updatedChat)
+                    if (_currentChat.value?.orderId == orderId) {
+                        _currentChat.value = updatedChat
+                    }
+                    loadChats()
+                }
+            }
+        }
+        return orderId
+    }
+
+    private fun buildModificationSummary(
+        orderNumber: String,
+        note: String,
+        originalItems: List<OrderItem>,
+        modifiedItems: List<OrderItem>,
+        originalTotal: Double,
+        newTotal: Double
+    ): String {
+        val originalById = originalItems.associateBy { it.id }
+        val modifiedById = modifiedItems.associateBy { it.id }
+
+        val addedItems = modifiedItems.filter { it.id !in originalById }
+        val removedItems = originalItems.filter { it.id !in modifiedById }
+        val editedItems = modifiedItems.mapNotNull { item ->
+            val original = originalById[item.id] ?: return@mapNotNull null
+            val quantityChanged = original.quantity != item.quantity
+            val instructionsChanged = original.specialInstructions != item.specialInstructions
+            if (!quantityChanged && !instructionsChanged) {
+                return@mapNotNull null
+            }
+            val changes = mutableListOf<String>()
+            if (quantityChanged) {
+                changes.add("cant ${original.quantity}->${item.quantity}")
+            }
+            if (instructionsChanged) {
+                val before = original.specialInstructions ?: "sin"
+                val after = item.specialInstructions ?: "sin"
+                changes.add("instr ${before}->${after}")
+            }
+            "${item.menuItem.name} (${changes.joinToString(", ")})"
+        }
+
+        val lines = mutableListOf<String>()
+        lines.add("Pedido modificado $orderNumber")
+        if (addedItems.isNotEmpty()) {
+            val addedSummary = addedItems.joinToString(separator = "; ") { formatOrderItemLine(it) }
+            lines.add("Agregados: $addedSummary")
+        }
+        if (removedItems.isNotEmpty()) {
+            val removedSummary = removedItems.joinToString(separator = "; ") { formatOrderItemLine(it) }
+            lines.add("Eliminados: $removedSummary")
+        }
+        if (editedItems.isNotEmpty()) {
+            val editedSummary = editedItems.joinToString(separator = "; ")
+            lines.add("Editados: $editedSummary")
+        }
+        val finalSummary = modifiedItems.joinToString(separator = "; ") { formatOrderItemLine(it) }
+        lines.add("Items finales: $finalSummary")
+        lines.add("Totales: $originalTotal -> $newTotal")
+        lines.add("Comentario: $note")
+        return lines.joinToString("\n")
+    }
+
+    private fun formatOrderItemLine(item: OrderItem): String {
+        val base = "${item.quantity}x ${item.menuItem.name}"
+        val instructions = item.specialInstructions?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+        return base + instructions
+    }
     private fun formatTimestamp(millis: Long): String {
         // Formato simple: "HH:mm"
         val hours = (millis / 3600000) % 24
@@ -327,3 +453,5 @@ sealed class ChatsUiState {
     data class Success(val chats: List<Chat>) : ChatsUiState()
     data class Error(val message: String) : ChatsUiState()
 }
+
+

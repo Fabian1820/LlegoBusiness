@@ -43,7 +43,8 @@ enum class SenderType {
 @Serializable
 enum class MessageType {
     TEXT,           // Mensaje de texto normal
-    ORDER_CANCELLED // Notificación de cancelación de pedido
+    ORDER_CANCELLED, // Notificacion de cancelacion de pedido
+    ORDER_MODIFIED  // Notificacion de modificacion de pedido
 }
 
 // Extension functions para UI

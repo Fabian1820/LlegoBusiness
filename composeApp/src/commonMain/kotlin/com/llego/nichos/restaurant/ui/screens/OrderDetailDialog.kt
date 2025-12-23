@@ -18,11 +18,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.restaurant.ui.components.orders.CustomerInfoSection
 import com.llego.nichos.restaurant.ui.components.orders.EstimatedTimeSection
+import com.llego.nichos.restaurant.ui.components.orders.EditableOrderItemsSection
 import com.llego.nichos.restaurant.ui.components.orders.OrderActionsSection
 import com.llego.nichos.restaurant.ui.components.orders.OrderItemsSection
 import com.llego.nichos.restaurant.ui.components.orders.OrderStatusSection
+import com.llego.nichos.restaurant.ui.components.orders.OrderTotalsComparisonSection
 import com.llego.nichos.restaurant.ui.components.orders.PaymentSummarySection
 import com.llego.nichos.restaurant.ui.components.orders.SpecialNotesSection
+import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 
 /**
  * Diálogo de detalle del pedido con gestión de estados
@@ -30,10 +33,23 @@ import com.llego.nichos.restaurant.ui.components.orders.SpecialNotesSection
 @Composable
 fun OrderDetailDialog(
     order: Order,
+    ordersViewModel: OrdersViewModel,
     onDismiss: () -> Unit,
     onUpdateStatus: (OrderStatus) -> Unit,
-    onNavigateToChat: ((String, String, String) -> Unit)? = null // orderId, orderNumber, customerName para navegar al chat
+    onAcceptOrder: (Int) -> Unit,
+    onSubmitModification: ((Order, OrderModificationState, String) -> Unit)? = null
 ) {
+    val modificationState by ordersViewModel.modificationState.collectAsState()
+    val availableMenuItems by ordersViewModel.menuItems.collectAsState()
+    val isEditMode = modificationState?.isEditMode == true
+    val currentItems = modificationState?.modifiedItems.orEmpty()
+
+    DisposableEffect(order.id) {
+        onDispose {
+            ordersViewModel.exitEditMode()
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -98,7 +114,30 @@ fun OrderDetailDialog(
                     HorizontalDivider()
 
                     // Items del pedido
-                    OrderItemsSection(items = order.items)
+                    if (isEditMode) {
+                        EditableOrderItemsSection(
+                            originalItems = modificationState?.originalItems.orEmpty(),
+                            items = currentItems,
+                            availableMenuItems = availableMenuItems,
+                            onIncreaseQuantity = { itemId ->
+                                val item = currentItems.firstOrNull { it.id == itemId } ?: return@EditableOrderItemsSection
+                                ordersViewModel.modifyItemQuantity(itemId, item.quantity + 1)
+                            },
+                            onDecreaseQuantity = { itemId ->
+                                val item = currentItems.firstOrNull { it.id == itemId } ?: return@EditableOrderItemsSection
+                                ordersViewModel.modifyItemQuantity(itemId, item.quantity - 1)
+                            },
+                            onRemoveItem = { itemId -> ordersViewModel.removeItem(itemId) },
+                            onUpdateInstructions = { itemId, instructions ->
+                                ordersViewModel.modifyItemInstructions(itemId, instructions)
+                            },
+                            onAddItem = { menuItem, quantity, instructions ->
+                                ordersViewModel.addItem(menuItem, quantity, instructions)
+                            }
+                        )
+                    } else {
+                        OrderItemsSection(items = order.items)
+                    }
 
                     HorizontalDivider()
 
@@ -113,6 +152,10 @@ fun OrderDetailDialog(
                         paymentMethod = order.paymentMethod,
                         total = order.total
                     )
+
+                    if (isEditMode && modificationState != null) {
+                        OrderTotalsComparisonSection(modificationState = modificationState!!)
+                    }
 
                     // Tiempo estimado
                     order.estimatedTime?.let { time ->
@@ -130,12 +173,18 @@ fun OrderDetailDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OrderActionsSection(
-                            orderId = order.id,
-                            orderNumber = order.orderNumber,
-                            customerName = order.customer.name,
                             orderStatus = order.status,
+                            modificationState = modificationState,
+                            onAcceptOrder = { minutes -> onAcceptOrder(minutes) },
+                            onRejectOrder = { onUpdateStatus(OrderStatus.CANCELLED) },
                             onUpdateStatus = onUpdateStatus,
-                            onNavigateToChat = onNavigateToChat
+                            onEnterEditMode = { ordersViewModel.enterEditMode(order) },
+                            onCancelEdit = { ordersViewModel.cancelEdit() },
+                            onConfirmModification = { note ->
+                                val state = modificationState ?: return@OrderActionsSection
+                                onSubmitModification?.invoke(order, state, note)
+                                ordersViewModel.applyModification(order.id)
+                            }
                         )
                     }
                 }

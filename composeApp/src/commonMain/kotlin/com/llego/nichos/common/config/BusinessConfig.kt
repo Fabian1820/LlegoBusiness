@@ -36,36 +36,36 @@ object BusinessConfigProvider {
             BusinessType.RESTAURANT -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("menu", "Menú", Icons.Default.Restaurant),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
             BusinessType.MARKET -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("products", "Productos", Icons.Default.Inventory),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
             BusinessType.AGROMARKET -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("products", "Productos", Icons.Default.Grass),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
             BusinessType.CLOTHING_STORE -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("stock", "Stock", Icons.Default.Checkroom),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
             BusinessType.PHARMACY -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("medicines", "Medicinas", Icons.Default.Medication),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School)
+                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
+                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
         }
     }
@@ -154,3 +154,5 @@ object BusinessConfigProvider {
         }
     }
 }
+
+

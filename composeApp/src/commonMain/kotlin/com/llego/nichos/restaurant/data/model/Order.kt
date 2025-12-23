@@ -37,10 +37,28 @@ data class Coordinates(
 
 @Serializable
 data class OrderItem(
+    val id: String = "",
     val menuItem: MenuItem,
     val quantity: Int,
     val specialInstructions: String? = null,
     val subtotal: Double
+)
+
+@Serializable
+enum class ModificationType {
+    UNCHANGED,
+    QUANTITY_CHANGED,
+    INSTRUCTIONS_CHANGED,
+    ADDED,
+    REMOVED
+}
+
+@Serializable
+data class ModifiedOrderItem(
+    val orderItem: OrderItem,
+    val modificationType: ModificationType,
+    val originalQuantity: Int? = null,
+    val originalInstructions: String? = null
 )
 
 @Serializable

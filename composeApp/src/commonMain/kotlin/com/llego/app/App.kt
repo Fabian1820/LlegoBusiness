@@ -20,6 +20,7 @@ import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
 import com.llego.nichos.restaurant.ui.screens.OrderDetailScreen
 import com.llego.nichos.restaurant.ui.screens.ConfirmationType
 import com.llego.nichos.common.data.model.Product
+import com.llego.nichos.restaurant.data.model.OrderStatus
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
@@ -95,9 +96,26 @@ fun App(viewModels: AppViewModels) {
                             if (order != null) {
                                 OrderDetailScreen(
                                     order = order,
+                                    ordersViewModel = ordersViewModel,
                                     onNavigateBack = {
                                         showOrderDetail = false
                                         selectedOrderId = null
+                                    },
+                                    onAcceptOrder = { minutes ->
+                                        showOrderDetail = false
+                                        selectedOrderId = null
+
+                                        scope.launch {
+                                            delay(350)
+                                            ordersViewModel.updateOrderStatus(
+                                                order.id,
+                                                OrderStatus.PREPARING,
+                                                minutes
+                                            )
+                                            delay(100)
+                                            confirmationType = ConfirmationType.ORDER_ACCEPTED
+                                            confirmationOrderNumber = order.orderNumber
+                                        }
                                     },
                                     onUpdateStatus = { newStatus ->
                                         // Primero cerrar la pantalla con animación
@@ -129,7 +147,20 @@ fun App(viewModels: AppViewModels) {
                                             }
                                         }
                                     },
-                                    onNavigateToChat = null // Chat aún no implementado
+                                    onSubmitModification = { modifiedOrder, state, note ->
+                                        chatsViewModel.createModificationMessage(
+                                            orderId = modifiedOrder.id,
+                                            orderNumber = modifiedOrder.orderNumber,
+                                            customerName = modifiedOrder.customer.name,
+                                            note = note,
+                                            originalItems = state.originalItems,
+                                            modifiedItems = state.modifiedItems,
+                                            originalTotal = state.originalTotal,
+                                            newTotal = state.newTotal
+                                        )
+                                        showOrderDetail = false
+                                        selectedOrderId = null
+                                    }
                                 )
                             }
                         }
@@ -174,6 +205,8 @@ fun App(viewModels: AppViewModels) {
                             existingProduct = productToEdit
                         )
                     }
+                    // MVP: chats deshabilitados en la app de negocios
+                    /*
                     showChatDetail && currentChatOrderId != null -> {
                         ChatDetailScreen(
                             orderId = currentChatOrderId!!,
@@ -196,6 +229,7 @@ fun App(viewModels: AppViewModels) {
                             viewModel = chatsViewModel
                         )
                     }
+                    */
                     showProfile -> {
                         RestaurantProfileScreen(
                             authViewModel = authViewModel,
@@ -262,3 +296,6 @@ fun App(viewModels: AppViewModels) {
         }
     }
 }
+
+
+

@@ -2,7 +2,11 @@ package com.llego.nichos.restaurant.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.llego.nichos.common.data.model.toMenuItem
+import com.llego.nichos.restaurant.data.model.MenuItem
 import com.llego.nichos.restaurant.data.model.Order
+import com.llego.nichos.restaurant.data.model.OrderItem
+import com.llego.nichos.restaurant.data.model.OrderModificationState
 import com.llego.nichos.restaurant.data.model.OrderStatus
 import com.llego.nichos.restaurant.data.repository.RestaurantRepository
 import kotlinx.coroutines.flow.*
@@ -38,6 +42,19 @@ class OrdersViewModel : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    private val _modificationState = MutableStateFlow<OrderModificationState?>(null)
+    val modificationState: StateFlow<OrderModificationState?> = _modificationState.asStateFlow()
+
+    val menuItems: StateFlow<List<MenuItem>> = repository.products
+        .map { products -> products.map { it.toMenuItem() } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    private var itemIdCounter = 0
 
     init {
         loadOrders()
@@ -105,12 +122,91 @@ class OrdersViewModel : ViewModel() {
         }
     }
 
-    fun updateOrderStatus(orderId: String, newStatus: OrderStatus) {
+    fun updateOrderStatus(orderId: String, newStatus: OrderStatus, estimatedTime: Int? = null) {
         viewModelScope.launch {
             try {
-                repository.updateOrderStatus(orderId, newStatus)
+                repository.updateOrderStatus(orderId, newStatus, estimatedTime)
             } catch (e: Exception) {
                 // TODO: Manejar error
+            }
+        }
+    }
+
+    fun enterEditMode(order: Order) {
+        val normalizedItems = normalizeItems(order.id, order.items)
+        val newTotal = normalizedItems.sumOf { it.subtotal }
+        _modificationState.value = OrderModificationState(
+            originalItems = normalizedItems,
+            modifiedItems = normalizedItems,
+            isEditMode = true,
+            hasChanges = false,
+            originalTotal = order.total,
+            newTotal = newTotal
+        )
+    }
+
+    fun exitEditMode() {
+        _modificationState.value = null
+    }
+
+    fun modifyItemQuantity(itemId: String, newQuantity: Int) {
+        val state = _modificationState.value ?: return
+        val updatedItems = state.modifiedItems.map { item ->
+            if (item.id == itemId) {
+                item.copy(quantity = newQuantity.coerceAtLeast(1))
+            } else {
+                item
+            }
+        }
+        updateModificationState(state, updatedItems)
+    }
+
+    fun removeItem(itemId: String) {
+        val state = _modificationState.value ?: return
+        val updatedItems = state.modifiedItems.filterNot { it.id == itemId }
+        updateModificationState(state, updatedItems)
+    }
+
+    fun addItem(menuItem: MenuItem, quantity: Int, instructions: String?) {
+        val state = _modificationState.value ?: return
+        val normalizedInstructions = instructions?.trim()?.takeIf { it.isNotEmpty() }
+        val safeQuantity = quantity.coerceAtLeast(1)
+        val newItem = OrderItem(
+            id = nextItemId(),
+            menuItem = menuItem,
+            quantity = safeQuantity,
+            specialInstructions = normalizedInstructions,
+            subtotal = menuItem.price * safeQuantity
+        )
+        updateModificationState(state, state.modifiedItems + newItem)
+    }
+
+    fun modifyItemInstructions(itemId: String, instructions: String?) {
+        val state = _modificationState.value ?: return
+        val normalizedInstructions = instructions?.trim()?.takeIf { it.isNotEmpty() }
+        val updatedItems = state.modifiedItems.map { item ->
+            if (item.id == itemId) {
+                item.copy(specialInstructions = normalizedInstructions)
+            } else {
+                item
+            }
+        }
+        updateModificationState(state, updatedItems)
+    }
+
+    fun cancelEdit() {
+        _modificationState.value = null
+    }
+
+    fun applyModification(orderId: String) {
+        val state = _modificationState.value ?: return
+        viewModelScope.launch {
+            try {
+                repository.updateOrderItems(orderId, state.modifiedItems, state.newTotal)
+            } catch (e: Exception) {
+                // TODO: Manejar error
+            } finally {
+                _modificationState.value = null
             }
         }
     }
@@ -130,6 +226,43 @@ class OrdersViewModel : ViewModel() {
     fun getActiveOrdersCount(): Int {
         return (uiState.value as? OrdersUiState.Success)?.orders
             ?.count { it.status in listOf(OrderStatus.PREPARING, OrderStatus.READY) } ?: 0
+    }
+
+    private fun updateModificationState(state: OrderModificationState, items: List<OrderItem>) {
+        val (normalizedItems, newTotal) = recalculateTotals(items)
+        val hasChanges = state.originalItems != normalizedItems
+        _modificationState.value = state.copy(
+            modifiedItems = normalizedItems,
+            hasChanges = hasChanges,
+            newTotal = newTotal,
+            isEditMode = true
+        )
+    }
+
+    private fun recalculateTotals(items: List<OrderItem>): Pair<List<OrderItem>, Double> {
+        val normalizedItems = items.map { item ->
+            val subtotal = item.menuItem.price * item.quantity
+            if (item.subtotal == subtotal) item else item.copy(subtotal = subtotal)
+        }
+        val total = normalizedItems.sumOf { it.subtotal }
+        return normalizedItems to total
+    }
+
+    private fun normalizeItems(orderId: String, items: List<OrderItem>): List<OrderItem> {
+        return items.mapIndexed { index, item ->
+            val resolvedId = if (item.id.isNotBlank()) item.id else "$orderId-item-${index + 1}"
+            val subtotal = item.menuItem.price * item.quantity
+            if (item.id == resolvedId && item.subtotal == subtotal) {
+                item
+            } else {
+                item.copy(id = resolvedId, subtotal = subtotal)
+            }
+        }
+    }
+
+    private fun nextItemId(): String {
+        itemIdCounter += 1
+        return "added-item-$itemIdCounter"
     }
 }
 

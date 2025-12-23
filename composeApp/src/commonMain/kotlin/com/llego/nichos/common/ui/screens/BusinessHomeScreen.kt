@@ -67,29 +67,7 @@ fun BusinessHomeScreen(
                         )
                     },
                     actions = {
-                        val pendingCount = ordersViewModel.getPendingOrdersCount()
-                        IconButton(onClick = onNavigateToChats) {
-                            BadgedBox(
-                                badge = {
-                                    if (pendingCount > 0) {
-                                        Badge(
-                                            containerColor = MaterialTheme.colorScheme.error
-                                        ) {
-                                            Text(
-                                                text = pendingCount.toString(),
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                        }
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ModeComment,
-                                    contentDescription = "Chats",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                        // Chats ocultos en MVP
 
                         IconButton(onClick = onNavigateToProfile) {
                             Icon(
@@ -193,10 +171,6 @@ fun BusinessHomeScreen(
                     OrdersScreen(
                         viewModel = ordersViewModel,
                         onNavigateToOrderDetail = onNavigateToOrderDetail,
-                        onNavigateToChat = { orderId, orderNumber, customerName ->
-                            chatsViewModel.createCancellationChat(orderId, orderNumber, customerName)
-                            onNavigateToChatDetail(orderId)
-                        },
                         onShowConfirmation = onShowConfirmation
                     )
                 }
@@ -239,12 +213,12 @@ fun BusinessHomeScreen(
                         onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
                     )
                 }
-                "tutorials" -> {
-                    // Pantalla de Tutoriales (común para todos)
-                    TutorialsScreen(
-                        onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
-                    )
-                }
+                // "tutorials" -> {
+                //     // Pantalla de Tutoriales (común para todos) - oculto en MVP
+                //     TutorialsScreen(
+                //         onNavigateBack = { /* No hacemos nada, ya estamos en el tab */ }
+                //     )
+                // }
             }
         }
     }
