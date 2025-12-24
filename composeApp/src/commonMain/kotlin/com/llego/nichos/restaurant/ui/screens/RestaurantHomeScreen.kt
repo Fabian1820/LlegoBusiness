@@ -222,6 +222,6 @@ enum class RestaurantTab(
     ORDERS("Pedidos", Icons.Default.ShoppingCart),
     MENU("Menú", Icons.Default.Restaurant),
     WALLET("Wallet", Icons.Default.AccountBalanceWallet),
-    SETTINGS("Configuración", Icons.Default.Settings),
+    SETTINGS("Ajustes", Icons.Default.Settings),
     TUTORIALS("Tutoriales", Icons.Default.School)
 }

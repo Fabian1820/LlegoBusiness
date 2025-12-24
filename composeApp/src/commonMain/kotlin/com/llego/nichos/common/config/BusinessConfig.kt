@@ -37,7 +37,7 @@ object BusinessConfigProvider {
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("menu", "Menú", Icons.Default.Restaurant),
                 BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-                BusinessTabConfig("settings", "Configuración", Icons.Default.Settings)
+                BusinessTabConfig("settings", "Ajustes", Icons.Default.Settings)
                 // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 

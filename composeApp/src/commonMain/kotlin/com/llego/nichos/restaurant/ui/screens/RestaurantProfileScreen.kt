@@ -60,9 +60,8 @@ fun RestaurantProfileScreen(
     val authUiState by authViewModel.uiState.collectAsState()
     val user = authUiState.currentUser
 
-    // Animación de entrada
+    // Animación de entrada - sin delay para carga más rápida
     LaunchedEffect(Unit) {
-        delay(100)
         animateContent = true
     }
 
@@ -297,8 +296,16 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                             fontSize = 30.sp
                         ),
                         trailingIcon = {
-                            IconButton(onClick = { isEditingName = false }) {
-                                Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                IconButton(onClick = { isEditingName = false }) {
+                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { 
+                                    businessName = user?.businessProfile?.businessName ?: "Restaurante La Habana"
+                                    isEditingName = false 
+                                }) {
+                                    Icon(Icons.Default.Close, null, tint = Color.Gray)
+                                }
                             }
                         },
                         singleLine = true,
@@ -308,32 +315,19 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                         )
                     )
                 } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = businessName,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 30.sp
-                            ),
-                            color = Color.Black,
-                            maxLines = 2,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { isEditingName = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = businessName,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 30.sp
+                        ),
+                        color = Color.Black,
+                        maxLines = 2,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isEditingName = true }
+                            .padding(vertical = 4.dp)
+                    )
                 }
 
                 // Dirección editable
@@ -351,8 +345,16 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                             )
                         },
                         trailingIcon = {
-                            IconButton(onClick = { isEditingAddress = false }) {
-                                Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                IconButton(onClick = { isEditingAddress = false }) {
+                                    Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { 
+                                    address = user?.businessProfile?.address ?: "Calle 45 #12-34, Bogotá"
+                                    isEditingAddress = false 
+                                }) {
+                                    Icon(Icons.Default.Close, null, tint = Color.Gray)
+                                }
                             }
                         },
                         singleLine = true,
@@ -365,7 +367,10 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { isEditingAddress = true }
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isEditingAddress = true }
+                            .padding(vertical = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
@@ -379,12 +384,6 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                             color = Color.Gray,
                             maxLines = 1,
                             modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            Icons.Default.Edit,
-                            null,
-                            tint = Color.Gray.copy(alpha = 0.5f),
-                            modifier = Modifier.size(14.dp)
                         )
                     }
                 }
@@ -440,8 +439,16 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Categoría") },
                 trailingIcon = {
-                    IconButton(onClick = { isEditingCategory = false }) {
-                        Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(onClick = { isEditingCategory = false }) {
+                            Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                        IconButton(onClick = { 
+                            category = user?.businessType?.name ?: "Restaurante"
+                            isEditingCategory = false 
+                        }) {
+                            Icon(Icons.Default.Close, null, tint = Color.Gray)
+                        }
                     }
                 },
                 singleLine = true,
@@ -451,28 +458,18 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                 )
             )
         } else {
-            Row(
+            Text(
+                text = category,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                ),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isEditingCategory = true },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = category,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp
-                    ),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Icon(
-                    Icons.Default.Edit,
-                    null,
-                    tint = Color.Gray.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+                    .clickable { isEditingCategory = true }
+                    .padding(vertical = 4.dp)
+            )
         }
 
         // Descripción editable
@@ -483,8 +480,16 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Descripción") },
                 trailingIcon = {
-                    IconButton(onClick = { isEditingDescription = false }) {
-                        Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(onClick = { isEditingDescription = false }) {
+                            Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                        IconButton(onClick = { 
+                            description = user?.businessProfile?.description ?: "Deliciosa comida tradicional"
+                            isEditingDescription = false 
+                        }) {
+                            Icon(Icons.Default.Close, null, tint = Color.Gray)
+                        }
                     }
                 },
                 maxLines = 3,
@@ -494,27 +499,16 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                 )
             )
         } else {
-            Row(
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = Color.Gray,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isEditingDescription = true },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                    color = Color.Gray,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 3
-                )
-                Icon(
-                    Icons.Default.Edit,
-                    null,
-                    tint = Color.Gray.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+                    .clickable { isEditingDescription = true }
+                    .padding(vertical = 4.dp),
+                maxLines = 3
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -734,28 +728,21 @@ private fun LocationMapSection() {
                     }
                 }
 
-                Surface(
+                IconButton(
                     onClick = { showFullScreenMap = true },
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                    tonalElevation = 2.dp
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(10.dp)
+                        )
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Fullscreen,
-                            contentDescription = "Ampliar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Ampliar mapa",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Fullscreen,
+                        contentDescription = "Ampliar mapa",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

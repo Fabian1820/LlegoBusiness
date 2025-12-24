@@ -47,46 +47,11 @@ fun SettingsScreen(
         animateContent = true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "Configuración",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
-            )
-        },
-        containerColor = Color(0xFFF8F9FA)
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
         AnimatedVisibility(
             visible = animateContent,
             enter = fadeIn(animationSpec = tween(600)) +
@@ -100,7 +65,7 @@ fun SettingsScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(paddingValues),
+                            .padding(vertical = 16.dp),
                         contentPadding = PaddingValues(bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -188,9 +153,7 @@ fun SettingsScreen(
                 }
                 is SettingsUiState.Loading -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
@@ -200,9 +163,7 @@ fun SettingsScreen(
                 }
                 is SettingsUiState.Error -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Card(
@@ -357,7 +318,7 @@ private fun PaymentMethodsSection(
     acceptedPaymentMethods: List<PaymentMethod>,
     onUpdate: (List<PaymentMethod>) -> Unit
 ) {
-    val acceptedColor = Color(178, 214, 154)
+    val acceptedColor = MaterialTheme.colorScheme.secondary
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PaymentMethod.values().forEach { method ->

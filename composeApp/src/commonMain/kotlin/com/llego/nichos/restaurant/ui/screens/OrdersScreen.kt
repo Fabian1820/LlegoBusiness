@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -125,34 +126,39 @@ fun OrdersScreen(
                             EmptyOrdersView(hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY)
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // Filtros estilo iOS 16 como primer item
-                            item {
-                                iOSStyleFilters(
-                                    selectedDateRange = selectedDateRange,
-                                    onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
-                                    selectedStatus = selectedFilter,
-                                    onStatusSelected = { viewModel.setFilter(it) },
-                                    onStatusCleared = { viewModel.clearFilter() },
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    top = 80.dp, // Espacio para los filtros
+                                    bottom = 16.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Lista de pedidos
+                                items(
+                                    items = filteredOrders,
+                                    key = { it.id }
+                                ) { order ->
+                                    OrderCard(
+                                        order = order,
+                                        onClick = { onNavigateToOrderDetail(order.id) },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
                             }
-
-                            // Lista de pedidos
-                            items(
-                                items = filteredOrders,
-                                key = { it.id }
-                            ) { order ->
-                                OrderCard(
-                                    order = order,
-                                    onClick = { onNavigateToOrderDetail(order.id) },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            }
+                            
+                            // Filtros flotantes por encima
+                            iOSStyleFilters(
+                                selectedDateRange = selectedDateRange,
+                                onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
+                                selectedStatus = selectedFilter,
+                                onStatusSelected = { viewModel.setFilter(it) },
+                                onStatusCleared = { viewModel.clearFilter() },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .zIndex(10f) // Por encima del contenido
+                            )
                         }
                     }
                 }
@@ -286,7 +292,7 @@ private fun iOSStylePicker(
             }
         }
 
-        // Opciones desplegables con animación
+        // Opciones desplegables con animación - Overlay por encima
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically(
@@ -306,6 +312,7 @@ private fun iOSStylePicker(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(y = 60.dp)
+                .zIndex(20f) // Por encima de todo
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
