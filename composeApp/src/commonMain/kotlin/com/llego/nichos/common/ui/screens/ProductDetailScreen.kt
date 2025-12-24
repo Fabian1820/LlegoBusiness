@@ -644,7 +644,7 @@ private fun AvailabilityCard(isAvailable: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = if (isAvailable) {
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
         } else {
             MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
         }
@@ -660,14 +660,14 @@ private fun AvailabilityCard(isAvailable: Boolean) {
                 imageVector = if (isAvailable) Icons.Default.CheckCircle else Icons.Default.Cancel,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = if (isAvailable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                tint = if (isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
             Text(
                 text = if (isAvailable) "Disponible" else "No disponible",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = if (isAvailable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                color = if (isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
     }

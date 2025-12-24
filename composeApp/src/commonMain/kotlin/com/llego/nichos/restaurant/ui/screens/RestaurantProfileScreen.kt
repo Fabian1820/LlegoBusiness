@@ -899,9 +899,7 @@ private fun FullScreenMapDialog(
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     TopAppBar(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding(),
+                        modifier = Modifier.fillMaxWidth(),
                         title = {
                             Text(
                                 text = "Seleccionar ubicación",
@@ -934,9 +932,7 @@ private fun FullScreenMapDialog(
                     )
 
                     Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding(),
+                        modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary,
                         shadowElevation = 12.dp
                     ) {
@@ -1443,4 +1439,3 @@ private fun LogoutDialog(
         shape = RoundedCornerShape(24.dp)
     )
 }
-

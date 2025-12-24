@@ -195,6 +195,9 @@ private fun SettingsSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val accentColor = MaterialTheme.colorScheme.secondary
+    val accentContainer = MaterialTheme.colorScheme.secondaryContainer
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -213,13 +216,13 @@ private fun SettingsSection(
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    color = accentContainer,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = accentColor,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -233,7 +236,7 @@ private fun SettingsSection(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            HorizontalDivider(color = Color(0xFFE0E0E0))
+            HorizontalDivider(color = accentColor.copy(alpha = 0.2f))
             content()
         }
     }
@@ -319,6 +322,7 @@ private fun PaymentMethodsSection(
     onUpdate: (List<PaymentMethod>) -> Unit
 ) {
     val acceptedColor = MaterialTheme.colorScheme.secondary
+    val iconAccent = MaterialTheme.colorScheme.tertiary
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PaymentMethod.values().forEach { method ->
@@ -338,14 +342,14 @@ private fun PaymentMethodsSection(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isAccepted)
-                        acceptedColor.copy(alpha = 0.15f)
+                        MaterialTheme.colorScheme.tertiaryContainer
                     else
                         Color(0xFFF5F5F5)
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.5.dp,
                     if (isAccepted)
-                        acceptedColor.copy(alpha = 0.4f)
+                        acceptedColor.copy(alpha = 0.5f)
                     else
                         Color(0xFFE0E0E0)
                 )
@@ -364,9 +368,9 @@ private fun PaymentMethodsSection(
                         Surface(
                             shape = androidx.compose.foundation.shape.CircleShape,
                             color = if (isAccepted)
-                                acceptedColor.copy(alpha = 0.3f)
+                                iconAccent.copy(alpha = 0.2f)
                             else
-                                Color.Gray.copy(alpha = 0.1f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                         ) {
                             Icon(
                                 imageVector = when (method) {
@@ -376,7 +380,7 @@ private fun PaymentMethodsSection(
                                     PaymentMethod.DIGITAL_WALLET -> Icons.Default.PhoneAndroid
                                 },
                                 contentDescription = null,
-                                tint = if (isAccepted) acceptedColor else Color.Gray,
+                                tint = if (isAccepted) iconAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .padding(8.dp)
@@ -385,8 +389,8 @@ private fun PaymentMethodsSection(
                         Text(
                             text = method.getDisplayName(),
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = if (isAccepted) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isAccepted) acceptedColor else Color.Gray
+                                fontWeight = if (isAccepted) FontWeight.Bold else FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         )
                     }
@@ -403,7 +407,7 @@ private fun PaymentMethodsSection(
                         },
                         colors = CheckboxDefaults.colors(
                             checkedColor = acceptedColor,
-                            uncheckedColor = Color.Gray,
+                            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             checkmarkColor = Color.White
                         )
                     )
@@ -510,7 +514,7 @@ private fun SettingsRow(
                 color = if (isDestructive)
                     MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                 else
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
@@ -519,7 +523,7 @@ private fun SettingsRow(
                     tint = if (isDestructive)
                         MaterialTheme.colorScheme.error
                     else
-                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(10.dp)
@@ -533,22 +537,19 @@ private fun SettingsRow(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isDestructive)
-                            MaterialTheme.colorScheme.error
-                        else
-                            Color.Black
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color.Gray,
+                tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -570,14 +571,14 @@ private fun SettingSwitchRow(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (checked)
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                MaterialTheme.colorScheme.tertiaryContainer
             else
                 Color(0xFFF5F5F5)
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.5.dp,
             if (checked)
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
             else
                 Color(0xFFE0E0E0)
         )
@@ -597,23 +598,23 @@ private fun SettingSwitchRow(
                     text = label,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = if (checked) MaterialTheme.colorScheme.primary else Color.Black
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                    uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = Color.Gray.copy(alpha = 0.3f)
+                    checkedThumbColor = MaterialTheme.colorScheme.secondary,
+                    checkedTrackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f),
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
             )
         }

@@ -254,7 +254,11 @@ private fun iOSStylePicker(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onToggle),
+                .clickable(
+                    onClick = onToggle,
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White

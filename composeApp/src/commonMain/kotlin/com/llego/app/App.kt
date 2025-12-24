@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.auth.AuthViewModel
@@ -55,6 +56,7 @@ fun App(viewModels: AppViewModels) {
         var productToView by remember { mutableStateOf<Product?>(null) }
         var showOrderDetail by remember { mutableStateOf(false) }
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
+        var selectedHomeTabIndex by rememberSaveable { mutableStateOf(0) }
 
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
@@ -252,6 +254,8 @@ fun App(viewModels: AppViewModels) {
                             onNavigateToProfile = { showProfile = true },
                             onNavigateToStatistics = { showStatistics = true },
                             onNavigateToChats = { showChats = true },
+                            selectedTabIndex = selectedHomeTabIndex,
+                            onTabSelected = { selectedHomeTabIndex = it },
                             onNavigateToChatDetail = { orderId ->
                                 currentChatOrderId = orderId
                                 showChatDetail = true
@@ -304,6 +308,5 @@ fun App(viewModels: AppViewModels) {
         }
     }
 }
-
 
 

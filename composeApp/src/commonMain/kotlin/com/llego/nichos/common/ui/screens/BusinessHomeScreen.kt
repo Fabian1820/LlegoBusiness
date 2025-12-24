@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.nichos.common.config.BusinessConfigProvider
@@ -36,6 +37,8 @@ fun BusinessHomeScreen(
     onNavigateToChats: () -> Unit,
     onNavigateToStatistics: () -> Unit = {},
     onNavigateToChatDetail: (String) -> Unit = {},
+    selectedTabIndex: Int = 0,
+    onTabSelected: (Int) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (com.llego.nichos.common.data.model.Product?) -> Unit = {},
     onNavigateToProductDetail: (com.llego.nichos.common.data.model.Product) -> Unit = {},
@@ -50,7 +53,7 @@ fun BusinessHomeScreen(
     val currentUser by authViewModel.uiState.collectAsState()
     val businessName = currentUser.currentUser?.businessProfile?.businessName ?: "Mi Negocio"
 
-    var selectedTabIndex by remember { mutableStateOf(0) }
+    val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
     var isSearchOverlayVisible by remember { mutableStateOf(false) }
@@ -116,7 +119,7 @@ fun BusinessHomeScreen(
 
                             NavigationBarItem(
                                 selected = isSelected,
-                                onClick = { selectedTabIndex = index },
+                                onClick = { onTabSelected(index) },
                                 icon = {
                                     // Agregar badge solo al tab de Pedidos si hay pedidos pendientes
                                     if (tab.id == "orders" && pendingCount > 0) {
@@ -173,7 +176,14 @@ fun BusinessHomeScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
+        Box(
+            modifier = Modifier.padding(
+                start = paddingValues.calculateStartPadding(layoutDirection),
+                top = if (isSearchOverlayVisible) 0.dp else paddingValues.calculateTopPadding(),
+                end = paddingValues.calculateEndPadding(layoutDirection),
+                bottom = paddingValues.calculateBottomPadding()
+            )
+        ) {
             // Renderizar contenido según el tab seleccionado y el tipo de negocio
             when (tabs[selectedTabIndex].id) {
                 "orders" -> {

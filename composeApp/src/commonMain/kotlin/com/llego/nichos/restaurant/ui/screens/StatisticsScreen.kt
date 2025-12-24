@@ -627,6 +627,14 @@ private fun SalesBarChart(
     val maxValue = data.maxOfOrNull { it.second } ?: 1.0
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
+    val trackColor = primaryColor.copy(alpha = 0.12f)
+    val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+    val averageValue = if (data.isNotEmpty()) data.map { it.second }.average() else 0.0
+    val averageRatio = if (maxValue > 0) {
+        (averageValue / maxValue).coerceIn(0.0, 1.0).toFloat()
+    } else {
+        0f
+    }
 
     Card(
         modifier = modifier,
@@ -637,7 +645,7 @@ private fun SalesBarChart(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Leyenda
             Row(
@@ -652,54 +660,112 @@ private fun SalesBarChart(
                 )
                 LegendItem(
                     color = secondaryColor,
-                    label = "Alternado",
+                    label = "Promedio",
                     modifier = Modifier.weight(1f)
                 )
             }
-            
-            // Barras
-            Row(
+
+            // Barras con grilla y promedio
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom
+                    .weight(1f)
             ) {
-                data.forEachIndexed { index, (label, value) ->
-                    val heightPercent = (value / maxValue).coerceIn(0.1, 1.0).toFloat()
+                val barAreaHeight = maxHeight
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    repeat(4) {
+                        HorizontalDivider(
+                            color = gridColor,
+                            thickness = 1.dp
+                        )
+                    }
+                }
+
+                if (averageRatio > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .align(Alignment.BottomStart)
+                            .offset(y = -(barAreaHeight * averageRatio))
+                            .background(secondaryColor.copy(alpha = 0.6f))
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    data.forEach { (_, value) ->
+                        val heightPercent = (value / maxValue).coerceIn(0.05, 1.0).toFloat()
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.6f)
+                                    .fillMaxHeight()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                        .background(trackColor)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(barAreaHeight * heightPercent)
+                                        .align(Alignment.BottomCenter)
+                                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    primaryColor.copy(alpha = 0.85f),
+                                                    primaryColor
+                                                )
+                                            )
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Top
+            ) {
+                data.forEach { (label, value) ->
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // Barra con altura uniforme basada en porcentaje
-                        val barHeight = (180.dp * heightPercent).coerceAtLeast(12.dp)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.7f)
-                                .height(barHeight)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(
-                                    if (index % 2 == 0) primaryColor else secondaryColor
-                                )
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Label
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
-                        // Valor
                         Text(
                             text = "$${value.toInt()}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = MaterialTheme.colorScheme.primary
+                            color = primaryColor
                         )
                     }
                 }
@@ -728,7 +794,7 @@ private fun LegendItem(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
