@@ -640,16 +640,14 @@ private fun RestaurantDetailsCard(product: Product) {
 
 @Composable
 private fun AvailabilityCard(isAvailable: Boolean) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isAvailable) {
-                Color(0xFF4CAF50).copy(alpha = 0.1f)
-            } else {
-                Color(0xFFE53935).copy(alpha = 0.1f)
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(12.dp),
+        color = if (isAvailable) {
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+        } else {
+            MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+        }
     ) {
         Row(
             modifier = Modifier
@@ -661,23 +659,16 @@ private fun AvailabilityCard(isAvailable: Boolean) {
             Icon(
                 imageVector = if (isAvailable) Icons.Default.CheckCircle else Icons.Default.Cancel,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = if (isAvailable) Color(0xFF4CAF50) else Color(0xFFE53935)
+                modifier = Modifier.size(24.dp),
+                tint = if (isAvailable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
             )
-            Column {
-                Text(
-                    text = "Estado",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = if (isAvailable) "Disponible" else "No disponible",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = if (isAvailable) Color(0xFF4CAF50) else Color(0xFFE53935)
-                )
-            }
+            Text(
+                text = if (isAvailable) "Disponible" else "No disponible",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = if (isAvailable) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+            )
         }
     }
 }

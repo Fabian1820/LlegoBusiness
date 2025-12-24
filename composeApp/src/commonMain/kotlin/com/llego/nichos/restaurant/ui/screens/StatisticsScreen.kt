@@ -132,14 +132,6 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Horarios pico
-                item {
-                    PeakHoursSection(
-                        ordersViewModel = ordersViewModel,
-                        period = selectedPeriod,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
             }
         }
     }
@@ -219,7 +211,7 @@ private fun DashboardMetricsSection(
                 title = "Ventas del ${period.displayName.lowercase()}",
                 value = "$${getSalesForPeriod(ordersViewModel, period)}",
                 icon = Icons.Default.AttachMoney,
-                iconColor = Color(0xFF4CAF50),
+                iconColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
 
@@ -228,7 +220,7 @@ private fun DashboardMetricsSection(
                 title = "Completados",
                 value = "${getCompletedOrdersCount(ordersViewModel, period)}",
                 icon = Icons.Default.CheckCircle,
-                iconColor = Color(0xFF2196F3),
+                iconColor = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -251,18 +243,11 @@ private fun DashboardMetricsSection(
                 title = "Calificación",
                 value = "${getAverageRating(ordersViewModel)}",
                 icon = Icons.Default.Star,
-                iconColor = Color(0xFFFF9800),
+                iconColor = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        // Comparativa con período anterior
-        ComparisonCard(
-            currentPeriod = period,
-            currentValue = getSalesForPeriod(ordersViewModel, period),
-            previousValue = getSalesForPeriod(ordersViewModel, period.getPreviousPeriod()),
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }
 
@@ -357,14 +342,14 @@ private fun ComparisonCard(
                     text = "${if (isPositive) "+" else ""}$change%",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = if (isPositive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                        color = if (isPositive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
                     )
                 )
             }
             Icon(
                 imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
                 contentDescription = null,
-                tint = if (isPositive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                tint = if (isPositive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -494,7 +479,7 @@ private fun TopProductRow(
         ) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -502,7 +487,7 @@ private fun TopProductRow(
                         text = "$rank",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.secondary
                         )
                     )
                 }
@@ -641,7 +626,7 @@ private fun SalesBarChart(
 ) {
     val maxValue = data.maxOfOrNull { it.second } ?: 1.0
     val primaryColor = MaterialTheme.colorScheme.primary
-    val accentColor = Color(178, 214, 154)
+    val secondaryColor = MaterialTheme.colorScheme.secondary
 
     Card(
         modifier = modifier,
@@ -651,9 +636,27 @@ private fun SalesBarChart(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Leyenda
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LegendItem(
+                    color = primaryColor,
+                    label = "Ventas",
+                    modifier = Modifier.weight(1f)
+                )
+                LegendItem(
+                    color = secondaryColor,
+                    label = "Alternado",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
             // Barras
             Row(
                 modifier = Modifier
@@ -669,27 +672,24 @@ private fun SalesBarChart(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                        // Barra
-                        val barHeight = (150.dp * heightPercent).coerceAtLeast(8.dp)
+                        // Barra con altura uniforme basada en porcentaje
+                        val barHeight = (180.dp * heightPercent).coerceAtLeast(12.dp)
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.6f)
+                                .fillMaxWidth(0.7f)
                                 .height(barHeight)
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                                 .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            if (index % 2 == 0) primaryColor else accentColor,
-                                            if (index % 2 == 0) primaryColor.copy(alpha = 0.7f) else accentColor.copy(alpha = 0.7f)
-                                        )
-                                    )
+                                    if (index % 2 == 0) primaryColor else secondaryColor
                                 )
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         // Label
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
                             color = Color.Gray,
                             maxLines = 1
                         )
@@ -705,6 +705,31 @@ private fun SalesBarChart(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LegendItem(
+    color: Color,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
     }
 }
 

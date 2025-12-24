@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -130,7 +131,7 @@ fun OrdersScreen(
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
-                                    top = 80.dp, // Espacio para los filtros
+                                    top = 100.dp, // Espacio mayor para los filtros
                                     bottom = 16.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -347,7 +348,11 @@ private fun iOSStylePickerOption(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                onClick = onClick,
+                indication = null, // Quitar ripple
+                interactionSource = remember { MutableInteractionSource() }
+            ),
         color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
     ) {
         Row(
@@ -629,6 +634,7 @@ private fun OrderCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(

@@ -175,7 +175,7 @@ fun RestaurantSettingsScreen(
                                     title = "Horarios de Operación",
                                     subtitle = "Configura cuando tu negocio está abierto",
                                     icon = Icons.Default.Schedule,
-                                    iconColor = Color(0xFF2196F3)
+                                    iconColor = MaterialTheme.colorScheme.primary
                                 ) {
                                     BusinessHoursSection(
                                         businessHours = currentSettings.businessHours,
@@ -213,7 +213,7 @@ fun RestaurantSettingsScreen(
                                     title = "Configuración de Pedidos",
                                     subtitle = "Auto-aceptación, tiempos y límites",
                                     icon = Icons.Default.ShoppingCart,
-                                    iconColor = Color(0xFFFF9800)
+                                    iconColor = MaterialTheme.colorScheme.tertiary
                                 ) {
                                     OrderSettingsSection(
                                         orderSettings = currentSettings.orderSettings,
@@ -232,7 +232,7 @@ fun RestaurantSettingsScreen(
                                     title = "Métodos de Pago",
                                     subtitle = "Selecciona formas de pago aceptadas",
                                     icon = Icons.Default.Payment,
-                                    iconColor = Color(0xFF4CAF50)
+                                    iconColor = MaterialTheme.colorScheme.secondary
                                 ) {
                                     PaymentMethodsSection(
                                         acceptedPaymentMethods = currentSettings.acceptedPaymentMethods,
@@ -251,7 +251,7 @@ fun RestaurantSettingsScreen(
                                     title = "Notificaciones",
                                     subtitle = "Alertas de pedidos y operaciones",
                                     icon = Icons.Default.Notifications,
-                                    iconColor = Color(0xFFE91E63)
+                                    iconColor = MaterialTheme.colorScheme.tertiary
                                 ) {
                                     NotificationSettingsSection(
                                         notificationSettings = currentSettings.notifications,
@@ -465,11 +465,11 @@ private fun SettingsSectionCard(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Icono en círculo
+                        // Icono en círculo con mejor contraste
                         Surface(
                             shape = CircleShape,
-                            color = iconColor.copy(alpha = 0.15f),
-                            border = BorderStroke(2.dp, iconColor.copy(alpha = 0.3f))
+                            color = iconColor.copy(alpha = 0.2f),
+                            border = BorderStroke(2.dp, iconColor.copy(alpha = 0.4f))
                         ) {
                             Icon(
                                 imageVector = icon,
@@ -499,10 +499,10 @@ private fun SettingsSectionCard(
                             )
                         }
 
-                        // Icono de expandir/colapsar
+                        // Icono de expandir/colapsar con mejor contraste
                         Surface(
                             shape = CircleShape,
-                            color = iconColor.copy(alpha = 0.1f)
+                            color = iconColor.copy(alpha = 0.15f)
                         ) {
                             Icon(
                                 imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

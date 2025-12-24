@@ -2,6 +2,7 @@ package com.llego.nichos.restaurant.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -474,189 +475,9 @@ private fun SimplifiedCategoryFilterChips(
     }
 }
 
-// Pantalla de busqueda en pantalla completa con navegacion propia
+// Funciones auxiliares definidas antes de MenuSearchScreen para que sean accesibles
 @Composable
-private fun MenuSearchScreen(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    onClose: () -> Unit,
-    filteredProducts: List<Product> = emptyList(),
-    onEditItem: (Product) -> Unit = {},
-    onDeleteItem: (Product) -> Unit = {},
-    onToggleAvailability: (String) -> Unit = {},
-    businessType: BusinessType = BusinessType.RESTAURANT
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 12.dp)
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                TextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = {
-                        Text(
-                            "Buscar productos...",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotBlank()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Limpiar",
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        unfocusedContainerColor = Color(0xFFF5F5F5),
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-            }
-
-            if (searchQuery.isBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Text(
-                            text = "Escribe para buscar productos",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "Busca por nombre, descripcion o categoria",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        )
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (filteredProducts.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState())
-                                .padding(vertical = 32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SearchOff,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Text(
-                                text = "No se encontraron productos",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                text = "Intenta con otras palabras clave",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(vertical = 8.dp)
-                        ) {
-                            items(
-                                items = filteredProducts,
-                                key = { it.id }
-                            ) { product ->
-                                CompactMenuItemCard(
-                                    product = product,
-                                    businessType = businessType,
-                                    onEdit = {
-                                        onEditItem(product)
-                                        onClose()
-                                    },
-                                    onDelete = { onDeleteItem(product) },
-                                    onToggleAvailability = { onToggleAvailability(product.id) }
-                                )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "${filteredProducts.size} producto${if (filteredProducts.size != 1) "s" else ""} encontrado${if (filteredProducts.size != 1) "s" else ""}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-@Composable
-private fun CompactMenuItemCard(
+fun CompactMenuItemCard(
     product: Product,
     businessType: BusinessType,
     onEdit: () -> Unit,
@@ -777,268 +598,8 @@ private fun CompactMenuItemCard(
     }
 }
 
- // Card de producto del menú
 @Composable
-private fun MenuItemCard(
-    product: Product,
-    businessType: BusinessType,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onToggleAvailability: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (product.isAvailable) Color.White else Color(0xFFF5F5F5)
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onEdit)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Imagen real del producto con diseño premium
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .shadow(
-                        elevation = 6.dp,
-                        shape = RoundedCornerShape(16.dp),
-                        clip = false
-                    )
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(getProductImage(product.id)),
-                    contentDescription = product.name,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White),
-                    contentScale = ContentScale.Crop
-                )
-
-                // Overlay con gradiente sutil si no está disponible
-                if (!product.isAvailable) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.Black.copy(alpha = 0.4f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Block,
-                            contentDescription = "No disponible",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-            }
-
-            // Información del producto
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // Nombre y categoría
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AnimatedTextWithUnderline(
-                        text = product.name,
-                        isUnavailable = !product.isAvailable,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // Badge de categoría con colores Llego
-                val categoryDisplayName2 = getCategoryDisplayNameForProduct(
-                    product.category,
-                    businessType
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    )
-                ) {
-                    Text(
-                        text = categoryDisplayName2,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                // Descripción
-                Text(
-                    text = product.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // Características dietéticas
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (product.isVegetarian) {
-                        DietaryBadge("🌱", "Vegetariano", Color(0xFF4CAF50))
-                    }
-                    if (product.isVegan) {
-                        DietaryBadge("🥬", "Vegano", Color(0xFF8BC34A))
-                    }
-                    if (product.isGlutenFree) {
-                        DietaryBadge("🌾", "Sin Gluten", Color(0xFFFFC107))
-                    }
-                }
-
-                // Precio y tiempo de preparación con fondo
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "$${product.price}",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Timer,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.secondary
-                                )
-                                Text(
-                                    text = "${product.preparationTime} min",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Estado de disponibilidad
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (product.isAvailable) Color(0xFF4CAF50)
-                                    else Color(0xFFE53935)
-                                )
-                        )
-                        Text(
-                            text = if (product.isAvailable) "Disponible" else "No disponible",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
-                            ),
-                            color = if (product.isAvailable) Color(0xFF4CAF50)
-                            else Color(0xFFE53935)
-                        )
-                    }
-
-                    // Botones de acción
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        // Toggle disponibilidad
-                        IconButton(
-                            onClick = onToggleAvailability,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (product.isAvailable)
-                                    Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = "Cambiar disponibilidad",
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        // Editar
-                        IconButton(
-                            onClick = onEdit,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Editar",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        // Eliminar
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Eliminar",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
- // Badge para características dietéticas
-@Composable
-private fun DietaryBadge(emoji: String, label: String, color: Color) {
+fun DietaryBadge(emoji: String, label: String, color: Color) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = color.copy(alpha = 0.1f),
@@ -1065,7 +626,7 @@ private fun DietaryBadge(emoji: String, label: String, color: Color) {
 }
 
 @Composable
-private fun AnimatedTextWithUnderline(
+fun AnimatedTextWithUnderline(
     text: String,
     isUnavailable: Boolean,
     style: androidx.compose.ui.text.TextStyle,
@@ -1096,4 +657,454 @@ private fun AnimatedTextWithUnderline(
         maxLines = maxLines,
         overflow = overflow
     )
+}
+
+// Pantalla de busqueda en pantalla completa con navegacion propia
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MenuSearchScreen(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    filteredProducts: List<Product> = emptyList(),
+    onEditItem: (Product) -> Unit = {},
+    onDeleteItem: (Product) -> Unit = {},
+    onToggleAvailability: (String) -> Unit = {},
+    businessType: BusinessType = BusinessType.RESTAURANT
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                "Buscar productos...",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = { onSearchQueryChange("") }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Limpiar",
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            unfocusedContainerColor = Color(0xFFF5F5F5),
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFFF5F5F5)
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 12.dp)
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                if (searchQuery.isBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Text(
+                                text = "Escribe para buscar productos",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "Busca por nombre, descripcion o categoria",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (filteredProducts.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(vertical = 32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Text(
+                                    text = "No se encontraron productos",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = "Intenta con otras palabras clave",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                items(
+                                    items = filteredProducts,
+                                    key = { it.id }
+                                ) { product ->
+                                    CompactMenuItemCard(
+                                        product = product,
+                                        businessType = businessType,
+                                        onEdit = {
+                                            onEditItem(product)
+                                            onClose()
+                                        },
+                                        onDelete = { onDeleteItem(product) },
+                                        onToggleAvailability = { onToggleAvailability(product.id) }
+                                    )
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "${filteredProducts.size} producto${if (filteredProducts.size != 1) "s" else ""} encontrado${if (filteredProducts.size != 1) "s" else ""}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Card de producto del menú
+    @Composable
+    fun MenuItemCard(
+        product: Product,
+        businessType: BusinessType,
+        onEdit: () -> Unit,
+        onDelete: () -> Unit,
+        onToggleAvailability: () -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (product.isAvailable) Color.White else Color(0xFFF5F5F5)
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onEdit)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Imagen real del producto con diseño premium
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            clip = false
+                        )
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(getProductImage(product.id)),
+                        contentDescription = product.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Overlay con gradiente sutil si no está disponible
+                    if (!product.isAvailable) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.Black.copy(alpha = 0.4f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Block,
+                                contentDescription = "No disponible",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Información del producto
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Nombre y categoría
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnimatedTextWithUnderline(
+                            text = product.name,
+                            isUnavailable = !product.isAvailable,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Badge de categoría con colores Llego
+                    val categoryDisplayName2 = getCategoryDisplayNameForProduct(
+                        product.category,
+                        businessType
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Text(
+                            text = categoryDisplayName2,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Descripción
+                    Text(
+                        text = product.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    // Características dietéticas
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (product.isVegetarian) {
+                            DietaryBadge("🌱", "Vegetariano", Color(0xFF4CAF50))
+                        }
+                        if (product.isVegan) {
+                            DietaryBadge("🥬", "Vegano", Color(0xFF8BC34A))
+                        }
+                        if (product.isGlutenFree) {
+                            DietaryBadge("🌾", "Sin Gluten", Color(0xFFFFC107))
+                        }
+                    }
+
+                    // Precio y tiempo de preparación con fondo
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$${product.price}",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Timer,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Text(
+                                        text = "${product.preparationTime} min",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Estado de disponibilidad
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (product.isAvailable) Color(0xFF4CAF50)
+                                        else Color(0xFFE53935)
+                                    )
+                            )
+                            Text(
+                                text = if (product.isAvailable) "Disponible" else "No disponible",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.8f
+                                ),
+                                color = if (product.isAvailable) Color(0xFF4CAF50)
+                                else Color(0xFFE53935)
+                            )
+                        }
+
+                        // Botones de acción
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            // Toggle disponibilidad
+                            IconButton(
+                                onClick = onToggleAvailability,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (product.isAvailable)
+                                        Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Cambiar disponibilidad",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Editar
+                            IconButton(
+                                onClick = onEdit,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Editar",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Eliminar
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Eliminar",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

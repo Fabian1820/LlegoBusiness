@@ -720,11 +720,6 @@ private fun LocationMapSection() {
                             ),
                             color = Color.Black
                         )
-                        Text(
-                            text = "Toca para abrir el mapa y ajustar",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
-                        )
                     }
                 }
 
@@ -753,7 +748,8 @@ private fun LocationMapSection() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { showFullScreenMap = true },
                 isInteractive = false
             )
 
@@ -856,11 +852,6 @@ private fun LocationMapSection() {
                 }
             }
 
-            Text(
-                text = "💡 Toca el mapa para abrir en pantalla completa y seleccionar la ubicación exacta",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
         }
     }
 
@@ -901,9 +892,10 @@ private fun FullScreenMapDialog(
             enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.96f, animationSpec = tween(200)),
             exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(180))
         ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color.Black.copy(alpha = 0.35f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.primary)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     TopAppBar(
@@ -945,7 +937,7 @@ private fun FullScreenMapDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding(),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.primary,
                         shadowElevation = 12.dp
                     ) {
                         Column(
@@ -957,7 +949,7 @@ private fun FullScreenMapDialog(
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                                color = Color.White.copy(alpha = 0.15f)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(10.dp),
@@ -968,12 +960,12 @@ private fun FullScreenMapDialog(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Medium
                                         ),
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = Color.White
                                     )
                                     Text(
-                                        text = "Arrastra el pin o toca el mapa para ajustar la ubicación.",
+                                        text = "Toca el mapa para ajustar la ubicación.",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Color.Gray.copy(alpha = 0.9f)
+                                        color = Color.White.copy(alpha = 0.9f)
                                     )
                                 }
                             }
@@ -988,8 +980,11 @@ private fun FullScreenMapDialog(
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.5.dp, Color.Gray),
-                                    enabled = hasLocationChange
+                                    border = BorderStroke(1.5.dp, Color.White),
+                                    enabled = hasLocationChange,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = Color.White
+                                    )
                                 ) {
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -999,14 +994,14 @@ private fun FullScreenMapDialog(
                                         Icon(
                                             imageVector = Icons.Default.Refresh,
                                             contentDescription = null,
-                                            tint = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                                            tint = if (hasLocationChange) Color.White else Color.White.copy(alpha = 0.4f)
                                         )
                                         Text(
                                             text = "Deshacer",
                                             style = MaterialTheme.typography.labelLarge.copy(
                                                 fontWeight = FontWeight.SemiBold
                                             ),
-                                            color = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
+                                            color = if (hasLocationChange) Color.White else Color.White.copy(alpha = 0.4f)
                                         )
                                     }
                                 }
@@ -1019,7 +1014,8 @@ private fun FullScreenMapDialog(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
+                                        containerColor = Color.White,
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
                                     Row(
@@ -1030,14 +1026,14 @@ private fun FullScreenMapDialog(
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = null,
-                                            tint = Color.White
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
                                             text = "Confirmar",
                                             style = MaterialTheme.typography.titleSmall.copy(
                                                 fontWeight = FontWeight.SemiBold
                                             ),
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
@@ -1095,37 +1091,29 @@ private fun BranchesSection() {
                 )
             }
 
-            TextButton(onClick = { /* TODO */ }) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Ver todas",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
         }
 
         // Scroll horizontal de sucursales
+        var selectedBranchIndex by remember { mutableStateOf<Int?>(null) }
+        val branchNames = listOf("Sede Centro", "Sede Norte", "Sede Sur")
+        
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(3) { index ->
-                BranchCard(branchName = "Sede ${if(index == 0) "Centro" else if(index == 1) "Norte" else "Sur"}")
+            items(branchNames.size) { index ->
+                BranchCard(
+                    branchName = branchNames[index],
+                    onClick = { selectedBranchIndex = index }
+                )
             }
+        }
+        
+        selectedBranchIndex?.let { index ->
+            BranchInfoDialog(
+                branchName = branchNames[index],
+                onDismiss = { selectedBranchIndex = null }
+            )
         }
     }
 }
@@ -1134,11 +1122,15 @@ private fun BranchesSection() {
  * Card de sucursal individual
  */
 @Composable
-private fun BranchCard(branchName: String) {
+private fun BranchCard(
+    branchName: String,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .width(280.dp)
-            .height(200.dp),
+            .height(200.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -1295,6 +1287,111 @@ private fun SectionDivider(title: String) {
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
         )
     }
+}
+
+/**
+ * Diálogo de información de sucursal
+ */
+@Composable
+private fun BranchInfoDialog(
+    branchName: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Store,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp)
+            )
+        },
+        title = {
+            Text(
+                text = branchName,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Av. Principal #123, ${branchName.split(" ")[1]}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "+53 7 123-4567",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Lun - Dom: 10:00 AM - 10:00 PM",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Calificación: 4.8 ⭐ (125 reseñas)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Cerrar")
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(24.dp)
+    )
 }
 
 /**
