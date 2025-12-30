@@ -63,10 +63,11 @@ fun SettingsScreen(
             when (uiState) {
                 is SettingsUiState.Success -> {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(vertical = 16.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            top = 16.dp,
+                            bottom = 24.dp
+                        ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Cuenta y Seguridad
@@ -186,7 +187,7 @@ fun SettingsScreen(
 }
 
 /**
- * Sección de configuración con título y contenido
+ * Sección de configuración con título y contenido - Colores Llego
  */
 @Composable
 private fun SettingsSection(
@@ -195,9 +196,6 @@ private fun SettingsSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val accentColor = MaterialTheme.colorScheme.secondary
-    val accentContainer = MaterialTheme.colorScheme.secondaryContainer
-
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -216,13 +214,13 @@ private fun SettingsSection(
             ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = accentContainer,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = accentColor,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -236,7 +234,7 @@ private fun SettingsSection(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            HorizontalDivider(color = accentColor.copy(alpha = 0.2f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
             content()
         }
     }
@@ -314,16 +312,13 @@ private fun NotificationSettingsSection(
 }
 
 /**
- * Sección de Métodos de Pago (reutilizada de RestaurantProfileScreen)
+ * Sección de Métodos de Pago - Colores Llego
  */
 @Composable
 private fun PaymentMethodsSection(
     acceptedPaymentMethods: List<PaymentMethod>,
     onUpdate: (List<PaymentMethod>) -> Unit
 ) {
-    val acceptedColor = MaterialTheme.colorScheme.secondary
-    val iconAccent = MaterialTheme.colorScheme.tertiary
-
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PaymentMethod.values().forEach { method ->
             val isAccepted = acceptedPaymentMethods.contains(method)
@@ -342,14 +337,14 @@ private fun PaymentMethodsSection(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isAccepted)
-                        MaterialTheme.colorScheme.tertiaryContainer
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
                     else
                         Color(0xFFF5F5F5)
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     1.5.dp,
                     if (isAccepted)
-                        acceptedColor.copy(alpha = 0.5f)
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                     else
                         Color(0xFFE0E0E0)
                 )
@@ -368,7 +363,7 @@ private fun PaymentMethodsSection(
                         Surface(
                             shape = androidx.compose.foundation.shape.CircleShape,
                             color = if (isAccepted)
-                                iconAccent.copy(alpha = 0.2f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                         ) {
@@ -380,7 +375,7 @@ private fun PaymentMethodsSection(
                                     PaymentMethod.DIGITAL_WALLET -> Icons.Default.PhoneAndroid
                                 },
                                 contentDescription = null,
-                                tint = if (isAccepted) iconAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isAccepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .padding(8.dp)
@@ -406,9 +401,9 @@ private fun PaymentMethodsSection(
                             onUpdate(updated)
                         },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = acceptedColor,
+                            checkedColor = MaterialTheme.colorScheme.secondary,
                             uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            checkmarkColor = Color.White
+                            checkmarkColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -485,7 +480,7 @@ private fun SupportSection() {
 }
 
 /**
- * Fila de configuración individual
+ * Fila de configuración individual - Colores Llego
  */
 @Composable
 private fun SettingsRow(
@@ -514,7 +509,7 @@ private fun SettingsRow(
                 color = if (isDestructive)
                     MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                 else
-                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
@@ -523,7 +518,7 @@ private fun SettingsRow(
                     tint = if (isDestructive)
                         MaterialTheme.colorScheme.error
                     else
-                        MaterialTheme.colorScheme.tertiary,
+                        MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(10.dp)
@@ -557,7 +552,7 @@ private fun SettingsRow(
 }
 
 /**
- * Row de configuración con switch
+ * Row de configuración con switch - Colores Llego
  */
 @Composable
 private fun SettingSwitchRow(
@@ -571,14 +566,14 @@ private fun SettingSwitchRow(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (checked)
-                MaterialTheme.colorScheme.tertiaryContainer
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
             else
                 Color(0xFFF5F5F5)
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.5.dp,
             if (checked)
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
             else
                 Color(0xFFE0E0E0)
         )
@@ -611,8 +606,8 @@ private fun SettingSwitchRow(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.secondary,
-                    checkedTrackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f),
+                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = MaterialTheme.colorScheme.secondary,
                     uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     uncheckedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )

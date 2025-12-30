@@ -55,15 +55,9 @@ fun RestaurantProfileScreen(
 ) {
     var showShareDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var animateContent by remember { mutableStateOf(false) }
 
     val authUiState by authViewModel.uiState.collectAsState()
     val user = authUiState.currentUser
-
-    // Animación de entrada - sin delay para carga más rápida
-    LaunchedEffect(Unit) {
-        animateContent = true
-    }
 
     Scaffold(
         topBar = {
@@ -121,47 +115,38 @@ fun RestaurantProfileScreen(
         },
         containerColor = Color(0xFFF8F9FA)
     ) { paddingValues ->
-        AnimatedVisibility(
-            visible = animateContent,
-            enter = fadeIn(animationSpec = tween(600)) +
-                    slideInVertically(
-                        initialOffsetY = { it / 4 },
-                        animationSpec = tween(600, easing = EaseOutCubic)
-                    )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                // ===== SECCIÓN 1: PERFIL PÚBLICO =====
+            // ===== SECCIÓN 1: PERFIL PÚBLICO =====
 
-                // Banner con logo superpuesto
-                item {
-                    BannerWithLogoSection()
-                }
+            // Banner con logo superpuesto
+            item {
+                BannerWithLogoSection()
+            }
 
-                // Información del negocio
-                item {
-                    BusinessInfoSection(user)
-                }
+            // Información del negocio
+            item {
+                BusinessInfoSection(user)
+            }
 
-                // Enlaces sociales
-                item {
-                    SocialLinksSection()
-                }
+            // Enlaces sociales
+            item {
+                SocialLinksSection()
+            }
 
-                // Mapa de ubicación
-                item {
-                    LocationMapSection()
-                }
+            // Mapa de ubicación
+            item {
+                LocationMapSection()
+            }
 
-                // Sucursales
-                item {
-                    BranchesSection()
-                }
+            // Sucursales
+            item {
+                BranchesSection()
             }
         }
 
@@ -677,7 +662,13 @@ private fun LocationMapSection() {
                 // TODO: Guardar ubicación en backend
                 showSaveButton = false
             },
-            onDismiss = { showFullScreenMap = false },
+            onDismiss = {
+                // Auto-revert changes if not saved
+                selectedLatitude = originalLatitude
+                selectedLongitude = originalLongitude
+                showSaveButton = false
+                showFullScreenMap = false
+            },
             hasLocationChange = hasLocationChange
         )
     }
@@ -781,77 +772,6 @@ private fun LocationMapSection() {
                     )
                 }
             }
-
-            if (showSaveButton) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            selectedLatitude = originalLatitude
-                            selectedLongitude = originalLongitude
-                            showSaveButton = false
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.5.dp, Color.Gray),
-                        enabled = hasLocationChange
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 2.dp, horizontal = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
-                            )
-                            Text(
-                                text = "Deshacer",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.2.sp
-                                ),
-                                color = if (hasLocationChange) Color.Gray else Color.Gray.copy(alpha = 0.4f)
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = {
-                            // TODO: Guardar ubicación en backend
-                            showSaveButton = false
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                            Text(
-                                text = "Guardar",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
         }
     }
 
@@ -882,28 +802,39 @@ private fun FullScreenMapDialog(
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     Dialog(
         onDismissRequest = { contentVisible = false },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         AnimatedVisibility(
             visible = contentVisible,
-            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.96f, animationSpec = tween(200)),
-            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(180))
+            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
+            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.primary)
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                // TopBar que coge desde el inicio con statusBarsPadding
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .statusBarsPadding()
+                ) {
                     TopAppBar(
                         modifier = Modifier.fillMaxWidth(),
                         title = {
                             Text(
                                 text = "Seleccionar ubicación",
-                                color = Color.White
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             )
                         },
                         navigationIcon = {
@@ -916,122 +847,125 @@ private fun FullScreenMapDialog(
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = Color.Transparent
                         ),
                         windowInsets = WindowInsets(0)
                     )
+                }
 
-                    BusinessLocationMap(
-                        latitude = latitude,
-                        longitude = longitude,
-                        onLocationSelected = onLocationChange,
+                // Mapa interactivo
+                BusinessLocationMap(
+                    latitude = latitude,
+                    longitude = longitude,
+                    onLocationSelected = onLocationChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    isInteractive = true
+                )
+
+                // Navbar inferior con bordes redondeados sutiles
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    shadowElevation = 12.dp,
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
-                        isInteractive = true
-                    )
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary,
-                        shadowElevation = 12.dp
+                            .navigationBarsPadding()
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
+                        // Info de coordenadas - Compacta
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                .background(
+                                    Color.White.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
+                            Text(
+                                text = "📍 $formattedLat, $formattedLng",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color.White
+                            )
+                        }
+
+                        // Botones de acción
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = onReset,
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color.White.copy(alpha = 0.15f)
+                                enabled = hasLocationChange,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    disabledContainerColor = Color.White.copy(alpha = 0.5f),
+                                    disabledContentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                ),
+                                contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "📍 Lat: $formattedLat | Lng: $formattedLng",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = Color.White
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Text(
-                                        text = "Toca el mapa para ajustar la ubicación.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.9f)
+                                        text = "Deshacer",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        )
                                     )
                                 }
                             }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            Button(
+                                onClick = {
+                                    onConfirm()
+                                    contentVisible = false
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
-                                OutlinedButton(
-                                    onClick = {
-                                        onReset()
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.5.dp, Color.White),
-                                    enabled = hasLocationChange,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = Color.White
-                                    )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(vertical = 2.dp, horizontal = 4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Refresh,
-                                            contentDescription = null,
-                                            tint = if (hasLocationChange) Color.White else Color.White.copy(alpha = 0.4f)
-                                        )
-                                        Text(
-                                            text = "Deshacer",
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = if (hasLocationChange) Color.White else Color.White.copy(alpha = 0.4f)
-                                        )
-                                    }
-                                }
-
-                                Button(
-                                    onClick = {
-                                        onConfirm()
-                                        contentVisible = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.White,
-                                        contentColor = MaterialTheme.colorScheme.primary
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(vertical = 4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            text = "Confirmar",
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
+                                    Text(
+                                        text = "Confirmar",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }

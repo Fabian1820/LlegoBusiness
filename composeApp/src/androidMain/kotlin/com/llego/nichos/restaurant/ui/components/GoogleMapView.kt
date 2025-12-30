@@ -102,7 +102,7 @@ actual fun BusinessLocationMap(
         Marker(
             state = markerState,
             title = "Ubicación del Negocio",
-            snippet = "Arrastra el marcador o toca el mapa para cambiar la ubicación",
+            snippet = if (isInteractive) "Toca el mapa para cambiar la ubicación" else null,
             draggable = isInteractive
         )
     }

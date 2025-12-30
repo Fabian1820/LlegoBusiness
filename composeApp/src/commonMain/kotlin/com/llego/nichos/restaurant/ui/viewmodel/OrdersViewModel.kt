@@ -303,48 +303,16 @@ enum class DateRangeFilter(val displayName: String) {
      * Filtra los pedidos según el rango de fecha seleccionado
      */
     fun filterOrders(orders: List<Order>): List<Order> {
-        val now = System.currentTimeMillis()
-        val todayStart = getStartOfDay(now)
-        val todayEnd = getEndOfDay(now)
-        
-        return when (this) {
-            TODAY -> orders.filter { order ->
-                val orderTime = parseOrderDate(order.createdAt)
-                orderTime in todayStart..todayEnd
-            }
-            YESTERDAY -> {
-                val yesterdayStart = todayStart - 86400000L // 24 horas en ms
-                val yesterdayEnd = todayEnd - 86400000L
-                orders.filter { order ->
-                    val orderTime = parseOrderDate(order.createdAt)
-                    orderTime in yesterdayStart..yesterdayEnd
-                }
-            }
-            LAST_WEEK -> {
-                val weekAgo = todayStart - (7 * 86400000L) // 7 días en ms
-                orders.filter { order ->
-                    val orderTime = parseOrderDate(order.createdAt)
-                    orderTime >= weekAgo
-                }
-            }
-            CUSTOM -> orders // Para custom, no filtramos aquí, se manejará en la UI
-        }
+        // Por ahora retornamos todos los pedidos
+        // TODO: Implementar filtrado real cuando se integre con backend
+        return orders
     }
 
     private fun parseOrderDate(dateString: String): Long {
         // Formato esperado: "2024-10-06T12:30:00" o similar
-        return try {
-            // Parseo simple - en producción usar DateTimeFormatter
-            val datePart = dateString.split("T")[0]
-            val timePart = dateString.split("T").getOrNull(1)?.split(".")?.get(0) ?: "00:00:00"
-            val dateTime = "$datePart $timePart"
-            
-            // Convertir a timestamp (simplificado)
-            // En producción usar librería de fechas apropiada
-            System.currentTimeMillis() - (Math.random() * 604800000).toLong() // Mock por ahora
-        } catch (e: Exception) {
-            System.currentTimeMillis()
-        }
+        // Por ahora retornamos un timestamp mock
+        // TODO: Implementar parseo real con librería de fechas
+        return 0L
     }
 
     private fun getStartOfDay(timestamp: Long): Long {

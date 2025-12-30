@@ -59,15 +59,15 @@ fun WalletScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Fondo con gradiente
+            // Fondo con gradiente usando colores del theme
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                LlegoPrimary.copy(alpha = 0.05f),
-                                LlegoBackground
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                Color(0xFFF8F9FA)
                             )
                         )
                     )
@@ -151,7 +151,7 @@ fun WalletScreen(
                                 }
                             }
 
-                            // Primera fila de acciones
+                            // Primera fila de acciones - Colores personalizados
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -159,10 +159,7 @@ fun WalletScreen(
                                 WalletActionButton(
                                     icon = Icons.Default.AccountBalance,
                                     label = "Retirar",
-                                    iconColor = when (selectedCurrency) {
-                                        WalletCurrency.USD -> LlegoPrimary
-                                        WalletCurrency.CUP -> LlegoTertiary
-                                    },
+                                    iconColor = MaterialTheme.colorScheme.primary,
                                     onClick = { viewModel.showWithdrawalSheet() },
                                     modifier = Modifier.weight(1f)
                                 )
@@ -170,13 +167,13 @@ fun WalletScreen(
                                 WalletActionButton(
                                     icon = Icons.Default.SwapHoriz,
                                     label = "Transferir",
-                                    iconColor = LlegoSecondary,
+                                    iconColor = MaterialTheme.colorScheme.secondary,
                                     onClick = { viewModel.showTransferSheet() },
                                     modifier = Modifier.weight(1f)
                                 )
                             }
 
-                            // Segunda fila de acciones
+                            // Segunda fila de acciones - Colores personalizados
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -184,7 +181,7 @@ fun WalletScreen(
                                 WalletActionButton(
                                     icon = Icons.Default.History,
                                     label = "Historial",
-                                    iconColor = Color.Gray,
+                                    iconColor = MaterialTheme.colorScheme.tertiary,
                                     onClick = { viewModel.showHistorySheet() },
                                     modifier = Modifier.weight(1f)
                                 )
@@ -192,7 +189,7 @@ fun WalletScreen(
                                 WalletActionButton(
                                     icon = Icons.Default.Assessment,
                                     label = "Reportes",
-                                    iconColor = LlegoAccent,
+                                    iconColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
                                     onClick = { viewModel.showReportsSheet() },
                                     modifier = Modifier.weight(1f)
                                 )
@@ -269,22 +266,22 @@ fun WalletScreen(
                                 icon = Icons.Default.Security,
                                 title = "Transacciones seguras",
                                 description = "Protección bancaria nivel 256-bit",
-                                iconColor = LlegoPrimary
+                                iconColor = MaterialTheme.colorScheme.primary
                             )
 
                             WalletInfoCard(
                                 icon = Icons.Default.Speed,
                                 title = "Retiros rápidos",
                                 description = "Procesa tus retiros en 24-48 horas",
-                                iconColor = LlegoAccent
+                                iconColor = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }
                 }
 
-                // Espaciado final
+                // Espaciado final reducido
                 item {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
@@ -333,7 +330,7 @@ fun WalletScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = LlegoPrimary)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

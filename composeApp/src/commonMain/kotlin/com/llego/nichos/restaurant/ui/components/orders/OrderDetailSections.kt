@@ -763,8 +763,8 @@ internal fun OrderActionsSection(
                             onClick = onEnterEditMode,
                             modifier = Modifier.wrapContentWidth(),
                             colors = ButtonDefaults.elevatedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.primary
                             ),
                             elevation = ButtonDefaults.elevatedButtonElevation(
                                 defaultElevation = 4.dp,

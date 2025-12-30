@@ -16,10 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Support
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,18 +51,84 @@ import org.jetbrains.compose.resources.painterResource
 internal fun LlegoLogo() {
     Surface(
         shape = CircleShape,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.primary,
         shadowElevation = 8.dp,
-        modifier = Modifier.size(100.dp)
+        modifier = Modifier.size(140.dp)
     ) {
         Image(
             painter = painterResource(Res.drawable.logo),
             contentDescription = "Logo Llego",
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(16.dp)
                 .clip(CircleShape),
             contentScale = ContentScale.Fit
+        )
+    }
+}
+
+/**
+ * Sección de tips/info de la app para mostrar debajo de los botones de registro
+ */
+@Composable
+internal fun AppTipsSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(0.6f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
+
+        Text(
+            text = "¿Por qué Llego Business?",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        TipItem(
+            icon = Icons.Default.Store,
+            text = "Gestiona tu negocio desde cualquier lugar"
+        )
+        TipItem(
+            icon = Icons.Default.Notifications,
+            text = "Recibe pedidos en tiempo real"
+        )
+        TipItem(
+            icon = Icons.Default.TrendingUp,
+            text = "Aumenta tus ventas con delivery"
+        )
+        TipItem(
+            icon = Icons.Default.Support,
+            text = "Soporte 24/7 para tu negocio"
+        )
+    }
+}
+
+@Composable
+private fun TipItem(icon: ImageVector, text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.secondary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     }
 }
@@ -126,7 +199,10 @@ internal fun DividerWithText(text: String) {
 }
 
 @Composable
-internal fun SocialButtons() {
+internal fun SocialButtons(
+    onGoogleClick: () -> Unit = {},
+    onAppleClick: () -> Unit = {}
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -134,13 +210,13 @@ internal fun SocialButtons() {
         SocialButton(
             text = "Continuar con Google",
             icon = Res.drawable.google,
-            onClick = { /* TODO: Google Sign In */ }
+            onClick = onGoogleClick
         )
 
         SocialButton(
             text = "Continuar con Apple",
             icon = Res.drawable.apple,
-            onClick = { /* TODO: Apple Sign In */ }
+            onClick = onAppleClick
         )
     }
 }

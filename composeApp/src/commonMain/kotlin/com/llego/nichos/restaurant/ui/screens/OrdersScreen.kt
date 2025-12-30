@@ -2,6 +2,7 @@ package com.llego.nichos.restaurant.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,8 +56,16 @@ fun OrdersScreen(
     val selectedDateRange by viewModel.selectedDateRange.collectAsState()
     val statusFilterListState = rememberLazyListState()
     val dateFilterListState = rememberLazyListState()
+    val ordersListState = rememberLazyListState()
 
     var animateContent by remember { mutableStateOf(false) }
+
+    // Scroll to top when filters change
+    LaunchedEffect(selectedFilter, selectedDateRange) {
+        if (filteredOrders.isNotEmpty()) {
+            ordersListState.animateScrollToItem(0)
+        }
+    }
 
     // Animación de entrada idéntica a Perfil, Gestión y Menú
     LaunchedEffect(Unit) {
@@ -129,6 +138,7 @@ fun OrdersScreen(
                     } else {
                         Box(modifier = Modifier.fillMaxSize()) {
                             LazyColumn(
+                                state = ordersListState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(
                                     top = 100.dp, // Espacio mayor para los filtros
@@ -238,7 +248,7 @@ private fun iOSStyleFilters(
 }
 
 /**
- * Selector estilo iOS 16 con animación de despliegue
+ * Selector estilo iOS 16 con animación de despliegue - Sin ripple para evitar delay visual
  */
 @Composable
 private fun iOSStylePicker(
@@ -249,9 +259,16 @@ private fun iOSStylePicker(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    // Animación suave para la elevación
+    val elevation by animateDpAsState(
+        targetValue = if (isExpanded) 6.dp else 2.dp,
+        animationSpec = tween(150),
+        label = "picker_elevation"
+    )
+
     Box(modifier = modifier) {
-        // Botón principal
-        Card(
+        // Botón principal - Surface en lugar de Card para mejor control
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
@@ -260,12 +277,8 @@ private fun iOSStylePicker(
                     interactionSource = remember { MutableInteractionSource() }
                 ),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = if (isExpanded) 8.dp else 2.dp
-            )
+            color = Color.White,
+            shadowElevation = elevation
         ) {
             Row(
                 modifier = Modifier
@@ -297,35 +310,27 @@ private fun iOSStylePicker(
             }
         }
 
-        // Opciones desplegables con animación - Overlay por encima
+        // Opciones desplegables con animación rápida
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
+                animationSpec = tween(200, easing = EaseOutCubic),
                 expandFrom = Alignment.Top
-            ) + fadeIn(),
+            ) + fadeIn(animationSpec = tween(150)),
             exit = shrinkVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
+                animationSpec = tween(150, easing = EaseInCubic),
                 shrinkTowards = Alignment.Top
-            ) + fadeOut(),
+            ) + fadeOut(animationSpec = tween(100)),
             modifier = Modifier
                 .fillMaxWidth()
                 .offset(y = 60.dp)
-                .zIndex(20f) // Por encima de todo
+                .zIndex(20f)
         ) {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                color = Color.White,
+                shadowElevation = 8.dp
             ) {
                 Column(
                     modifier = Modifier

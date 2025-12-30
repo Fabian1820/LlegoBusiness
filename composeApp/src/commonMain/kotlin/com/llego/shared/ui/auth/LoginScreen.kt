@@ -1,14 +1,8 @@
 package com.llego.shared.ui.auth
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,12 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.BusinessType
-import com.llego.shared.ui.auth.components.DividerWithText
+import com.llego.shared.ui.auth.components.AppTipsSection
 import com.llego.shared.ui.auth.components.LlegoLogo
-import com.llego.shared.ui.auth.components.LoginForm
-import com.llego.shared.ui.auth.components.RegisterForm
 import com.llego.shared.ui.auth.components.SocialButtons
-import com.llego.shared.ui.auth.components.ToggleAuthMode
 import com.llego.shared.ui.components.background.CurvedBackground
 import kotlinx.coroutines.delay
 
@@ -61,12 +52,6 @@ fun LoginScreen(
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val email by viewModel.email.collectAsState()
-    val password by viewModel.password.collectAsState()
-    val selectedBusinessType by viewModel.selectedBusinessType.collectAsState()
-    val loginError by viewModel.loginError.collectAsState()
-
-    var isRegisterMode by remember { mutableStateOf(false) }
 
     var headerVisible by remember { mutableStateOf(false) }
     var cardVisible by remember { mutableStateOf(false) }
@@ -133,7 +118,7 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
+                    .height(240.dp)
                     .graphicsLayer { translationY = headerOffsetY },
                 contentAlignment = Alignment.Center
             ) {
@@ -160,10 +145,10 @@ fun LoginScreen(
                         .imePadding(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
 
                     Text(
-                        text = if (isRegisterMode) "Crea tu cuenta" else "Inicia sesión",
+                        text = "Bienvenido a Llego",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold,
                             brush = Brush.horizontalGradient(
@@ -178,67 +163,28 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Inicia sesión para gestionar tu negocio",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    // Solo botones de Google y Apple - Login mock para pruebas
+                    SocialButtons(
+                        onGoogleClick = { viewModel.login() },
+                        onAppleClick = { viewModel.login() }
+                    )
+
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    AnimatedContent(
-                        targetState = isRegisterMode,
-                        transitionSpec = {
-                            if (targetState) {
-                                slideInHorizontally(
-                                    initialOffsetX = { fullWidth -> fullWidth },
-                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                ) togetherWith slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> -fullWidth },
-                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                )
-                            } else {
-                                slideInHorizontally(
-                                    initialOffsetX = { fullWidth -> -fullWidth },
-                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                ) togetherWith slideOutHorizontally(
-                                    targetOffsetX = { fullWidth -> fullWidth },
-                                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                                )
-                            }
-                        },
-                        label = "auth_mode_transition"
-                    ) { targetIsRegister ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (targetIsRegister) {
-                                RegisterForm(
-                                    email = email,
-                                    password = password,
-                                    onEmailChange = viewModel::updateEmail,
-                                    onPasswordChange = viewModel::updatePassword,
-                                    onRegisterClick = viewModel::login,
-                                    isLoading = uiState.isLoading,
-                                    errorMessage = loginError,
-                                    selectedBusinessType = selectedBusinessType,
-                                    onBusinessTypeSelected = viewModel::selectBusinessType
-                                )
-                            } else {
-                                LoginForm(
-                                    email = email,
-                                    password = password,
-                                    onEmailChange = viewModel::updateEmail,
-                                    onPasswordChange = viewModel::updatePassword,
-                                    onContinueClick = viewModel::login,
-                                    isLoading = uiState.isLoading,
-                                    errorMessage = loginError
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            ToggleAuthMode(
-                                isRegisterMode = targetIsRegister,
-                                onToggle = { isRegisterMode = !isRegisterMode }
-                            )
-                        }
-                    }
+                    // Tips de la app
+                    AppTipsSection()
 
                     Spacer(modifier = Modifier.height(40.dp))
                 }
