@@ -1,0 +1,16 @@
+mutation UpdateProduct($productId: String!, $input: UpdateProductInput!, $jwt: String) {
+  updateProduct(productId: $productId, input: $input, jwt: $jwt) {
+    id
+    name
+    description
+    price
+    currency
+    weight
+    branchId
+    categoryId
+    image
+    imageUrl
+    availability
+    createdAt
+  }
+}

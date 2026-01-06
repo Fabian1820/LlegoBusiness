@@ -3,6 +3,7 @@ package com.llego.nichos.clothing.data.repository
 import com.llego.nichos.common.data.model.*
 import com.llego.nichos.restaurant.data.model.MenuItem
 import com.llego.nichos.restaurant.data.model.MenuCategory
+import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +13,9 @@ import kotlinx.coroutines.delay
  * Repositorio para datos de Tienda de Ropa
  * Por ahora usa datos mock, preparado para integración con backend
  */
-class ClothingRepository {
+class ClothingRepository(
+    @Suppress("UNUSED_PARAMETER") tokenManager: TokenManager
+) {
 
     private val _products = MutableStateFlow(getMockProducts())
     val products: Flow<List<Product>> = _products.asStateFlow()
@@ -287,11 +290,12 @@ class ClothingRepository {
     companion object {
         private var instance: ClothingRepository? = null
 
-        fun getInstance(): ClothingRepository {
-            return instance ?: ClothingRepository().also { instance = it }
+        fun getInstance(tokenManager: TokenManager): ClothingRepository {
+            return instance ?: ClothingRepository(tokenManager).also { instance = it }
         }
     }
 }
+
 
 
 

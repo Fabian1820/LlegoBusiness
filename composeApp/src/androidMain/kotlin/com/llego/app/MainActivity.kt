@@ -7,23 +7,62 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.llego.app.AppViewModels
 import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.network.GraphQLClient
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.business.RegisterBusinessViewModel
 
 class MainActivity : ComponentActivity() {
+    private val tokenManager by lazy { TokenManager() }
+
     private val authViewModel: AuthViewModel by viewModels()
     private val chatsViewModel: ChatsViewModel by viewModels()
-    private val ordersViewModel: OrdersViewModel by viewModels()
-    private val menuViewModel: MenuViewModel by viewModels()
-    private val settingsViewModel: SettingsViewModel by viewModels()
+    private val ordersViewModel: OrdersViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return OrdersViewModel(tokenManager) as T
+            }
+        }
+    }
+    private val menuViewModel: MenuViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return MenuViewModel(tokenManager) as T
+            }
+        }
+    }
+    private val settingsViewModel: SettingsViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return SettingsViewModel(tokenManager) as T
+            }
+        }
+    }
+    private val registerBusinessViewModel: RegisterBusinessViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return RegisterBusinessViewModel(tokenManager) as T
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Inicializar GraphQLClient
+        GraphQLClient.initialize(tokenManager)
 
         setContent {
             App(
@@ -32,7 +71,8 @@ class MainActivity : ComponentActivity() {
                     chats = chatsViewModel,
                     orders = ordersViewModel,
                     menu = menuViewModel,
-                    settings = settingsViewModel
+                    settings = settingsViewModel,
+                    registerBusiness = registerBusinessViewModel
                 )
             )
         }
@@ -42,13 +82,17 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
+    val tokenManager = TokenManager()
+    GraphQLClient.initialize(tokenManager)
+
     App(
         AppViewModels(
             auth = AuthViewModel(),
             chats = ChatsViewModel(),
-            orders = OrdersViewModel(),
-            menu = MenuViewModel(),
-            settings = SettingsViewModel()
+            orders = OrdersViewModel(tokenManager),
+            menu = MenuViewModel(tokenManager),
+            settings = SettingsViewModel(tokenManager),
+            registerBusiness = RegisterBusinessViewModel(tokenManager)
         )
     )
 }

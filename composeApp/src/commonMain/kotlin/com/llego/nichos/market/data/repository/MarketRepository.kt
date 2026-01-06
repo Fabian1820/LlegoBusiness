@@ -3,6 +3,7 @@ package com.llego.nichos.market.data.repository
 import com.llego.nichos.common.data.model.*
 import com.llego.nichos.restaurant.data.model.MenuItem
 import com.llego.nichos.restaurant.data.model.MenuCategory
+import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.repositories.ProductRepository as GraphQLProductRepository
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.mappers.toLocalProducts
@@ -18,9 +19,11 @@ import kotlinx.coroutines.launch
  * Repositorio para datos del Mercado
  * Ahora carga productos desde GraphQL backend
  */
-class MarketRepository {
+class MarketRepository(
+    tokenManager: TokenManager
+) {
 
-    private val graphQLRepository = GraphQLProductRepository()
+    private val graphQLRepository = GraphQLProductRepository(tokenManager)
     private val scope = CoroutineScope(Dispatchers.Default)
 
     private val _products = MutableStateFlow<List<Product>>(emptyList())
@@ -311,8 +314,8 @@ class MarketRepository {
     companion object {
         private var instance: MarketRepository? = null
 
-        fun getInstance(): MarketRepository {
-            return instance ?: MarketRepository().also { instance = it }
+        fun getInstance(tokenManager: TokenManager): MarketRepository {
+            return instance ?: MarketRepository(tokenManager).also { instance = it }
         }
     }
 }

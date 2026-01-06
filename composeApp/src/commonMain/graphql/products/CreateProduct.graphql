@@ -1,0 +1,16 @@
+mutation CreateProduct($input: CreateProductInput!, $jwt: String) {
+  createProduct(input: $input, jwt: $jwt) {
+    id
+    name
+    description
+    price
+    currency
+    weight
+    branchId
+    categoryId
+    image
+    imageUrl
+    availability
+    createdAt
+  }
+}

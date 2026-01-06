@@ -1,0 +1,14 @@
+mutation LoginWithGoogle($input: SocialLoginInput!, $jwt: String) {
+  loginWithGoogle(input: $input, jwt: $jwt) {
+    accessToken
+    tokenType
+    user {
+      id
+      name
+      email
+      phone
+      role
+      createdAt
+    }
+  }
+}

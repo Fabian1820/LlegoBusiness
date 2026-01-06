@@ -33,6 +33,8 @@ import androidx.compose.ui.window.DialogProperties
 import kotlin.math.abs
 import kotlin.math.roundToLong
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.data.model.getBusinessProfile
+import com.llego.shared.data.model.getBusinessType
 import com.llego.nichos.restaurant.ui.components.BusinessLocationMap
 import com.llego.nichos.restaurant.data.model.*
 import kotlinx.coroutines.delay
@@ -57,7 +59,7 @@ fun RestaurantProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     val authUiState by authViewModel.uiState.collectAsState()
-    val user = authUiState.currentUser
+    val user = authUiState.user
 
     Scaffold(
         topBar = {
@@ -242,12 +244,12 @@ private fun BannerWithLogoSection() {
  */
 @Composable
 private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
-    var businessName by remember { mutableStateOf(user?.businessProfile?.businessName ?: "Restaurante La Habana") }
-    var address by remember { mutableStateOf(user?.businessProfile?.address ?: "Calle 45 #12-34, Bogotá") }
-    var category by remember { mutableStateOf(user?.businessType?.name ?: "Restaurante") }
-    var description by remember { mutableStateOf(user?.businessProfile?.description ?: "Deliciosa comida tradicional") }
-    val rating = user?.businessProfile?.averageRating ?: 4.8
-    val reviewCount = user?.businessProfile?.totalOrders ?: 125
+    var businessName by remember { mutableStateOf(user?.getBusinessProfile()?.businessName ?: "Restaurante La Habana") }
+    var address by remember { mutableStateOf(user?.getBusinessProfile()?.address ?: "Calle 45 #12-34, Bogotá") }
+    var category by remember { mutableStateOf(user?.getBusinessType()?.name ?: "Restaurante") }
+    var description by remember { mutableStateOf(user?.getBusinessProfile()?.description ?: "Deliciosa comida tradicional") }
+    val rating = user?.getBusinessProfile()?.averageRating ?: 4.8
+    val reviewCount = user?.getBusinessProfile()?.totalOrders ?: 125
     
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
@@ -286,7 +288,7 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = { 
-                                    businessName = user?.businessProfile?.businessName ?: "Restaurante La Habana"
+                                    businessName = user?.getBusinessProfile()?.businessName ?: "Restaurante La Habana"
                                     isEditingName = false 
                                 }) {
                                     Icon(Icons.Default.Close, null, tint = Color.Gray)
@@ -335,7 +337,7 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = { 
-                                    address = user?.businessProfile?.address ?: "Calle 45 #12-34, Bogotá"
+                                    address = user?.getBusinessProfile()?.address ?: "Calle 45 #12-34, Bogotá"
                                     isEditingAddress = false 
                                 }) {
                                     Icon(Icons.Default.Close, null, tint = Color.Gray)
@@ -429,7 +431,7 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                             Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = { 
-                            category = user?.businessType?.name ?: "Restaurante"
+                            category = user?.getBusinessType()?.name ?: "Restaurante"
                             isEditingCategory = false 
                         }) {
                             Icon(Icons.Default.Close, null, tint = Color.Gray)
@@ -470,7 +472,7 @@ private fun BusinessInfoSection(user: com.llego.shared.data.model.User?) {
                             Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = { 
-                            description = user?.businessProfile?.description ?: "Deliciosa comida tradicional"
+                            description = user?.getBusinessProfile()?.description ?: "Deliciosa comida tradicional"
                             isEditingDescription = false 
                         }) {
                             Icon(Icons.Default.Close, null, tint = Color.Gray)
@@ -805,8 +807,7 @@ private fun FullScreenMapDialog(
     Dialog(
         onDismissRequest = { contentVisible = false },
         properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
+            usePlatformDefaultWidth = false
         )
     ) {
         AnimatedVisibility(

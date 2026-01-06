@@ -1,0 +1,23 @@
+mutation UpdateBranch(
+  $branchId: String!
+  $input: UpdateBranchInput!
+  $jwt: String
+) {
+  updateBranch(branchId: $branchId, input: $input, jwt: $jwt) {
+    id
+    businessId
+    name
+    status
+    phone
+    address
+    avatarUrl
+    coverUrl
+    deliveryRadius
+    coordinates {
+      type
+      coordinates
+    }
+    schedule
+    facilities
+  }
+}

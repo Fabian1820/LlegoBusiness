@@ -1,0 +1,14 @@
+query GetBusinesses($jwt: String) {
+  businesses(jwt: $jwt) {
+    id
+    name
+    type
+    avatarUrl
+    coverUrl
+    globalRating
+    isActive
+    tags
+    description
+    createdAt
+  }
+}

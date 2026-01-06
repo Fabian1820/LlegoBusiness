@@ -10,9 +10,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -37,6 +39,7 @@ fun CurvedBackground(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.background
+    val secondaryColor = MaterialTheme.colorScheme.secondary
 
     // Animación de la curva
     val actualCurveStart by animateFloatAsState(
@@ -56,6 +59,7 @@ fun CurvedBackground(
             drawCurvedBackground(
                 primaryColor = primaryColor,
                 surfaceColor = surfaceColor,
+                secondaryColor = secondaryColor,
                 curveStart = actualCurveStart,
                 curveEnd = actualCurveEnd,
                 curveInclination = curveInclination,
@@ -73,6 +77,7 @@ fun CurvedBackground(
 private fun DrawScope.drawCurvedBackground(
     primaryColor: Color,
     surfaceColor: Color,
+    secondaryColor: Color,
     curveStart: Float,
     curveEnd: Float,
     curveInclination: Float,
@@ -114,10 +119,23 @@ private fun DrawScope.drawCurvedBackground(
             close()
         }
 
-        // Dibujar la parte verde
+        val edgeTint = lerp(primaryColor, secondaryColor, 0.18f)
+        val edgeTintStrong = lerp(primaryColor, secondaryColor, 0.28f)
+        val gradientBrush = Brush.horizontalGradient(
+            colorStops = arrayOf(
+                0f to edgeTint,
+                0.45f to primaryColor,
+                0.6f to primaryColor,
+                1f to edgeTintStrong
+            ),
+            startX = 0f,
+            endX = width
+        )
+
+        // Dibujar la parte verde con degradado sutil en los bordes
         drawPath(
             path = path,
-            color = primaryColor
+            brush = gradientBrush
         )
     }
 }

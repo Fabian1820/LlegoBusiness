@@ -1,0 +1,20 @@
+mutation CreateBranch($input: CreateBranchInput!, $jwt: String) {
+  createBranch(input: $input, jwt: $jwt) {
+    id
+    businessId
+    name
+    address
+    phone
+    avatarUrl
+    coverUrl
+    status
+    deliveryRadius
+    coordinates {
+      type
+      coordinates
+    }
+    schedule
+    facilities
+    createdAt
+  }
+}

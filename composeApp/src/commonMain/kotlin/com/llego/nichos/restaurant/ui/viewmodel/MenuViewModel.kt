@@ -8,6 +8,7 @@ import com.llego.nichos.market.data.repository.MarketRepository
 import com.llego.nichos.agromarket.data.repository.AgromarketRepository
 import com.llego.nichos.clothing.data.repository.ClothingRepository
 import com.llego.nichos.common.data.model.Product
+import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.BusinessType
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,15 +18,16 @@ import kotlinx.coroutines.launch
  * Soporta múltiples tipos de negocio
  */
 class MenuViewModel(
+    tokenManager: TokenManager,
     initialBusinessType: BusinessType = BusinessType.RESTAURANT
 ) : ViewModel() {
 
     private var businessType = MutableStateFlow(initialBusinessType)
 
-    private val restaurantRepository = RestaurantRepository.getInstance()
-    private val marketRepository = MarketRepository.getInstance()
-    private val agromarketRepository = AgromarketRepository.getInstance()
-    private val clothingRepository = ClothingRepository.getInstance()
+    private val restaurantRepository = RestaurantRepository.getInstance(tokenManager)
+    private val marketRepository = MarketRepository.getInstance(tokenManager)
+    private val agromarketRepository = AgromarketRepository.getInstance(tokenManager)
+    private val clothingRepository = ClothingRepository.getInstance(tokenManager)
 
     // Estado de UI
     private val _uiState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)

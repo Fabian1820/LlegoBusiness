@@ -32,7 +32,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.llego.shared.data.auth.rememberAppleSignInHelper
+import com.llego.shared.data.auth.rememberGoogleSignInHelper
 import com.llego.shared.data.model.BusinessType
+import com.llego.shared.data.model.getBusinessType
 import com.llego.shared.ui.auth.components.AppTipsSection
 import com.llego.shared.ui.auth.components.LlegoLogo
 import com.llego.shared.ui.auth.components.SocialButtons
@@ -80,9 +83,16 @@ fun LoginScreen(
         cardVisible = true
     }
 
+    // NOTA: Ya no navegamos desde LoginScreen
+    // La navegación se maneja en App.kt que usa AuthManager.getCurrentBusinessType()
+    // para obtener datos reales del backend
+
+    // Si el usuario está autenticado, llamamos onLoginSuccess con un BusinessType temporal
+    // pero la navegación real se decidirá en App.kt basado en datos del backend
     LaunchedEffect(uiState.isAuthenticated) {
-        if (uiState.isAuthenticated && uiState.currentUser != null) {
-            onLoginSuccess(uiState.currentUser!!.businessType)
+        if (uiState.isAuthenticated && uiState.user != null) {
+            // Usar RESTAURANT como placeholder - App.kt usará el tipo real
+            onLoginSuccess(BusinessType.RESTAURANT)
         }
     }
 
@@ -175,13 +185,36 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(48.dp))
 
-                    // Solo botones de Google y Apple - Login mock para pruebas
+                    // Botones de OAuth - Google y Apple Sign-In
+                    val googleSignInHelper = rememberGoogleSignInHelper()
+                    val appleSignInHelper = rememberAppleSignInHelper()
+
                     SocialButtons(
-                        onGoogleClick = { viewModel.login() },
-                        onAppleClick = { viewModel.login() }
+                        onGoogleClick = {
+                            googleSignInHelper.signIn(
+                                onSuccess = { idToken, nonce ->
+                                    viewModel.loginWithGoogle(idToken, nonce)
+                                },
+                                onError = { errorMessage ->
+                                    // TODO: Mostrar error en UI (SnackBar o Dialog)
+                                    println("Error Google Sign-In: $errorMessage")
+                                }
+                            )
+                        },
+                        onAppleClick = {
+                            appleSignInHelper.signIn(
+                                onSuccess = { identityToken, nonce ->
+                                    viewModel.loginWithApple(identityToken, nonce)
+                                },
+                                onError = { errorMessage ->
+                                    // TODO: Mostrar error en UI (SnackBar o Dialog)
+                                    println("Error Apple Sign-In: $errorMessage")
+                                }
+                            )
+                        }
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(48.dp))
 
                     // Tips de la app
                     AppTipsSection()

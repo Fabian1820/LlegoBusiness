@@ -3,8 +3,12 @@ package com.llego.app
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.ui.auth.AuthViewModel
@@ -27,6 +31,9 @@ import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.shared.ui.business.RegisterBusinessScreen
+import com.llego.shared.ui.business.RegisterBusinessViewModel
+import com.llego.shared.data.model.hasBusiness
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -35,7 +42,8 @@ data class AppViewModels(
     val chats: ChatsViewModel,
     val orders: OrdersViewModel,
     val menu: MenuViewModel,
-    val settings: SettingsViewModel
+    val settings: SettingsViewModel,
+    val registerBusiness: RegisterBusinessViewModel
 )
 
 @Composable
@@ -45,6 +53,7 @@ fun App(viewModels: AppViewModels) {
 
         var isAuthenticated by remember { mutableStateOf(false) }
         var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
+        var needsBusinessRegistration by remember { mutableStateOf(false) }
         var showProfile by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
         var showChats by remember { mutableStateOf(false) }
@@ -74,12 +83,40 @@ fun App(viewModels: AppViewModels) {
         LaunchedEffect(authViewModel) {
             authViewModel.uiState.collect { uiState ->
                 isAuthenticated = uiState.isAuthenticated
-                currentBusinessType = uiState.currentUser?.businessType
+                val user = uiState.user
+
+                if (user != null) {
+                    // Verificar si el usuario tiene un negocio registrado
+                    needsBusinessRegistration = !user.hasBusiness()
+
+                    // Obtener el BusinessType desde el AuthManager (datos reales del backend)
+                    // NO usar user.getBusinessType() que está deprecado
+                    currentBusinessType = authViewModel.getCurrentBusinessType()
+                } else {
+                    needsBusinessRegistration = false
+                    currentBusinessType = null
+                }
             }
         }
 
-        if (isAuthenticated && currentBusinessType != null) {
-            // Usuario autenticado - Usa BusinessHomeScreen genérico que se adapta por nicho
+        when {
+            // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
+            isAuthenticated && needsBusinessRegistration -> {
+                RegisterBusinessScreen(
+                    onRegisterSuccess = { businessType ->
+                        needsBusinessRegistration = false
+                        currentBusinessType = businessType
+                    },
+                    onNavigateBack = {
+                        // Cerrar sesión si no quiere registrar negocio
+                        authViewModel.logout()
+                    },
+                    viewModel = viewModels.registerBusiness
+                )
+            }
+
+            // Caso 2: Usuario autenticado CON negocio y datos cargados → Dashboard
+            isAuthenticated && !needsBusinessRegistration && currentBusinessType != null -> {
             Box(modifier = Modifier) {
                 // Contenido principal con navegación condicional
                 when {
@@ -296,15 +333,31 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
             }
-        } else {
-            // Usuario no autenticado - mostrar login
-            LoginScreen(
-                viewModel = authViewModel,
-                onLoginSuccess = { businessType ->
-                    isAuthenticated = true
-                    currentBusinessType = businessType
+            }
+
+            // Caso 3: Usuario autenticado CON negocio pero datos AÚN cargando → Loading
+            isAuthenticated && !needsBusinessRegistration && currentBusinessType == null -> {
+                // Mostrar pantalla de carga mientras se obtienen los datos del negocio
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-            )
+            }
+
+            // Caso 4: Usuario NO autenticado → Login
+            else -> {
+                LoginScreen(
+                    viewModel = authViewModel,
+                    onLoginSuccess = { businessType ->
+                        isAuthenticated = true
+                        currentBusinessType = businessType
+                    }
+                )
+            }
         }
     }
 }

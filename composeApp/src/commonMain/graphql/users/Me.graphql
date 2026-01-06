@@ -1,0 +1,17 @@
+query Me($jwt: String!) {
+  me(jwt: $jwt) {
+    id
+    name
+    email
+    phone
+    role
+    avatar
+    businessIds
+    branchIds
+    createdAt
+    authProvider
+    providerUserId
+    applePrivateEmail
+    avatarUrl
+  }
+}

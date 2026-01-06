@@ -7,6 +7,10 @@ directive @specifiedBy(
 """Indicates an Input Object is a OneOf Input Object."""
 directive @oneOf on INPUT_OBJECT
 
+input AddBranchToUserInput {
+  branchId: String!
+}
+
 input AiAssistantChatInput {
   """The user message/query to send"""
   message: String!
@@ -34,6 +38,12 @@ type AiAssistantResponseType {
   output: AiAssistantOutputType!
 }
 
+input AppleLoginInput {
+  identityToken: String!
+  authorizationCode: String = null
+  nonce: String = null
+}
+
 type AuthResponse {
   accessToken: String!
   tokenType: String!
@@ -44,13 +54,23 @@ type BranchType {
   id: String!
   businessId: String!
   name: String!
-  address: String!
+  address: String
   coordinates: CoordinatesType!
   phone: String!
   schedule: JSON!
   managerIds: [String!]!
   status: String!
+  avatar: String
+  coverImage: String
+  deliveryRadius: Float
+  facilities: [String!]!
   createdAt: DateTime!
+
+  """Presigned URL for the branch avatar"""
+  avatarUrl: String
+
+  """Presigned URL for the branch cover image"""
+  coverUrl: String
 }
 
 type BusinessType {
@@ -59,7 +79,19 @@ type BusinessType {
   type: String!
   ownerId: String!
   globalRating: Float!
+  avatar: String
+  coverImage: String
+  description: String
+  socialMedia: JSON
+  tags: [String!]!
+  isActive: Boolean!
   createdAt: DateTime!
+
+  """Presigned URL for the business avatar"""
+  avatarUrl: String
+
+  """Presigned URL for the business cover image"""
+  coverUrl: String
 }
 
 type CategoryType {
@@ -70,9 +102,50 @@ type CategoryType {
   createdAt: DateTime!
 }
 
+input CoordinatesInput {
+  lat: Float!
+  lng: Float!
+}
+
 type CoordinatesType {
   type: String!
   coordinates: [Float!]!
+}
+
+input CreateBranchInput {
+  businessId: String!
+  name: String!
+  coordinates: CoordinatesInput!
+  phone: String!
+  schedule: JSON!
+  address: String = null
+  managerIds: [String!] = null
+  avatar: String = null
+  coverImage: String = null
+  deliveryRadius: Float = null
+  facilities: [String!] = null
+}
+
+input CreateBusinessInput {
+  name: String!
+  type: String!
+  avatar: String = null
+  coverImage: String = null
+  description: String = null
+  socialMedia: JSON = null
+  tags: [String!] = null
+}
+
+input CreateProductInput {
+  name: String!
+  description: String!
+  price: Float!
+  image: String!
+  branchId: String = null
+  businessId: String = null
+  currency: String! = "USD"
+  weight: String = null
+  categoryId: String = null
 }
 
 """Date with time (isoformat)"""
@@ -92,10 +165,49 @@ input LoginInput {
 
 type Mutation {
   """Register a new user"""
-  register(input: RegisterInput!): AuthResponse!
+  register(input: RegisterInput!, jwt: String = null): AuthResponse!
 
   """Login with email and password"""
-  login(input: LoginInput!): AuthResponse!
+  login(input: LoginInput!, jwt: String = null): AuthResponse!
+
+  """Login with Google"""
+  loginWithGoogle(input: SocialLoginInput!, jwt: String = null): AuthResponse!
+
+  """Login with Apple"""
+  loginWithApple(input: AppleLoginInput!, jwt: String = null): AuthResponse!
+
+  """Actualizar perfil de usuario"""
+  updateUser(input: UpdateUserInput!, jwt: String = null): UserType!
+
+  """Agregar sucursal a usuario"""
+  addBranchToUser(input: AddBranchToUserInput!, jwt: String = null): UserType!
+
+  """Remover sucursal de usuario"""
+  removeBranchFromUser(branchId: String!, jwt: String = null): UserType!
+
+  """Eliminar cuenta de usuario"""
+  deleteUser(jwt: String = null): Boolean!
+
+  """Registrar un nuevo negocio con al menos una sucursal"""
+  registerBusiness(businessInput: CreateBusinessInput!, branchesInput: [RegisterBranchInput!]!, jwt: String = null): BusinessType!
+
+  """Actualizar un negocio"""
+  updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
+
+  """Crear una nueva sucursal"""
+  createBranch(input: CreateBranchInput!, jwt: String = null): BranchType!
+
+  """Actualizar una sucursal"""
+  updateBranch(branchId: String!, input: UpdateBranchInput!, jwt: String = null): BranchType!
+
+  """Crear un nuevo producto"""
+  createProduct(input: CreateProductInput!, jwt: String = null): ProductType!
+
+  """Actualizar un producto"""
+  updateProduct(productId: String!, input: UpdateProductInput!, jwt: String = null): ProductType!
+
+  """Eliminar un producto"""
+  deleteProduct(productId: String!, jwt: String = null): Boolean!
 }
 
 type PaymentMethodType {
@@ -121,59 +233,84 @@ type ProductType {
   availability: Boolean!
   categoryId: String
   createdAt: DateTime!
+
+  """Presigned URL for the product image"""
+  imageUrl: String!
+
+  """Branch associated with this product"""
+  branch: BranchType
+
+  """Business associated with this product (through branch)"""
+  business: BusinessType
 }
 
 type Query {
   """Lista de usuarios"""
-  users: [UserType!]!
+  users(jwt: String = null): [UserType!]!
 
   """Obtener usuario por ID"""
-  user(id: String!): UserType
+  user(id: String!, jwt: String = null): UserType
 
   """Buscar usuarios"""
-  searchUsers(query: String!): [UserType!]!
+  searchUsers(query: String!, jwt: String = null): [UserType!]!
+
+  """Usuario actual desde JWT"""
+  me(jwt: String!): UserType
 
   """Lista de negocios"""
-  businesses(ownerId: String = null): [BusinessType!]!
+  businesses(ownerId: String = null, jwt: String = null): [BusinessType!]!
 
   """Obtener negocio por ID"""
-  business(id: String!): BusinessType
+  business(id: String!, jwt: String = null): BusinessType
 
   """Buscar negocios"""
-  searchBusinesses(query: String!): [BusinessType!]!
+  searchBusinesses(query: String!, jwt: String = null): [BusinessType!]!
 
   """Lista de sucursales"""
-  branches(businessId: String = null): [BranchType!]!
+  branches(businessId: String = null, jwt: String = null): [BranchType!]!
 
   """Obtener sucursal por ID"""
-  branch(id: String!): BranchType
+  branch(id: String!, jwt: String = null): BranchType
 
   """Buscar sucursales"""
-  searchBranches(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true): [BranchType!]!
+  searchBranches(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [BranchType!]!
 
   """Lista de productos"""
-  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false): [ProductType!]!
+  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, jwt: String = null): [ProductType!]!
 
   """Obtener producto por ID"""
-  product(id: String!): ProductType
+  product(id: String!, jwt: String = null): ProductType
 
   """Buscar productos"""
-  searchProducts(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true): [ProductType!]!
+  searchProducts(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [ProductType!]!
 
   """Lista de categorías con subcategorías"""
-  categories: [CategoryType!]!
+  categories(jwt: String = null): [CategoryType!]!
 
   """Obtener categoría por ID"""
-  category(id: String!): CategoryType
+  category(id: String!, jwt: String = null): CategoryType
 
   """Send a message to the AI assistant and get a response"""
-  aiChat(input: AiAssistantChatInput!): AiAssistantResponseType
+  aiChat(input: AiAssistantChatInput!, jwt: String = null): AiAssistantResponseType
 
   """Saludo de ejemplo"""
-  hello: String!
+  hello(jwt: String = null): String!
 
   """Saluda por nombre"""
-  greet(name: String! = "mundo"): String!
+  greet(name: String! = "mundo", jwt: String = null): String!
+}
+
+input RegisterBranchInput {
+  name: String!
+  coordinates: CoordinatesInput!
+  phone: String!
+  schedule: JSON!
+  address: String = null
+  managerIds: [String!] = null
+  avatar: String = null
+  coverImage: String = null
+  deliveryRadius: Float = null
+  facilities: [String!] = null
 }
 
 input RegisterInput {
@@ -184,9 +321,56 @@ input RegisterInput {
   role: String = "customer"
 }
 
+input SocialLoginInput {
+  idToken: String!
+  authorizationCode: String = null
+  nonce: String = null
+}
+
 type SubcategoryType {
   name: String!
   imageUrl: String!
+}
+
+input UpdateBranchInput {
+  name: String = null
+  address: String = null
+  phone: String = null
+  schedule: JSON = null
+  status: String = null
+  deliveryRadius: Float = null
+  facilities: [String!] = null
+  managerIds: [String!] = null
+  avatar: String = null
+  coverImage: String = null
+}
+
+input UpdateBusinessInput {
+  name: String = null
+  type: String = null
+  description: String = null
+  socialMedia: JSON = null
+  tags: [String!] = null
+  isActive: Boolean = null
+  avatar: String = null
+  coverImage: String = null
+}
+
+input UpdateProductInput {
+  name: String = null
+  description: String = null
+  price: Float = null
+  currency: String = null
+  weight: String = null
+  availability: Boolean = null
+  categoryId: String = null
+  image: String = null
+}
+
+input UpdateUserInput {
+  name: String = null
+  phone: String = null
+  avatar: String = null
 }
 
 type UserData {
@@ -202,7 +386,17 @@ type UserType {
   id: String!
   name: String!
   email: String!
+  phone: String
   role: String!
+  avatar: String
+  businessIds: [String!]!
+  branchIds: [String!]!
   createdAt: DateTime!
+  authProvider: String!
+  providerUserId: String
+  applePrivateEmail: String
+
+  """URL firmada del avatar del usuario"""
+  avatarUrl: String
 }
 

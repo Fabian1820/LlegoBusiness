@@ -5,15 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.llego.nichos.restaurant.data.model.RestaurantSettings
 import com.llego.nichos.restaurant.data.model.isCurrentlyOpen
 import com.llego.nichos.restaurant.data.repository.RestaurantRepository
+import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
  * ViewModel para gestión de Configuración del Restaurante
  */
-class SettingsViewModel : ViewModel() {
+class SettingsViewModel(
+    tokenManager: TokenManager
+) : ViewModel() {
 
-    private val repository = RestaurantRepository.getInstance()
+    private val repository = RestaurantRepository.getInstance(tokenManager)
 
     // Estado de UI
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)

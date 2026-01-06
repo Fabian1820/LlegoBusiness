@@ -5,7 +5,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.llego.shared.data.model.UserType
 
 /**
  * Tema principal del sistema de diseño Llego
@@ -16,7 +15,6 @@ import com.llego.shared.data.model.UserType
  * CompositionLocal para acceder a configuraciones específicas de Llego
  */
 data class LlegoThemeConfig(
-    val userType: UserType = UserType.BUSINESS,
     val enableAnimations: Boolean = true,
     val isDarkMode: Boolean = false
 )
@@ -59,27 +57,6 @@ fun LlegoBusinessTheme(
 ) {
     LlegoTheme(
         config = LlegoThemeConfig(
-            userType = UserType.BUSINESS,
-            enableAnimations = true,
-            isDarkMode = false
-        ),
-        darkTheme = false,
-        content = content
-    )
-}
-
-/**
- * Tema específico para la app de mensajeros/choferes
- * Siempre en modo claro para consistencia de marca
- */
-@Composable
-fun LlegoDriverTheme(
-    darkTheme: Boolean = false, // Siempre modo claro
-    content: @Composable () -> Unit
-) {
-    LlegoTheme(
-        config = LlegoThemeConfig(
-            userType = UserType.DRIVER,
             enableAnimations = true,
             isDarkMode = false
         ),
@@ -96,16 +73,6 @@ object LlegoThemeExtensions {
     @Composable
     fun getCurrentConfig(): LlegoThemeConfig {
         return LocalLlegoTheme.current
-    }
-
-    @Composable
-    fun isBusinessApp(): Boolean {
-        return LocalLlegoTheme.current.userType == UserType.BUSINESS
-    }
-
-    @Composable
-    fun isDriverApp(): Boolean {
-        return LocalLlegoTheme.current.userType == UserType.DRIVER
     }
 
     @Composable

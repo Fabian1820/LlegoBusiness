@@ -1,0 +1,17 @@
+mutation UpdateBusiness(
+  $businessId: String!
+  $input: UpdateBusinessInput!
+  $jwt: String
+) {
+  updateBusiness(businessId: $businessId, input: $input, jwt: $jwt) {
+    id
+    name
+    type
+    description
+    avatarUrl
+    coverUrl
+    tags
+    isActive
+    globalRating
+  }
+}

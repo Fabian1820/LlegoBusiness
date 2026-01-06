@@ -3,6 +3,7 @@ package com.llego.nichos.agromarket.data.repository
 import com.llego.nichos.common.data.model.*
 import com.llego.nichos.restaurant.data.model.MenuItem
 import com.llego.nichos.restaurant.data.model.MenuCategory
+import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +13,9 @@ import kotlinx.coroutines.delay
  * Repositorio para datos del Agromercado
  * Por ahora usa datos mock, preparado para integración con backend
  */
-class AgromarketRepository {
+class AgromarketRepository(
+    @Suppress("UNUSED_PARAMETER") tokenManager: TokenManager
+) {
 
     private val _products = MutableStateFlow(getMockProducts())
     val products: Flow<List<Product>> = _products.asStateFlow()
@@ -262,11 +265,12 @@ class AgromarketRepository {
     companion object {
         private var instance: AgromarketRepository? = null
 
-        fun getInstance(): AgromarketRepository {
-            return instance ?: AgromarketRepository().also { instance = it }
+        fun getInstance(tokenManager: TokenManager): AgromarketRepository {
+            return instance ?: AgromarketRepository(tokenManager).also { instance = it }
         }
     }
 }
+
 
 
 

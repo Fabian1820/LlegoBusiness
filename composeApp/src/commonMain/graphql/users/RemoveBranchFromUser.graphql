@@ -1,0 +1,7 @@
+mutation RemoveBranchFromUser($branchId: String!, $jwt: String!) {
+  removeBranchFromUser(branchId: $branchId, jwt: $jwt) {
+    id
+    name
+    branchIds
+  }
+}

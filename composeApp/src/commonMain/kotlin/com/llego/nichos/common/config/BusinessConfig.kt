@@ -23,6 +23,36 @@ data class BusinessCategoryConfig(
 )
 
 /**
+ * Feature flags por tipo de negocio
+ * Controla qué funcionalidades están habilitadas
+ */
+data class BusinessFeatures(
+    val usesMenu: Boolean = false,
+    val usesProducts: Boolean = false,
+    val usesChat: Boolean = true,
+    val usesStatistics: Boolean = true,
+    val usesWallet: Boolean = true,
+    val usesSettings: Boolean = false,
+    val usesTutorials: Boolean = false,
+    val usesPrescriptions: Boolean = false, // Para farmacias
+    val usesInventoryTracking: Boolean = false
+)
+
+/**
+ * Labels y textos personalizados por nicho
+ */
+data class BusinessLabels(
+    val businessName: String,
+    val catalogTitle: String,
+    val catalogItemSingular: String,
+    val catalogItemPlural: String,
+    val addItemTitle: String,
+    val editItemTitle: String,
+    val emptyStateMessage: String,
+    val searchPlaceholder: String
+)
+
+/**
  * Proveedor de configuración por tipo de negocio
  * Centraliza todas las personalizaciones según el nicho
  */
@@ -101,6 +131,135 @@ object BusinessConfigProvider {
      */
     fun usesMenu(businessType: BusinessType): Boolean {
         return businessType == BusinessType.RESTAURANT
+    }
+
+    /**
+     * Obtiene las feature flags según el tipo de negocio
+     */
+    fun getFeaturesForBusiness(businessType: BusinessType): BusinessFeatures {
+        return when (businessType) {
+            BusinessType.RESTAURANT -> BusinessFeatures(
+                usesMenu = true,
+                usesProducts = false,
+                usesChat = true,
+                usesStatistics = true,
+                usesWallet = true,
+                usesSettings = true,
+                usesTutorials = false, // MVP: oculto
+                usesPrescriptions = false,
+                usesInventoryTracking = false
+            )
+
+            BusinessType.MARKET -> BusinessFeatures(
+                usesMenu = false,
+                usesProducts = true,
+                usesChat = true,
+                usesStatistics = true,
+                usesWallet = true,
+                usesSettings = false,
+                usesTutorials = false,
+                usesPrescriptions = false,
+                usesInventoryTracking = true
+            )
+
+            BusinessType.AGROMARKET -> BusinessFeatures(
+                usesMenu = false,
+                usesProducts = true,
+                usesChat = true,
+                usesStatistics = true,
+                usesWallet = true,
+                usesSettings = false,
+                usesTutorials = false,
+                usesPrescriptions = false,
+                usesInventoryTracking = true
+            )
+
+            BusinessType.CLOTHING_STORE -> BusinessFeatures(
+                usesMenu = false,
+                usesProducts = true,
+                usesChat = true,
+                usesStatistics = true,
+                usesWallet = true,
+                usesSettings = false,
+                usesTutorials = false,
+                usesPrescriptions = false,
+                usesInventoryTracking = true
+            )
+
+            BusinessType.PHARMACY -> BusinessFeatures(
+                usesMenu = false,
+                usesProducts = true,
+                usesChat = true,
+                usesStatistics = true,
+                usesWallet = true,
+                usesSettings = false,
+                usesTutorials = false,
+                usesPrescriptions = true,
+                usesInventoryTracking = true
+            )
+        }
+    }
+
+    /**
+     * Obtiene los labels personalizados según el tipo de negocio
+     */
+    fun getLabelsForBusiness(businessType: BusinessType): BusinessLabels {
+        return when (businessType) {
+            BusinessType.RESTAURANT -> BusinessLabels(
+                businessName = "Restaurante",
+                catalogTitle = "Menú",
+                catalogItemSingular = "Platillo",
+                catalogItemPlural = "Platillos",
+                addItemTitle = "Agregar Platillo",
+                editItemTitle = "Editar Platillo",
+                emptyStateMessage = "No hay platillos en el menú",
+                searchPlaceholder = "Buscar platillos..."
+            )
+
+            BusinessType.MARKET -> BusinessLabels(
+                businessName = "Supermercado",
+                catalogTitle = "Productos",
+                catalogItemSingular = "Producto",
+                catalogItemPlural = "Productos",
+                addItemTitle = "Agregar Producto",
+                editItemTitle = "Editar Producto",
+                emptyStateMessage = "No hay productos disponibles",
+                searchPlaceholder = "Buscar productos..."
+            )
+
+            BusinessType.AGROMARKET -> BusinessLabels(
+                businessName = "Agromercado",
+                catalogTitle = "Productos Agrícolas",
+                catalogItemSingular = "Producto",
+                catalogItemPlural = "Productos",
+                addItemTitle = "Agregar Producto Agrícola",
+                editItemTitle = "Editar Producto",
+                emptyStateMessage = "No hay productos agrícolas disponibles",
+                searchPlaceholder = "Buscar productos agrícolas..."
+            )
+
+            BusinessType.CLOTHING_STORE -> BusinessLabels(
+                businessName = "Tienda de Ropa",
+                catalogTitle = "Prendas",
+                catalogItemSingular = "Prenda",
+                catalogItemPlural = "Prendas",
+                addItemTitle = "Agregar Prenda",
+                editItemTitle = "Editar Prenda",
+                emptyStateMessage = "No hay prendas en el catálogo",
+                searchPlaceholder = "Buscar prendas..."
+            )
+
+            BusinessType.PHARMACY -> BusinessLabels(
+                businessName = "Farmacia",
+                catalogTitle = "Medicamentos",
+                catalogItemSingular = "Medicamento",
+                catalogItemPlural = "Medicamentos",
+                addItemTitle = "Agregar Medicamento",
+                editItemTitle = "Editar Medicamento",
+                emptyStateMessage = "No hay medicamentos disponibles",
+                searchPlaceholder = "Buscar medicamentos..."
+            )
+        }
     }
 
     /**

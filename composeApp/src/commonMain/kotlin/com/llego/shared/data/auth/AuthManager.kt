@@ -2,176 +2,243 @@ package com.llego.shared.data.auth
 
 import com.llego.shared.data.model.*
 import com.llego.shared.data.repositories.AuthRepository
+import com.llego.shared.data.repositories.BusinessRepository
 import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Manager centralizado para la autenticación en las apps de Llego
- * Coordina entre el AuthRepository y las diferentes pantallas
+ * Coordina entre el AuthRepository, BusinessRepository y las diferentes pantallas
+ * Actualizado para usar GraphQL con Business y Branch data
  */
+class AuthManager(private val tokenManager: TokenManager) {
 
-class AuthManager private constructor() {
-
-    private val authRepository = AuthRepository()
+    private val authRepository = AuthRepository(tokenManager = tokenManager)
+    private val businessRepository = BusinessRepository(tokenManager = tokenManager)
 
     // Exposición de los flows del repository
     val currentUser: StateFlow<User?> = authRepository.currentUser
     val isAuthenticated: StateFlow<Boolean> = authRepository.isAuthenticated
-    val authToken: StateFlow<AuthToken?> = authRepository.authToken
+
+    // Exposición de los flows de Business
+    val currentBusiness: StateFlow<Business?> = businessRepository.currentBusiness
+    val businesses: StateFlow<List<Business>> = businessRepository.businesses
+    val branches: StateFlow<List<Branch>> = businessRepository.branches
+    val currentBranch: StateFlow<Branch?> = businessRepository.currentBranch
 
     /**
      * Realiza el login del usuario
      */
-    suspend fun login(email: String, password: String, businessType: BusinessType): AuthResult<User> {
-        return try {
-            val loginRequest = LoginRequest(email, password, businessType)
-            val result = authRepository.login(loginRequest)
-
-            if (result.isSuccess) {
-                val response = result.getOrNull()
-                if (response?.success == true && response.user != null) {
-                    AuthResult.Success(response.user)
-                } else {
-                    AuthResult.Error(response?.message ?: "Error desconocido en login")
-                }
-            } else {
-                AuthResult.Error(result.exceptionOrNull()?.message ?: "Error de conexión")
-            }
-        } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Error inesperado")
-        }
+    suspend fun login(email: String, password: String): AuthResult<User> {
+        return authRepository.login(email, password)
     }
 
     /**
-     * Realiza el logout del usuario
+     * Registra un nuevo usuario
      */
-    suspend fun logout(): AuthResult<Unit> {
-        return try {
-            val result = authRepository.logout()
-            if (result.isSuccess) {
-                AuthResult.Success(Unit)
-            } else {
-                AuthResult.Error("Error al cerrar sesión")
-            }
-        } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Error inesperado al cerrar sesión")
-        }
+    suspend fun register(input: RegisterInput): AuthResult<User> {
+        return authRepository.register(input)
     }
 
     /**
-     * Valida el token actual
+     * Login con Google
      */
-    suspend fun validateCurrentSession(): AuthResult<Boolean> {
-        return try {
-            val result = authRepository.validateToken()
-            if (result.isSuccess) {
-                val isValid = result.getOrNull() ?: false
-                if (!isValid) {
-                    // Si el token no es válido, hacer logout automático
-                    authRepository.logout()
-                }
-                AuthResult.Success(isValid)
-            } else {
-                AuthResult.Error("Error al validar sesión")
-            }
-        } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Error inesperado")
-        }
+    suspend fun loginWithGoogle(idToken: String, nonce: String? = null): AuthResult<User> {
+        return authRepository.loginWithGoogle(idToken, nonce)
     }
 
     /**
-     * Refresca el token de autenticación
+     * Login con Apple
      */
-    suspend fun refreshAuthToken(): AuthResult<AuthToken> {
-        return try {
-            val result = authRepository.refreshToken()
-            if (result.isSuccess) {
-                val token = result.getOrNull()
-                if (token != null) {
-                    AuthResult.Success(token)
-                } else {
-                    AuthResult.Error("No se pudo refrescar el token")
-                }
-            } else {
-                AuthResult.Error("Error al refrescar token")
-            }
-        } catch (e: Exception) {
-            AuthResult.Error(e.message ?: "Error inesperado")
-        }
+    suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
+        return authRepository.loginWithApple(identityToken, nonce)
     }
 
     /**
-     * Obtiene el usuario actual de forma sincrónica
+     * Obtiene el usuario actual desde el backend
      */
-    fun getCurrentUser(): User? {
+    suspend fun getCurrentUser(): AuthResult<User> {
         return authRepository.getCurrentUser()
     }
 
     /**
-     * Verifica si el usuario está autenticado
+     * Actualiza el perfil del usuario
+     */
+    suspend fun updateUser(input: UpdateUserInput): AuthResult<User> {
+        return authRepository.updateUser(input)
+    }
+
+    /**
+     * Agrega una sucursal al usuario
+     */
+    suspend fun addBranchToUser(branchId: String): AuthResult<User> {
+        return authRepository.addBranchToUser(branchId)
+    }
+
+    /**
+     * Remueve una sucursal del usuario
+     */
+    suspend fun removeBranchFromUser(branchId: String): AuthResult<User> {
+        return authRepository.removeBranchFromUser(branchId)
+    }
+
+    /**
+     * Elimina la cuenta del usuario
+     */
+    suspend fun deleteUser(): AuthResult<Boolean> {
+        return authRepository.deleteUser()
+    }
+
+    /**
+     * Realiza el logout del usuario y limpia datos de negocio
+     */
+    suspend fun logout(): AuthResult<Unit> {
+        businessRepository.clear()
+        return authRepository.logout()
+    }
+
+    // ============= BUSINESS OPERATIONS =============
+
+    /**
+     * Registra un nuevo negocio con sus sucursales
+     */
+    suspend fun registerBusiness(
+        business: CreateBusinessInput,
+        branches: List<RegisterBranchInput>
+    ): BusinessResult<Business> {
+        return businessRepository.registerBusiness(business, branches)
+    }
+
+    /**
+     * Obtiene todos los negocios del usuario actual
+     */
+    suspend fun getBusinesses(): BusinessResult<List<Business>> {
+        return businessRepository.getBusinesses()
+    }
+
+    /**
+     * Obtiene un negocio específico por ID
+     */
+    suspend fun getBusiness(id: String): BusinessResult<Business> {
+        return businessRepository.getBusiness(id)
+    }
+
+    /**
+     * Actualiza un negocio
+     */
+    suspend fun updateBusiness(
+        businessId: String,
+        input: UpdateBusinessInput
+    ): BusinessResult<Business> {
+        return businessRepository.updateBusiness(businessId, input)
+    }
+
+    // ============= BRANCH OPERATIONS =============
+
+    /**
+     * Obtiene todas las sucursales de un negocio
+     * Si businessId es null, obtiene todas las sucursales del usuario
+     */
+    suspend fun getBranches(businessId: String? = null): BusinessResult<List<Branch>> {
+        return businessRepository.getBranches(businessId)
+    }
+
+    /**
+     * Obtiene una sucursal específica por ID
+     */
+    suspend fun getBranch(id: String): BusinessResult<Branch> {
+        return businessRepository.getBranch(id)
+    }
+
+    /**
+     * Crea una nueva sucursal
+     */
+    suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch> {
+        return businessRepository.createBranch(input)
+    }
+
+    /**
+     * Actualiza una sucursal
+     */
+    suspend fun updateBranch(
+        branchId: String,
+        input: UpdateBranchInput
+    ): BusinessResult<Branch> {
+        return businessRepository.updateBranch(branchId, input)
+    }
+
+    /**
+     * Verifica si el usuario está autenticado (sincrónico)
      */
     fun isUserAuthenticated(): Boolean {
         return authRepository.isUserAuthenticated()
     }
 
     /**
-     * Obtiene el tipo de negocio actual
+     * Obtiene el usuario actual del estado (sincrónico)
+     */
+    fun getCurrentUserSync(): User? {
+        return currentUser.value
+    }
+
+    // ============= HELPER METHODS =============
+
+    /**
+     * Obtiene el tipo de negocio actual desde el currentBusiness
      */
     fun getCurrentBusinessType(): BusinessType? {
-        return authRepository.getCurrentBusinessType()
+        val business = currentBusiness.value ?: return null
+        return when (business.type.lowercase()) {
+            "restaurant" -> BusinessType.RESTAURANT
+            "grocery", "market" -> BusinessType.MARKET
+            "pharmacy" -> BusinessType.PHARMACY
+            "agromarket" -> BusinessType.AGROMARKET
+            "clothing_store" -> BusinessType.CLOTHING_STORE
+            else -> null
+        }
     }
 
     /**
      * Obtiene el perfil de negocio del usuario actual
+     * Combina datos de Business y Branch actual
      */
     fun getBusinessProfile(): BusinessProfile? {
-        return getCurrentUser()?.businessProfile
+        val business = currentBusiness.value ?: return null
+        val branch = currentBranch.value
+
+        return business.toBusinessProfile(branch)
+    }
+
+    /**
+     * Obtiene el negocio actual sincrónico
+     */
+    fun getCurrentBusinessSync(): Business? {
+        return currentBusiness.value
+    }
+
+    /**
+     * Obtiene la sucursal actual sincrónico
+     */
+    fun getCurrentBranchSync(): Branch? {
+        return currentBranch.value
     }
 
     companion object {
         private var INSTANCE: AuthManager? = null
 
-        fun getInstance(): AuthManager {
-            return INSTANCE ?: AuthManager().also { INSTANCE = it }
+        fun getInstance(tokenManager: TokenManager): AuthManager {
+            // Simple singleton sin synchronized (no soportado en common)
+            return INSTANCE ?: AuthManager(tokenManager).also { INSTANCE = it }
+        }
+
+        fun resetInstance() {
+            INSTANCE = null
         }
     }
 }
 
 /**
- * Sealed class para manejar los resultados de autenticación
+ * Modelos de compatibilidad para código legacy
  */
-sealed class AuthResult<out T> {
-    data class Success<T>(val data: T) : AuthResult<T>()
-    data class Error(val message: String) : AuthResult<Nothing>()
-    data object Loading : AuthResult<Nothing>()
 
-    fun isSuccess(): Boolean = this is Success
-    fun isError(): Boolean = this is Error
-    fun isLoading(): Boolean = this is Loading
-
-    fun getOrNull(): T? = when (this) {
-        is Success -> data
-        else -> null
-    }
-
-    fun errorMessage(): String? = when (this) {
-        is Error -> message
-        else -> null
-    }
-}
-
-/**
- * Estados de la UI para la autenticación
- */
-data class AuthUiState(
-    val isLoading: Boolean = false,
-    val isAuthenticated: Boolean = false,
-    val currentUser: User? = null,
-    val error: String? = null
-) {
-    val businessType: BusinessType? = currentUser?.businessType
-    val isRestaurant: Boolean = businessType == BusinessType.RESTAURANT
-    val isMarket: Boolean = businessType == BusinessType.MARKET
-    val isAgromarket: Boolean = businessType == BusinessType.AGROMARKET
-    val isClothingStore: Boolean = businessType == BusinessType.CLOTHING_STORE
-    val isPharmacy: Boolean = businessType == BusinessType.PHARMACY
-}
+// NOTE: BusinessProfile, OperatingHours, DaySchedule, and AuthUiState
+// are now defined in com.llego.shared.data.model.AuthModels.kt

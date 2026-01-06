@@ -3,6 +3,7 @@ package com.llego.nichos.restaurant.data.repository
 import com.llego.nichos.restaurant.data.model.*
 import com.llego.nichos.common.data.model.Product
 import com.llego.nichos.common.data.model.toMenuItem
+import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.repositories.ProductRepository as GraphQLProductRepository
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.mappers.toLocalProducts
@@ -19,9 +20,11 @@ import kotlinx.coroutines.launch
  * Repositorio para datos del Restaurante
  * Ahora carga productos desde GraphQL backend
  */
-class RestaurantRepository {
+class RestaurantRepository(
+    tokenManager: TokenManager
+) {
 
-    private val graphQLRepository = GraphQLProductRepository()
+    private val graphQLRepository = GraphQLProductRepository(tokenManager)
     private val scope = CoroutineScope(Dispatchers.Default)
 
     // StateFlows para datos reactivos
@@ -645,8 +648,8 @@ class RestaurantRepository {
     companion object {
         private var instance: RestaurantRepository? = null
 
-        fun getInstance(): RestaurantRepository {
-            return instance ?: RestaurantRepository().also { instance = it }
+        fun getInstance(tokenManager: TokenManager): RestaurantRepository {
+            return instance ?: RestaurantRepository(tokenManager).also { instance = it }
         }
     }
 }

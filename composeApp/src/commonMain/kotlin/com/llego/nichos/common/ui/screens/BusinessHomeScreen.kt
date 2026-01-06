@@ -22,6 +22,7 @@ import com.llego.nichos.restaurant.ui.screens.MenuScreen
 import com.llego.nichos.restaurant.ui.screens.TutorialsScreen
 import com.llego.nichos.restaurant.ui.screens.ConfirmationType
 import com.llego.shared.data.model.BusinessType
+import com.llego.shared.data.model.getBusinessProfile
 import com.llego.shared.ui.auth.AuthViewModel
 
 /**
@@ -50,8 +51,8 @@ fun BusinessHomeScreen(
 ) {
     // Obtener configuración dinámica según el nicho
     val tabs = BusinessConfigProvider.getTabsForBusiness(businessType)
-    val currentUser by authViewModel.uiState.collectAsState()
-    val businessName = currentUser.currentUser?.businessProfile?.businessName ?: "Mi Negocio"
+    val uiState by authViewModel.uiState.collectAsState()
+    val businessName = uiState.user?.getBusinessProfile()?.businessName ?: "Mi Negocio"
 
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current

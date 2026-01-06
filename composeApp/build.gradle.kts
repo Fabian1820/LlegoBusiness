@@ -36,6 +36,9 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.google.maps.compose)
             implementation(libs.play.services.maps)
+            implementation(libs.ktor.client.android)
+            // Google Sign-In for Android
+            implementation("com.google.android.gms:play-services-auth:20.7.0")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -50,13 +53,20 @@ kotlin {
             implementation(libs.androidx.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.apollo.runtime)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.ktor.client.okhttp)
         }
     }
 }

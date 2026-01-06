@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.nichos.common.ui.viewmodel.ProductViewModel
+import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 
@@ -22,7 +23,7 @@ import com.llego.shared.data.model.ProductsResult
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsTestScreen(
-    viewModel: ProductViewModel = viewModel { ProductViewModel() }
+    viewModel: ProductViewModel = viewModel { ProductViewModel(TokenManager()) }
 ) {
     val productsState by viewModel.productsState.collectAsState()
 

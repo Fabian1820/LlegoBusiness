@@ -4,11 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,11 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import llegobusiness.composeapp.generated.resources.Res
@@ -49,22 +47,12 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun LlegoLogo() {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.primary,
-        shadowElevation = 8.dp,
-        modifier = Modifier.size(140.dp)
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.logo),
-            contentDescription = "Logo Llego",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Fit
-        )
-    }
+    Image(
+        painter = painterResource(Res.drawable.logo),
+        contentDescription = "Logo Llego",
+        modifier = Modifier.size(140.dp),
+        contentScale = ContentScale.Fit
+    )
 }
 
 /**
@@ -79,11 +67,6 @@ internal fun AppTipsSection() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        HorizontalDivider(
-            modifier = Modifier.fillMaxWidth(0.6f),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        )
-
         Text(
             text = "¿Por qué Llego Business?",
             style = MaterialTheme.typography.labelMedium.copy(
@@ -108,6 +91,11 @@ internal fun AppTipsSection() {
             icon = Icons.Default.Support,
             text = "Soporte 24/7 para tu negocio"
         )
+
+        HorizontalDivider(
+            modifier = Modifier.fillMaxWidth(0.6f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
     }
 }
 
@@ -115,7 +103,7 @@ internal fun AppTipsSection() {
 private fun TipItem(icon: ImageVector, text: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -128,7 +116,8 @@ private fun TipItem(icon: ImageVector, text: String) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Start
         )
     }
 }
@@ -235,7 +224,7 @@ internal fun SocialButton(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             )
-            .padding(vertical = 8.dp)
+            .padding(vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -245,13 +234,13 @@ internal fun SocialButton(
             Surface(
                 shape = CircleShape,
                 color = Color.White,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(34.dp),
                 shadowElevation = 2.dp
             ) {
                 Image(
                     painter = painterResource(icon),
                     contentDescription = null,
-                    modifier = Modifier.padding(4.dp),
+                    modifier = Modifier.padding(6.dp),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -261,8 +250,8 @@ internal fun SocialButton(
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )

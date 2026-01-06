@@ -1,0 +1,21 @@
+query GetBranch($id: String!, $jwt: String) {
+  branch(id: $id, jwt: $jwt) {
+    id
+    businessId
+    name
+    address
+    phone
+    schedule
+    facilities
+    avatarUrl
+    coverUrl
+    status
+    deliveryRadius
+    coordinates {
+      type
+      coordinates
+    }
+    managerIds
+    createdAt
+  }
+}

@@ -9,15 +9,18 @@ import com.llego.nichos.restaurant.data.model.OrderItem
 import com.llego.nichos.restaurant.data.model.OrderModificationState
 import com.llego.nichos.restaurant.data.model.OrderStatus
 import com.llego.nichos.restaurant.data.repository.RestaurantRepository
+import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /**
  * ViewModel para gestión de Pedidos del Restaurante
  */
-class OrdersViewModel : ViewModel() {
+class OrdersViewModel(
+    tokenManager: TokenManager
+) : ViewModel() {
 
-    private val repository = RestaurantRepository.getInstance()
+    private val repository = RestaurantRepository.getInstance(tokenManager)
 
     // Estado de UI
     private val _uiState = MutableStateFlow<OrdersUiState>(OrdersUiState.Loading)
