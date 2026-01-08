@@ -11,6 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.llego.shared.data.model.BusinessType
+import com.llego.shared.data.model.toBusinessType
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
 import com.llego.shared.ui.navigation.*
@@ -52,7 +53,6 @@ fun App(viewModels: AppViewModels) {
         val authViewModel = viewModels.auth
 
         var isAuthenticated by remember { mutableStateOf(false) }
-        var currentBusinessType by remember { mutableStateOf<BusinessType?>(null) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var showProfile by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
@@ -67,6 +67,9 @@ fun App(viewModels: AppViewModels) {
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
         var selectedHomeTabIndex by rememberSaveable { mutableStateOf(0) }
 
+        // Estado para controlar la carga inicial (verificación de sesión)
+        var isCheckingSession by remember { mutableStateOf(true) }
+
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
         var confirmationOrderNumber by remember { mutableStateOf("") }
@@ -75,37 +78,73 @@ fun App(viewModels: AppViewModels) {
         val ordersViewModel = viewModels.orders
         val menuViewModel = viewModels.menu
         val settingsViewModel = viewModels.settings
-        
+
         // Scope para operaciones asíncronas
         val scope = rememberCoroutineScope()
+
+        // ✅ SOLUCIÓN: Observar currentBusiness directamente como StateFlow
+        // Esto garantiza reactividad cuando loadBusinessData() termine
+        val currentBusiness by authViewModel.currentBusiness.collectAsState()
+        
+        // Derivar currentBusinessType del business observado
+        val currentBusinessType: BusinessType? = remember(currentBusiness) {
+            currentBusiness?.type?.toBusinessType()
+        }
 
         // Observar estado de autenticación
         LaunchedEffect(authViewModel) {
             authViewModel.uiState.collect { uiState ->
+                println("App: uiState actualizado - isLoading=${uiState.isLoading}, isAuthenticated=${uiState.isAuthenticated}, user=${uiState.user?.email}")
+
                 isAuthenticated = uiState.isAuthenticated
                 val user = uiState.user
 
+                // La sesión ya fue verificada (exitosa o fallida)
+                if (!uiState.isLoading) {
+                    println("App: isCheckingSession = false (porque uiState.isLoading=false)")
+                    isCheckingSession = false
+                }
+
                 if (user != null) {
                     // Verificar si el usuario tiene un negocio registrado
-                    needsBusinessRegistration = !user.hasBusiness()
+                    val hasBusiness = user.hasBusiness()
+                    needsBusinessRegistration = !hasBusiness
 
-                    // Obtener el BusinessType desde el AuthManager (datos reales del backend)
-                    // NO usar user.getBusinessType() que está deprecado
-                    currentBusinessType = authViewModel.getCurrentBusinessType()
+                    println("App: user.hasBusiness()=$hasBusiness, needsBusinessRegistration=$needsBusinessRegistration")
                 } else {
                     needsBusinessRegistration = false
-                    currentBusinessType = null
+                    println("App: user es null")
                 }
+
+                println("App: Estado final - isCheckingSession=$isCheckingSession, isAuthenticated=$isAuthenticated, needsBusinessRegistration=$needsBusinessRegistration, currentBusinessType=$currentBusinessType")
             }
         }
 
+        // Log cuando currentBusiness cambie (para debug)
+        LaunchedEffect(currentBusiness) {
+            println("App: currentBusiness cambió a ${currentBusiness?.name}, type=${currentBusiness?.type}, derivedType=$currentBusinessType")
+        }
+
         when {
+            // Caso 0: Verificando sesión al iniciar → Loading
+            isCheckingSession -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
             // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
             isAuthenticated && needsBusinessRegistration -> {
                 RegisterBusinessScreen(
-                    onRegisterSuccess = { businessType ->
+                    onRegisterSuccess = { _ ->
+                        // El currentBusinessType se actualizará automáticamente
+                        // cuando currentBusiness cambie en el AuthManager
                         needsBusinessRegistration = false
-                        currentBusinessType = businessType
                     },
                     onNavigateBack = {
                         // Cerrar sesión si no quiere registrar negocio
@@ -352,9 +391,10 @@ fun App(viewModels: AppViewModels) {
             else -> {
                 LoginScreen(
                     viewModel = authViewModel,
-                    onLoginSuccess = { businessType ->
-                        isAuthenticated = true
-                        currentBusinessType = businessType
+                    onLoginSuccess = { _ ->
+                        // isAuthenticated se actualiza automáticamente via uiState
+                        // currentBusinessType se actualiza automáticamente via currentBusiness StateFlow
+                        // No necesitamos hacer nada aquí, la reactividad se encarga
                     }
                 )
             }

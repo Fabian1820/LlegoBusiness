@@ -6,6 +6,8 @@ import com.llego.shared.data.auth.AuthManager
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
+import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.User
 import com.llego.shared.data.model.BusinessProfile
@@ -31,6 +33,12 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
     private val _loginError = MutableStateFlow<String?>(null)
     actual val loginError: StateFlow<String?> = _loginError.asStateFlow()
+
+    /** StateFlow del negocio actual - observable para reactividad en UI */
+    actual val currentBusiness: StateFlow<Business?> = authManager.currentBusiness
+
+    /** StateFlow de la sucursal actual - observable para reactividad en UI */
+    actual val currentBranch: StateFlow<Branch?> = authManager.currentBranch
 
     init {
         viewModelScope.launch {

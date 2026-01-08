@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
+import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.BusinessProfile
 import com.llego.shared.data.model.User
@@ -23,6 +25,12 @@ expect class AuthViewModel() : ViewModel {
     val password: StateFlow<String>
     val selectedBusinessType: StateFlow<BusinessType?>
     val loginError: StateFlow<String?>
+    
+    /** StateFlow del negocio actual - observable para reactividad en UI */
+    val currentBusiness: StateFlow<Business?>
+    
+    /** StateFlow de la sucursal actual - observable para reactividad en UI */
+    val currentBranch: StateFlow<Branch?>
 
     fun updateEmail(newEmail: String)
     fun updatePassword(newPassword: String)

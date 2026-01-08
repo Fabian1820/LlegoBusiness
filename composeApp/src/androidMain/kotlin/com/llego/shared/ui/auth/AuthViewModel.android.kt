@@ -1,18 +1,22 @@
 package com.llego.shared.ui.auth
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llego.shared.data.auth.AuthManager
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
+import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.User
 import com.llego.shared.data.model.BusinessProfile
+import com.llego.shared.data.model.BusinessResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+private const val TAG = "AuthViewModel"
 
 /**
  * Implementación Android del AuthViewModel
@@ -40,14 +44,31 @@ actual class AuthViewModel : ViewModel {
     private val _loginError = MutableStateFlow<String?>(null)
     actual val loginError: StateFlow<String?> = _loginError.asStateFlow()
 
+    /** StateFlow del negocio actual - observable para reactividad en UI */
+    actual val currentBusiness: StateFlow<Business?>
+        get() {
+            ensureInitialized()
+            return authManager.currentBusiness
+        }
+
+    /** StateFlow de la sucursal actual - observable para reactividad en UI */
+    actual val currentBranch: StateFlow<Branch?>
+        get() {
+            ensureInitialized()
+            return authManager.currentBranch
+        }
+
     actual constructor() : super() {
         // Constructor sin parámetros requerido por expect/actual
         // Inicialización lazy con TokenManager mock
+        Log.d(TAG, "constructor: AuthViewModel creado")
     }
 
     private fun ensureInitialized() {
         if (!isInitialized) {
-            // Crear TokenManager en memoria
+            Log.d(TAG, "ensureInitialized: inicializando AuthViewModel")
+
+            // Crear TokenManager
             val tokenManager = TokenManager()
 
             authManager = AuthManager(tokenManager = tokenManager)
@@ -68,6 +89,60 @@ actual class AuthViewModel : ViewModel {
                     )
                 }.collect()
             }
+
+            // IMPORTANTE: Intentar restaurar sesión automáticamente al inicializar
+            restoreSessionIfNeeded()
+        }
+    }
+
+    init {
+        // Asegurar que se inicializa automáticamente al crear el ViewModel
+        ensureInitialized()
+    }
+    
+    /**
+     * Restaura la sesión del usuario si hay un token guardado
+     */
+    private fun restoreSessionIfNeeded() {
+        viewModelScope.launch {
+            Log.d(TAG, "restoreSessionIfNeeded: verificando token guardado")
+            
+            // Verificar si hay token guardado
+            if (TokenManager.hasStoredToken()) {
+                Log.d(TAG, "restoreSessionIfNeeded: token encontrado, restaurando sesión...")
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                
+                // Obtener usuario actual desde el backend
+                val result = authManager.getCurrentUser()
+                
+                when (result) {
+                    is AuthResult.Success -> {
+                        Log.d(TAG, "restoreSessionIfNeeded: sesión restaurada para ${result.data.email}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isAuthenticated = true,
+                            user = result.data,
+                            error = null
+                        )
+                        
+                        // Cargar datos de negocio y sucursales
+                        loadBusinessData()
+                    }
+                    is AuthResult.Error -> {
+                        Log.w(TAG, "restoreSessionIfNeeded: error restaurando sesión: ${result.message}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isAuthenticated = false,
+                            user = null
+                        )
+                    }
+                    else -> {
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                    }
+                }
+            } else {
+                Log.d(TAG, "restoreSessionIfNeeded: no hay token guardado")
+            }
         }
     }
 
@@ -77,13 +152,32 @@ actual class AuthViewModel : ViewModel {
     private suspend fun loadBusinessData() {
         ensureInitialized()
 
-        // Cargar negocios
-        authManager.getBusinesses()
+        Log.d(TAG, "loadBusinessData: cargando negocios...")
 
-        // Si hay al menos un negocio, cargar sus sucursales
-        val currentBusiness = authManager.currentBusiness.value
-        if (currentBusiness != null) {
-            authManager.getBranches(currentBusiness.id)
+        // Cargar negocios
+        val result = authManager.getBusinesses()
+
+        Log.d(TAG, "loadBusinessData: resultado de getBusinesses = ${result::class.simpleName}")
+
+        when (result) {
+            is BusinessResult.Success -> {
+                Log.d(TAG, "loadBusinessData: ${result.data.size} negocios cargados")
+
+                // Si hay al menos un negocio, cargar sus sucursales
+                val currentBusiness = authManager.currentBusiness.value
+                if (currentBusiness != null) {
+                    Log.d(TAG, "loadBusinessData: cargando sucursales para negocio ${currentBusiness.id}")
+                    authManager.getBranches(currentBusiness.id)
+                } else {
+                    Log.w(TAG, "loadBusinessData: getBusinesses exitoso pero currentBusiness es null")
+                }
+            }
+            is BusinessResult.Error -> {
+                Log.e(TAG, "loadBusinessData: error al cargar negocios: ${result.message} (code: ${result.code})")
+            }
+            else -> {
+                Log.w(TAG, "loadBusinessData: resultado inesperado: $result")
+            }
         }
     }
 
