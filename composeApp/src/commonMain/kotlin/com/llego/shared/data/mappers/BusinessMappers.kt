@@ -247,6 +247,7 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         coordinates = coordinates.toGraphQL(),
         phone = phone,
         schedule = schedule,
+        tipos = listOf(com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE), // Default: RESTAURANTE
         address = Optional.presentIfNotNull(address),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
@@ -262,6 +263,7 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         coordinates = coordinates.toGraphQL(),
         phone = phone,
         schedule = schedule,
+        tipos = listOf(com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE), // Default: RESTAURANTE
         address = Optional.presentIfNotNull(address),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),

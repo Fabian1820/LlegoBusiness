@@ -1,5 +1,6 @@
 package com.llego.shared.data.model
 
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 /**
@@ -110,7 +111,8 @@ data class RegisterBranchInput(
     val name: String,
     val coordinates: CoordinatesInput,
     val phone: String,
-    val schedule: Map<String, String>,
+    @Contextual
+    val schedule: Any,  // JSON - puede ser Map<String, String> o Map<String, List<String>>
     val address: String? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
@@ -127,7 +129,8 @@ data class CreateBranchInput(
     val name: String,
     val coordinates: CoordinatesInput,
     val phone: String,
-    val schedule: Map<String, String>,
+    @Contextual
+    val schedule: Any,  // JSON - puede ser Map<String, String> o Map<String, List<String>>
     val address: String? = null,
     val avatar: String? = null,
     val coverImage: String? = null,

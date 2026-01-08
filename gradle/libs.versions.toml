@@ -20,8 +20,11 @@ kotlinx-serialization = "1.9.0"
 google-maps-compose = "6.12.2"
 play-services-maps = "19.2.0"
 ktor = "3.0.1"
+playServicesAuth = "21.4.0"
+securityCrypto = "1.1.0"
 
 [libraries]
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -36,6 +39,7 @@ androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navi
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 google-maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "google-maps-compose" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "play-services-maps" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 apollo-normalized-cache = { module = "com.apollographql.apollo:apollo-normalized-cache", version.ref = "apollo" }

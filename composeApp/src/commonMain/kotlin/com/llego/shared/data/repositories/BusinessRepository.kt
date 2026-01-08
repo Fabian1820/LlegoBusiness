@@ -45,32 +45,82 @@ class BusinessRepository(
         branches: List<RegisterBranchInput>
     ): BusinessResult<Business> {
         val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        
+        // Log para debug
+        println("RegisterBusiness: token disponible = ${token != null}, length = ${token?.length ?: 0}")
+        
+        if (token == null) {
+            return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        }
 
         return try {
+            println("RegisterBusiness: Ejecutando mutation...")
+            println("RegisterBusiness: Business input = $business")
+            println("RegisterBusiness: Branches input = $branches")
+            
+            val gqlBusiness = business.toGraphQL()
+            val gqlBranches = branches.map { it.toGraphQL() }
+            
+            println("RegisterBusiness: GraphQL Business = $gqlBusiness")
+            println("RegisterBusiness: GraphQL Branches = $gqlBranches")
+            
             val response = client.mutation(
                 RegisterBusinessMutation(
-                    business = business.toGraphQL(),
-                    branches = branches.map { it.toGraphQL() },
+                    business = gqlBusiness,
+                    branches = gqlBranches,
                     jwt = Optional.presentIfNotNull(token)
                 )
             ).execute()
 
+            // Log completo de la respuesta
+            println("RegisterBusiness: response.hasErrors() = ${response.hasErrors()}")
+            println("RegisterBusiness: response.errors = ${response.errors}")
+            println("RegisterBusiness: response.data = ${response.data}")
+            println("RegisterBusiness: response.exception = ${response.exception}")
+
+            // Log de errores GraphQL
+            if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message} (path: ${it.path})" }
+                println("RegisterBusiness: GraphQL errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error desconocido del servidor",
+                    "GRAPHQL_ERROR"
+                )
+            }
+            
+            // Verificar si hay excepción
+            response.exception?.let { ex ->
+                println("RegisterBusiness: Exception en response = ${ex.message}")
+                return BusinessResult.Error(
+                    ex.message ?: "Error de conexión",
+                    "RESPONSE_EXCEPTION"
+                )
+            }
+
+            println("RegisterBusiness: response.data?.registerBusiness = ${response.data?.registerBusiness}")
+
             response.data?.registerBusiness?.let { businessData ->
                 val newBusiness = businessData.toDomain()
                 _currentBusiness.value = newBusiness
+                println("RegisterBusiness: Negocio creado exitosamente con id = ${newBusiness.id}")
                 BusinessResult.Success(newBusiness)
             } ?: BusinessResult.Error(
-                "No se recibió respuesta del servidor al crear el negocio",
+                "No se recibió respuesta del servidor al crear el negocio (data.registerBusiness es null)",
                 "EMPTY_RESPONSE"
             )
 
         } catch (e: ApolloException) {
+            println("RegisterBusiness: ApolloException = ${e.message}")
+            println("RegisterBusiness: ApolloException cause = ${e.cause}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error de conexión al crear negocio",
                 "APOLLO_ERROR"
             )
         } catch (e: Exception) {
+            println("RegisterBusiness: Exception = ${e.message}")
+            println("RegisterBusiness: Exception type = ${e::class.simpleName}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al crear negocio",
                 "UNKNOWN_ERROR"
@@ -82,37 +132,79 @@ class BusinessRepository(
      * Obtiene todos los negocios del usuario actual
      */
     suspend fun getBusinesses(): BusinessResult<List<Business>> {
+        println("BusinessRepository.getBusinesses: iniciando...")
+
         val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        if (token == null) {
+            println("BusinessRepository.getBusinesses: NO_TOKEN")
+            return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        }
+
+        println("BusinessRepository.getBusinesses: token encontrado (length: ${token.length})")
 
         return try {
+            println("BusinessRepository.getBusinesses: ejecutando query GetBusinesses...")
+
             val response = client.query(
                 GetBusinessesQuery(
                     jwt = Optional.presentIfNotNull(token)
                 )
             ).execute()
 
+            println("BusinessRepository.getBusinesses: respuesta recibida")
+            println("BusinessRepository.getBusinesses: data=${response.data != null}")
+            println("BusinessRepository.getBusinesses: errors=${response.errors}")
+            println("BusinessRepository.getBusinesses: hasErrors=${response.hasErrors()}")
+
+            if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("BusinessRepository.getBusinesses: GraphQL errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error desconocido del servidor",
+                    "GRAPHQL_ERROR"
+                )
+            }
+
             response.data?.businesses?.let { businessesData ->
+                println("BusinessRepository.getBusinesses: businessesData count=${businessesData.size}")
+
                 val businessesList = businessesData.map { it.toDomain() }
                 _businesses.value = businessesList
+
+                println("BusinessRepository.getBusinesses: negocios convertidos=${businessesList.size}")
+                businessesList.forEach { business ->
+                    println("  - Business: id=${business.id}, name=${business.name}")
+                }
 
                 // Si solo hay un negocio, establecerlo como actual
                 if (businessesList.size == 1) {
                     _currentBusiness.value = businessesList.first()
+                    println("BusinessRepository.getBusinesses: establecido currentBusiness=${businessesList.first().name}")
+                } else if (businessesList.isNotEmpty()) {
+                    // Si hay múltiples negocios, establecer el primero como actual
+                    _currentBusiness.value = businessesList.first()
+                    println("BusinessRepository.getBusinesses: múltiples negocios, establecido primero=${businessesList.first().name}")
                 }
 
                 BusinessResult.Success(businessesList)
-            } ?: BusinessResult.Error(
-                "No se recibió respuesta del servidor",
-                "EMPTY_RESPONSE"
-            )
+            } ?: run {
+                println("BusinessRepository.getBusinesses: response.data.businesses es null")
+                BusinessResult.Error(
+                    "No se recibió respuesta del servidor",
+                    "EMPTY_RESPONSE"
+                )
+            }
 
         } catch (e: ApolloException) {
+            println("BusinessRepository.getBusinesses: ApolloException=${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error de conexión al obtener negocios",
                 "APOLLO_ERROR"
             )
         } catch (e: Exception) {
+            println("BusinessRepository.getBusinesses: Exception=${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al obtener negocios",
                 "UNKNOWN_ERROR"
@@ -215,10 +307,20 @@ class BusinessRepository(
      * Si businessId es null, obtiene todas las sucursales del usuario
      */
     suspend fun getBranches(businessId: String? = null): BusinessResult<List<Branch>> {
+        println("BusinessRepository.getBranches: iniciando...")
+        println("BusinessRepository.getBranches: businessId=$businessId")
+
         val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        if (token == null) {
+            println("BusinessRepository.getBranches: NO_TOKEN")
+            return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
+        }
+
+        println("BusinessRepository.getBranches: token encontrado (length: ${token.length})")
 
         return try {
+            println("BusinessRepository.getBranches: ejecutando query GetBranches...")
+
             val response = client.query(
                 GetBranchesQuery(
                     businessId = Optional.presentIfNotNull(businessId),
@@ -226,27 +328,61 @@ class BusinessRepository(
                 )
             ).execute()
 
+            println("BusinessRepository.getBranches: respuesta recibida")
+            println("BusinessRepository.getBranches: data=${response.data != null}")
+            println("BusinessRepository.getBranches: errors=${response.errors}")
+            println("BusinessRepository.getBranches: hasErrors=${response.hasErrors()}")
+
+            if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("BusinessRepository.getBranches: GraphQL errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error desconocido del servidor",
+                    "GRAPHQL_ERROR"
+                )
+            }
+
             response.data?.branches?.let { branchesData ->
+                println("BusinessRepository.getBranches: branchesData count=${branchesData.size}")
+
                 val branchesList = branchesData.map { it.toDomain() }
                 _branches.value = branchesList
+
+                println("BusinessRepository.getBranches: sucursales convertidas=${branchesList.size}")
+                branchesList.forEach { branch ->
+                    println("  - Branch: id=${branch.id}, name=${branch.name}")
+                }
 
                 // Si solo hay una sucursal, establecerla como actual
                 if (branchesList.size == 1) {
                     _currentBranch.value = branchesList.first()
+                    println("BusinessRepository.getBranches: establecida currentBranch=${branchesList.first().name}")
+                } else if (branchesList.isNotEmpty()) {
+                    _currentBranch.value = branchesList.first()
+                    println("BusinessRepository.getBranches: múltiples sucursales, establecida primera=${branchesList.first().name}")
+                } else {
+                    println("BusinessRepository.getBranches: no hay sucursales para este negocio")
                 }
 
                 BusinessResult.Success(branchesList)
-            } ?: BusinessResult.Error(
-                "No se recibió respuesta del servidor",
-                "EMPTY_RESPONSE"
-            )
+            } ?: run {
+                println("BusinessRepository.getBranches: response.data.branches es null")
+                BusinessResult.Error(
+                    "No se recibió respuesta del servidor",
+                    "EMPTY_RESPONSE"
+                )
+            }
 
         } catch (e: ApolloException) {
+            println("BusinessRepository.getBranches: ApolloException=${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error de conexión al obtener sucursales",
                 "APOLLO_ERROR"
             )
         } catch (e: Exception) {
+            println("BusinessRepository.getBranches: Exception=${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al obtener sucursales",
                 "UNKNOWN_ERROR"

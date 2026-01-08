@@ -128,6 +128,7 @@ class AuthRepository(
     suspend fun loginWithGoogle(idToken: String, nonce: String? = null): AuthResult<User> {
         return try {
             val currentToken = tokenManager.getToken()
+            println("AuthRepository.loginWithGoogle: currentToken=${currentToken?.take(20)}...")
 
             val response = client.mutation(
                 com.llego.multiplatform.graphql.LoginWithGoogleMutation(
@@ -141,17 +142,32 @@ class AuthRepository(
             ).execute()
 
             response.data?.loginWithGoogle?.let { authResponse ->
+                println("AuthRepository.loginWithGoogle: recibida respuesta del backend")
+                println("AuthRepository.loginWithGoogle: accessToken length=${authResponse.accessToken.length}")
+                println("AuthRepository.loginWithGoogle: user.email=${authResponse.user.email}")
+                println("AuthRepository.loginWithGoogle: user.id=${authResponse.user.id}")
+
                 // Guardar nuevo token
                 tokenManager.saveToken(authResponse.accessToken)
 
                 // Convertir usuario
                 val basicUser = authResponse.user.toBasicDomain()
+                println("AuthRepository.loginWithGoogle: basicUser creado (sin businessIds aún)")
 
                 // Obtener datos completos
+                println("AuthRepository.loginWithGoogle: llamando getCurrentUser() para datos completos...")
                 val fullUserResult = getCurrentUser()
                 val fullUser = when (fullUserResult) {
-                    is AuthResult.Success -> fullUserResult.data
-                    else -> basicUser
+                    is AuthResult.Success -> {
+                        println("AuthRepository.loginWithGoogle: getCurrentUser() exitoso")
+                        println("AuthRepository.loginWithGoogle: fullUser.businessIds=${fullUserResult.data.businessIds}")
+                        println("AuthRepository.loginWithGoogle: fullUser.branchIds=${fullUserResult.data.branchIds}")
+                        fullUserResult.data
+                    }
+                    else -> {
+                        println("AuthRepository.loginWithGoogle: getCurrentUser() falló, usando basicUser")
+                        basicUser
+                    }
                 }
 
                 // Actualizar estado
@@ -162,8 +178,10 @@ class AuthRepository(
             } ?: AuthResult.Error("No se recibió respuesta del servidor")
 
         } catch (e: ApolloException) {
+            println("AuthRepository.loginWithGoogle: ApolloException - ${e.message}")
             AuthResult.Error(e.message ?: "Error de conexión con el servidor")
         } catch (e: Exception) {
+            println("AuthRepository.loginWithGoogle: Exception - ${e.message}")
             AuthResult.Error(e.message ?: "Error desconocido")
         }
     }
@@ -216,24 +234,44 @@ class AuthRepository(
      */
     suspend fun getCurrentUser(): AuthResult<User> {
         val token = tokenManager.getToken()
-            ?: return AuthResult.Error("No hay sesión activa")
+        if (token == null) {
+            println("AuthRepository.getCurrentUser: No hay token guardado")
+            return AuthResult.Error("No hay sesión activa")
+        }
+
+        println("AuthRepository.getCurrentUser: llamando query 'me' con token...")
 
         return try {
             val response = client.query(
                 com.llego.multiplatform.graphql.MeQuery(jwt = token)
             ).execute()
 
+            println("AuthRepository.getCurrentUser: respuesta recibida, data=${response.data != null}")
+            println("AuthRepository.getCurrentUser: errors=${response.errors}")
+
             response.data?.me?.let { userResponse ->
+                println("AuthRepository.getCurrentUser: userResponse.id=${userResponse.id}")
+                println("AuthRepository.getCurrentUser: userResponse.email=${userResponse.email}")
+                println("AuthRepository.getCurrentUser: userResponse.businessIds=${userResponse.businessIds}")
+                println("AuthRepository.getCurrentUser: userResponse.branchIds=${userResponse.branchIds}")
+                println("AuthRepository.getCurrentUser: userResponse.authProvider=${userResponse.authProvider}")
+
                 val user = userResponse.toDomain()
+
+                println("AuthRepository.getCurrentUser: user convertido, businessIds=${user.businessIds}")
 
                 // Actualizar estado
                 _currentUser.value = user
                 _isAuthenticated.value = true
 
                 AuthResult.Success(user)
-            } ?: AuthResult.Error("No se pudo obtener el usuario")
+            } ?: run {
+                println("AuthRepository.getCurrentUser: response.data.me es null")
+                AuthResult.Error("No se pudo obtener el usuario")
+            }
 
         } catch (e: ApolloException) {
+            println("AuthRepository.getCurrentUser: ApolloException - ${e.message}")
             // Token inválido o expirado
             tokenManager.clearToken()
             _currentUser.value = null
@@ -241,6 +279,7 @@ class AuthRepository(
 
             AuthResult.Error("Sesión expirada")
         } catch (e: Exception) {
+            println("AuthRepository.getCurrentUser: Exception - ${e.message}")
             AuthResult.Error(e.message ?: "Error desconocido")
         }
     }

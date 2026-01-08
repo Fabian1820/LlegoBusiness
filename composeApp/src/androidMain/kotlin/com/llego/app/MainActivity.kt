@@ -61,6 +61,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // Inicializar TokenManager con contexto para persistencia
+        TokenManager.initialize(applicationContext)
+        
         // Inicializar GraphQLClient
         GraphQLClient.initialize(tokenManager)
 
@@ -77,22 +80,4 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    val tokenManager = TokenManager()
-    GraphQLClient.initialize(tokenManager)
-
-    App(
-        AppViewModels(
-            auth = AuthViewModel(),
-            chats = ChatsViewModel(),
-            orders = OrdersViewModel(tokenManager),
-            menu = MenuViewModel(tokenManager),
-            settings = SettingsViewModel(tokenManager),
-            registerBusiness = RegisterBusinessViewModel(tokenManager)
-        )
-    )
 }

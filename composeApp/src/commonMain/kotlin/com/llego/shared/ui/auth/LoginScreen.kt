@@ -189,6 +189,25 @@ fun LoginScreen(
                     val googleSignInHelper = rememberGoogleSignInHelper()
                     val appleSignInHelper = rememberAppleSignInHelper()
 
+                    // Estado para mostrar errores de OAuth
+                    var oauthError by remember { mutableStateOf<String?>(null) }
+                    
+                    // Mostrar error de OAuth si existe
+                    oauthError?.let { error ->
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { oauthError = null },
+                            title = { Text("Error de autenticación") },
+                            text = { Text(error) },
+                            confirmButton = {
+                                androidx.compose.material3.TextButton(
+                                    onClick = { oauthError = null }
+                                ) {
+                                    Text("Aceptar")
+                                }
+                            }
+                        )
+                    }
+                    
                     SocialButtons(
                         onGoogleClick = {
                             googleSignInHelper.signIn(
@@ -196,7 +215,7 @@ fun LoginScreen(
                                     viewModel.loginWithGoogle(idToken, nonce)
                                 },
                                 onError = { errorMessage ->
-                                    // TODO: Mostrar error en UI (SnackBar o Dialog)
+                                    oauthError = errorMessage
                                     println("Error Google Sign-In: $errorMessage")
                                 }
                             )
@@ -207,7 +226,7 @@ fun LoginScreen(
                                     viewModel.loginWithApple(identityToken, nonce)
                                 },
                                 onError = { errorMessage ->
-                                    // TODO: Mostrar error en UI (SnackBar o Dialog)
+                                    oauthError = errorMessage
                                     println("Error Apple Sign-In: $errorMessage")
                                 }
                             )

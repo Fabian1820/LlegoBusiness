@@ -1,5 +1,11 @@
+@file:OptIn(ApolloExperimental::class)
+
+import com.apollographql.apollo.annotations.ApolloExperimental
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+
+
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -38,7 +44,9 @@ kotlin {
             implementation(libs.play.services.maps)
             implementation(libs.ktor.client.android)
             // Google Sign-In for Android
-            implementation("com.google.android.gms:play-services-auth:20.7.0")
+            implementation(libs.play.services.auth)
+            // Encrypted SharedPreferences for secure token storage
+            implementation(libs.androidx.security.crypto)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -120,6 +128,10 @@ apollo {
 
         // Tells Apollo to generate Kotlin models
         generateKotlinModels.set(true)
+
+        // IMPORTANTE: Ignorar errores de parseo por campos desconocidos del backend
+        // El backend está enviando 'password' aunque no debería estar en el schema
+        generateDataBuilders.set(true)
 
         // Introspection configuration to download schema via Gradle
         introspection {

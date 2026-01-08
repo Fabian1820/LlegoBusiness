@@ -295,7 +295,9 @@ fun RegisterBusinessScreen(
                                 lat = branchLatitude.toDoubleOrNull() ?: 0.0,
                                 lng = branchLongitude.toDoubleOrNull() ?: 0.0
                             ),
-                            schedule = mapOf("general" to branchSchedule),
+                            // El backend espera schedule como Map<String, List<String>>
+                            // Formato: { "lun-vie": ["9:00-18:00"] } o { "general": ["9:00-18:00"] }
+                            schedule = mapOf("lun-vie" to listOf(branchSchedule)),
                             avatar = null,
                             coverImage = null,
                             deliveryRadius = 5.0,

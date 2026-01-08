@@ -1,402 +1,1132 @@
-"""Exposes a URL that specifies the behavior of this scalar."""
-directive @specifiedBy(
-  """The URL that specifies the behavior of this scalar."""
-  url: String!
-) on SCALAR
+type Query {
+  """
+  Lista de usuarios
+  """
+  users(jwt: String = null): [UserType!]!
 
-"""Indicates an Input Object is a OneOf Input Object."""
-directive @oneOf on INPUT_OBJECT
+  """
+  Obtener usuario por ID
+  """
+  user(id: String!, jwt: String = null): UserType
 
-input AddBranchToUserInput {
-  branchId: String!
+  """
+  Buscar usuarios
+  """
+  searchUsers(query: String!, jwt: String = null): [UserType!]!
+
+  """
+  Usuario actual desde JWT
+  """
+  me(jwt: String!): UserType
+
+  """
+  Lista de negocios
+  """
+  businesses(ownerId: String = null, jwt: String = null): [BusinessType!]!
+
+  """
+  Obtener negocio por ID
+  """
+  business(id: String!, jwt: String = null): BusinessType
+
+  """
+  Buscar negocios
+  """
+  searchBusinesses(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [BusinessType!]!
+
+  """
+  Lista de sucursales con scoring por cercanía
+  """
+  branches(businessId: String = null, tipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): [ScoredBranchType!]!
+
+  """
+  Obtener sucursal por ID
+  """
+  branch(id: String!, jwt: String = null): BranchType
+
+  """
+  Buscar sucursales con scoring por cercanía
+  """
+  searchBranches(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, radiusKm: Float = null, jwt: String = null): [ScoredBranchType!]!
+
+  """
+  Buscar sucursales cercanas por coordenadas
+  """
+  nearbyBranches(longitude: Float!, latitude: Float!, radiusKm: Float! = 5, onlyActive: Boolean! = true, tipo: BranchTipo = null, jwt: String = null): [NearbyBranchType!]!
+
+  """
+  Obtener ubicación de una sucursal desde MongoDB
+  """
+  branchLocation(branchId: String!, jwt: String = null): CoordinatesType
+
+  """
+  Lista de productos con scoring por cercanía
+  """
+  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, branchTipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): [ScoredProductType!]!
+
+  """
+  Obtener producto por ID
+  """
+  product(id: String!, jwt: String = null): ProductType
+
+  """
+  Buscar productos con scoring por cercanía
+  """
+  searchProducts(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, branchTipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): [ScoredProductType!]!
+
+  """
+  Lista de categorías con subcategorías
+  """
+  categories(jwt: String = null): [CategoryType!]!
+
+  """
+  Obtener categoría por ID
+  """
+  category(id: String!, jwt: String = null): CategoryType
+
+  """
+  Send a message to the AI assistant and get a response
+  """
+  aiChat(input: AiAssistantChatInput!, jwt: String = null): AiAssistantResponseType
+
+  """
+  Saludo de ejemplo
+  """
+  hello(jwt: String = null): String!
+
+  """
+  Saluda por nombre
+  """
+  greet(name: String! = "mundo", jwt: String = null): String!
 }
 
-input AiAssistantChatInput {
-  """The user message/query to send"""
-  message: String!
-
-  """Session ID for conversation context"""
-  sessionId: String!
-}
-
-type AiAssistantOutputType {
-  """Type of response (e.g., 'payment_method', 'products', 'branches')"""
-  type: String!
-
-  """AI-generated response text"""
-  AItext: String!
-
-  """List of relevant IDs (for debugging)"""
-  ids: [String!]!
-
-  """List of resolved entities (products, branches, or payment methods)"""
-  entities: [EntityType!]
-}
-
-type AiAssistantResponseType {
-  """Response output from AI assistant"""
-  output: AiAssistantOutputType!
-}
-
-input AppleLoginInput {
-  identityToken: String!
-  authorizationCode: String = null
-  nonce: String = null
-}
-
-type AuthResponse {
-  accessToken: String!
-  tokenType: String!
-  user: UserData!
-}
-
-type BranchType {
+type UserType {
   id: String!
-  businessId: String!
+
   name: String!
-  address: String
-  coordinates: CoordinatesType!
-  phone: String!
-  schedule: JSON!
-  managerIds: [String!]!
-  status: String!
+
+  email: String!
+
+  phone: String
+
+  role: String!
+
   avatar: String
-  coverImage: String
-  deliveryRadius: Float
-  facilities: [String!]!
+
+  businessIds: [String!]!
+
+  branchIds: [String!]!
+
   createdAt: DateTime!
 
-  """Presigned URL for the branch avatar"""
-  avatarUrl: String
+  authProvider: String!
 
-  """Presigned URL for the branch cover image"""
-  coverUrl: String
+  providerUserId: String
+
+  applePrivateEmail: String
+
+  """
+  URL firmada del avatar del usuario
+  """
+  avatarUrl: String
 }
+
+"""
+The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
+"""
+scalar String
+
+"""
+Date with time (isoformat)
+"""
+scalar DateTime
 
 type BusinessType {
   id: String!
+
   name: String!
+
   type: String!
+
   ownerId: String!
+
   globalRating: Float!
+
   avatar: String
+
   coverImage: String
+
   description: String
+
   socialMedia: JSON
+
   tags: [String!]!
+
   isActive: Boolean!
+
   createdAt: DateTime!
 
-  """Presigned URL for the business avatar"""
+  """
+  Presigned URL for the business avatar
+  """
   avatarUrl: String
 
-  """Presigned URL for the business cover image"""
+  """
+  Presigned URL for the business cover image
+  """
   coverUrl: String
 }
 
-type CategoryType {
-  id: String!
-  name: String!
-  imageUrl: String!
-  subcategories: [SubcategoryType!]!
-  createdAt: DateTime!
-}
-
-input CoordinatesInput {
-  lat: Float!
-  lng: Float!
-}
-
-type CoordinatesType {
-  type: String!
-  coordinates: [Float!]!
-}
-
-input CreateBranchInput {
-  businessId: String!
-  name: String!
-  coordinates: CoordinatesInput!
-  phone: String!
-  schedule: JSON!
-  address: String = null
-  managerIds: [String!] = null
-  avatar: String = null
-  coverImage: String = null
-  deliveryRadius: Float = null
-  facilities: [String!] = null
-}
-
-input CreateBusinessInput {
-  name: String!
-  type: String!
-  avatar: String = null
-  coverImage: String = null
-  description: String = null
-  socialMedia: JSON = null
-  tags: [String!] = null
-}
-
-input CreateProductInput {
-  name: String!
-  description: String!
-  price: Float!
-  image: String!
-  branchId: String = null
-  businessId: String = null
-  currency: String! = "USD"
-  weight: String = null
-  categoryId: String = null
-}
-
-"""Date with time (isoformat)"""
-scalar DateTime
-
-union EntityType = ProductType | BranchType | PaymentMethodType
+"""
+The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+"""
+scalar Float
 
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
 """
 scalar JSON
 
-input LoginInput {
-  email: String!
-  password: String!
-}
+"""
+The `Boolean` scalar type represents `true` or `false`.
+"""
+scalar Boolean
 
-type Mutation {
-  """Register a new user"""
-  register(input: RegisterInput!, jwt: String = null): AuthResponse!
+"""
+The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
+"""
+scalar Int
 
-  """Login with email and password"""
-  login(input: LoginInput!, jwt: String = null): AuthResponse!
-
-  """Login with Google"""
-  loginWithGoogle(input: SocialLoginInput!, jwt: String = null): AuthResponse!
-
-  """Login with Apple"""
-  loginWithApple(input: AppleLoginInput!, jwt: String = null): AuthResponse!
-
-  """Actualizar perfil de usuario"""
-  updateUser(input: UpdateUserInput!, jwt: String = null): UserType!
-
-  """Agregar sucursal a usuario"""
-  addBranchToUser(input: AddBranchToUserInput!, jwt: String = null): UserType!
-
-  """Remover sucursal de usuario"""
-  removeBranchFromUser(branchId: String!, jwt: String = null): UserType!
-
-  """Eliminar cuenta de usuario"""
-  deleteUser(jwt: String = null): Boolean!
-
-  """Registrar un nuevo negocio con al menos una sucursal"""
-  registerBusiness(businessInput: CreateBusinessInput!, branchesInput: [RegisterBranchInput!]!, jwt: String = null): BusinessType!
-
-  """Actualizar un negocio"""
-  updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
-
-  """Crear una nueva sucursal"""
-  createBranch(input: CreateBranchInput!, jwt: String = null): BranchType!
-
-  """Actualizar una sucursal"""
-  updateBranch(branchId: String!, input: UpdateBranchInput!, jwt: String = null): BranchType!
-
-  """Crear un nuevo producto"""
-  createProduct(input: CreateProductInput!, jwt: String = null): ProductType!
-
-  """Actualizar un producto"""
-  updateProduct(productId: String!, input: UpdateProductInput!, jwt: String = null): ProductType!
-
-  """Eliminar un producto"""
-  deleteProduct(productId: String!, jwt: String = null): Boolean!
-}
-
-type PaymentMethodType {
-  """Payment method ID"""
+type ScoredBranchType {
   id: String!
 
-  """Currency (e.g., CUP, USD)"""
+  businessId: String!
+
+  name: String!
+
+  address: String
+
+  coordinates: CoordinatesType!
+
+  phone: String!
+
+  schedule: JSON!
+
+  managerIds: [String!]!
+
+  status: String!
+
+  avatar: String
+
+  coverImage: String
+
+  deliveryRadius: Float
+
+  facilities: [String!]!
+
+  tipos: [BranchTipo!]!
+
+  createdAt: DateTime!
+
+  score: Float!
+
+  distanceM: Float
+
+  """
+  Presigned URL for the branch avatar
+  """
+  avatarUrl: String
+
+  """
+  Presigned URL for the branch cover image
+  """
+  coverUrl: String
+
+  """
+  Distance in kilometers from user
+  """
+  distanceKm: Float
+}
+
+type CoordinatesType {
+  type: String!
+
+  coordinates: [Float!]!
+}
+
+enum BranchTipo {
+  RESTAURANTE
+
+  DULCERIA
+
+  TIENDA
+}
+
+type BranchType {
+  id: String!
+
+  businessId: String!
+
+  name: String!
+
+  address: String
+
+  coordinates: CoordinatesType!
+
+  phone: String!
+
+  schedule: JSON!
+
+  managerIds: [String!]!
+
+  status: String!
+
+  avatar: String
+
+  coverImage: String
+
+  deliveryRadius: Float
+
+  facilities: [String!]!
+
+  tipos: [BranchTipo!]!
+
+  createdAt: DateTime!
+
+  """
+  Presigned URL for the branch avatar
+  """
+  avatarUrl: String
+
+  """
+  Presigned URL for the branch cover image
+  """
+  coverUrl: String
+}
+
+type NearbyBranchType {
+  id: String!
+
+  businessId: String!
+
+  name: String!
+
+  address: String
+
+  coordinates: CoordinatesType!
+
+  phone: String!
+
+  schedule: JSON!
+
+  managerIds: [String!]!
+
+  status: String!
+
+  avatar: String
+
+  coverImage: String
+
+  deliveryRadius: Float
+
+  facilities: [String!]!
+
+  tipos: [BranchTipo!]!
+
+  createdAt: DateTime!
+
+  distanceM: Float!
+
+  """
+  Presigned URL for the branch avatar
+  """
+  avatarUrl: String
+
+  """
+  Presigned URL for the branch cover image
+  """
+  coverUrl: String
+
+  """
+  Distance in kilometers
+  """
+  distanceKm: Float!
+}
+
+type ScoredProductType {
+  id: String!
+
+  branchId: String!
+
+  name: String!
+
+  description: String!
+
+  weight: String!
+
+  price: Float!
+
   currency: String!
 
-  """Payment method (e.g., tarjeta, efectivo, transferencia)"""
-  method: String!
+  image: String!
+
+  availability: Boolean!
+
+  categoryId: String
+
+  createdAt: DateTime!
+
+  score: Float!
+
+  distanceM: Float
+
+  """
+  Presigned URL for the product image
+  """
+  imageUrl: String!
+
+  """
+  Distance in kilometers from user
+  """
+  distanceKm: Float
+
+  """
+  Branch associated with this product
+  """
+  branch: BranchType
+
+  """
+  Business associated with this product (through branch)
+  """
+  business: BusinessType
 }
 
 type ProductType {
   id: String!
+
   branchId: String!
+
   name: String!
+
   description: String!
+
   weight: String!
+
   price: Float!
+
   currency: String!
+
   image: String!
+
   availability: Boolean!
+
   categoryId: String
+
   createdAt: DateTime!
 
-  """Presigned URL for the product image"""
+  """
+  Presigned URL for the product image
+  """
   imageUrl: String!
 
-  """Branch associated with this product"""
+  """
+  Branch associated with this product
+  """
   branch: BranchType
 
-  """Business associated with this product (through branch)"""
+  """
+  Business associated with this product (through branch)
+  """
   business: BusinessType
 }
 
-type Query {
-  """Lista de usuarios"""
-  users(jwt: String = null): [UserType!]!
+type CategoryType {
+  id: String!
 
-  """Obtener usuario por ID"""
-  user(id: String!, jwt: String = null): UserType
-
-  """Buscar usuarios"""
-  searchUsers(query: String!, jwt: String = null): [UserType!]!
-
-  """Usuario actual desde JWT"""
-  me(jwt: String!): UserType
-
-  """Lista de negocios"""
-  businesses(ownerId: String = null, jwt: String = null): [BusinessType!]!
-
-  """Obtener negocio por ID"""
-  business(id: String!, jwt: String = null): BusinessType
-
-  """Buscar negocios"""
-  searchBusinesses(query: String!, jwt: String = null): [BusinessType!]!
-
-  """Lista de sucursales"""
-  branches(businessId: String = null, jwt: String = null): [BranchType!]!
-
-  """Obtener sucursal por ID"""
-  branch(id: String!, jwt: String = null): BranchType
-
-  """Buscar sucursales"""
-  searchBranches(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [BranchType!]!
-
-  """Lista de productos"""
-  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, jwt: String = null): [ProductType!]!
-
-  """Obtener producto por ID"""
-  product(id: String!, jwt: String = null): ProductType
-
-  """Buscar productos"""
-  searchProducts(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [ProductType!]!
-
-  """Lista de categorías con subcategorías"""
-  categories(jwt: String = null): [CategoryType!]!
-
-  """Obtener categoría por ID"""
-  category(id: String!, jwt: String = null): CategoryType
-
-  """Send a message to the AI assistant and get a response"""
-  aiChat(input: AiAssistantChatInput!, jwt: String = null): AiAssistantResponseType
-
-  """Saludo de ejemplo"""
-  hello(jwt: String = null): String!
-
-  """Saluda por nombre"""
-  greet(name: String! = "mundo", jwt: String = null): String!
-}
-
-input RegisterBranchInput {
   name: String!
-  coordinates: CoordinatesInput!
-  phone: String!
-  schedule: JSON!
-  address: String = null
-  managerIds: [String!] = null
-  avatar: String = null
-  coverImage: String = null
-  deliveryRadius: Float = null
-  facilities: [String!] = null
-}
 
-input RegisterInput {
-  name: String!
-  email: String!
-  password: String!
-  phone: String = null
-  role: String = "customer"
-}
+  imageUrl: String!
 
-input SocialLoginInput {
-  idToken: String!
-  authorizationCode: String = null
-  nonce: String = null
+  subcategories: [SubcategoryType!]!
+
+  createdAt: DateTime!
 }
 
 type SubcategoryType {
   name: String!
+
   imageUrl: String!
 }
 
-input UpdateBranchInput {
-  name: String = null
-  address: String = null
-  phone: String = null
-  schedule: JSON = null
-  status: String = null
-  deliveryRadius: Float = null
-  facilities: [String!] = null
-  managerIds: [String!] = null
-  avatar: String = null
-  coverImage: String = null
+type AiAssistantResponseType {
+  """
+  Response output from AI assistant
+  """
+  output: AiAssistantOutputType!
 }
 
-input UpdateBusinessInput {
-  name: String = null
-  type: String = null
-  description: String = null
-  socialMedia: JSON = null
-  tags: [String!] = null
-  isActive: Boolean = null
-  avatar: String = null
-  coverImage: String = null
+type AiAssistantOutputType {
+  """
+  Type of response (e.g., 'payment_method', 'products', 'branches')
+  """
+  type: String!
+
+  """
+  AI-generated response text
+  """
+  AItext: String!
+
+  """
+  List of relevant IDs (for debugging)
+  """
+  ids: [String!]!
+
+  """
+  List of resolved entities (products, branches, or payment methods)
+  """
+  entities: [EntityType!]
 }
 
-input UpdateProductInput {
-  name: String = null
-  description: String = null
-  price: Float = null
-  currency: String = null
-  weight: String = null
-  availability: Boolean = null
-  categoryId: String = null
-  image: String = null
+union EntityType = ProductType|BranchType|PaymentMethodType
+
+type PaymentMethodType {
+  """
+  Payment method ID
+  """
+  id: String!
+
+  """
+  Currency (e.g., CUP, USD)
+  """
+  currency: String!
+
+  """
+  Payment method (e.g., tarjeta, efectivo, transferencia)
+  """
+  method: String!
 }
 
-input UpdateUserInput {
-  name: String = null
-  phone: String = null
-  avatar: String = null
+input AiAssistantChatInput {
+  """
+  The user message/query to send
+  """
+  message: String!
+
+  """
+  Session ID for conversation context
+  """
+  sessionId: String!
+}
+
+type Mutation {
+  """
+  Register a new user
+  """
+  register(input: RegisterInput!, jwt: String = null): AuthResponse!
+
+  """
+  Login with email and password
+  """
+  login(input: LoginInput!, jwt: String = null): AuthResponse!
+
+  """
+  Login with Google
+  """
+  loginWithGoogle(input: SocialLoginInput!, jwt: String = null): AuthResponse!
+
+  """
+  Login with Apple
+  """
+  loginWithApple(input: AppleLoginInput!, jwt: String = null): AuthResponse!
+
+  """
+  Actualizar perfil de usuario
+  """
+  updateUser(input: UpdateUserInput!, jwt: String = null): UserType!
+
+  """
+  Agregar sucursal a usuario
+  """
+  addBranchToUser(input: AddBranchToUserInput!, jwt: String = null): UserType!
+
+  """
+  Remover sucursal de usuario
+  """
+  removeBranchFromUser(branchId: String!, jwt: String = null): UserType!
+
+  """
+  Eliminar cuenta de usuario
+  """
+  deleteUser(jwt: String = null): Boolean!
+
+  """
+  Actualizar ubicación del usuario
+  """
+  updateLocation(input: UpdateLocationInput!, jwt: String = null): UserType!
+
+  """
+  Registrar un nuevo negocio con al menos una sucursal
+  """
+  registerBusiness(businessInput: CreateBusinessInput!, branchesInput: [RegisterBranchInput!]!, jwt: String = null): BusinessType!
+
+  """
+  Actualizar un negocio
+  """
+  updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
+
+  """
+  Crear una nueva sucursal
+  """
+  createBranch(input: CreateBranchInput!, jwt: String = null): BranchType!
+
+  """
+  Actualizar una sucursal
+  """
+  updateBranch(branchId: String!, input: UpdateBranchInput!, jwt: String = null): BranchType!
+
+  """
+  Crear un nuevo producto
+  """
+  createProduct(input: CreateProductInput!, jwt: String = null): ProductType!
+
+  """
+  Actualizar un producto
+  """
+  updateProduct(productId: String!, input: UpdateProductInput!, jwt: String = null): ProductType!
+
+  """
+  Eliminar un producto
+  """
+  deleteProduct(productId: String!, jwt: String = null): Boolean!
+}
+
+type AuthResponse {
+  accessToken: String!
+
+  tokenType: String!
+
+  user: UserData!
 }
 
 type UserData {
   id: String!
+
   name: String!
+
   email: String!
+
   phone: String
+
   role: String!
+
   createdAt: String!
 }
 
-type UserType {
-  id: String!
+input RegisterInput {
   name: String!
-  email: String!
-  phone: String
-  role: String!
-  avatar: String
-  businessIds: [String!]!
-  branchIds: [String!]!
-  createdAt: DateTime!
-  authProvider: String!
-  providerUserId: String
-  applePrivateEmail: String
 
-  """URL firmada del avatar del usuario"""
-  avatarUrl: String
+  email: String!
+
+  password: String!
+
+  phone: String = null
+
+  role: String = "customer"
 }
 
+input LoginInput {
+  email: String!
+
+  password: String!
+}
+
+input SocialLoginInput {
+  idToken: String!
+
+  authorizationCode: String = null
+
+  nonce: String = null
+}
+
+input AppleLoginInput {
+  identityToken: String!
+
+  authorizationCode: String = null
+
+  nonce: String = null
+}
+
+input UpdateUserInput {
+  name: String = null
+
+  phone: String = null
+
+  avatar: String = null
+}
+
+input AddBranchToUserInput {
+  branchId: String!
+}
+
+input UpdateLocationInput {
+  longitude: Float!
+
+  latitude: Float!
+}
+
+input CreateBusinessInput {
+  name: String!
+
+  type: String!
+
+  avatar: String = null
+
+  coverImage: String = null
+
+  description: String = null
+
+  socialMedia: JSON = null
+
+  tags: [String!] = null
+}
+
+input RegisterBranchInput {
+  name: String!
+
+  coordinates: CoordinatesInput!
+
+  phone: String!
+
+  schedule: JSON!
+
+  tipos: [BranchTipo!]!
+
+  address: String = null
+
+  managerIds: [String!] = null
+
+  avatar: String = null
+
+  coverImage: String = null
+
+  deliveryRadius: Float = null
+
+  facilities: [String!] = null
+}
+
+input CoordinatesInput {
+  lat: Float!
+
+  lng: Float!
+}
+
+input UpdateBusinessInput {
+  name: String = null
+
+  type: String = null
+
+  description: String = null
+
+  socialMedia: JSON = null
+
+  tags: [String!] = null
+
+  isActive: Boolean = null
+
+  avatar: String = null
+
+  coverImage: String = null
+}
+
+input CreateBranchInput {
+  businessId: String!
+
+  name: String!
+
+  coordinates: CoordinatesInput!
+
+  phone: String!
+
+  schedule: JSON!
+
+  tipos: [BranchTipo!]!
+
+  address: String = null
+
+  managerIds: [String!] = null
+
+  avatar: String = null
+
+  coverImage: String = null
+
+  deliveryRadius: Float = null
+
+  facilities: [String!] = null
+}
+
+input UpdateBranchInput {
+  name: String = null
+
+  address: String = null
+
+  coordinates: CoordinatesInput = null
+
+  phone: String = null
+
+  schedule: JSON = null
+
+  status: String = null
+
+  deliveryRadius: Float = null
+
+  facilities: [String!] = null
+
+  managerIds: [String!] = null
+
+  avatar: String = null
+
+  coverImage: String = null
+
+  tipos: [BranchTipo!] = null
+}
+
+input CreateProductInput {
+  name: String!
+
+  description: String!
+
+  price: Float!
+
+  image: String!
+
+  branchId: String = null
+
+  businessId: String = null
+
+  currency: String! = "USD"
+
+  weight: String = null
+
+  categoryId: String = null
+}
+
+input UpdateProductInput {
+  name: String = null
+
+  description: String = null
+
+  price: Float = null
+
+  currency: String = null
+
+  weight: String = null
+
+  availability: Boolean = null
+
+  categoryId: String = null
+
+  image: String = null
+}
+
+"""
+A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.
+"""
+type __Schema {
+  description: String
+
+  """
+  A list of all types supported by this server.
+  """
+  types: [__Type!]!
+
+  """
+  The type that query operations will be rooted at.
+  """
+  queryType: __Type!
+
+  """
+  If this server supports mutation, the type that mutation operations will be rooted at.
+  """
+  mutationType: __Type
+
+  """
+  If this server supports subscription, the type that subscription operations will be rooted at.
+  """
+  subscriptionType: __Type
+
+  """
+  A list of all directives supported by this server.
+  """
+  directives: [__Directive!]!
+}
+
+"""
+The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.
+
+Depending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByURL`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.
+"""
+type __Type {
+  kind: __TypeKind!
+
+  name: String
+
+  description: String
+
+  specifiedByURL: String
+
+  fields(includeDeprecated: Boolean = false): [__Field!]
+
+  interfaces: [__Type!]
+
+  possibleTypes: [__Type!]
+
+  enumValues(includeDeprecated: Boolean = false): [__EnumValue!]
+
+  inputFields(includeDeprecated: Boolean = false): [__InputValue!]
+
+  ofType: __Type
+
+  isOneOf: Boolean
+}
+
+"""
+An enum describing what kind of type a given `__Type` is.
+"""
+enum __TypeKind {
+  """
+  Indicates this type is a scalar.
+  """
+  SCALAR
+
+  """
+  Indicates this type is an object. `fields` and `interfaces` are valid fields.
+  """
+  OBJECT
+
+  """
+  Indicates this type is an interface. `fields`, `interfaces`, and `possibleTypes` are valid fields.
+  """
+  INTERFACE
+
+  """
+  Indicates this type is a union. `possibleTypes` is a valid field.
+  """
+  UNION
+
+  """
+  Indicates this type is an enum. `enumValues` is a valid field.
+  """
+  ENUM
+
+  """
+  Indicates this type is an input object. `inputFields` is a valid field.
+  """
+  INPUT_OBJECT
+
+  """
+  Indicates this type is a list. `ofType` is a valid field.
+  """
+  LIST
+
+  """
+  Indicates this type is a non-null. `ofType` is a valid field.
+  """
+  NON_NULL
+}
+
+"""
+Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.
+"""
+type __Field {
+  name: String!
+
+  description: String
+
+  args(includeDeprecated: Boolean = false): [__InputValue!]!
+
+  type: __Type!
+
+  isDeprecated: Boolean!
+
+  deprecationReason: String
+}
+
+"""
+Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.
+"""
+type __InputValue {
+  name: String!
+
+  description: String
+
+  type: __Type!
+
+  """
+  A GraphQL-formatted string representing the default value for this input value.
+  """
+  defaultValue: String
+
+  isDeprecated: Boolean!
+
+  deprecationReason: String
+}
+
+"""
+One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.
+"""
+type __EnumValue {
+  name: String!
+
+  description: String
+
+  isDeprecated: Boolean!
+
+  deprecationReason: String
+}
+
+"""
+A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.
+
+In some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.
+"""
+type __Directive {
+  name: String!
+
+  description: String
+
+  isRepeatable: Boolean!
+
+  locations: [__DirectiveLocation!]!
+
+  args(includeDeprecated: Boolean = false): [__InputValue!]!
+}
+
+"""
+A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.
+"""
+enum __DirectiveLocation {
+  """
+  Location adjacent to a query operation.
+  """
+  QUERY
+
+  """
+  Location adjacent to a mutation operation.
+  """
+  MUTATION
+
+  """
+  Location adjacent to a subscription operation.
+  """
+  SUBSCRIPTION
+
+  """
+  Location adjacent to a field.
+  """
+  FIELD
+
+  """
+  Location adjacent to a fragment definition.
+  """
+  FRAGMENT_DEFINITION
+
+  """
+  Location adjacent to a fragment spread.
+  """
+  FRAGMENT_SPREAD
+
+  """
+  Location adjacent to an inline fragment.
+  """
+  INLINE_FRAGMENT
+
+  """
+  Location adjacent to a variable definition.
+  """
+  VARIABLE_DEFINITION
+
+  """
+  Location adjacent to a schema definition.
+  """
+  SCHEMA
+
+  """
+  Location adjacent to a scalar definition.
+  """
+  SCALAR
+
+  """
+  Location adjacent to an object type definition.
+  """
+  OBJECT
+
+  """
+  Location adjacent to a field definition.
+  """
+  FIELD_DEFINITION
+
+  """
+  Location adjacent to an argument definition.
+  """
+  ARGUMENT_DEFINITION
+
+  """
+  Location adjacent to an interface definition.
+  """
+  INTERFACE
+
+  """
+  Location adjacent to a union definition.
+  """
+  UNION
+
+  """
+  Location adjacent to an enum definition.
+  """
+  ENUM
+
+  """
+  Location adjacent to an enum value definition.
+  """
+  ENUM_VALUE
+
+  """
+  Location adjacent to an input object type definition.
+  """
+  INPUT_OBJECT
+
+  """
+  Location adjacent to an input object field definition.
+  """
+  INPUT_FIELD_DEFINITION
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include ("Included when true." if: Boolean!) on FIELD|FRAGMENT_SPREAD|INLINE_FRAGMENT
+
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip ("Skipped when true." if: Boolean!) on FIELD|FRAGMENT_SPREAD|INLINE_FRAGMENT
+
+"""
+Marks an element of a GraphQL schema as no longer supported.
+"""
+directive @deprecated ("Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax, as specified by [CommonMark](https://commonmark.org/)." reason: String = "No longer supported") on FIELD_DEFINITION|ARGUMENT_DEFINITION|INPUT_FIELD_DEFINITION|ENUM_VALUE
+
+"""
+Exposes a URL that specifies the behavior of this scalar.
+"""
+directive @specifiedBy ("The URL that specifies the behavior of this scalar." url: String!) on SCALAR
+
+"""
+Indicates an Input Object is a OneOf Input Object.
+"""
+directive @oneOf on INPUT_OBJECT
+
+schema {
+  query: Query
+  mutation: Mutation
+}
