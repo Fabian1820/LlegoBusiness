@@ -2,6 +2,7 @@ package com.llego.shared.data.upload
 
 import com.llego.shared.data.model.ImageUploadResponse
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.network.BackendConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -27,13 +28,14 @@ class JvmImageUploadService : ImageUploadService {
             })
         }
         install(HttpTimeout) {
-            requestTimeoutMillis = 30000
+            requestTimeoutMillis = 60000  // 60 segundos para uploads
             connectTimeoutMillis = 30000
-            socketTimeoutMillis = 30000
+            socketTimeoutMillis = 60000
         }
     }
 
-    private val baseUrl = "http://localhost:4000"
+    // Backend URL desde Railway
+    private val baseUrl = BackendConfig.REST_URL
 
     /**
      * Método genérico para subir imágenes a cualquier endpoint

@@ -51,8 +51,10 @@ fun BusinessHomeScreen(
 ) {
     // Obtener configuración dinámica según el nicho
     val tabs = BusinessConfigProvider.getTabsForBusiness(businessType)
-    val uiState by authViewModel.uiState.collectAsState()
-    val businessName = uiState.user?.getBusinessProfile()?.businessName ?: "Mi Negocio"
+
+    // Obtener el nombre del negocio desde currentBusiness
+    val currentBusiness by authViewModel.currentBusiness.collectAsState()
+    val businessName = currentBusiness?.name ?: "Mi Negocio"
 
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current

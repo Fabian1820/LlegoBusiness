@@ -135,7 +135,7 @@ fun RestaurantProfileScreen(
 
             // Horarios
             item {
-                ScheduleSection(schedule = currentBranch?.schedule)
+                BranchScheduleSection(branch = currentBranch)
             }
 
             // Mapa de Ubicación
@@ -145,12 +145,12 @@ fun RestaurantProfileScreen(
 
             // Tags
             item {
-                TagsSection(tags = currentBusiness?.tags ?: emptyList())
+                BusinessTagsSection(business = currentBusiness)
             }
 
             // Facilidades
             item {
-                FacilitiesSection(facilities = currentBranch?.facilities ?: emptyList())
+                BranchFacilitiesSection(branch = currentBranch)
             }
         }
 
