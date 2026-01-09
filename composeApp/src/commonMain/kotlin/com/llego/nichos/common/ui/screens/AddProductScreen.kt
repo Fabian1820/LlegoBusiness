@@ -29,7 +29,10 @@ import com.llego.nichos.common.utils.toCategoryId
 import com.llego.nichos.restaurant.data.model.MenuCategory
 import com.llego.nichos.restaurant.data.model.getDisplayName
 import com.llego.shared.data.model.BusinessType
-import com.llego.nichos.common.ui.components.rememberImagePickerController
+import com.llego.shared.data.model.ImageUploadState
+import com.llego.shared.data.upload.ImageUploadServiceFactory
+import com.llego.shared.ui.components.molecules.ImageUploadPreview
+import com.llego.shared.ui.components.molecules.ImageUploadSize
 
 /**
  * Pantalla fullscreen para agregar/editar productos
@@ -45,6 +48,7 @@ fun AddProductScreen(
     modifier: Modifier = Modifier
 ) {
     val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
 
     // Tipo de producto (Individual o Varios)
     var selectedProductType by remember { mutableStateOf(existingProduct?.productType ?: ProductType.INDIVIDUAL) }
@@ -52,7 +56,12 @@ fun AddProductScreen(
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
-    var selectedImageUrl by remember { mutableStateOf(existingProduct?.imageUrl ?: "") }
+    
+    // Estado de upload de imagen del producto
+    var productImageState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    
+    // El path de S3 se extrae del estado Success
+    val selectedImageUrl = (productImageState as? ImageUploadState.Success)?.s3Path ?: ""
     
     // Inicializar categoría desde existingProduct
     var selectedCategoryId by remember(businessType, existingProduct?.category) { 
@@ -191,17 +200,17 @@ fun AddProductScreen(
                                     category = categoryString,
                                     productType = selectedProductType,
                                     isAvailable = isAvailable,
-                                    brand = if (selectedProductType == ProductType.INDIVIDUAL && businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET, BusinessType.PHARMACY)) brand.takeIf { it.isNotBlank() } else null,
-                                    unit = if (selectedProductType == ProductType.INDIVIDUAL && businessType in listOf(BusinessType.MARKET, BusinessType.AGROMARKET)) selectedUnit else null,
+                                    brand = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.MARKET) brand.takeIf { it.isNotBlank() } else null,
+                                    unit = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.MARKET) selectedUnit else null,
                                     stock = if (selectedProductType == ProductType.INDIVIDUAL) stock.toIntOrNull() else null,
                                     preparationTime = null,  // Removido para MVP
                                     variants = if (selectedProductType == ProductType.INDIVIDUAL) variantGroups else emptyList(),
-                                    sizes = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE && selectedSizes.isNotEmpty()) selectedSizes else null,
-                                    colors = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE && selectedColors.isNotEmpty()) selectedColors else null,
-                                    material = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE) material.takeIf { it.isNotBlank() } else null,
-                                    gender = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.CLOTHING_STORE) selectedGender else null,
-                                    requiresPrescription = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.PHARMACY) requiresPrescription else false,
-                                    genericName = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.PHARMACY) genericName.takeIf { it.isNotBlank() } else null,
+                                    sizes = null,
+                                    colors = null,
+                                    material = null,
+                                    gender = null,
+                                    requiresPrescription = false,
+                                    genericName = null,
                                     // Campos de dieta removidos para MVP
                                     isVegetarian = false,
                                     isVegan = false,
@@ -247,9 +256,15 @@ fun AddProductScreen(
                 )
 
                 // Sección de Imagen
-                ProductImageSection(
-                    imageUrl = selectedImageUrl,
-                    onImageSelected = { newUrl -> selectedImageUrl = newUrl }
+                ImageUploadPreview(
+                    label = "Imagen del Producto",
+                    uploadState = productImageState,
+                    onStateChange = { productImageState = it },
+                    uploadFunction = { uri, token ->
+                        imageUploadService.uploadProductImage(uri, token)
+                    },
+                    size = ImageUploadSize.LARGE,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 // Información básica - Simplificada para MULTIPLE
@@ -424,33 +439,13 @@ fun AddProductScreen(
                                 }
                             }
                         }
-                        BusinessType.MARKET, BusinessType.AGROMARKET -> MarketSpecificFields(
+                        BusinessType.MARKET, BusinessType.CANDY_STORE -> MarketSpecificFields(
                             brand = brand,
                             onBrandChange = { brand = it },
                             selectedUnit = selectedUnit,
                             onUnitChange = { selectedUnit = it },
                             showUnitDropdown = showUnitDropdown,
                             onShowUnitDropdownChange = { showUnitDropdown = it }
-                        )
-                        BusinessType.CLOTHING_STORE -> ClothingSpecificFields(
-                            selectedSizes = selectedSizes,
-                            onSizesChange = { selectedSizes = it },
-                            selectedColors = selectedColors,
-                            onColorsChange = { selectedColors = it },
-                            material = material,
-                            onMaterialChange = { material = it },
-                            selectedGender = selectedGender,
-                            onGenderChange = { selectedGender = it },
-                            showGenderDropdown = showGenderDropdown,
-                            onShowGenderDropdownChange = { showGenderDropdown = it }
-                        )
-                        BusinessType.PHARMACY -> PharmacySpecificFields(
-                            genericName = genericName,
-                            onGenericNameChange = { genericName = it },
-                            requiresPrescription = requiresPrescription,
-                            onRequiresPrescriptionChange = { requiresPrescription = it },
-                            brand = brand,
-                            onBrandChange = { brand = it }
                         )
                     }
                 }
@@ -822,132 +817,6 @@ private fun ProductTypeSelector(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
-        }
-    }
-}
-
-@Composable
-private fun ProductImageSection(
-    imageUrl: String,
-    onImageSelected: (String) -> Unit
-) {
-    val imagePickerController = rememberImagePickerController()
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Imagen del Producto",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable {
-                        imagePickerController.pickImage { selectedImageUrl ->
-                            onImageSelected(selectedImageUrl)
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUrl.isNotEmpty()) {
-                    // Si hay imagen, mostrarla con un overlay y botón de editar
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // Placeholder para la imagen (simulación)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Image,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "Imagen cargada",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = imageUrl.take(30) + if (imageUrl.length > 30) "..." else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Botón de editar flotante en la esquina superior derecha
-                        Surface(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(12.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            shadowElevation = 4.dp
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    imagePickerController.pickImage { selectedImageUrl ->
-                                        onImageSelected(selectedImageUrl)
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Editar imagen",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    // Si no hay imagen, mostrar placeholder para agregar
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AddPhotoAlternate,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "Toca para agregar imagen",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
         }
     }
 }

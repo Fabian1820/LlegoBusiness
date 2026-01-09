@@ -286,27 +286,6 @@ fun UserInfoSection(
             icon = Icons.Default.Phone,
             placeholder = "Agregar teléfono"
         )
-
-        ReadOnlyField(
-            label = "Rol",
-            value = when(user?.role) {
-                "merchant" -> "Comerciante"
-                "admin" -> "Administrador"
-                else -> user?.role ?: ""
-            },
-            icon = Icons.Default.Badge
-        )
-
-        ReadOnlyField(
-            label = "Autenticación",
-            value = when(user?.authProvider) {
-                "google" -> "Google"
-                "apple" -> "Apple"
-                "local" -> "Email/Contraseña"
-                else -> user?.authProvider ?: ""
-            },
-            icon = Icons.Default.Security
-        )
     }
 }
 

@@ -68,35 +68,18 @@ object BusinessConfigProvider {
                 BusinessTabConfig("menu", "Menú", Icons.Default.Restaurant),
                 BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
                 BusinessTabConfig("settings", "Ajustes", Icons.Default.Settings)
-                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
             BusinessType.MARKET -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
                 BusinessTabConfig("products", "Productos", Icons.Default.Inventory),
                 BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
-                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
 
-            BusinessType.AGROMARKET -> listOf(
+            BusinessType.CANDY_STORE -> listOf(
                 BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
-                BusinessTabConfig("products", "Productos", Icons.Default.Grass),
+                BusinessTabConfig("products", "Productos", Icons.Default.Inventory),
                 BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
-                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
-            )
-
-            BusinessType.CLOTHING_STORE -> listOf(
-                BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
-                BusinessTabConfig("stock", "Stock", Icons.Default.Checkroom),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
-                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
-            )
-
-            BusinessType.PHARMACY -> listOf(
-                BusinessTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
-                BusinessTabConfig("medicines", "Medicinas", Icons.Default.Medication),
-                BusinessTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet)
-                // BusinessTabConfig("tutorials", "Tutoriales", Icons.Default.School) // MVP: oculto
             )
         }
     }
@@ -109,20 +92,17 @@ object BusinessConfigProvider {
         return when (businessType) {
             BusinessType.RESTAURANT -> "menu"
             BusinessType.MARKET -> "products"
-            BusinessType.AGROMARKET -> "products"
-            BusinessType.CLOTHING_STORE -> "stock"
-            BusinessType.PHARMACY -> "medicines"
+            BusinessType.CANDY_STORE -> "products"
         }
     }
 
     /**
-     * Verifica si el nicho usa productos (Market, Agromarket, Clothing)
+     * Verifica si el nicho usa productos (Market, Candy Store)
      */
     fun usesProducts(businessType: BusinessType): Boolean {
         return businessType in listOf(
             BusinessType.MARKET,
-            BusinessType.AGROMARKET,
-            BusinessType.CLOTHING_STORE
+            BusinessType.CANDY_STORE
         )
     }
 
@@ -145,7 +125,7 @@ object BusinessConfigProvider {
                 usesStatistics = true,
                 usesWallet = true,
                 usesSettings = true,
-                usesTutorials = false, // MVP: oculto
+                usesTutorials = false,
                 usesPrescriptions = false,
                 usesInventoryTracking = false
             )
@@ -162,7 +142,7 @@ object BusinessConfigProvider {
                 usesInventoryTracking = true
             )
 
-            BusinessType.AGROMARKET -> BusinessFeatures(
+            BusinessType.CANDY_STORE -> BusinessFeatures(
                 usesMenu = false,
                 usesProducts = true,
                 usesChat = true,
@@ -171,30 +151,6 @@ object BusinessConfigProvider {
                 usesSettings = false,
                 usesTutorials = false,
                 usesPrescriptions = false,
-                usesInventoryTracking = true
-            )
-
-            BusinessType.CLOTHING_STORE -> BusinessFeatures(
-                usesMenu = false,
-                usesProducts = true,
-                usesChat = true,
-                usesStatistics = true,
-                usesWallet = true,
-                usesSettings = false,
-                usesTutorials = false,
-                usesPrescriptions = false,
-                usesInventoryTracking = true
-            )
-
-            BusinessType.PHARMACY -> BusinessFeatures(
-                usesMenu = false,
-                usesProducts = true,
-                usesChat = true,
-                usesStatistics = true,
-                usesWallet = true,
-                usesSettings = false,
-                usesTutorials = false,
-                usesPrescriptions = true,
                 usesInventoryTracking = true
             )
         }
@@ -227,37 +183,15 @@ object BusinessConfigProvider {
                 searchPlaceholder = "Buscar productos..."
             )
 
-            BusinessType.AGROMARKET -> BusinessLabels(
-                businessName = "Agromercado",
-                catalogTitle = "Productos Agrícolas",
-                catalogItemSingular = "Producto",
-                catalogItemPlural = "Productos",
-                addItemTitle = "Agregar Producto Agrícola",
-                editItemTitle = "Editar Producto",
-                emptyStateMessage = "No hay productos agrícolas disponibles",
-                searchPlaceholder = "Buscar productos agrícolas..."
-            )
-
-            BusinessType.CLOTHING_STORE -> BusinessLabels(
-                businessName = "Tienda de Ropa",
-                catalogTitle = "Prendas",
-                catalogItemSingular = "Prenda",
-                catalogItemPlural = "Prendas",
-                addItemTitle = "Agregar Prenda",
-                editItemTitle = "Editar Prenda",
-                emptyStateMessage = "No hay prendas en el catálogo",
-                searchPlaceholder = "Buscar prendas..."
-            )
-
-            BusinessType.PHARMACY -> BusinessLabels(
-                businessName = "Farmacia",
-                catalogTitle = "Medicamentos",
-                catalogItemSingular = "Medicamento",
-                catalogItemPlural = "Medicamentos",
-                addItemTitle = "Agregar Medicamento",
-                editItemTitle = "Editar Medicamento",
-                emptyStateMessage = "No hay medicamentos disponibles",
-                searchPlaceholder = "Buscar medicamentos..."
+            BusinessType.CANDY_STORE -> BusinessLabels(
+                businessName = "Dulcería",
+                catalogTitle = "Dulces",
+                catalogItemSingular = "Dulce",
+                catalogItemPlural = "Dulces",
+                addItemTitle = "Agregar Dulce",
+                editItemTitle = "Editar Dulce",
+                emptyStateMessage = "No hay dulces disponibles",
+                searchPlaceholder = "Buscar dulces..."
             )
         }
     }
@@ -285,31 +219,13 @@ object BusinessConfigProvider {
                 BusinessCategoryConfig("despensa", "Despensa")
             )
 
-            BusinessType.AGROMARKET -> listOf(
-                BusinessCategoryConfig("frutas", "Frutas Frescas"),
-                BusinessCategoryConfig("verduras", "Verduras"),
-                BusinessCategoryConfig("hortalizas", "Hortalizas"),
-                BusinessCategoryConfig("tuberculos", "Tubérculos"),
-                BusinessCategoryConfig("granos", "Granos y Cereales"),
-                BusinessCategoryConfig("organicos", "Orgánicos")
-            )
-
-            BusinessType.CLOTHING_STORE -> listOf(
-                BusinessCategoryConfig("hombres", "Hombres"),
-                BusinessCategoryConfig("mujeres", "Mujeres"),
-                BusinessCategoryConfig("ninos", "Niños"),
-                BusinessCategoryConfig("accesorios", "Accesorios"),
-                BusinessCategoryConfig("calzado", "Calzado"),
-                BusinessCategoryConfig("deportivo", "Deportivo")
-            )
-
-            BusinessType.PHARMACY -> listOf(
-                BusinessCategoryConfig("medicamentos", "Medicamentos"),
-                BusinessCategoryConfig("vitaminas", "Vitaminas"),
-                BusinessCategoryConfig("cuidado_personal", "Cuidado Personal"),
-                BusinessCategoryConfig("primeros_auxilios", "Primeros Auxilios"),
-                BusinessCategoryConfig("bebes", "Bebés"),
-                BusinessCategoryConfig("dermocosmetica", "Dermocosmética")
+            BusinessType.CANDY_STORE -> listOf(
+                BusinessCategoryConfig("chocolates", "Chocolates"),
+                BusinessCategoryConfig("gomitas", "Gomitas"),
+                BusinessCategoryConfig("caramelos", "Caramelos"),
+                BusinessCategoryConfig("galletas", "Galletas"),
+                BusinessCategoryConfig("snacks", "Snacks"),
+                BusinessCategoryConfig("bebidas", "Bebidas")
             )
         }
     }

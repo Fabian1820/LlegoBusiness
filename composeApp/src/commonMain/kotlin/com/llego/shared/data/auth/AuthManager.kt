@@ -190,9 +190,7 @@ class AuthManager(private val tokenManager: TokenManager) {
         return when (business.type.lowercase()) {
             "restaurant" -> BusinessType.RESTAURANT
             "grocery", "market" -> BusinessType.MARKET
-            "pharmacy" -> BusinessType.PHARMACY
-            "agromarket" -> BusinessType.AGROMARKET
-            "clothing_store" -> BusinessType.CLOTHING_STORE
+            "candy_store", "candy" -> BusinessType.CANDY_STORE
             else -> null
         }
     }

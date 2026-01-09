@@ -153,26 +153,19 @@ fun ProductType.getDisplayName(): String {
  * Helper para determinar qué campos mostrar según el nicho
  */
 fun Product.shouldShowSizes(businessType: BusinessType): Boolean {
-    return businessType == BusinessType.CLOTHING_STORE && !sizes.isNullOrEmpty()
+    return false // Solo para CLOTHING_STORE que ya no existe
 }
 
 fun Product.shouldShowColors(businessType: BusinessType): Boolean {
-    return businessType == BusinessType.CLOTHING_STORE && !colors.isNullOrEmpty()
+    return false // Solo para CLOTHING_STORE que ya no existe
 }
 
 fun Product.shouldShowBrand(businessType: BusinessType): Boolean {
-    return businessType in listOf(
-        BusinessType.MARKET,
-        BusinessType.AGROMARKET,
-        BusinessType.PHARMACY
-    ) && brand != null
+    return businessType == BusinessType.MARKET && brand != null
 }
 
 fun Product.shouldShowUnit(businessType: BusinessType): Boolean {
-    return businessType in listOf(
-        BusinessType.MARKET,
-        BusinessType.AGROMARKET
-    ) && unit != null
+    return businessType == BusinessType.MARKET && unit != null
 }
 
 fun Product.shouldShowPreparationTime(businessType: BusinessType): Boolean {

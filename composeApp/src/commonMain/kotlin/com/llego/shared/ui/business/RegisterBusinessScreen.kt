@@ -10,26 +10,40 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.nichos.common.ui.components.rememberImagePickerController
-import com.llego.shared.data.model.BusinessType
-import com.llego.shared.data.model.CreateBusinessInput
-import com.llego.shared.data.model.RegisterBranchInput
-import com.llego.shared.data.model.CoordinatesInput
+import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.model.*
+import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.atoms.LlegoTextField
 import com.llego.shared.ui.components.atoms.LlegoButton
+import com.llego.shared.ui.components.molecules.DaySchedule
+import com.llego.shared.ui.components.molecules.TimeRange
+import com.llego.shared.ui.components.molecules.DeliveryRadiusPicker
+import com.llego.shared.ui.components.molecules.FacilitiesSelector
+import com.llego.shared.ui.components.molecules.ImageUploadPreview
+import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.components.molecules.LlegoConfirmationDefaults
+import com.llego.shared.ui.components.molecules.LlegoConfirmationScreen
+import com.llego.shared.ui.components.molecules.MapLocationPickerReal
+import com.llego.shared.ui.components.molecules.PhoneInput
+import com.llego.shared.ui.components.molecules.SchedulePicker
+import com.llego.shared.ui.components.molecules.TagsSelector
+import com.llego.shared.ui.components.molecules.combinePhoneNumber
+import com.llego.shared.ui.components.molecules.toBackendSchedule
+import kotlinx.coroutines.launch
 
 /**
- * Pantalla para registrar un nuevo negocio con su sucursal inicial
- *
- * Flujo:
- * 1. Usuario ya está autenticado (tiene JWT)
- * 2. Formulario para crear negocio (nombre, tipo, descripción, tags)
- * 3. Formulario para crear primera sucursal (nombre, dirección, teléfono, coordenadas)
- * 4. Al enviar: registerBusiness mutation
- * 5. businessId se agrega automáticamente a user.businessIds
- * 6. Redirigir a Dashboard del nicho
+ * Pantalla COMPLETA para registrar negocio con TODAS las integraciones:
+ * ✅ Google Maps real
+ * ✅ Upload de imágenes a S3
+ * ✅ PhoneInput con código de país
+ * ✅ SchedulePicker interactivo
+ * ✅ DeliveryRadiusPicker
+ * ✅ FacilitiesSelector
+ * ✅ TagsSelector mejorado
+ * ✅ Pantalla de confirmación animada
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,31 +54,69 @@ fun RegisterBusinessScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
 
-    // ImagePicker controller
-    val imagePickerController = rememberImagePickerController()
+    // Estados de confirmación
+    var showSuccessConfirmation by remember { mutableStateOf(false) }
+    var registeredBusinessName by remember { mutableStateOf("") }
 
     // Estados del formulario - Negocio
     var businessName by remember { mutableStateOf("") }
     var businessType by remember { mutableStateOf(BusinessType.RESTAURANT) }
     var businessDescription by remember { mutableStateOf("") }
-    var businessTags by remember { mutableStateOf("") }
-    var businessAvatarUri by remember { mutableStateOf<String?>(null) }
-    var businessCoverUri by remember { mutableStateOf<String?>(null) }
+    var businessTagsList by remember { mutableStateOf(emptyList<String>()) }
+    
+    // Estados de upload de imágenes del negocio (usando ImageUploadState)
+    var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var businessCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    
+    // Paths de S3 (extraídos del estado Success)
+    val businessAvatarPath = (businessAvatarState as? ImageUploadState.Success)?.s3Path
+    val businessCoverPath = (businessCoverState as? ImageUploadState.Success)?.s3Path
 
     // Estados del formulario - Sucursal
     var branchName by remember { mutableStateOf("") }
     var branchAddress by remember { mutableStateOf("") }
     var branchPhone by remember { mutableStateOf("") }
-    var branchLatitude by remember { mutableStateOf("") }
-    var branchLongitude by remember { mutableStateOf("") }
-    var branchSchedule by remember { mutableStateOf("Lun-Vie: 9:00-18:00") }
-    var branchAvatarUri by remember { mutableStateOf<String?>(null) }
+    var branchCountryCode by remember { mutableStateOf("+51") }
+    var branchLatitude by remember { mutableStateOf(0.0) }
+    var branchLongitude by remember { mutableStateOf(0.0) }
+    var branchSchedule by remember {
+        mutableStateOf<Map<String, DaySchedule>>(
+            mapOf(
+                "lun" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "mar" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "mie" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "jue" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "vie" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "sab" to DaySchedule(false, emptyList()),
+                "dom" to DaySchedule(false, emptyList())
+            )
+        )
+    }
+    var branchDeliveryRadius by remember { mutableStateOf(5.0) }
+    var branchFacilities by remember { mutableStateOf(emptyList<String>()) }
+    
+    // Estados de upload de imágenes de sucursal (usando ImageUploadState)
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    
+    // Paths de S3 (extraídos del estado Success)
+    val branchAvatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
+    val branchCoverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Negocio") },
+                title = {
+                    Text(
+                        "Registrar Negocio",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -72,8 +124,8 @@ fun RegisterBusinessScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
@@ -88,28 +140,32 @@ fun RegisterBusinessScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Sección: Información del Negocio
+                // SECCIÓN: Información del Negocio
                 Text(
                     text = "Información del Negocio",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 LlegoTextField(
                     value = businessName,
                     onValueChange = { businessName = it },
-                    label = "Nombre del Negocio",
+                    label = "Nombre del Negocio *",
                     placeholder = "Ej: Restaurante La Havana"
                 )
 
                 // Selector de tipo de negocio
                 Column {
                     Text(
-                        text = "Tipo de Negocio",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        text = "Tipo de Negocio *",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -129,9 +185,9 @@ fun RegisterBusinessScreen(
                             modifier = Modifier.weight(1f)
                         )
                         BusinessTypeChip(
-                            type = BusinessType.PHARMACY,
-                            selected = businessType == BusinessType.PHARMACY,
-                            onClick = { businessType = BusinessType.PHARMACY },
+                            type = BusinessType.CANDY_STORE,
+                            selected = businessType == BusinessType.CANDY_STORE,
+                            onClick = { businessType = BusinessType.CANDY_STORE },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -145,66 +201,64 @@ fun RegisterBusinessScreen(
                     singleLine = false
                 )
 
-                LlegoTextField(
-                    value = businessTags,
-                    onValueChange = { businessTags = it },
-                    label = "Tags (separados por coma)",
-                    placeholder = "Ej: comida, delivery, rápido"
+                // Tags selector mejorado
+                TagsSelector(
+                    selectedTags = businessTagsList,
+                    onTagsChange = { businessTagsList = it },
+                    businessType = businessType
                 )
 
-                // Sección: Imágenes del Negocio
+                // Imágenes del Negocio con upload a S3
                 Text(
-                    text = "Imágenes (Opcional)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    text = "Imágenes del Negocio (Opcional)",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Botón Avatar
-                    OutlinedButton(
-                        onClick = {
-                            imagePickerController.pickImage { uri ->
-                                businessAvatarUri = uri
-                            }
+                    ImageUploadPreview(
+                        label = "Avatar",
+                        uploadState = businessAvatarState,
+                        onStateChange = { businessAvatarState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBusinessAvatar(uri, token)
                         },
+                        size = ImageUploadSize.MEDIUM,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (businessAvatarUri != null) "Avatar ✓" else "Avatar")
-                    }
+                    )
 
-                    // Botón Cover
-                    OutlinedButton(
-                        onClick = {
-                            imagePickerController.pickImage { uri ->
-                                businessCoverUri = uri
-                            }
+                    ImageUploadPreview(
+                        label = "Portada",
+                        uploadState = businessCoverState,
+                        onStateChange = { businessCoverState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBusinessCover(uri, token)
                         },
+                        size = ImageUploadSize.MEDIUM,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (businessCoverUri != null) "Portada ✓" else "Portada")
-                    }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Sección: Primera Sucursal
+                // SECCIÓN: Primera Sucursal
                 Text(
                     text = "Primera Sucursal",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 LlegoTextField(
                     value = branchName,
                     onValueChange = { branchName = it },
-                    label = "Nombre de la Sucursal",
+                    label = "Nombre de la Sucursal *",
                     placeholder = "Ej: Sucursal Centro"
                 )
 
@@ -215,52 +269,76 @@ fun RegisterBusinessScreen(
                     placeholder = "Ej: Av. Principal 123"
                 )
 
-                LlegoTextField(
-                    value = branchPhone,
-                    onValueChange = { branchPhone = it },
-                    label = "Teléfono",
-                    placeholder = "Ej: +51 999 999 999"
+                // PhoneInput con código de país
+                PhoneInput(
+                    phoneNumber = branchPhone,
+                    countryCode = branchCountryCode,
+                    onPhoneChange = { branchPhone = it },
+                    onCountryCodeChange = { branchCountryCode = it }
+                )
+
+                // MapLocationPicker con Google Maps REAL
+                MapLocationPickerReal(
+                    latitude = branchLatitude,
+                    longitude = branchLongitude,
+                    onLocationSelected = { lat, lng ->
+                        branchLatitude = lat
+                        branchLongitude = lng
+                    }
+                )
+
+                // SchedulePicker interactivo
+                SchedulePicker(
+                    schedule = branchSchedule,
+                    onScheduleChange = { branchSchedule = it }
+                )
+
+                // DeliveryRadiusPicker
+                DeliveryRadiusPicker(
+                    radiusKm = branchDeliveryRadius,
+                    onRadiusChange = { branchDeliveryRadius = it }
+                )
+
+                // FacilitiesSelector
+                FacilitiesSelector(
+                    selectedFacilities = branchFacilities,
+                    onFacilitiesChange = { branchFacilities = it }
+                )
+
+                // Imágenes de la Sucursal
+                Text(
+                    text = "Imágenes de la Sucursal (Opcional)",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    LlegoTextField(
-                        value = branchLatitude,
-                        onValueChange = { branchLatitude = it },
-                        label = "Latitud",
-                        placeholder = "-12.0464",
+                    ImageUploadPreview(
+                        label = "Avatar",
+                        uploadState = branchAvatarState,
+                        onStateChange = { branchAvatarState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBranchAvatar(uri, token)
+                        },
+                        size = ImageUploadSize.MEDIUM,
                         modifier = Modifier.weight(1f)
                     )
-                    LlegoTextField(
-                        value = branchLongitude,
-                        onValueChange = { branchLongitude = it },
-                        label = "Longitud",
-                        placeholder = "-77.0428",
+
+                    ImageUploadPreview(
+                        label = "Portada",
+                        uploadState = branchCoverState,
+                        onStateChange = { branchCoverState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBranchCover(uri, token)
+                        },
+                        size = ImageUploadSize.MEDIUM,
                         modifier = Modifier.weight(1f)
                     )
-                }
-
-                LlegoTextField(
-                    value = branchSchedule,
-                    onValueChange = { branchSchedule = it },
-                    label = "Horario",
-                    placeholder = "Ej: Lun-Vie: 9:00-18:00"
-                )
-
-                // Imagen de la Sucursal
-                OutlinedButton(
-                    onClick = {
-                        imagePickerController.pickImage { uri ->
-                            branchAvatarUri = uri
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (branchAvatarUri != null) "Foto Sucursal ✓" else "Agregar Foto (Opcional)")
                 }
 
                 // Mensaje de error
@@ -278,30 +356,30 @@ fun RegisterBusinessScreen(
                 LlegoButton(
                     text = "Registrar Negocio",
                     onClick = {
+                        registeredBusinessName = businessName
+
                         val business = CreateBusinessInput(
                             name = businessName,
-                            type = businessType.name.lowercase(),
+                            type = businessType.toBackendType(),
                             description = businessDescription.ifBlank { null },
-                            tags = businessTags.split(",").map { it.trim() }.filter { it.isNotBlank() },
-                            avatar = null, // TODO: Implementar upload de imágenes
-                            coverImage = null
+                            tags = businessTagsList,
+                            avatar = businessAvatarPath,
+                            coverImage = businessCoverPath
                         )
 
                         val branch = RegisterBranchInput(
                             name = branchName,
                             address = branchAddress.ifBlank { null },
-                            phone = branchPhone,
+                            phone = combinePhoneNumber(branchCountryCode, branchPhone),
                             coordinates = CoordinatesInput(
-                                lat = branchLatitude.toDoubleOrNull() ?: 0.0,
-                                lng = branchLongitude.toDoubleOrNull() ?: 0.0
+                                lat = branchLatitude,
+                                lng = branchLongitude
                             ),
-                            // El backend espera schedule como Map<String, List<String>>
-                            // Formato: { "lun-vie": ["9:00-18:00"] } o { "general": ["9:00-18:00"] }
-                            schedule = mapOf("lun-vie" to listOf(branchSchedule)),
-                            avatar = null,
-                            coverImage = null,
-                            deliveryRadius = 5.0,
-                            facilities = emptyList()
+                            schedule = branchSchedule.toBackendSchedule(),
+                            avatar = branchAvatarPath,
+                            coverImage = branchCoverPath,
+                            deliveryRadius = branchDeliveryRadius,
+                            facilities = branchFacilities
                         )
 
                         viewModel.registerBusiness(business, listOf(branch))
@@ -309,7 +387,9 @@ fun RegisterBusinessScreen(
                     enabled = !uiState.isLoading &&
                             businessName.isNotBlank() &&
                             branchName.isNotBlank() &&
-                            branchPhone.isNotBlank()
+                            branchPhone.isNotBlank() &&
+                            branchLatitude != 0.0 &&
+                            branchLongitude != 0.0
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -332,8 +412,20 @@ fun RegisterBusinessScreen(
     // Observar éxito de registro
     LaunchedEffect(uiState.isRegistered) {
         if (uiState.isRegistered) {
-            onRegisterSuccess(businessType)
+            showSuccessConfirmation = true
         }
+    }
+
+    // Mostrar pantalla de confirmación
+    if (showSuccessConfirmation) {
+        LlegoConfirmationScreen(
+            config = LlegoConfirmationDefaults.businessCreated(registeredBusinessName),
+            onDismiss = {
+                showSuccessConfirmation = false
+                viewModel.resetState()
+                onRegisterSuccess(businessType)
+            }
+        )
     }
 }
 
@@ -344,6 +436,8 @@ private fun BusinessTypeChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -352,12 +446,21 @@ private fun BusinessTypeChip(
                 text = when (type) {
                     BusinessType.RESTAURANT -> "🍽️ Restaurante"
                     BusinessType.MARKET -> "🛒 Tienda"
-                    BusinessType.PHARMACY -> "💊 Farmacia"
-                    else -> type.name
+                    BusinessType.CANDY_STORE -> "🍬 Dulcería"
                 },
                 style = MaterialTheme.typography.bodySmall
             )
         },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = primaryColor.copy(alpha = 0.15f),
+            selectedLabelColor = primaryColor
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            selectedBorderColor = primaryColor,
+            selectedBorderWidth = 2.dp
+        ),
         modifier = modifier
     )
 }

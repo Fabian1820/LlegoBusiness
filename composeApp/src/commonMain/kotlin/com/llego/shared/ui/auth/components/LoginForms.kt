@@ -317,18 +317,14 @@ internal fun BusinessTypeChips(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SelectableChip(
-                text = "🌾 Agromercado",
-                isSelected = selectedBusinessType == BusinessType.AGROMARKET,
-                onClick = { onBusinessTypeSelected(BusinessType.AGROMARKET) },
+                text = "🍬 Dulcería",
+                isSelected = selectedBusinessType == BusinessType.CANDY_STORE,
+                onClick = { onBusinessTypeSelected(BusinessType.CANDY_STORE) },
                 modifier = Modifier.weight(1f)
             )
 
-            SelectableChip(
-                text = "👕 Tienda Ropa",
-                isSelected = selectedBusinessType == BusinessType.CLOTHING_STORE,
-                onClick = { onBusinessTypeSelected(BusinessType.CLOTHING_STORE) },
-                modifier = Modifier.weight(1f)
-            )
+            // Espaciador para mantener el diseño simétrico (opcional)
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

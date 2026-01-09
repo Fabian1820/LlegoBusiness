@@ -68,21 +68,13 @@ fun mapToCategoryId(category: String, businessType: BusinessType): String? {
             categoryLower.contains("despensa") || categoryLower.contains("arroz") || categoryLower.contains("frijol") -> "despensa"
             else -> null
         }
-        BusinessType.AGROMARKET -> when {
-            categoryLower.contains("verdura") -> "verduras"
-            categoryLower.contains("hortaliza") -> "hortalizas"
-            categoryLower.contains("tubérculo") || categoryLower.contains("tuberculo") || categoryLower.contains("papa") || categoryLower.contains("yuca") || categoryLower.contains("boniato") -> "tuberculos"
-            categoryLower.contains("grano") || categoryLower.contains("cereal") || categoryLower.contains("frijol") || categoryLower.contains("lenteja") -> "granos"
-            categoryLower.contains("orgánico") || categoryLower.contains("organico") -> "organicos"
-            else -> null
-        }
-        BusinessType.CLOTHING_STORE -> when {
-            categoryLower.contains("hombre") -> "hombres"
-            categoryLower.contains("mujer") -> "mujeres"
-            categoryLower.contains("niño") || categoryLower.contains("nino") || categoryLower.contains("infantil") -> "ninos"
-            categoryLower.contains("accesorio") -> "accesorios"
-            categoryLower.contains("calzado") || categoryLower.contains("zapato") || categoryLower.contains("sandalia") -> "calzado"
-            categoryLower.contains("deportivo") || categoryLower.contains("deporte") -> "deportivo"
+        BusinessType.CANDY_STORE -> when {
+            categoryLower.contains("chocolate") -> "chocolates"
+            categoryLower.contains("gomita") -> "gomitas"
+            categoryLower.contains("caramelo") -> "caramelos"
+            categoryLower.contains("galleta") -> "galletas"
+            categoryLower.contains("snack") -> "snacks"
+            categoryLower.contains("bebida") -> "bebidas"
             else -> null
         }
         BusinessType.RESTAURANT -> when {
@@ -94,7 +86,6 @@ fun mapToCategoryId(category: String, businessType: BusinessType): String? {
             categoryLower.contains("especial") -> "especiales"
             else -> null
         }
-        else -> null
     }
 }
 

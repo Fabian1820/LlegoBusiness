@@ -16,6 +16,7 @@ import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
+import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 
@@ -63,6 +64,9 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar TokenManager con contexto para persistencia
         TokenManager.initialize(applicationContext)
+        
+        // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
+        ImageUploadServiceFactory.initialize(applicationContext)
         
         // Inicializar GraphQLClient
         GraphQLClient.initialize(tokenManager)

@@ -1,5 +1,8 @@
 package com.llego.shared.data.upload
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.llego.shared.data.model.ImageUploadResponse
 import com.llego.shared.data.model.ImageUploadResult
 import io.ktor.client.*
@@ -15,8 +18,11 @@ import java.io.File
 
 /**
  * Implementación Android del servicio de subida de imágenes usando Ktor Client
+ * Soporta tanto paths de archivo como content:// URIs de Android
  */
-class AndroidImageUploadService : ImageUploadService {
+class AndroidImageUploadService(
+    private val context: Context
+) : ImageUploadService {
 
     private val client = HttpClient {
         install(ContentNegotiation) {
@@ -36,6 +42,72 @@ class AndroidImageUploadService : ImageUploadService {
     private val baseUrl = "http://10.0.2.2:4000" // Emulador Android apunta a localhost
 
     /**
+     * Lee los bytes de un archivo, soportando tanto paths como content:// URIs
+     */
+    private fun readFileBytes(filePath: String): Pair<ByteArray, String>? {
+        return try {
+            println("🔍 AndroidImageUploadService: Reading file from path: $filePath")
+
+            if (filePath.startsWith("content://")) {
+                // Es un content URI de Android - usar ContentResolver
+                val uri = Uri.parse(filePath)
+                val contentResolver = context.contentResolver
+
+                println("📱 AndroidImageUploadService: Processing content URI: $uri")
+
+                // Obtener el nombre del archivo
+                val filename = getFilenameFromUri(uri) ?: "image_${System.currentTimeMillis()}.jpg"
+                println("📝 AndroidImageUploadService: Filename extracted: $filename")
+
+                // Leer los bytes usando ContentResolver
+                println("📂 AndroidImageUploadService: Opening input stream...")
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    println("❌ AndroidImageUploadService: Failed to open input stream - URI may be invalid or permission denied")
+                    return null
+                }
+
+                println("📖 AndroidImageUploadService: Reading bytes from input stream...")
+                val bytes = inputStream.use { it.readBytes() }
+                println("✅ AndroidImageUploadService: Successfully read ${bytes.size} bytes")
+                Pair(bytes, filename)
+            } else {
+                // Es un path de archivo normal
+                println("💾 AndroidImageUploadService: Processing file path (not URI)")
+                val file = File(filePath)
+                if (!file.exists()) {
+                    println("❌ AndroidImageUploadService: File does not exist at path: $filePath")
+                    return null
+                }
+                println("✅ AndroidImageUploadService: File exists, size: ${file.length()} bytes")
+                Pair(file.readBytes(), file.name)
+            }
+        } catch (e: Exception) {
+            println("❌ AndroidImageUploadService: EXCEPTION reading file - ${e.javaClass.simpleName}: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+    
+    /**
+     * Obtiene el nombre del archivo desde un content URI
+     */
+    private fun getFilenameFromUri(uri: Uri): String? {
+        return try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) {
+                        cursor.getString(nameIndex)
+                    } else null
+                } else null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
      * Método genérico para subir imágenes a cualquier endpoint
      */
     private suspend fun uploadImage(
@@ -44,17 +116,23 @@ class AndroidImageUploadService : ImageUploadService {
         token: String?
     ): ImageUploadResult {
         return try {
-            val file = File(filePath)
-            if (!file.exists()) {
-                return ImageUploadResult.Error("El archivo no existe: $filePath")
-            }
+            println("🚀 AndroidImageUploadService: Starting upload to $endpoint")
+            println("📍 AndroidImageUploadService: File path: $filePath")
+            println("🔑 AndroidImageUploadService: Token present: ${token != null}")
+
+            val (bytes, filename) = readFileBytes(filePath)
+                ?: return ImageUploadResult.Error("No se pudo leer el archivo: $filePath").also {
+                    println("❌ AndroidImageUploadService: Failed to read file bytes")
+                }
+
+            println("📤 AndroidImageUploadService: Uploading $filename (${bytes.size} bytes) to $baseUrl$endpoint")
 
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl$endpoint",
                 formData = formData {
-                    append("image", file.readBytes(), Headers.build {
+                    append("image", bytes, Headers.build {
                         append(HttpHeaders.ContentType, "image/*")
-                        append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
+                        append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                     })
                 }
             ) {
@@ -63,14 +141,22 @@ class AndroidImageUploadService : ImageUploadService {
                 }
             }
 
+            println("📡 AndroidImageUploadService: Response status: ${response.status.value} ${response.status.description}")
+
             if (response.status.isSuccess()) {
                 val uploadResponse: ImageUploadResponse = response.body()
+                println("✅ AndroidImageUploadService: Upload success - ${uploadResponse.imagePath}")
                 ImageUploadResult.Success(uploadResponse)
             } else {
-                ImageUploadResult.Error("Error ${response.status.value}: ${response.status.description}")
+                val errorMsg = "Error ${response.status.value}: ${response.status.description}"
+                println("❌ AndroidImageUploadService: Upload failed - $errorMsg")
+                ImageUploadResult.Error(errorMsg)
             }
         } catch (e: Exception) {
-            ImageUploadResult.Error("Error al subir imagen: ${e.message}")
+            val errorMsg = "Error al subir imagen: ${e.javaClass.simpleName} - ${e.message}"
+            println("❌ AndroidImageUploadService: EXCEPTION during upload - $errorMsg")
+            e.printStackTrace()
+            ImageUploadResult.Error(errorMsg)
         }
     }
 
@@ -101,7 +187,22 @@ class AndroidImageUploadService : ImageUploadService {
 
 /**
  * Factory para crear instancias de ImageUploadService en Android
+ * Requiere inicialización con Context antes de usar
  */
 actual object ImageUploadServiceFactory {
-    actual fun create(): ImageUploadService = AndroidImageUploadService()
+    private var appContext: Context? = null
+    
+    /**
+     * Inicializa el factory con el contexto de la aplicación
+     * Debe llamarse una vez al inicio de la app (en Application o MainActivity)
+     */
+    fun initialize(context: Context) {
+        appContext = context.applicationContext
+    }
+    
+    actual fun create(): ImageUploadService {
+        val context = appContext
+            ?: throw IllegalStateException("ImageUploadServiceFactory no inicializado. Llama a initialize(context) primero.")
+        return AndroidImageUploadService(context)
+    }
 }

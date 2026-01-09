@@ -8,10 +8,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class BusinessType {
     RESTAURANT,      // Restaurante
-    MARKET,          // Mercado/Supermercado
-    AGROMARKET,      // Agromercado
-    CLOTHING_STORE,  // Tienda de Ropa
-    PHARMACY         // Farmacia
+    MARKET,          // Tienda/Supermercado
+    CANDY_STORE      // Dulcería
 }
 
 /**
@@ -19,10 +17,8 @@ enum class BusinessType {
  */
 fun BusinessType.toDisplayName(): String = when (this) {
     BusinessType.RESTAURANT -> "Restaurante"
-    BusinessType.MARKET -> "Supermercado"
-    BusinessType.AGROMARKET -> "Agromercado"
-    BusinessType.CLOTHING_STORE -> "Tienda de Ropa"
-    BusinessType.PHARMACY -> "Farmacia"
+    BusinessType.MARKET -> "Tienda"
+    BusinessType.CANDY_STORE -> "Dulcería"
 }
 
 /**
@@ -31,9 +27,7 @@ fun BusinessType.toDisplayName(): String = when (this) {
 fun BusinessType.toBackendType(): String = when (this) {
     BusinessType.RESTAURANT -> "restaurant"
     BusinessType.MARKET -> "market"
-    BusinessType.AGROMARKET -> "agromarket"
-    BusinessType.CLOTHING_STORE -> "clothing"
-    BusinessType.PHARMACY -> "pharmacy"
+    BusinessType.CANDY_STORE -> "candy_store"
 }
 
 /**
@@ -42,8 +36,6 @@ fun BusinessType.toBackendType(): String = when (this) {
 fun String.toBusinessType(): BusinessType? = when (this.lowercase()) {
     "restaurant" -> BusinessType.RESTAURANT
     "market", "grocery" -> BusinessType.MARKET
-    "agromarket" -> BusinessType.AGROMARKET
-    "clothing", "clothing_store" -> BusinessType.CLOTHING_STORE
-    "pharmacy" -> BusinessType.PHARMACY
+    "candy_store", "candy" -> BusinessType.CANDY_STORE
     else -> null
 }

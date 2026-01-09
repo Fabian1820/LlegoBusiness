@@ -57,9 +57,7 @@ class LlegoNavigationController(
         val route = when (businessType) {
             BusinessType.RESTAURANT -> Routes.Restaurant.ORDERS
             BusinessType.MARKET -> Routes.Market.ORDERS
-            BusinessType.AGROMARKET -> Routes.Market.ORDERS
-            BusinessType.CLOTHING_STORE -> Routes.Market.ORDERS
-            BusinessType.PHARMACY -> Routes.Pharmacy.ORDERS
+            BusinessType.CANDY_STORE -> Routes.Market.ORDERS
         }
         navController.navigate(route)
     }
@@ -68,9 +66,7 @@ class LlegoNavigationController(
         val route = when (businessType) {
             BusinessType.RESTAURANT -> Routes.Restaurant.orderDetail(orderId)
             BusinessType.MARKET -> Routes.Market.orderDetail(orderId)
-            BusinessType.AGROMARKET -> Routes.Market.orderDetail(orderId)
-            BusinessType.CLOTHING_STORE -> Routes.Market.orderDetail(orderId)
-            BusinessType.PHARMACY -> Routes.Pharmacy.orderDetail(orderId)
+            BusinessType.CANDY_STORE -> Routes.Market.orderDetail(orderId)
         }
         navController.navigate(route)
     }
@@ -90,33 +86,20 @@ class LlegoNavigationController(
 
     // Navegación específica para Market
     fun navigateToProducts() {
-        if (businessType == BusinessType.MARKET || businessType == BusinessType.AGROMARKET || businessType == BusinessType.CLOTHING_STORE) {
+        if (businessType == BusinessType.MARKET || businessType == BusinessType.CANDY_STORE) {
             navController.navigate(Routes.Market.PRODUCTS)
         }
     }
 
     fun navigateToProductDetail(productId: String) {
-        if (businessType == BusinessType.MARKET || businessType == BusinessType.AGROMARKET || businessType == BusinessType.CLOTHING_STORE) {
+        if (businessType == BusinessType.MARKET || businessType == BusinessType.CANDY_STORE) {
             navController.navigate(Routes.Market.productDetail(productId))
         }
     }
 
     fun navigateToInventory() {
-        if (businessType == BusinessType.MARKET || businessType == BusinessType.AGROMARKET || businessType == BusinessType.CLOTHING_STORE) {
+        if (businessType == BusinessType.MARKET || businessType == BusinessType.CANDY_STORE) {
             navController.navigate(Routes.Market.INVENTORY)
-        }
-    }
-
-    // Navegación específica para Pharmacy
-    fun navigateToMedicines() {
-        if (businessType == BusinessType.PHARMACY) {
-            navController.navigate(Routes.Pharmacy.MEDICINES)
-        }
-    }
-
-    fun navigateToPrescriptions() {
-        if (businessType == BusinessType.PHARMACY) {
-            navController.navigate(Routes.Pharmacy.PRESCRIPTIONS)
         }
     }
 
@@ -125,9 +108,7 @@ class LlegoNavigationController(
         val route = when (businessType) {
             BusinessType.RESTAURANT -> Routes.Restaurant.SETTINGS
             BusinessType.MARKET -> Routes.Market.SETTINGS
-            BusinessType.AGROMARKET -> Routes.Market.SETTINGS
-            BusinessType.CLOTHING_STORE -> Routes.Market.SETTINGS
-            BusinessType.PHARMACY -> Routes.Pharmacy.SETTINGS
+            BusinessType.CANDY_STORE -> Routes.Market.SETTINGS
         }
         navController.navigate(route)
     }
@@ -136,9 +117,7 @@ class LlegoNavigationController(
         val route = when (businessType) {
             BusinessType.RESTAURANT -> Routes.Restaurant.CHATS
             BusinessType.MARKET -> Routes.Market.NOTIFICATIONS
-            BusinessType.AGROMARKET -> Routes.Market.NOTIFICATIONS
-            BusinessType.CLOTHING_STORE -> Routes.Market.NOTIFICATIONS
-            BusinessType.PHARMACY -> Routes.Pharmacy.NOTIFICATIONS
+            BusinessType.CANDY_STORE -> Routes.Market.NOTIFICATIONS
         }
         navController.navigate(route)
     }

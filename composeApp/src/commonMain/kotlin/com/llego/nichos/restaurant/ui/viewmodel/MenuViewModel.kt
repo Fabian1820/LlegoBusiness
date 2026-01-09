@@ -5,8 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.llego.nichos.restaurant.data.model.MenuCategory
 import com.llego.nichos.restaurant.data.repository.RestaurantRepository
 import com.llego.nichos.market.data.repository.MarketRepository
-import com.llego.nichos.agromarket.data.repository.AgromarketRepository
-import com.llego.nichos.clothing.data.repository.ClothingRepository
 import com.llego.nichos.common.data.model.Product
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.BusinessType
@@ -26,8 +24,6 @@ class MenuViewModel(
 
     private val restaurantRepository = RestaurantRepository.getInstance(tokenManager)
     private val marketRepository = MarketRepository.getInstance(tokenManager)
-    private val agromarketRepository = AgromarketRepository.getInstance(tokenManager)
-    private val clothingRepository = ClothingRepository.getInstance(tokenManager)
 
     // Estado de UI
     private val _uiState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)
@@ -50,9 +46,7 @@ class MenuViewModel(
         when (type) {
             BusinessType.RESTAURANT -> restaurantRepository.products
             BusinessType.MARKET -> marketRepository.products
-            BusinessType.AGROMARKET -> agromarketRepository.products
-            BusinessType.CLOTHING_STORE -> clothingRepository.products
-            BusinessType.PHARMACY -> flowOf(emptyList()) // TODO: Implementar cuando haya PharmacyRepository
+            BusinessType.CANDY_STORE -> flowOf(emptyList()) // TODO: Implementar CandyStoreRepository
         }
     }
 
@@ -146,9 +140,7 @@ class MenuViewModel(
                 when (businessType.value) {
                     BusinessType.RESTAURANT -> restaurantRepository.addProduct(product)
                     BusinessType.MARKET -> marketRepository.addProduct(product)
-                    BusinessType.AGROMARKET -> agromarketRepository.addProduct(product)
-                    BusinessType.CLOTHING_STORE -> clothingRepository.addProduct(product)
-                    BusinessType.PHARMACY -> {} // TODO
+                    BusinessType.CANDY_STORE -> {} // TODO: Implementar CandyStoreRepository
                 }
             } catch (e: Exception) {
                 // TODO: Manejar error
@@ -162,9 +154,7 @@ class MenuViewModel(
                 when (businessType.value) {
                     BusinessType.RESTAURANT -> restaurantRepository.updateProduct(product)
                     BusinessType.MARKET -> marketRepository.updateProduct(product)
-                    BusinessType.AGROMARKET -> agromarketRepository.updateProduct(product)
-                    BusinessType.CLOTHING_STORE -> clothingRepository.updateProduct(product)
-                    BusinessType.PHARMACY -> {} // TODO
+                    BusinessType.CANDY_STORE -> {} // TODO
                 }
             } catch (e: Exception) {
                 // TODO: Manejar error
@@ -178,9 +168,7 @@ class MenuViewModel(
                 when (businessType.value) {
                     BusinessType.RESTAURANT -> restaurantRepository.deleteProduct(productId)
                     BusinessType.MARKET -> marketRepository.deleteProduct(productId)
-                    BusinessType.AGROMARKET -> agromarketRepository.deleteProduct(productId)
-                    BusinessType.CLOTHING_STORE -> clothingRepository.deleteProduct(productId)
-                    BusinessType.PHARMACY -> {} // TODO
+                    BusinessType.CANDY_STORE -> {} // TODO
                 }
             } catch (e: Exception) {
                 // TODO: Manejar error
@@ -194,9 +182,7 @@ class MenuViewModel(
                 when (businessType.value) {
                     BusinessType.RESTAURANT -> restaurantRepository.toggleProductAvailability(productId)
                     BusinessType.MARKET -> marketRepository.toggleProductAvailability(productId)
-                    BusinessType.AGROMARKET -> agromarketRepository.toggleProductAvailability(productId)
-                    BusinessType.CLOTHING_STORE -> clothingRepository.toggleProductAvailability(productId)
-                    BusinessType.PHARMACY -> {} // TODO
+                    BusinessType.CANDY_STORE -> {} // TODO
                 }
             } catch (e: Exception) {
                 // TODO: Manejar error
@@ -209,9 +195,7 @@ class MenuViewModel(
         return when (businessType.value) {
             BusinessType.RESTAURANT -> restaurantRepository.getProductById(productId)
             BusinessType.MARKET -> marketRepository.getProductById(productId)
-            BusinessType.AGROMARKET -> agromarketRepository.getProductById(productId)
-            BusinessType.CLOTHING_STORE -> clothingRepository.getProductById(productId)
-            BusinessType.PHARMACY -> null // TODO
+            BusinessType.CANDY_STORE -> null // TODO
         }
     }
     

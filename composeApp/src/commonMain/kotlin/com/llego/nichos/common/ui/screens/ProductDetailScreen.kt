@@ -101,22 +101,16 @@ fun ProductDetailScreen(
                         RestaurantDetailsCard(product = product)
                     }
                 }
-                BusinessType.MARKET, BusinessType.AGROMARKET -> {
+                BusinessType.MARKET -> {
                     if (product.brand != null || product.unit != null) {
                         MarketDetailsCard(product = product)
                     }
                 }
-                BusinessType.CLOTHING_STORE -> {
-                    if (!product.sizes.isNullOrEmpty() || !product.colors.isNullOrEmpty()) {
-                        ClothingDetailsCard(product = product)
+                BusinessType.CANDY_STORE -> {
+                    if (product.brand != null) {
+                        MarketDetailsCard(product = product)
                     }
                 }
-                BusinessType.PHARMACY -> {
-                    if (product.requiresPrescription || product.genericName != null) {
-                        PharmacyDetailsCard(product = product)
-                    }
-                }
-                else -> {}
             }
 
             // Estado de disponibilidad

@@ -40,6 +40,8 @@ import com.llego.shared.ui.auth.components.AppTipsSection
 import com.llego.shared.ui.auth.components.LlegoLogo
 import com.llego.shared.ui.auth.components.SocialButtons
 import com.llego.shared.ui.components.background.CurvedBackground
+import com.llego.shared.ui.components.molecules.LlegoConfirmationDefaults
+import com.llego.shared.ui.components.molecules.LlegoConfirmationScreen
 import kotlinx.coroutines.delay
 
 /**
