@@ -1,13 +1,17 @@
 package com.llego.shared.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * Resultado de la subida de una imagen
+ * Backend devuelve snake_case (image_path, image_url)
  */
 @Serializable
 data class ImageUploadResponse(
+    @SerialName("image_path")
     val imagePath: String,
+    @SerialName("image_url")
     val imageUrl: String
 )
 

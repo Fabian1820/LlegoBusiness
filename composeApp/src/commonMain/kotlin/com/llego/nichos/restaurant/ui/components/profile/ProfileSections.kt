@@ -16,9 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.llego.nichos.common.ui.components.NetworkImage
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.User
@@ -39,19 +41,30 @@ fun BannerWithLogoSection(
             .fillMaxWidth()
             .height(280.dp)
     ) {
-        // Banner de fondo
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        // Banner de fondo - Imagen o gradiente
+        if (!coverUrl.isNullOrEmpty()) {
+            // Mostrar imagen de portada desde el backend
+            NetworkImage(
+                url = coverUrl,
+                contentDescription = "Portada del negocio",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // Fallback: gradiente por defecto
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
                         )
                     )
-                )
-        )
+            )
+        }
 
         // Botón para cambiar portada
         IconButton(
@@ -82,8 +95,19 @@ fun BannerWithLogoSection(
                 shadowElevation = 15.dp,
                 border = BorderStroke(5.dp, Color.White)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(text = "🍽️", fontSize = 48.sp)
+                if (!avatarUrl.isNullOrEmpty()) {
+                    // Mostrar avatar desde el backend
+                    NetworkImage(
+                        url = avatarUrl,
+                        contentDescription = "Logo del negocio",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Fallback: emoji por defecto
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text(text = "🍽️", fontSize = 48.sp)
+                    }
                 }
             }
             
@@ -361,5 +385,198 @@ fun BranchInfoSection(
             onCancelClick = { deliveryRadius = branch?.deliveryRadius?.toString() ?: ""; isEditingRadius = false },
             icon = Icons.Default.DeliveryDining
         )
+    }
+}
+
+// ============= BUSINESS TAGS SECTION =============
+
+@Composable
+fun BusinessTagsSection(
+    business: Business?,
+    onSave: (List<String>) -> Unit = {}
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    val tags = business?.tags ?: emptyList()
+
+    ProfileSectionCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionHeader(title = "Etiquetas del Negocio", emoji = "🏷️")
+            IconButton(onClick = { isEditing = !isEditing }) {
+                Icon(
+                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = if (isEditing) "Guardar" else "Editar",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (tags.isEmpty()) {
+            Text(
+                text = "Sin etiquetas",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                items(tags) { tag ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        label = { Text(tag) },
+                        enabled = false
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============= BRANCH FACILITIES SECTION =============
+
+@Composable
+fun BranchFacilitiesSection(
+    branch: Branch?,
+    onSave: (List<String>) -> Unit = {}
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    val facilities = branch?.facilities ?: emptyList()
+
+    val facilityIcons = mapOf(
+        "Estacionamiento" to "🅿️",
+        "WiFi" to "📶",
+        "Aire acondicionado" to "❄️",
+        "Acceso para sillas de ruedas" to "♿",
+        "Terraza" to "🌿",
+        "Zona infantil" to "👶",
+        "Pet friendly" to "🐕",
+        "Para llevar" to "🥡",
+        "Pago con tarjeta" to "💳",
+        "Delivery propio" to "🚗"
+    )
+
+    ProfileSectionCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionHeader(title = "Instalaciones", emoji = "🏢")
+            IconButton(onClick = { isEditing = !isEditing }) {
+                Icon(
+                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = if (isEditing) "Guardar" else "Editar",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (facilities.isEmpty()) {
+            Text(
+                text = "Sin instalaciones especificadas",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                items(facilities) { facility ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        label = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(facilityIcons[facility] ?: "")
+                                Text(facility)
+                            }
+                        },
+                        enabled = false
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============= BRANCH SCHEDULE SECTION =============
+
+@Composable
+fun BranchScheduleSection(
+    branch: Branch?,
+    onSave: (Map<String, String>) -> Unit = {}
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    val schedule = branch?.schedule ?: emptyMap()
+
+    val dayNames = mapOf(
+        "lun" to "Lunes",
+        "mar" to "Martes",
+        "mie" to "Miércoles",
+        "jue" to "Jueves",
+        "vie" to "Viernes",
+        "sab" to "Sábado",
+        "dom" to "Domingo"
+    )
+
+    ProfileSectionCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionHeader(title = "Horarios de Atención", emoji = "🕐")
+            IconButton(onClick = { isEditing = !isEditing }) {
+                Icon(
+                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
+                    contentDescription = if (isEditing) "Guardar" else "Editar",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (schedule.isEmpty()) {
+            Text(
+                text = "Sin horarios configurados",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                schedule.forEach { (day, hours) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = dayNames[day] ?: day,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = Color.Black
+                        )
+                        Text(
+                            text = if (hours == "closed") "Cerrado" else hours,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (hours == "closed") Color.Gray else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
     }
 }

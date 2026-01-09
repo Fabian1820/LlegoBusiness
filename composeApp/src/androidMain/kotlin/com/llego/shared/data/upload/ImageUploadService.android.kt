@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.llego.shared.data.model.ImageUploadResponse
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.network.BackendConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -33,13 +34,28 @@ class AndroidImageUploadService(
             })
         }
         install(HttpTimeout) {
-            requestTimeoutMillis = 30000
+            requestTimeoutMillis = 60000  // 60 segundos para uploads
             connectTimeoutMillis = 30000
-            socketTimeoutMillis = 30000
+            socketTimeoutMillis = 60000
         }
     }
 
-    private val baseUrl = "http://10.0.2.2:4000" // Emulador Android apunta a localhost
+    // Backend URL desde Railway
+    private val baseUrl = BackendConfig.REST_URL
+
+    /**
+     * Detecta el tipo MIME basado en la extensión del archivo
+     */
+    private fun getMimeType(filename: String): String {
+        return when (filename.substringAfterLast('.', "").lowercase()) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "bmp" -> "image/bmp"
+            else -> "image/jpeg" // Default a JPEG
+        }
+    }
 
     /**
      * Lee los bytes de un archivo, soportando tanto paths como content:// URIs
@@ -125,13 +141,16 @@ class AndroidImageUploadService(
                     println("❌ AndroidImageUploadService: Failed to read file bytes")
                 }
 
-            println("📤 AndroidImageUploadService: Uploading $filename (${bytes.size} bytes) to $baseUrl$endpoint")
+            val mimeType = getMimeType(filename)
+            println("📤 AndroidImageUploadService: Uploading $filename (${bytes.size} bytes, $mimeType) to $baseUrl$endpoint")
 
+            // Usar submitFormWithBinaryData - Ktor maneja el Content-Type multipart/form-data automáticamente
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl$endpoint",
                 formData = formData {
+                    // FastAPI espera: name="image", filename presente, Content-Type del archivo
                     append("image", bytes, Headers.build {
-                        append(HttpHeaders.ContentType, "image/*")
+                        append(HttpHeaders.ContentType, mimeType)
                         append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                     })
                 }
@@ -139,6 +158,7 @@ class AndroidImageUploadService(
                 if (token != null) {
                     header("Authorization", "Bearer $token")
                 }
+                // NO establecer Content-Type manualmente - Ktor lo genera con boundary
             }
 
             println("📡 AndroidImageUploadService: Response status: ${response.status.value} ${response.status.description}")

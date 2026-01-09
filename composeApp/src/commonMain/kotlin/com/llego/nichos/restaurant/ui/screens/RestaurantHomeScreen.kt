@@ -41,13 +41,17 @@ fun RestaurantHomeScreen(
     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
     var isSearchOverlayVisible by remember { mutableStateOf(false) }
 
+    // Obtener el nombre del negocio
+    val currentBusiness by authViewModel.currentBusiness.collectAsState()
+    val businessName = currentBusiness?.name ?: "Mi Negocio"
+
     Scaffold(
         topBar = {
             if (!isSearchOverlayVisible) {
                 TopAppBar(
                     title = {
                         Text(
-                            "Restaurante La Habana",
+                            businessName,
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold
                             )
