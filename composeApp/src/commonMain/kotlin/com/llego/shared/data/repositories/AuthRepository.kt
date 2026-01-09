@@ -191,6 +191,9 @@ class AuthRepository(
      */
     suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
         return try {
+            println("AuthRepository.loginWithApple: iniciando con token length=${identityToken.length}")
+            println("AuthRepository.loginWithApple: nonce=$nonce")
+            
             val response = client.mutation(
                 com.llego.multiplatform.graphql.LoginWithAppleMutation(
                     input = com.llego.multiplatform.graphql.type.AppleLoginInput(
@@ -201,30 +204,57 @@ class AuthRepository(
                 )
             ).execute()
 
+            println("AuthRepository.loginWithApple: respuesta recibida, data=${response.data != null}")
+            println("AuthRepository.loginWithApple: errors=${response.errors}")
+
             response.data?.loginWithApple?.let { authResponse ->
+                println("AuthRepository.loginWithApple: recibida respuesta del backend")
+                println("AuthRepository.loginWithApple: accessToken length=${authResponse.accessToken.length}")
+                println("AuthRepository.loginWithApple: user.email=${authResponse.user.email}")
+                println("AuthRepository.loginWithApple: user.id=${authResponse.user.id}")
+                
                 // Guardar nuevo token
                 tokenManager.saveToken(authResponse.accessToken)
 
                 // Convertir usuario
                 val basicUser = authResponse.user.toBasicDomain()
+                println("AuthRepository.loginWithApple: basicUser creado")
 
                 // Obtener datos completos
+                println("AuthRepository.loginWithApple: llamando getCurrentUser() para datos completos...")
                 val fullUserResult = getCurrentUser()
                 val fullUser = when (fullUserResult) {
-                    is AuthResult.Success -> fullUserResult.data
-                    else -> basicUser
+                    is AuthResult.Success -> {
+                        println("AuthRepository.loginWithApple: getCurrentUser() exitoso")
+                        println("AuthRepository.loginWithApple: fullUser.businessIds=${fullUserResult.data.businessIds}")
+                        println("AuthRepository.loginWithApple: fullUser.branchIds=${fullUserResult.data.branchIds}")
+                        fullUserResult.data
+                    }
+                    else -> {
+                        println("AuthRepository.loginWithApple: getCurrentUser() falló, usando basicUser")
+                        basicUser
+                    }
                 }
 
                 // Actualizar estado
                 _currentUser.value = fullUser
                 _isAuthenticated.value = true
+                
+                println("AuthRepository.loginWithApple: éxito - usuario autenticado")
 
                 AuthResult.Success(fullUser)
-            } ?: AuthResult.Error("No se recibió respuesta del servidor")
+            } ?: run {
+                println("AuthRepository.loginWithApple: response.data.loginWithApple es null")
+                AuthResult.Error("No se recibió respuesta del servidor")
+            }
 
         } catch (e: ApolloException) {
+            println("AuthRepository.loginWithApple: ApolloException - ${e.message}")
+            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error de conexión con el servidor")
         } catch (e: Exception) {
+            println("AuthRepository.loginWithApple: Exception - ${e.message}")
+            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error desconocido")
         }
     }

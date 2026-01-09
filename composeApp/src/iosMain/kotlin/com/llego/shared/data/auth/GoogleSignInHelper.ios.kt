@@ -77,7 +77,7 @@ actual class GoogleSignInHelper {
         GIDSignIn.sharedInstance.signInWithPresentingViewController(
             presentingViewController = presentingViewController
         ) { result, error ->
-            handleSignInResult(result, error)
+            handleSignInResult(result as? GIDSignInResult, error)
         }
     }
 
@@ -85,9 +85,7 @@ actual class GoogleSignInHelper {
         if (error != null) {
             // Error durante Sign-In
             val errorMessage = when (error.code) {
-                GIDSignInErrorCodeCanceled -> "Login cancelado por el usuario"
-                GIDSignInErrorCodeEMM -> "Error de Enterprise Mobility Management"
-                GIDSignInErrorCodeUnknown -> "Error desconocido de Google Sign-In"
+                -5L -> "Login cancelado por el usuario"
                 else -> "Error: ${error.localizedDescription}"
             }
             onErrorCallback?.invoke(errorMessage)

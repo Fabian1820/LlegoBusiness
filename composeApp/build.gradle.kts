@@ -15,6 +15,7 @@ plugins {
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.apolloGraphQl)
+    id("org.jetbrains.kotlin.native.cocoapods")
 }
 
 kotlin {
@@ -24,13 +25,24 @@ kotlin {
         }
     }
     
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
+    iosArm64()
+    iosSimulatorArm64()
+    
+    cocoapods {
+        summary = "Compose Logic"
+        homepage = "https://github.com/JetBrains/compose-multiplatform"
+        version = "1.0"
+        ios.deploymentTarget = "14.1"
+        podfile = project.file("../iosApp/Podfile")
+        
+        framework {
             baseName = "ComposeApp"
             isStatic = true
+        }
+
+        pod("GoogleSignIn") {
+            version = "7.1.0"
+            extraOpts += listOf("-compiler-option", "-fmodules")
         }
     }
     

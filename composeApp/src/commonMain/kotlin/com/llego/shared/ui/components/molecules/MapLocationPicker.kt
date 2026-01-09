@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llego.shared.utils.formatDouble
 
 /**
  * Selector de ubicación en mapa
@@ -218,7 +219,7 @@ private fun MapPreview(
                     )
                 )
                 Text(
-                    text = "${String.format("%.4f", latitude)}, ${String.format("%.4f", longitude)}",
+                    text = "${formatDouble("%.4f", latitude)}, ${formatDouble("%.4f", longitude)}",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )

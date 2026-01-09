@@ -1,0 +1,37 @@
+# Podfile para iosApp
+platform :ios, '14.1'
+
+target 'iosApp' do
+  use_frameworks!
+  
+  # Google Sign-In
+  pod 'GoogleSignIn', '~> 7.0'
+  
+  # Kotlin Multiplatform Framework
+  # Este pod se genera automáticamente desde el proyecto Kotlin
+  pod 'composeApp', :path => '../composeApp'
+end
+
+# Configuración post-install para evitar warnings
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+    end
+  end
+  
+  # Agregar PATH para que Xcode encuentre CocoaPods y otros comandos de Homebrew
+  # Modificar scripts de build para que carguen .xcode.env
+  xcode_env_path = File.join(__dir__, '.xcode.env')
+  if File.exist?(xcode_env_path)
+    source_command = "if [ -f \"#{xcode_env_path}\" ]; then source \"#{xcode_env_path}\"; fi\n"
+    
+    installer.pods_project.targets.each do |target|
+      target.build_phases.each do |phase|
+        if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
+          phase.shell_script = source_command + phase.shell_script
+        end
+      end
+    end
+  end
+end

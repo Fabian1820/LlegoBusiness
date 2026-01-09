@@ -17,6 +17,13 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 
+# CocoaPods
+iosApp/Pods/
+iosApp/Podfile.lock
+iosApp/*.xcworkspace/
+iosApp/.symlinks/
+*.podspec
+
 # Windows artifacts
 nul
 NUL

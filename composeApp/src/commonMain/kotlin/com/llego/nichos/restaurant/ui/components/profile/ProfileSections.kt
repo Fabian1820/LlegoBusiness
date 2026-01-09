@@ -23,6 +23,7 @@ import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.User
 import com.llego.shared.data.model.toBusinessType
+import com.llego.shared.utils.formatDouble
 
 // ============= BANNER SECTION =============
 
@@ -216,7 +217,7 @@ fun BusinessInfoSection(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = String.format("%.1f", rating),
+                            text = formatDouble("%.1f", rating),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = Color.Black
                         )
