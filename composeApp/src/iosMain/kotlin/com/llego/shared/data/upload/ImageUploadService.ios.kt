@@ -39,6 +39,21 @@ class IosImageUploadService : ImageUploadService {
     private val baseUrl = BackendConfig.REST_URL
 
     /**
+     * Detecta el tipo MIME basado en la extensión del archivo
+     */
+    private fun getMimeType(filename: String): String {
+        return when (filename.substringAfterLast('.', "").lowercase()) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            "gif" -> "image/gif"
+            "webp" -> "image/webp"
+            "bmp" -> "image/bmp"
+            "heic" -> "image/heic"
+            else -> "image/jpeg" // Default a JPEG
+        }
+    }
+
+    /**
      * Convierte NSData a ByteArray de forma segura
      */
     @OptIn(ExperimentalForeignApi::class, UnsafeNumber::class)
@@ -56,6 +71,58 @@ class IosImageUploadService : ImageUploadService {
     }
 
     /**
+     * Lee los bytes de un archivo, soportando tanto paths como file:// URLs
+     */
+    private fun readFileBytes(filePath: String): Pair<ByteArray, String>? {
+        return try {
+            println("🔍 IosImageUploadService: Reading file from path: $filePath")
+
+            // Crear NSURL desde el path (maneja tanto file:// URLs como paths absolutos)
+            val fileUrl = if (filePath.startsWith("file://")) {
+                println("📱 IosImageUploadService: Processing file:// URL")
+                NSURL(string = filePath)
+            } else {
+                println("💾 IosImageUploadService: Processing file path")
+                NSURL.fileURLWithPath(filePath)
+            }
+
+            if (fileUrl == null) {
+                println("❌ IosImageUploadService: Failed to create NSURL from path")
+                return null
+            }
+
+            println("📂 IosImageUploadService: Reading file from URL: ${fileUrl.absoluteString}")
+
+            // Leer los datos del archivo
+            val fileData = NSData.dataWithContentsOfURL(fileUrl)
+            if (fileData == null) {
+                println("❌ IosImageUploadService: Failed to read file data - file may not exist or permission denied")
+                return null
+            }
+
+            // Convertir NSData a ByteArray
+            val bytes = fileData.toByteArray()
+            println("✅ IosImageUploadService: Successfully read ${bytes.size} bytes (${bytes.size / 1024} KB)")
+
+            // Validar que los bytes no estén vacíos
+            if (bytes.isEmpty()) {
+                println("❌ IosImageUploadService: Read 0 bytes from file")
+                return null
+            }
+
+            // Obtener el nombre del archivo
+            val filename = fileUrl.lastPathComponent ?: "image_${NSDate().timeIntervalSince1970}.jpg"
+            println("📝 IosImageUploadService: Filename extracted: $filename")
+
+            Pair(bytes, filename)
+        } catch (e: Exception) {
+            println("❌ IosImageUploadService: EXCEPTION reading file - ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
      * Método genérico para subir imágenes a cualquier endpoint
      */
     private suspend fun uploadImage(
@@ -64,39 +131,54 @@ class IosImageUploadService : ImageUploadService {
         token: String?
     ): ImageUploadResult {
         return try {
-            val fileUrl = NSURL.fileURLWithPath(filePath)
-            val fileData = NSData.dataWithContentsOfURL(fileUrl)
+            println("🚀 IosImageUploadService: Starting upload to $endpoint")
+            println("📍 IosImageUploadService: File path: $filePath")
+            println("🔑 IosImageUploadService: Token present: ${token != null}")
 
-            if (fileData == null) {
-                return ImageUploadResult.Error("El archivo no existe: $filePath")
+            val readResult = readFileBytes(filePath)
+            if (readResult == null) {
+                val errorMsg = "No se pudo acceder a la imagen. Verifica los permisos de la app."
+                println("❌ IosImageUploadService: Failed to read file bytes")
+                return ImageUploadResult.Error(errorMsg)
             }
 
-            // Convertir NSData a ByteArray
-            val bytes = fileData.toByteArray()
-            val fileName = fileUrl.lastPathComponent ?: "image.jpg"
+            val (bytes, filename) = readResult
+            val mimeType = getMimeType(filename)
+            println("📤 IosImageUploadService: Uploading $filename (${bytes.size} bytes / ${bytes.size / 1024} KB, $mimeType) to $baseUrl$endpoint")
 
+            // Usar submitFormWithBinaryData - Ktor maneja el Content-Type multipart/form-data automáticamente
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl$endpoint",
                 formData = formData {
+                    // FastAPI espera: name="image", filename presente, Content-Type del archivo
                     append("image", bytes, Headers.build {
-                        append(HttpHeaders.ContentType, "image/*")
-                        append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                        append(HttpHeaders.ContentType, mimeType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                     })
                 }
             ) {
                 if (token != null) {
                     header("Authorization", "Bearer $token")
                 }
+                // NO establecer Content-Type manualmente - Ktor lo genera con boundary
             }
+
+            println("📡 IosImageUploadService: Response status: ${response.status.value} ${response.status.description}")
 
             if (response.status.isSuccess()) {
                 val uploadResponse: ImageUploadResponse = response.body()
+                println("✅ IosImageUploadService: Upload success - ${uploadResponse.imagePath}")
                 ImageUploadResult.Success(uploadResponse)
             } else {
-                ImageUploadResult.Error("Error ${response.status.value}: ${response.status.description}")
+                val errorMsg = "Error del servidor (${response.status.value}): ${response.status.description}"
+                println("❌ IosImageUploadService: Upload failed - $errorMsg")
+                ImageUploadResult.Error(errorMsg)
             }
         } catch (e: Exception) {
-            ImageUploadResult.Error("Error al subir imagen: ${e.message}")
+            val errorMsg = "Error al subir imagen: ${e.message ?: "Error desconocido"}"
+            println("❌ IosImageUploadService: EXCEPTION during upload - ${e.message}")
+            e.printStackTrace()
+            ImageUploadResult.Error(errorMsg)
         }
     }
 
