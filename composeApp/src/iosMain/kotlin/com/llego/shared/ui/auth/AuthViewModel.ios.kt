@@ -40,6 +40,9 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     /** StateFlow de la sucursal actual - observable para reactividad en UI */
     actual val currentBranch: StateFlow<Branch?> = authManager.currentBranch
 
+    /** StateFlow de sucursales del usuario */
+    actual val branches: StateFlow<List<Branch>> = authManager.branches
+
     init {
         viewModelScope.launch {
             combine(
@@ -235,4 +238,8 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     actual fun getCurrentBranchId(): String? = authManager.currentBranch.value?.id
 
     actual fun getCurrentBusinessId(): String? = authManager.currentBusiness.value?.id
+
+    actual fun setCurrentBranch(branch: Branch) {
+        authManager.setCurrentBranch(branch)
+    }
 }

@@ -167,6 +167,13 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
+     * Establece la sucursal actual
+     */
+    fun setCurrentBranch(branch: Branch) {
+        businessRepository.setCurrentBranch(branch)
+    }
+
+    /**
      * Verifica si el usuario está autenticado (sincrónico)
      */
     fun isUserAuthenticated(): Boolean {

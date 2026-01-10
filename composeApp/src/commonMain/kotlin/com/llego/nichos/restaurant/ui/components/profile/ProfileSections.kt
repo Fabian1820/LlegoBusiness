@@ -137,13 +137,13 @@ fun BannerWithLogoSection(
 fun BusinessInfoSection(
     business: Business?,
     branch: Branch?,
-    onSave: (String, String, String, String) -> Unit = { _, _, _, _ -> }
+    onSave: (name: String, type: String, description: String, tags: List<String>) -> Unit = { _, _, _, _ -> }
 ) {
     var businessName by remember(business) { mutableStateOf(business?.name ?: "") }
     var category by remember(business) { mutableStateOf(business?.type?.toBusinessType()?.name ?: "") }
     var description by remember(business) { mutableStateOf(business?.description ?: "") }
     var address by remember(branch) { mutableStateOf(branch?.address ?: "") }
-    
+
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingCategory by remember { mutableStateOf(false) }
     var isEditingDescription by remember { mutableStateOf(false) }

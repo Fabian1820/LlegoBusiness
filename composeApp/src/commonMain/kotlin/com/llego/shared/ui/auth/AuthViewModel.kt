@@ -28,9 +28,12 @@ expect class AuthViewModel() : ViewModel {
     
     /** StateFlow del negocio actual - observable para reactividad en UI */
     val currentBusiness: StateFlow<Business?>
-    
+
     /** StateFlow de la sucursal actual - observable para reactividad en UI */
     val currentBranch: StateFlow<Branch?>
+
+    /** StateFlow de sucursales del usuario */
+    val branches: StateFlow<List<Branch>>
 
     fun updateEmail(newEmail: String)
     fun updatePassword(newPassword: String)
@@ -49,4 +52,7 @@ expect class AuthViewModel() : ViewModel {
 
     /** Obtiene el ID del negocio actual */
     fun getCurrentBusinessId(): String?
+
+    /** Establece la sucursal actual */
+    fun setCurrentBranch(branch: Branch)
 }

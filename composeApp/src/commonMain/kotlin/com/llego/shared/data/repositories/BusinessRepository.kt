@@ -521,6 +521,13 @@ class BusinessRepository(
     // ============= HELPER METHODS =============
 
     /**
+     * Establece la sucursal actual
+     */
+    fun setCurrentBranch(branch: Branch) {
+        _currentBranch.value = branch
+    }
+
+    /**
      * Limpia todos los datos del repository
      */
     fun clear() {

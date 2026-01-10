@@ -58,6 +58,13 @@ actual class AuthViewModel : ViewModel {
             return authManager.currentBranch
         }
 
+    /** StateFlow de sucursales del usuario */
+    actual val branches: StateFlow<List<Branch>>
+        get() {
+            ensureInitialized()
+            return authManager.branches
+        }
+
     actual constructor() : super() {
         // Constructor sin parámetros requerido por expect/actual
         // Inicialización lazy con TokenManager mock
@@ -380,5 +387,13 @@ actual class AuthViewModel : ViewModel {
     actual fun getCurrentBusinessId(): String? {
         ensureInitialized()
         return authManager.currentBusiness.value?.id
+    }
+
+    /**
+     * Establece la sucursal actual
+     */
+    actual fun setCurrentBranch(branch: Branch) {
+        ensureInitialized()
+        authManager.setCurrentBranch(branch)
     }
 }
