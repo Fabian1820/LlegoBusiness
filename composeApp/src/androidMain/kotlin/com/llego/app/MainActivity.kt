@@ -103,14 +103,46 @@ class MainActivity : ComponentActivity() {
     /**
      * Procesa el deep link de Apple Auth callback
      * llegobusiness://auth/callback?token=xxx o llegobusiness://auth/callback?error=xxx
+     * 
+     * El token que llega es el JWT final del backend, no un identity token de Apple.
+     * Por eso usamos authenticateWithToken() en lugar de loginWithApple()
      */
     private fun handleAppleAuthDeepLink(intent: Intent?) {
         val uri = intent?.data
         Log.d(TAG, "handleAppleAuthDeepLink: uri = $uri")
         
-        if (uri != null) {
-            val handled = AppleSignInHelper.handleDeepLink(uri)
-            Log.d(TAG, "handleAppleAuthDeepLink: handled = $handled")
+        if (uri == null) return
+        
+        // Verificar que es nuestro deep link
+        if (uri.scheme != "llegobusiness" || uri.host != "auth") {
+            Log.d(TAG, "handleAppleAuthDeepLink: no es un deep link de Apple Auth")
+            return
+        }
+        
+        val token = uri.getQueryParameter("token")
+        val error = uri.getQueryParameter("error")
+        val message = uri.getQueryParameter("message")
+        
+        Log.d(TAG, "handleAppleAuthDeepLink: token = ${token?.take(20)}..., error = $error")
+        
+        when {
+            !token.isNullOrEmpty() -> {
+                Log.d(TAG, "handleAppleAuthDeepLink: token recibido, autenticando...")
+                // El token es el JWT del backend, usamos authenticateWithToken
+                authViewModel.authenticateWithToken(token)
+                // Notificar al AppleSignInHelper que el flujo terminó exitosamente
+                AppleSignInHelper.notifySuccess()
+            }
+            !error.isNullOrEmpty() -> {
+                val errorMessage = message ?: error
+                Log.e(TAG, "handleAppleAuthDeepLink: error recibido: $errorMessage")
+                // Notificar al AppleSignInHelper del error
+                AppleSignInHelper.notifyError(errorMessage)
+            }
+            else -> {
+                Log.e(TAG, "handleAppleAuthDeepLink: deep link sin token ni error")
+                AppleSignInHelper.notifyError("Respuesta inválida de Apple Sign-In")
+            }
         }
     }
 }

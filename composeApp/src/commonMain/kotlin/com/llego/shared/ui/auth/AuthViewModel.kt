@@ -38,6 +38,13 @@ expect class AuthViewModel() : ViewModel {
     fun login()
     fun loginWithGoogle(idToken: String, nonce: String? = null)
     fun loginWithApple(identityToken: String, nonce: String? = null)
+    
+    /**
+     * Autenticación directa con JWT del backend (para Android Apple Sign-In OAuth flow)
+     * El token ya viene validado del backend, solo se guarda y se obtiene el usuario
+     */
+    fun authenticateWithToken(token: String)
+    
     fun logout()
     fun clearLoginError()
     fun getCurrentUser(): User?

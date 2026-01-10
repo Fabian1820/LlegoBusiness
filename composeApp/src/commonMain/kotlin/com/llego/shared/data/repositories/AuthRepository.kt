@@ -187,7 +187,7 @@ class AuthRepository(
     }
 
     /**
-     * Login con Apple usando Identity Token
+     * Login con Apple usando Identity Token (para iOS)
      */
     suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
         return try {
@@ -255,6 +255,48 @@ class AuthRepository(
         } catch (e: Exception) {
             println("AuthRepository.loginWithApple: Exception - ${e.message}")
             e.printStackTrace()
+            AuthResult.Error(e.message ?: "Error desconocido")
+        }
+    }
+
+    /**
+     * Autenticación directa con JWT del backend (para Android Apple Sign-In)
+     * El JWT ya viene validado del backend a través del flujo OAuth web,
+     * solo necesitamos guardarlo y obtener los datos del usuario
+     */
+    suspend fun authenticateWithToken(token: String): AuthResult<User> {
+        return try {
+            println("AuthRepository.authenticateWithToken: guardando token length=${token.length}")
+            
+            // Guardar el token directamente
+            tokenManager.saveToken(token)
+            
+            // Obtener datos del usuario usando el token
+            println("AuthRepository.authenticateWithToken: obteniendo datos del usuario...")
+            val userResult = getCurrentUser()
+            
+            when (userResult) {
+                is AuthResult.Success -> {
+                    println("AuthRepository.authenticateWithToken: éxito - usuario=${userResult.data.email}")
+                    userResult
+                }
+                is AuthResult.Error -> {
+                    println("AuthRepository.authenticateWithToken: error obteniendo usuario - ${userResult.message}")
+                    // Si falla, limpiar el token
+                    tokenManager.clearToken()
+                    _isAuthenticated.value = false
+                    userResult
+                }
+                else -> {
+                    println("AuthRepository.authenticateWithToken: resultado inesperado")
+                    AuthResult.Error("Error inesperado")
+                }
+            }
+        } catch (e: Exception) {
+            println("AuthRepository.authenticateWithToken: Exception - ${e.message}")
+            e.printStackTrace()
+            tokenManager.clearToken()
+            _isAuthenticated.value = false
             AuthResult.Error(e.message ?: "Error desconocido")
         }
     }

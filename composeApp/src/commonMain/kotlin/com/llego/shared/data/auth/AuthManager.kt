@@ -47,10 +47,18 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
-     * Login con Apple
+     * Login con Apple usando Identity Token (para iOS)
      */
     suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
         return authRepository.loginWithApple(identityToken, nonce)
+    }
+
+    /**
+     * Autenticación directa con JWT del backend (para Android Apple Sign-In)
+     * El JWT ya viene validado del backend, solo necesitamos guardarlo y obtener el usuario
+     */
+    suspend fun authenticateWithToken(token: String): AuthResult<User> {
+        return authRepository.authenticateWithToken(token)
     }
 
     /**

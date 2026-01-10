@@ -39,7 +39,10 @@ data class AppleStartResponse(
  * 3. Usuario se autentica en Apple
  * 4. Apple redirige al backend (POST /apple/callback)
  * 5. Backend valida y redirige a: llegobusiness://auth/callback?token=JWT
- * 6. Android captura el deep link → MainActivity procesa el token
+ * 6. MainActivity captura el deep link y llama a AuthViewModel.authenticateWithToken()
+ * 
+ * NOTA: El token que llega en el deep link es el JWT del backend, NO un identity token de Apple.
+ * Por eso MainActivity usa authenticateWithToken() en lugar de loginWithApple().
  */
 actual class AppleSignInHelper(
     private val activity: ComponentActivity
@@ -52,7 +55,9 @@ actual class AppleSignInHelper(
     ) {
         Log.d(TAG, "signIn: iniciando flujo Apple Sign-In para Android")
         
-        // Guardar callbacks en el companion object para que MainActivity pueda acceder
+        // Guardar callbacks en el companion object para notificaciones
+        // NOTA: onSuccess no se usa directamente porque MainActivity maneja el token
+        // pero lo guardamos para mantener compatibilidad con la interfaz
         pendingOnSuccess = onSuccess
         pendingOnError = onError
         
@@ -113,66 +118,36 @@ actual class AppleSignInHelper(
     }
     
     companion object {
-        // Callbacks pendientes para cuando llegue el deep link
-        internal var pendingOnSuccess: ((String, String?) -> Unit)? = null
-        internal var pendingOnError: ((String) -> Unit)? = null
-        internal var pendingState: String? = null
+        // Callbacks pendientes para notificaciones de UI
+        private var pendingOnSuccess: ((String, String?) -> Unit)? = null
+        private var pendingOnError: ((String) -> Unit)? = null
+        private var pendingState: String? = null
         
         /**
-         * Procesa el deep link recibido desde Apple Auth callback
-         * Llamado desde MainActivity cuando se recibe el deep link
-         * 
-         * @param uri El URI del deep link (llegobusiness://auth/callback?token=xxx)
-         * @return true si el deep link fue procesado, false si no era un callback de Apple
+         * Notifica que el flujo de Apple Sign-In terminó exitosamente
+         * Llamado desde MainActivity después de authenticateWithToken()
          */
-        fun handleDeepLink(uri: Uri?): Boolean {
-            if (uri == null) {
-                Log.d(TAG, "handleDeepLink: uri es null")
-                return false
-            }
-            
-            Log.d(TAG, "handleDeepLink: uri = $uri")
-            Log.d(TAG, "handleDeepLink: scheme = ${uri.scheme}, host = ${uri.host}, path = ${uri.path}")
-            
-            // Verificar que es nuestro deep link
-            if (uri.scheme != "llegobusiness" || uri.host != "auth") {
-                Log.d(TAG, "handleDeepLink: no es un deep link de Apple Auth")
-                return false
-            }
-            
-            val token = uri.getQueryParameter("token")
-            val error = uri.getQueryParameter("error")
-            val message = uri.getQueryParameter("message")
-            
-            Log.d(TAG, "handleDeepLink: token = ${token?.take(20)}..., error = $error, message = $message")
-            
-            when {
-                !token.isNullOrEmpty() -> {
-                    Log.d(TAG, "handleDeepLink: token recibido, llamando onSuccess")
-                    pendingOnSuccess?.invoke(token, null)
-                    clearCallbacks()
-                    return true
-                }
-                !error.isNullOrEmpty() -> {
-                    val errorMessage = message ?: error
-                    Log.e(TAG, "handleDeepLink: error recibido: $errorMessage")
-                    pendingOnError?.invoke(errorMessage)
-                    clearCallbacks()
-                    return true
-                }
-                else -> {
-                    Log.e(TAG, "handleDeepLink: deep link sin token ni error")
-                    pendingOnError?.invoke("Respuesta inválida de Apple Sign-In")
-                    clearCallbacks()
-                    return true
-                }
-            }
+        fun notifySuccess() {
+            Log.d(TAG, "notifySuccess: flujo completado exitosamente")
+            // No llamamos onSuccess porque MainActivity ya manejó el token
+            // Solo limpiamos los callbacks
+            clearCallbacks()
+        }
+        
+        /**
+         * Notifica que hubo un error en el flujo de Apple Sign-In
+         * Llamado desde MainActivity cuando el deep link tiene error
+         */
+        fun notifyError(errorMessage: String) {
+            Log.e(TAG, "notifyError: $errorMessage")
+            pendingOnError?.invoke(errorMessage)
+            clearCallbacks()
         }
         
         /**
          * Limpia los callbacks pendientes
          */
-        internal fun clearCallbacks() {
+        private fun clearCallbacks() {
             pendingOnSuccess = null
             pendingOnError = null
             pendingState = null

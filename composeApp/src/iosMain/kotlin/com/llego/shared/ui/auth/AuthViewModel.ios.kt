@@ -193,6 +193,40 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         }
     }
 
+    /**
+     * Autenticación directa con JWT del backend (para Android Apple Sign-In OAuth flow)
+     * En iOS no se usa este método, Apple Sign-In usa el SDK nativo
+     */
+    actual fun authenticateWithToken(token: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            _loginError.value = null
+
+            val result = authManager.authenticateWithToken(token)
+
+            when (result) {
+                is AuthResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isAuthenticated = true,
+                        user = result.data,
+                        error = null
+                    )
+                    loadBusinessData()
+                    clearLoginForm()
+                }
+                is AuthResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                    _loginError.value = result.message
+                }
+                else -> {}
+            }
+        }
+    }
+
     actual fun logout() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
