@@ -51,6 +51,7 @@ fun RestaurantProfileScreen(
     val currentUser = authUiState.user
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
+    val branches by authViewModel.branches.collectAsState()
 
     // Mostrar mensaje de guardado
     LaunchedEffect(saveMessage) {
@@ -196,7 +197,6 @@ fun RestaurantProfileScreen(
             }
 
             // Gestión de Sucursales (solo si tiene múltiples)
-            val branches = authViewModel.branches.collectAsState().value
             if (branches.size > 1) {
                 item {
                     Card(

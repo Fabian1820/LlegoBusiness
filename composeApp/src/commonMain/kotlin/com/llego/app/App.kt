@@ -20,6 +20,7 @@ import com.llego.nichos.common.ui.screens.BusinessHomeScreen
 import com.llego.nichos.common.ui.screens.AddProductScreen
 import com.llego.nichos.common.ui.screens.ProductDetailScreen
 import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
+import com.llego.nichos.restaurant.ui.screens.BranchesManagementScreen
 import com.llego.nichos.restaurant.ui.screens.StatisticsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatsScreen
 import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
@@ -35,6 +36,8 @@ import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.data.model.hasBusiness
+import com.llego.shared.data.repositories.BusinessRepository
+import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -52,9 +55,13 @@ fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
         val authViewModel = viewModels.auth
 
+        // Crear BusinessRepository para pantallas que lo necesitan
+        val businessRepository = remember { BusinessRepository(tokenManager = TokenManager()) }
+
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var showProfile by remember { mutableStateOf(false) }
+        var showBranchesManagement by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
         var showChats by remember { mutableStateOf(false) }
         var showChatDetail by remember { mutableStateOf(false) }
@@ -317,10 +324,19 @@ fun App(viewModels: AppViewModels) {
                             onNavigateBack = { showStatistics = false }
                         )
                     }
+                    showBranchesManagement -> {
+                        BranchesManagementScreen(
+                            authViewModel = authViewModel,
+                            businessRepository = businessRepository,
+                            onNavigateBack = { showBranchesManagement = false }
+                        )
+                    }
                     showProfile -> {
                         RestaurantProfileScreen(
                             authViewModel = authViewModel,
-                            onNavigateBack = { showProfile = false }
+                            businessRepository = businessRepository,
+                            onNavigateBack = { showProfile = false },
+                            onNavigateToBranches = { showBranchesManagement = true }
                         )
                     }
                     else -> {
