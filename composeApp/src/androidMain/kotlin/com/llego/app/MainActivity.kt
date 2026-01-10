@@ -1,6 +1,8 @@
 package com.llego.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,11 +16,14 @@ import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.RegisterBusinessViewModel
+
+private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
     private val tokenManager by lazy { TokenManager() }
@@ -70,6 +75,9 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar GraphQLClient
         GraphQLClient.initialize(tokenManager)
+        
+        // Manejar deep link inicial (si la app fue abierta desde un deep link)
+        handleAppleAuthDeepLink(intent)
 
         setContent {
             App(
@@ -84,4 +92,26 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Log.d(TAG, "onNewIntent: recibido nuevo intent")
+        // Manejar deep link cuando la app ya está abierta
+        handleAppleAuthDeepLink(intent)
+    }
+    
+    /**
+     * Procesa el deep link de Apple Auth callback
+     * llegobusiness://auth/callback?token=xxx o llegobusiness://auth/callback?error=xxx
+     */
+    private fun handleAppleAuthDeepLink(intent: Intent?) {
+        val uri = intent?.data
+        Log.d(TAG, "handleAppleAuthDeepLink: uri = $uri")
+        
+        if (uri != null) {
+            val handled = AppleSignInHelper.handleDeepLink(uri)
+            Log.d(TAG, "handleAppleAuthDeepLink: handled = $handled")
+        }
+    }
 }
+
