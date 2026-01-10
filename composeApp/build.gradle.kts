@@ -59,6 +59,8 @@ kotlin {
             implementation(libs.play.services.auth)
             // Encrypted SharedPreferences for secure token storage
             implementation(libs.androidx.security.crypto)
+            // Custom Tabs for Apple Sign-In OAuth flow
+            implementation(libs.androidx.browser)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
