@@ -17,6 +17,12 @@ fun GraphQLProduct.toLocalProduct(): LocalProduct {
         category = this.categoryId ?: "general", // Mapear categoryId a category string
         isAvailable = this.availability,
 
+        // Campos del backend GraphQL
+        branchId = this.branchId,
+        currency = this.currency,
+        weight = this.weight,
+        categoryId = this.categoryId,
+
         // Parsear el weight para determinar unidad si es posible
         unit = parseProductUnit(this.weight),
 

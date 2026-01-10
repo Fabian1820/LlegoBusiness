@@ -1,56 +1,76 @@
 # API de Productos
 
-## Flujo de Imágenes
-
-Para crear o actualizar un producto con imagen:
-
-1. **Subir imagen** via `POST /upload/product/image`
-2. **Recibir** `image_path` en la respuesta
-3. **Usar** `image_path` en la mutation GraphQL
-
-> Las imágenes de productos preservan transparencia (PNG, WebP). No se convierten a JPG.
+Documentacion para integracion frontend multiplataforma.
 
 ---
 
-## Endpoint REST - Upload de Imagen
+## Tipos GraphQL
 
-### Upload Imagen de Producto
+### ProductType
+```typescript
+interface Product {
+  id: string;
+  branchId: string;
+  name: string;
+  description: string;
+  price: float;
+  currency: string;        // Default: "USD"
+  weight: string;          // Peso/porcion ej: "250g"
+  image: string;           // Path en S3
+  availability: boolean;   // Default: true
+  categoryId?: string;     // ID de ProductCategory
+  createdAt: DateTime;
+  
+  // Campos computados (resolvers)
+  imageUrl: string;        // Presigned URL
+  category?: ProductCategory;
+  branch?: Branch;
+  business?: Business;     // Via branch
+}
 ```
-POST /upload/product/image
-Content-Type: multipart/form-data
-Authorization: Bearer {jwt}
+
+### ScoredProductType (para queries paginadas)
+```typescript
+interface ScoredProduct extends Product {
+  score: float;            // Score de relevancia (0-1)
+  distanceM?: float;       // Distancia en metros
+  distanceKm?: float;      // Distancia en km (computed)
+}
 ```
 
-**Form Data:**
-- `image`: Archivo de imagen (PNG, JPG, WebP, GIF)
-
-**Response:**
-```json
-{
-  "image_path": "products/6774abc123.png",
-  "image_url": "https://s3.../products/6774abc123.png?X-Amz-..."
+### ProductCategoryType
+```typescript
+interface ProductCategory {
+  id: string;
+  branchType: string;      // "restaurante" | "dulceria" | "tienda"
+  name: string;            // Nombre de la categoria
+  iconIos: string;         // SF Symbol name para iOS
+  iconWeb: string;         // Material icon para web
+  iconAndroid: string;     // Material icon para Android
+  createdAt: DateTime;
 }
 ```
 
 ---
 
-## Tipo GraphQL
+## Endpoint REST - Upload de Imagen
 
-### ProductType
-```graphql
-type ProductType {
-  id: String!
-  branchId: String!
-  name: String!
-  description: String!
-  price: Float!
-  currency: String!
-  weight: String
-  image: String
-  availability: Boolean!
-  categoryId: String
-  createdAt: DateTime!
-  imageUrl: String       # Presigned URL
+```bash
+POST /upload/product/image
+Authorization: Bearer {jwt}
+Content-Type: multipart/form-data
+
+# Form: image=@hamburguesa.png
+# Max: 10MB
+# Formatos: JPEG, PNG, WebP, GIF
+# Preserva transparencia (PNG, WebP)
+```
+
+**Response:**
+```json
+{
+  "image_path": "products/6774abc123.png",
+  "image_url": "https://s3.../products/6774abc123.png?..."
 }
 ```
 
@@ -59,27 +79,27 @@ type ProductType {
 ## Mutations
 
 ### Crear Producto
-
-Se debe proporcionar `branchId` o `businessId` (al menos uno). Si solo se proporciona `businessId`, el producto se asignará a la primera sucursal de ese negocio.
-
 ```graphql
 mutation CreateProduct($input: CreateProductInput!, $jwt: String) {
   createProduct(input: $input, jwt: $jwt) {
     id
     name
     price
+    currency
+    weight
+    availability
     imageUrl
   }
 }
 ```
 
-**Variables (con branchId):**
+**Con branchId (recomendado):**
 ```json
 {
   "jwt": "eyJhbG...",
   "input": {
     "branchId": "6774branch123",
-    "name": "Hamburguesa Clásica",
+    "name": "Hamburguesa Clasica",
     "description": "Hamburguesa con queso, lechuga y tomate",
     "price": 15.99,
     "image": "products/6774abc123.png",
@@ -90,51 +110,36 @@ mutation CreateProduct($input: CreateProductInput!, $jwt: String) {
 }
 ```
 
-**Variables (con businessId):**
+**Con businessId (asigna a primera sucursal):**
 ```json
 {
   "jwt": "eyJhbG...",
   "input": {
     "businessId": "6774business456",
-    "name": "Hamburguesa Clásica",
-    "description": "Hamburguesa con queso, lechuga y tomate",
+    "name": "Hamburguesa Clasica",
+    "description": "Hamburguesa con queso",
     "price": 15.99,
     "image": "products/6774abc123.png"
   }
 }
 ```
 
-**Response:**
-```json
-{
-  "data": {
-    "createProduct": {
-      "id": "6774product789",
-      "name": "Hamburguesa Clásica",
-      "price": 15.99,
-      "imageUrl": "https://s3.../products/6774abc123.png?..."
-    }
-  }
-}
-```
-
----
+> Se requiere `branchId` o `businessId`. Si solo `businessId`, se asigna a la primera sucursal.
 
 ### Actualizar Producto
-
 ```graphql
 mutation UpdateProduct($productId: String!, $input: UpdateProductInput!, $jwt: String) {
   updateProduct(productId: $productId, input: $input, jwt: $jwt) {
     id
     name
     price
+    currency
+    weight
     availability
     imageUrl
   }
 }
 ```
-
-**Variables (actualizar datos):**
 ```json
 {
   "jwt": "eyJhbG...",
@@ -142,89 +147,96 @@ mutation UpdateProduct($productId: String!, $input: UpdateProductInput!, $jwt: S
   "input": {
     "name": "Hamburguesa Premium",
     "price": 18.99,
+    "weight": "300g",
     "availability": true
   }
 }
 ```
 
-**Variables (actualizar imagen):**
-```json
-{
-  "jwt": "eyJhbG...",
-  "productId": "6774product789",
-  "input": {
-    "image": "products/new_image_456.png"
-  }
-}
-```
-
-> Al actualizar la imagen, la anterior se elimina automáticamente.
-
----
+> Al actualizar imagen, la anterior se elimina automaticamente de S3.
 
 ### Eliminar Producto
-
 ```graphql
 mutation DeleteProduct($productId: String!, $jwt: String) {
   deleteProduct(productId: $productId, jwt: $jwt)
 }
 ```
-
-**Variables:**
-```json
-{
-  "jwt": "eyJhbG...",
-  "productId": "6774product789"
-}
-```
-
-**Response:**
-```json
-{
-  "data": {
-    "deleteProduct": true
-  }
-}
-```
+Response: `true` si exitoso. La imagen se elimina de S3.
 
 ---
 
 ## Queries
 
-### Obtener Productos
-
+### Productos (Paginado con Scoring)
 ```graphql
-query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolean, $jwt: String) {
-  products(branchId: $branchId, categoryId: $categoryId, availableOnly: $availableOnly, jwt: $jwt) {
-    id
-    name
-    description
-    price
-    currency
-    availability
-    imageUrl
+query GetProducts(
+  $first: Int,
+  $after: String,
+  $ids: [String!],
+  $branchId: String,
+  $categoryId: String,
+  $availableOnly: Boolean,
+  $branchTipo: BranchTipo,
+  $radiusKm: Float,
+  $jwt: String
+) {
+  products(
+    first: $first,
+    after: $after,
+    ids: $ids,
+    branchId: $branchId,
+    categoryId: $categoryId,
+    availableOnly: $availableOnly,
+    branchTipo: $branchTipo,
+    radiusKm: $radiusKm,
+    jwt: $jwt
+  ) {
+    edges {
+      node {
+        id
+        name
+        description
+        price
+        currency
+        weight
+        availability
+        imageUrl
+        score
+        distanceKm
+        category { id name iconIos iconAndroid }
+        branch { id name address }
+        business { id name }
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+      totalCount
+    }
   }
 }
 ```
 
-**Variables (por sucursal):**
-```json
-{
-  "branchId": "6774branch123"
-}
-```
+**Filtros disponibles:**
 
-**Variables (solo disponibles):**
-```json
-{
-  "availableOnly": true
-}
-```
+| Filtro | Tipo | Descripcion |
+|--------|------|-------------|
+| first | Int | Cantidad de items (max 50) |
+| after | String | Cursor para paginacion |
+| ids | [String] | IDs especificos de productos |
+| branchId | String | Filtrar por sucursal |
+| categoryId | String | Filtrar por categoria |
+| availableOnly | Boolean | Solo productos disponibles |
+| branchTipo | BranchTipo | Filtrar por tipo de sucursal |
+| radiusKm | Float | Radio maximo en km |
 
----
+> `branchId` tiene prioridad sobre `branchTipo`. Sin `first` retorna todos.
 
-### Obtener Producto por ID
 
+### Producto por ID
 ```graphql
 query GetProduct($id: String!, $jwt: String) {
   product(id: $id, jwt: $jwt) {
@@ -238,44 +250,203 @@ query GetProduct($id: String!, $jwt: String) {
     categoryId
     imageUrl
     createdAt
+    category { id name branchType iconIos iconWeb iconAndroid }
+    branch { id name address phone }
+    business { id name avatarUrl }
   }
 }
 ```
 
-**Variables:**
+### Buscar Productos (Vector Search)
+```graphql
+query SearchProducts(
+  $query: String!,
+  $first: Int,
+  $after: String,
+  $useVectorSearch: Boolean,
+  $branchTipo: BranchTipo,
+  $radiusKm: Float,
+  $jwt: String
+) {
+  searchProducts(
+    query: $query,
+    first: $first,
+    after: $after,
+    useVectorSearch: $useVectorSearch,
+    branchTipo: $branchTipo,
+    radiusKm: $radiusKm,
+    jwt: $jwt
+  ) {
+    edges {
+      node {
+        id
+        name
+        price
+        currency
+        imageUrl
+        score
+        distanceKm
+      }
+      cursor
+    }
+    pageInfo { hasNextPage endCursor totalCount }
+  }
+}
+```
 ```json
 {
-  "id": "6774product789"
+  "query": "hamburguesa con queso",
+  "first": 10,
+  "useVectorSearch": true,
+  "branchTipo": "RESTAURANTE"
 }
 ```
 
-**Response:**
+### Categorias de Productos
+```graphql
+query GetProductCategories($branchType: String) {
+  productCategories(branchType: $branchType) {
+    id
+    branchType
+    name
+    iconIos
+    iconWeb
+    iconAndroid
+  }
+}
+```
 ```json
-{
-  "data": {
-    "product": {
-      "id": "6774product789",
-      "name": "Hamburguesa Clásica",
-      "description": "Hamburguesa con queso, lechuga y tomate",
-      "price": 15.99,
-      "currency": "USD",
-      "weight": "250g",
-      "availability": true,
-      "categoryId": "cat_burgers",
-      "imageUrl": "https://s3.../products/6774abc123.png?...",
-      "createdAt": "2024-12-29T10:30:00"
-    }
+{ "branchType": "restaurante" }
+```
+
+### Categoria por ID
+```graphql
+query GetProductCategory($id: String!) {
+  productCategory(id: $id) {
+    id
+    branchType
+    name
+    iconIos
+    iconWeb
+    iconAndroid
   }
 }
 ```
 
 ---
 
-### Buscar Productos
+## Paginacion Cursor-Based (Relay)
 
 ```graphql
-query SearchProducts($query: String!, $limit: Int, $useVectorSearch: Boolean, $jwt: String) {
-  searchProducts(query: $query, limit: $limit, useVectorSearch: $useVectorSearch, jwt: $jwt) {
+# Primera pagina
+query { 
+  products(first: 10) { 
+    edges { node { id name } cursor } 
+    pageInfo { hasNextPage endCursor } 
+  } 
+}
+
+# Siguiente pagina
+query { 
+  products(first: 10, after: "cursor_anterior") { 
+    edges { node { id name } cursor } 
+    pageInfo { hasNextPage endCursor } 
+  } 
+}
+```
+
+**PageInfo:**
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| hasNextPage | Boolean | Hay mas resultados |
+| hasPreviousPage | Boolean | Hay resultados anteriores |
+| startCursor | String | Cursor del primer elemento |
+| endCursor | String | Cursor del ultimo elemento |
+| totalCount | Int | Total de resultados |
+
+---
+
+## Inputs Reference
+
+### CreateProductInput
+| Campo | Tipo | Requerido | Default |
+|-------|------|-----------|---------|
+| name | String | Si | - |
+| description | String | Si | - |
+| price | Float | Si | - |
+| image | String | Si | - |
+| branchId | String | No* | - |
+| businessId | String | No* | - |
+| currency | String | No | "USD" |
+| weight | String | No | "" |
+| categoryId | String | No | null |
+
+> *Se requiere `branchId` o `businessId`.
+
+### UpdateProductInput
+| Campo | Tipo | Requerido |
+|-------|------|-----------|
+| name | String | No |
+| description | String | No |
+| price | Float | No |
+| currency | String | No |
+| weight | String | No |
+| availability | Boolean | No |
+| categoryId | String | No |
+| image | String | No |
+
+---
+
+## Scoring y Cercania
+
+Cuando el usuario tiene ubicacion actualizada:
+
+1. Productos se ordenan por `score` (relevancia + cercania)
+2. Se incluye `distanceM` (metros) y `distanceKm` (kilometros)
+3. Se puede filtrar por `radiusKm`
+
+**Activar scoring:**
+```graphql
+mutation {
+  updateLocation(input: { longitude: -77.0428, latitude: -12.0464 }, jwt: "...")
+}
+```
+
+---
+
+## Permisos
+
+Para crear/editar/eliminar productos:
+- Usuario debe ser `ownerId` del negocio, O
+- Usuario debe estar en `managerIds` de la sucursal
+
+---
+
+## Ejemplo Completo
+
+### 1. Subir Imagen
+```bash
+curl -X POST "/upload/product/image" \
+  -H "Authorization: Bearer {jwt}" \
+  -F "image=@hamburguesa.png"
+```
+
+### 2. Crear Producto
+```graphql
+mutation {
+  createProduct(
+    input: {
+      branchId: "6774branch123"
+      name: "Hamburguesa Clasica"
+      description: "Deliciosa hamburguesa con queso"
+      price: 15.99
+      currency: "USD"
+      weight: "250g"
+      image: "products/6774abc123.png"
+      categoryId: "cat_hamburguesas"
+    }
+    jwt: "eyJhbG..."
+  ) {
     id
     name
     price
@@ -284,81 +455,17 @@ query SearchProducts($query: String!, $limit: Int, $useVectorSearch: Boolean, $j
 }
 ```
 
-**Variables:**
-```json
-{
-  "query": "hamburguesa",
-  "limit": 10,
-  "useVectorSearch": true
-}
-```
-
----
-
-## Inputs Reference
-
-### CreateProductInput
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| name | String | Sí | Nombre del producto |
-| description | String | Sí | Descripción |
-| price | Float | Sí | Precio |
-| image | String | Sí | Path de imagen (del upload) |
-| branchId | String | No* | ID de la sucursal |
-| businessId | String | No* | ID del negocio |
-| currency | String | No | Moneda (default: "USD") |
-| weight | String | No | Peso/porción |
-| categoryId | String | No | ID de categoría |
-
-> *Se requiere al menos uno de: `branchId` o `businessId`. Si solo se proporciona `businessId`, el producto se asigna a la primera sucursal del negocio.
-
-### UpdateProductInput
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| name | String | No | Nuevo nombre |
-| description | String | No | Nueva descripción |
-| price | Float | No | Nuevo precio |
-| currency | String | No | Nueva moneda |
-| weight | String | No | Nuevo peso |
-| availability | Boolean | No | Disponibilidad |
-| categoryId | String | No | Nueva categoría |
-| image | String | No | Nuevo path de imagen |
-
----
-
-## Ejemplo Completo: Crear Producto
-
-### Paso 1: Subir Imagen
-```bash
-curl -X POST "https://api.ejemplo.com/upload/product/image" \
-  -H "Authorization: Bearer eyJhbG..." \
-  -F "image=@hamburguesa.png"
-```
-
-**Response:**
-```json
-{
-  "image_path": "products/6774abc123.png",
-  "image_url": "https://s3.../products/6774abc123.png?..."
-}
-```
-
-### Paso 2: Crear Producto con GraphQL
+### 3. Consultar Productos
 ```graphql
-mutation {
-  createProduct(
-    input: {
-      branchId: "6774branch123"
-      name: "Hamburguesa Clásica"
-      description: "Deliciosa hamburguesa"
-      price: 15.99
-      image: "products/6774abc123.png"
+query {
+  products(branchId: "6774branch123", availableOnly: true, first: 10) {
+    edges {
+      node {
+        id name price currency weight imageUrl
+        category { name iconIos }
+      }
     }
-    jwt: "eyJhbG..."
-  ) {
-    id
-    name
-    imageUrl
+    pageInfo { hasNextPage totalCount }
   }
 }
 ```

@@ -32,9 +32,10 @@ class MarketRepository(
     private val _isLoadingProducts = MutableStateFlow(false)
     val isLoadingProducts: Flow<Boolean> = _isLoadingProducts.asStateFlow()
 
-    init {
-        loadProductsFromBackend()
-    }
+    // NO cargar automáticamente en init - esperar a que el ViewModel llame con branchId
+    // init {
+    //     loadProductsFromBackend()
+    // }
 
     suspend fun getProducts(): List<Product> {
         delay(500) // Simular red
@@ -47,49 +48,149 @@ class MarketRepository(
     }
 
     suspend fun addProduct(product: Product): Boolean {
-        delay(500)
-        val currentProducts = _products.value.toMutableList()
-        currentProducts.add(product)
-        _products.value = currentProducts
-        return true
+        return try {
+            // Llamar al backend GraphQL para crear el producto
+            val result = graphQLRepository.createProduct(
+                name = product.name,
+                description = product.description,
+                price = product.price,
+                image = product.imageUrl,  // Debe ser el path de S3, no la URL
+                branchId = product.branchId,
+                currency = product.currency ?: "USD",
+                weight = product.weight,
+                categoryId = product.categoryId
+            )
+
+            when (result) {
+                is ProductsResult.Success -> {
+                    // Convertir lista de productos GraphQL a productos locales
+                    val localProducts = result.products.toLocalProducts()
+                    val createdProduct = localProducts.firstOrNull()
+
+                    if (createdProduct != null) {
+                        val currentProducts = _products.value.toMutableList()
+                        currentProducts.add(createdProduct)
+                        _products.value = currentProducts
+                    }
+                    true
+                }
+                is ProductsResult.Error -> {
+                    println("Error creando producto (Market): ${result.message}")
+                    false
+                }
+                else -> false
+            }
+        } catch (e: Exception) {
+            println("Excepción creando producto (Market): ${e.message}")
+            false
+        }
     }
 
     suspend fun updateProduct(product: Product): Boolean {
-        delay(500)
-        val currentProducts = _products.value.toMutableList()
-        val index = currentProducts.indexOfFirst { it.id == product.id }
+        return try {
+            // Llamar al backend GraphQL para actualizar el producto
+            val result = graphQLRepository.updateProduct(
+                productId = product.id,
+                name = product.name,
+                description = product.description,
+                price = product.price,
+                currency = product.currency,
+                weight = product.weight,
+                availability = product.isAvailable,
+                categoryId = product.categoryId,
+                image = if (product.imageUrl.isNotEmpty()) product.imageUrl else null
+            )
 
-        if (index != -1) {
-            currentProducts[index] = product
-            _products.value = currentProducts
-            return true
+            when (result) {
+                is ProductsResult.Success -> {
+                    // Convertir lista de productos GraphQL a productos locales
+                    val localProducts = result.products.toLocalProducts()
+                    val updatedProduct = localProducts.firstOrNull()
+
+                    if (updatedProduct != null) {
+                        val currentProducts = _products.value.toMutableList()
+                        val index = currentProducts.indexOfFirst { it.id == product.id }
+                        if (index != -1) {
+                            currentProducts[index] = updatedProduct
+                            _products.value = currentProducts
+                        }
+                    }
+                    true
+                }
+                is ProductsResult.Error -> {
+                    println("Error actualizando producto (Market): ${result.message}")
+                    false
+                }
+                else -> false
+            }
+        } catch (e: Exception) {
+            println("Excepción actualizando producto (Market): ${e.message}")
+            false
         }
-        return false
     }
 
     suspend fun deleteProduct(productId: String): Boolean {
-        delay(500)
-        val currentProducts = _products.value.toMutableList()
-        val removed = currentProducts.removeAll { it.id == productId }
-        if (removed) {
-            _products.value = currentProducts
+        return try {
+            // Llamar al backend GraphQL para eliminar el producto
+            val result = graphQLRepository.deleteProduct(productId)
+
+            when (result) {
+                is ProductsResult.Success -> {
+                    // Remover de lista local
+                    val currentProducts = _products.value.toMutableList()
+                    val removed = currentProducts.removeAll { it.id == productId }
+                    if (removed) {
+                        _products.value = currentProducts
+                    }
+                    removed
+                }
+                is ProductsResult.Error -> {
+                    println("Error eliminando producto (Market): ${result.message}")
+                    false
+                }
+                else -> false
+            }
+        } catch (e: Exception) {
+            println("Excepción eliminando producto (Market): ${e.message}")
+            false
         }
-        return removed
     }
 
     suspend fun toggleProductAvailability(productId: String): Boolean {
-        delay(300)
-        val currentProducts = _products.value.toMutableList()
-        val index = currentProducts.indexOfFirst { it.id == productId }
+        return try {
+            // Obtener producto actual
+            val product = _products.value.find { it.id == productId } ?: return false
+            val newAvailability = !product.isAvailable
 
-        if (index != -1) {
-            currentProducts[index] = currentProducts[index].copy(
-                isAvailable = !currentProducts[index].isAvailable
+            // Actualizar en el backend
+            val result = graphQLRepository.updateProduct(
+                productId = productId,
+                availability = newAvailability
             )
-            _products.value = currentProducts
-            return true
+
+            when (result) {
+                is ProductsResult.Success -> {
+                    // Actualizar lista local
+                    val currentProducts = _products.value.toMutableList()
+                    val index = currentProducts.indexOfFirst { it.id == productId }
+                    if (index != -1) {
+                        currentProducts[index] = currentProducts[index].copy(
+                            isAvailable = newAvailability
+                        )
+                        _products.value = currentProducts
+                    }
+                    true
+                }
+                is ProductsResult.Error -> {
+                    println("Error cambiando disponibilidad (Market): ${result.message}")
+                    false
+                }
+                else -> false
+            }
+        } catch (e: Exception) {
+            println("Excepción cambiando disponibilidad (Market): ${e.message}")
+            false
         }
-        return false
     }
 
     // Convierte Product a MenuItem para compatibilidad con MenuScreen
@@ -120,13 +221,15 @@ class MarketRepository(
                     }
                     is ProductsResult.Error -> {
                         println("Error cargando productos Market: ${result.message}")
-                        _products.value = getMockProducts()
+                        // Dejar lista vacía si hay error
+                        _products.value = emptyList()
                     }
                     is ProductsResult.Loading -> {}
                 }
             } catch (e: Exception) {
                 println("Excepción Market: ${e.message}")
-                _products.value = getMockProducts()
+                // Dejar lista vacía si hay error
+                _products.value = emptyList()
             } finally {
                 _isLoadingProducts.value = false
             }

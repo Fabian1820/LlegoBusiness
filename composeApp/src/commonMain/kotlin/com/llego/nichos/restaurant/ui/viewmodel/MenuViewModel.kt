@@ -93,14 +93,27 @@ class MenuViewModel(
         initialValue = emptyList()
     )
 
-    init {
-        loadMenuItems()
-    }
+    // No cargar automáticamente en init - esperar a que se pase el branchId
+    // init {
+    //     loadMenuItems()
+    // }
 
-    fun loadMenuItems() {
+    /**
+     * Carga productos desde el backend con el branchId especificado
+     * @param branchId ID de la sucursal para filtrar productos
+     */
+    fun loadMenuItems(branchId: String? = null) {
         viewModelScope.launch {
             _uiState.value = MenuUiState.Loading
             try {
+                // Cargar productos del repository correspondiente
+                when (businessType.value) {
+                    BusinessType.RESTAURANT -> restaurantRepository.loadProductsFromBackend(branchId)
+                    BusinessType.MARKET -> marketRepository.loadProductsFromBackend(branchId)
+                    BusinessType.CANDY_STORE -> {} // TODO
+                }
+
+                // Observar el flujo de productos
                 productsFlow.collect { products ->
                     _uiState.value = MenuUiState.Success(products)
                 }

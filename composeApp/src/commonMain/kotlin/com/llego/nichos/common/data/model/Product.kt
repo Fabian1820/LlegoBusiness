@@ -17,6 +17,12 @@ data class Product(
     val category: String,
     val isAvailable: Boolean = true,
 
+    // Campos requeridos por el backend GraphQL
+    val branchId: String? = null,           // ID de la sucursal (requerido para crear)
+    val currency: String? = "USD",          // Moneda (default USD)
+    val weight: String? = null,             // Peso/porción (ej: "250g", "1kg")
+    val categoryId: String? = null,         // ID de categoría del backend
+
     // Tipo de producto (Individual o Varios)
     val productType: ProductType = ProductType.INDIVIDUAL,
 

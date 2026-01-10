@@ -42,6 +42,7 @@ import com.llego.shared.ui.components.molecules.ImageUploadSize
 @Composable
 fun AddProductScreen(
     businessType: BusinessType,
+    branchId: String?,  // ID de la sucursal actual
     onNavigateBack: () -> Unit,
     onSave: (Product) -> Unit,
     existingProduct: Product? = null,
@@ -84,6 +85,7 @@ fun AddProductScreen(
     var brand by remember { mutableStateOf(existingProduct?.brand ?: "") }
     var selectedUnit by remember { mutableStateOf(existingProduct?.unit) }
     var stock by remember { mutableStateOf(existingProduct?.stock?.toString() ?: "") }
+    var weight by remember { mutableStateOf(existingProduct?.weight ?: "") }  // Campo de peso opcional
 
     // Variantes del producto (para Individual)
     var variantGroups by remember { mutableStateOf(existingProduct?.variants ?: emptyList()) }
@@ -200,6 +202,11 @@ fun AddProductScreen(
                                     category = categoryString,
                                     productType = selectedProductType,
                                     isAvailable = isAvailable,
+                                    // Campos requeridos por el backend GraphQL
+                                    branchId = branchId,  // ID de la sucursal actual
+                                    currency = "USD",  // Moneda por defecto
+                                    weight = weight.takeIf { it.isNotBlank() },  // Peso opcional
+                                    categoryId = selectedCategoryId,  // ID de categoría del backend
                                     brand = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.MARKET) brand.takeIf { it.isNotBlank() } else null,
                                     unit = if (selectedProductType == ProductType.INDIVIDUAL && businessType == BusinessType.MARKET) selectedUnit else null,
                                     stock = if (selectedProductType == ProductType.INDIVIDUAL) stock.toIntOrNull() else null,
@@ -388,18 +395,29 @@ fun AddProductScreen(
                                     shape = RoundedCornerShape(12.dp)
                                 )
 
-                                // Stock (para todos excepto restaurante)
-                                if (businessType != BusinessType.RESTAURANT) {
-                                    OutlinedTextField(
-                                        value = stock,
-                                        onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) stock = it },
-                                        label = { Text("Stock") },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                }
+                                // Peso/Porción (opcional)
+                                OutlinedTextField(
+                                    value = weight,
+                                    onValueChange = { weight = it },
+                                    label = { Text("Peso/Porción") },
+                                    placeholder = { Text("Ej: 250g, 1kg, 500ml") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+
+                            // Stock (para todos excepto restaurante)
+                            if (businessType != BusinessType.RESTAURANT) {
+                                OutlinedTextField(
+                                    value = stock,
+                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) stock = it },
+                                    label = { Text("Stock") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
                             }
                         }
                     }

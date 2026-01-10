@@ -231,4 +231,8 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     actual fun getCurrentBusinessType(): BusinessType? = authManager.getCurrentBusinessType()
 
     actual fun getBusinessProfile(): BusinessProfile? = authManager.getBusinessProfile()
+
+    actual fun getCurrentBranchId(): String? = authManager.currentBranch.value?.id
+
+    actual fun getCurrentBusinessId(): String? = authManager.currentBusiness.value?.id
 }

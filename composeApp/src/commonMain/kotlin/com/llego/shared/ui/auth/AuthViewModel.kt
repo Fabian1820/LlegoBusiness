@@ -43,4 +43,10 @@ expect class AuthViewModel() : ViewModel {
     fun getCurrentUser(): User?
     fun getCurrentBusinessType(): BusinessType?
     fun getBusinessProfile(): BusinessProfile?
+
+    /** Obtiene el ID de la sucursal actual */
+    fun getCurrentBranchId(): String?
+
+    /** Obtiene el ID del negocio actual */
+    fun getCurrentBusinessId(): String?
 }

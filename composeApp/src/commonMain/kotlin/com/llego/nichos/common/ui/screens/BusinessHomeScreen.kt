@@ -198,6 +198,14 @@ fun BusinessHomeScreen(
                     )
                 }
                 "menu" -> {
+                    // Cargar productos con el branchId actual
+                    val currentBranchId = authViewModel.getCurrentBranchId()
+                    LaunchedEffect(currentBranchId) {
+                        if (currentBranchId != null) {
+                            menuViewModel.loadMenuItems(currentBranchId)
+                        }
+                    }
+
                     // Pantalla de Menú (solo para restaurantes)
                     MenuScreen(
                         viewModel = menuViewModel,
@@ -208,6 +216,14 @@ fun BusinessHomeScreen(
                     )
                 }
                 "products", "stock" -> {
+                    // Cargar productos con el branchId actual
+                    val currentBranchId = authViewModel.getCurrentBranchId()
+                    LaunchedEffect(currentBranchId) {
+                        if (currentBranchId != null) {
+                            menuViewModel.loadMenuItems(currentBranchId)
+                        }
+                    }
+
                     // Pantalla de Productos/Stock (mercados, agromercados, tiendas)
                     // TODO: Implementar ProductsScreen cuando esté listo
                     // Por ahora mostramos MenuScreen como placeholder con categorías adaptadas
@@ -220,6 +236,14 @@ fun BusinessHomeScreen(
                     )
                 }
                 "medicines" -> {
+                    // Cargar productos con el branchId actual
+                    val currentBranchId = authViewModel.getCurrentBranchId()
+                    LaunchedEffect(currentBranchId) {
+                        if (currentBranchId != null) {
+                            menuViewModel.loadMenuItems(currentBranchId)
+                        }
+                    }
+
                     // Pantalla de Medicinas (farmacias)
                     // TODO: Implementar MedicinesScreen cuando esté listo
                     MenuScreen(

@@ -363,4 +363,22 @@ actual class AuthViewModel : ViewModel {
         ensureInitialized()
         return authManager.getBusinessProfile()
     }
+
+    /**
+     * Obtiene el ID de la sucursal actual
+     * @return branchId de la sucursal actual o null si no hay sucursal seleccionada
+     */
+    actual fun getCurrentBranchId(): String? {
+        ensureInitialized()
+        return authManager.currentBranch.value?.id
+    }
+
+    /**
+     * Obtiene el ID del negocio actual
+     * @return businessId del negocio actual o null si no hay negocio seleccionado
+     */
+    actual fun getCurrentBusinessId(): String? {
+        ensureInitialized()
+        return authManager.currentBusiness.value?.id
+    }
 }

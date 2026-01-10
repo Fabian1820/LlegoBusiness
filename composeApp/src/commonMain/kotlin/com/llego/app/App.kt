@@ -266,6 +266,7 @@ fun App(viewModels: AppViewModels) {
                     showAddProduct -> {
                         AddProductScreen(
                             businessType = currentBusinessType!!,
+                            branchId = authViewModel.getCurrentBranchId(),  // Pasar branchId actual
                             onNavigateBack = {
                                 showAddProduct = false
                                 productToEdit = null
