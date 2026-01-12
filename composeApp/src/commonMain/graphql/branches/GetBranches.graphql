@@ -1,21 +1,33 @@
 query GetBranches($businessId: String, $jwt: String) {
   branches(businessId: $businessId, jwt: $jwt) {
-    id
-    businessId
-    name
-    address
-    phone
-    status
-    avatarUrl
-    coverUrl
-    deliveryRadius
-    facilities
-    coordinates {
-      type
-      coordinates
+    edges {
+      node {
+        id
+        businessId
+        name
+        address
+        phone
+        status
+        tipos
+        avatar
+        coverImage
+        deliveryRadius
+        facilities
+        coordinates {
+          type
+          coordinates
+        }
+        schedule
+        managerIds
+        createdAt
+        avatarUrl
+        coverUrl
+      }
     }
-    schedule
-    managerIds
-    createdAt
+    pageInfo {
+      hasNextPage
+      endCursor
+      totalCount
+    }
   }
 }

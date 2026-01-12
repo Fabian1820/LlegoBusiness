@@ -23,19 +23,21 @@ fun BusinessType.toDisplayName(): String = when (this) {
 
 /**
  * Mapeo de BusinessType a tipo de backend (string usado en GraphQL)
+ * Alineado con la documentación del backend
  */
 fun BusinessType.toBackendType(): String = when (this) {
     BusinessType.RESTAURANT -> "restaurant"
-    BusinessType.MARKET -> "market"
+    BusinessType.MARKET -> "grocery"  // Backend usa "grocery" para tiendas
     BusinessType.CANDY_STORE -> "candy_store"
 }
 
 /**
  * Parsea string del backend a BusinessType
+ * Soporta múltiples aliases para compatibilidad
  */
 fun String.toBusinessType(): BusinessType? = when (this.lowercase()) {
     "restaurant" -> BusinessType.RESTAURANT
-    "market", "grocery" -> BusinessType.MARKET
-    "candy_store", "candy" -> BusinessType.CANDY_STORE
+    "market", "grocery", "tienda" -> BusinessType.MARKET
+    "candy_store", "candy", "dulceria" -> BusinessType.CANDY_STORE
     else -> null
 }

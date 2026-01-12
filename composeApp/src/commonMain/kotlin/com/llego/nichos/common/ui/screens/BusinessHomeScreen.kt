@@ -26,14 +26,14 @@ import com.llego.shared.data.model.getBusinessProfile
 import com.llego.shared.ui.auth.AuthViewModel
 
 /**
- * Pantalla principal genérica para todos los nichos
- * Se adapta automáticamente según el BusinessType usando BusinessConfigProvider
+ * Pantalla principal genérica para todos los tipos de negocio
+ * Ya no hay diferenciación por tipo - todos usan la misma configuración
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
-    businessType: BusinessType,
+    businessType: BusinessType, // DEPRECATED: Se mantiene temporalmente para compatibilidad
     onNavigateToProfile: () -> Unit,
     onNavigateToChats: () -> Unit,
     onNavigateToStatistics: () -> Unit = {},
@@ -49,8 +49,8 @@ fun BusinessHomeScreen(
     menuViewModel: MenuViewModel,
     settingsViewModel: SettingsViewModel
 ) {
-    // Obtener configuración dinámica según el nicho
-    val tabs = BusinessConfigProvider.getTabsForBusiness(businessType)
+    // Obtener configuración genérica (ya no depende del tipo de negocio)
+    val tabs = BusinessConfigProvider.getTabs()
 
     // Obtener el nombre del negocio desde currentBusiness
     val currentBusiness by authViewModel.currentBusiness.collectAsState()

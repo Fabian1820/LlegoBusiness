@@ -544,14 +544,15 @@ fun AddBranchDialog(
                                 lng = longitude.toDoubleOrNull() ?: 0.0
                             ),
                             schedule = mapOf(
-                                "lun" to "09:00-18:00",
-                                "mar" to "09:00-18:00",
-                                "mie" to "09:00-18:00",
-                                "jue" to "09:00-18:00",
-                                "vie" to "09:00-18:00",
-                                "sab" to "10:00-14:00",
-                                "dom" to "closed"
+                                "mon" to listOf("09:00-18:00"),
+                                "tue" to listOf("09:00-18:00"),
+                                "wed" to listOf("09:00-18:00"),
+                                "thu" to listOf("09:00-18:00"),
+                                "fri" to listOf("09:00-18:00"),
+                                "sat" to listOf("10:00-14:00"),
+                                "sun" to emptyList() // closed
                             ),
+                            tipos = listOf(com.llego.shared.data.model.BranchTipo.RESTAURANTE), // Por defecto RESTAURANTE
                             deliveryRadius = deliveryRadius.toDoubleOrNull()
                         )
 

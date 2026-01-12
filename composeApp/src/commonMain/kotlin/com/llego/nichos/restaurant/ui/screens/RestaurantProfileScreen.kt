@@ -156,7 +156,7 @@ fun RestaurantProfileScreen(
                 BusinessInfoSection(
                     business = currentBusiness,
                     branch = currentBranch,
-                    onSave = { name, type, description, tags ->
+                    onSave = { name, description, tags ->
                         currentBusiness?.let { business ->
                             coroutineScope.launch {
                                 isSaving = true

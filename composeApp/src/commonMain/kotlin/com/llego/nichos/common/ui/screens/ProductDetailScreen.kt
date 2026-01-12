@@ -21,13 +21,13 @@ import com.llego.shared.data.model.BusinessType
 
 /**
  * Pantalla de detalle/visualización de producto (solo lectura)
- * Muestra toda la información del producto de forma clara y organizada
+ * Genérica para todos los tipos de negocio - muestra todos los campos disponibles
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     product: Product,
-    businessType: BusinessType,
+    businessType: BusinessType, // DEPRECATED: Se mantiene para compatibilidad temporal
     onNavigateBack: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
@@ -94,23 +94,28 @@ fun ProductDetailScreen(
                 VariantsCard(variants = product.variants)
             }
 
-            // Detalles específicos por nicho
-            when (businessType) {
-                BusinessType.RESTAURANT -> {
-                    if (product.preparationTime != null) {
-                        RestaurantDetailsCard(product = product)
-                    }
-                }
-                BusinessType.MARKET -> {
-                    if (product.brand != null || product.unit != null) {
-                        MarketDetailsCard(product = product)
-                    }
-                }
-                BusinessType.CANDY_STORE -> {
-                    if (product.brand != null) {
-                        MarketDetailsCard(product = product)
-                    }
-                }
+            // Detalles específicos - mostrar todos los campos disponibles
+            // Ya no hay diferenciación por tipo de negocio
+
+            // Detalles de restaurante
+            if (product.preparationTime != null) {
+                RestaurantDetailsCard(product = product)
+            }
+
+            // Detalles de market/supermercado
+            if (product.brand != null || product.unit != null) {
+                MarketDetailsCard(product = product)
+            }
+
+            // Detalles de ropa (si aplica)
+            if (!product.sizes.isNullOrEmpty() || !product.colors.isNullOrEmpty() ||
+                product.material != null || product.gender != null) {
+                ClothingDetailsCard(product = product)
+            }
+
+            // Detalles de farmacia (si aplica)
+            if (product.genericName != null || product.requiresPrescription) {
+                PharmacyDetailsCard(product = product)
             }
 
             // Estado de disponibilidad

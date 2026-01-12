@@ -12,12 +12,12 @@ import kotlinx.serialization.Serializable
 
 /**
  * Modelo de negocio (Business)
+ * IMPORTANTE: Ya no tiene campo 'type' - La diferenciación se hace por Branch.tipos
  */
 @Serializable
 data class Business(
     val id: String,
     val name: String,
-    val type: String,  // "restaurant", "market", "agromarket", "clothing_store", "pharmacy"
     val ownerId: String,
     val globalRating: Double = 0.0,
     val avatar: String? = null,
@@ -33,6 +33,7 @@ data class Business(
 
 /**
  * Modelo de sucursal (Branch)
+ * Alineado con backend: tipos campo requerido
  */
 @Serializable
 data class Branch(
@@ -42,7 +43,8 @@ data class Branch(
     val address: String? = null,
     val coordinates: Coordinates,
     val phone: String,
-    val schedule: Map<String, String> = emptyMap(),  // JSON map
+    val schedule: Map<String, List<String>> = emptyMap(),  // JSON map: {"mon": ["08:00-12:00", "14:00-20:00"]}
+    val tipos: List<BranchTipo> = emptyList(),  // RESTAURANTE, DULCERIA, TIENDA
     val managerIds: List<String> = emptyList(),
     val status: String = "active",  // "active", "inactive", "pending"
     val avatar: String? = null,
@@ -53,6 +55,33 @@ data class Branch(
     val avatarUrl: String? = null,
     val coverUrl: String? = null
 )
+
+/**
+ * Enum de tipos de sucursal (BranchTipo) según backend
+ * MVP: RESTAURANTE, TIENDA, DULCERIA
+ */
+@Serializable
+enum class BranchTipo {
+    RESTAURANTE,
+    DULCERIA,
+    TIENDA
+}
+
+/**
+ * Convierte BranchTipo a string legible
+ */
+fun BranchTipo.toDisplayName(): String = when (this) {
+    BranchTipo.RESTAURANTE -> "Restaurante"
+    BranchTipo.DULCERIA -> "Dulcería"
+    BranchTipo.TIENDA -> "Tienda"
+}
+
+/**
+ * DEPRECATED: Ya no se usa la conversión automática BusinessType -> BranchTipo
+ * El usuario elige directamente los tipos de sucursal
+ */
+@Deprecated("Ya no existe relación directa entre BusinessType y BranchTipo")
+fun BusinessType.toBranchTipo(): BranchTipo = BranchTipo.RESTAURANTE // Valor por defecto
 
 /**
  * Coordenadas geográficas (GeoJSON Point)
@@ -78,20 +107,22 @@ data class Coordinates(
 // ============= INPUT MODELS =============
 
 /**
- * Input para crear un negocio
+ * Input para crear un negocio (alineado con backend)
+ * IMPORTANTE: Ya no tiene campo 'type'
  */
 @Serializable
 data class CreateBusinessInput(
     val name: String,
-    val type: String,
     val avatar: String? = null,
     val coverImage: String? = null,
     val description: String? = null,
+    val socialMedia: Map<String, String>? = null,  // {"facebook": "...", "instagram": "..."}
     val tags: List<String>? = null
 )
 
 /**
- * Input para actualizar un negocio
+ * Input para actualizar un negocio (alineado con backend)
+ * IMPORTANTE: Ya no tiene campo 'type'
  */
 @Serializable
 data class UpdateBusinessInput(
@@ -99,12 +130,13 @@ data class UpdateBusinessInput(
     val avatar: String? = null,
     val coverImage: String? = null,
     val description: String? = null,
+    val socialMedia: Map<String, String>? = null,
     val tags: List<String>? = null,
     val isActive: Boolean? = null
 )
 
 /**
- * Input para registrar una sucursal durante creación de negocio
+ * Input para registrar una sucursal durante creación de negocio (alineado con backend)
  */
 @Serializable
 data class RegisterBranchInput(
@@ -112,8 +144,10 @@ data class RegisterBranchInput(
     val coordinates: CoordinatesInput,
     val phone: String,
     @Contextual
-    val schedule: Any,  // JSON - puede ser Map<String, String> o Map<String, List<String>>
+    val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
+    val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
     val address: String? = null,
+    val managerIds: List<String>? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
     val deliveryRadius: Double? = null,
@@ -121,7 +155,7 @@ data class RegisterBranchInput(
 )
 
 /**
- * Input para crear una nueva sucursal
+ * Input para crear una nueva sucursal (alineado con backend)
  */
 @Serializable
 data class CreateBranchInput(
@@ -130,8 +164,10 @@ data class CreateBranchInput(
     val coordinates: CoordinatesInput,
     val phone: String,
     @Contextual
-    val schedule: Any,  // JSON - puede ser Map<String, String> o Map<String, List<String>>
+    val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
+    val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
     val address: String? = null,
+    val managerIds: List<String>? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
     val deliveryRadius: Double? = null,
@@ -139,20 +175,22 @@ data class CreateBranchInput(
 )
 
 /**
- * Input para actualizar una sucursal
+ * Input para actualizar una sucursal (alineado con backend)
  */
 @Serializable
 data class UpdateBranchInput(
     val name: String? = null,
     val coordinates: CoordinatesInput? = null,
     val phone: String? = null,
-    val schedule: Map<String, String>? = null,
+    val schedule: Map<String, List<String>>? = null,  // {"mon": ["08:00-12:00", "14:00-20:00"]}
+    val tipos: List<BranchTipo>? = null,
     val address: String? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
     val status: String? = null,
     val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null
+    val facilities: List<String>? = null,
+    val managerIds: List<String>? = null
 )
 
 /**
@@ -179,37 +217,17 @@ sealed class BusinessResult<out T> {
 // ============= EXTENSION FUNCTIONS =============
 
 /**
- * Convierte Business a BusinessProfile para compatibilidad
+ * DEPRECATED: BusinessProfile ya no se usa en la nueva arquitectura genérica
+ * Se mantiene temporalmente para compatibilidad con código legacy
  */
-fun Business.toBusinessProfile(): BusinessProfile {
-    return BusinessProfile(
-        businessId = id,
-        businessName = name,
-        businessType = type.toBusinessType() ?: BusinessType.RESTAURANT,
-        address = "Dirección pendiente",  // Se llenará desde Branch
-        city = "Ciudad",
-        state = "Estado",
-        zipCode = "00000",
-        businessPhone = "Teléfono pendiente",  // Se llenará desde Branch
-        description = description,
-        isVerified = true,
-        operatingHours = OperatingHours(),  // Se llenará desde Branch schedule
-        deliveryRadius = 5.0,  // Se llenará desde Branch
-        averageRating = globalRating,
-        totalOrders = 0  // TODO: Obtener de estadísticas
-    )
-}
-
-/**
- * Convierte Business + Branch a BusinessProfile completo
- */
+@Deprecated("Ya no se usa BusinessProfile en arquitectura genérica")
 fun Business.toBusinessProfile(branch: Branch?): BusinessProfile {
     return BusinessProfile(
         businessId = id,
         businessName = name,
-        businessType = type.toBusinessType() ?: BusinessType.RESTAURANT,
+        businessType = BusinessType.RESTAURANT, // Valor por defecto para compatibilidad
         address = branch?.address ?: "Sin dirección",
-        city = "Ciudad",  // TODO: Extraer de address
+        city = "Ciudad",
         state = "Estado",
         zipCode = "00000",
         businessPhone = branch?.phone ?: "Sin teléfono",
@@ -223,9 +241,38 @@ fun Business.toBusinessProfile(branch: Branch?): BusinessProfile {
 }
 
 /**
- * Convierte Map de schedule a OperatingHours
+ * Convierte Map de schedule del backend a OperatingHours
+ * Backend format: {"mon": ["08:00-12:00", "14:00-20:00"], "tue": ["08:00-20:00"], "wed": []}
+ * [] = cerrado
+ * Múltiples rangos = horario partido
  */
-fun Map<String, String>.toOperatingHours(): OperatingHours {
-    // TODO: Parsear el schedule JSON del backend
-    return OperatingHours()
+fun Map<String, List<String>>.toOperatingHours(): OperatingHours {
+    fun parseDay(ranges: List<String>?): DaySchedule {
+        if (ranges.isNullOrEmpty()) {
+            return DaySchedule(isOpen = false, openTime = "", closeTime = "")
+        }
+
+        // Tomar el primer rango como principal
+        val firstRange = ranges.first()
+        val parts = firstRange.split("-")
+        if (parts.size == 2) {
+            return DaySchedule(
+                isOpen = true,
+                openTime = parts[0],
+                closeTime = parts[1]
+            )
+        }
+
+        return DaySchedule(isOpen = false, openTime = "", closeTime = "")
+    }
+
+    return OperatingHours(
+        monday = parseDay(get("mon")),
+        tuesday = parseDay(get("tue")),
+        wednesday = parseDay(get("wed")),
+        thursday = parseDay(get("thu")),
+        friday = parseDay(get("fri")),
+        saturday = parseDay(get("sat")),
+        sunday = parseDay(get("sun"))
+    )
 }

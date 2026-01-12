@@ -35,9 +35,9 @@ type Query {
   searchBusinesses(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [BusinessType!]!
 
   """
-  Lista de sucursales con scoring por cercanía
+  Lista de sucursales con scoring por cercanía (paginado)
   """
-  branches(businessId: String = null, tipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): [ScoredBranchType!]!
+  branches(businessId: String = null, tipo: BranchTipo = null, radiusKm: Float = null, first: Int = null, after: String = null, jwt: String = null): BranchConnection!
 
   """
   Obtener sucursal por ID
@@ -146,8 +146,6 @@ type BusinessType {
 
   name: String!
 
-  type: String!
-
   ownerId: String!
 
   globalRating: Float!
@@ -246,6 +244,31 @@ type ScoredBranchType {
   Distance in kilometers from user
   """
   distanceKm: Float
+}
+
+"""
+Connection type for paginated branch results
+"""
+type BranchConnection {
+  edges: [BranchEdge!]!
+  pageInfo: PageInfo!
+}
+
+"""
+Edge type for branch pagination
+"""
+type BranchEdge {
+  node: ScoredBranchType!
+  cursor: String!
+}
+
+"""
+Page info for cursor-based pagination
+"""
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+  totalCount: Int
 }
 
 type CoordinatesType {
@@ -677,8 +700,6 @@ input UpdateLocationInput {
 input CreateBusinessInput {
   name: String!
 
-  type: String!
-
   avatar: String = null
 
   coverImage: String = null
@@ -722,8 +743,6 @@ input CoordinatesInput {
 
 input UpdateBusinessInput {
   name: String = null
-
-  type: String = null
 
   description: String = null
 

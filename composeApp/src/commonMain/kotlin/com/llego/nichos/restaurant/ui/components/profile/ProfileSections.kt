@@ -137,15 +137,15 @@ fun BannerWithLogoSection(
 fun BusinessInfoSection(
     business: Business?,
     branch: Branch?,
-    onSave: (name: String, type: String, description: String, tags: List<String>) -> Unit = { _, _, _, _ -> }
+    onSave: (name: String, description: String, tags: List<String>) -> Unit = { _, _, _ -> }
 ) {
     var businessName by remember(business) { mutableStateOf(business?.name ?: "") }
-    var category by remember(business) { mutableStateOf(business?.type?.toBusinessType()?.name ?: "") }
+    // Removed: category ya no existe (no hay business.type)
     var description by remember(business) { mutableStateOf(business?.description ?: "") }
     var address by remember(branch) { mutableStateOf(branch?.address ?: "") }
 
     var isEditingName by remember { mutableStateOf(false) }
-    var isEditingCategory by remember { mutableStateOf(false) }
+    // Removed: isEditingCategory ya no se necesita
     var isEditingDescription by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
 
@@ -250,13 +250,7 @@ fun BusinessInfoSection(
             }
         }
 
-        // Categoría
-        Text(
-            text = category.ifEmpty { "Sin categoría" },
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable { isEditingCategory = true }
-        )
+        // Removed: Categoría ya no existe (no hay business.type)
 
         // Descripción
         Text(
@@ -516,19 +510,19 @@ fun BranchFacilitiesSection(
 @Composable
 fun BranchScheduleSection(
     branch: Branch?,
-    onSave: (Map<String, String>) -> Unit = {}
+    onSave: (Map<String, List<String>>) -> Unit = {}
 ) {
     var isEditing by remember { mutableStateOf(false) }
     val schedule = branch?.schedule ?: emptyMap()
 
     val dayNames = mapOf(
-        "lun" to "Lunes",
-        "mar" to "Martes",
-        "mie" to "Miércoles",
-        "jue" to "Jueves",
-        "vie" to "Viernes",
-        "sab" to "Sábado",
-        "dom" to "Domingo"
+        "mon" to "Lunes",
+        "tue" to "Martes",
+        "wed" to "Miércoles",
+        "thu" to "Jueves",
+        "fri" to "Viernes",
+        "sat" to "Sábado",
+        "sun" to "Domingo"
     )
 
     ProfileSectionCard {
@@ -559,7 +553,7 @@ fun BranchScheduleSection(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                schedule.forEach { (day, hours) ->
+                schedule.forEach { (day, hoursList) ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -569,10 +563,11 @@ fun BranchScheduleSection(
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = Color.Black
                         )
+                        val hoursText = if (hoursList.isEmpty()) "Cerrado" else hoursList.joinToString(", ")
                         Text(
-                            text = if (hours == "closed") "Cerrado" else hours,
+                            text = hoursText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (hours == "closed") Color.Gray else MaterialTheme.colorScheme.primary
+                            color = if (hoursList.isEmpty()) Color.Gray else MaterialTheme.colorScheme.primary
                         )
                     }
                 }

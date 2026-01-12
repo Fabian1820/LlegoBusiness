@@ -10,8 +10,9 @@ mutation UpdateBranch(
     status
     phone
     address
-    avatarUrl
-    coverUrl
+    tipos
+    avatar
+    coverImage
     deliveryRadius
     coordinates {
       type

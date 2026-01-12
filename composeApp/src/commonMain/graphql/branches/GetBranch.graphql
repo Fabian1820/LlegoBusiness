@@ -6,9 +6,10 @@ query GetBranch($id: String!, $jwt: String) {
     address
     phone
     schedule
+    tipos
     facilities
-    avatarUrl
-    coverUrl
+    avatar
+    coverImage
     status
     deliveryRadius
     coordinates {

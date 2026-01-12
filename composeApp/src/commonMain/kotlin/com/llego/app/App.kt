@@ -4,12 +4,14 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.toBusinessType
 import com.llego.shared.ui.auth.AuthViewModel
@@ -35,6 +37,7 @@ import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
 import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
+import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.data.auth.TokenManager
@@ -89,14 +92,10 @@ fun App(viewModels: AppViewModels) {
         // Scope para operaciones asíncronas
         val scope = rememberCoroutineScope()
 
-        // ✅ SOLUCIÓN: Observar currentBusiness directamente como StateFlow
-        // Esto garantiza reactividad cuando loadBusinessData() termine
+        // Observar currentBusiness, currentBranch y branches
         val currentBusiness by authViewModel.currentBusiness.collectAsState()
-        
-        // Derivar currentBusinessType del business observado
-        val currentBusinessType: BusinessType? = remember(currentBusiness) {
-            currentBusiness?.type?.toBusinessType()
-        }
+        val currentBranch by authViewModel.currentBranch.collectAsState()
+        val branches by authViewModel.branches.collectAsState()
 
         // Observar estado de autenticación
         LaunchedEffect(authViewModel) {
@@ -123,13 +122,13 @@ fun App(viewModels: AppViewModels) {
                     println("App: user es null")
                 }
 
-                println("App: Estado final - isCheckingSession=$isCheckingSession, isAuthenticated=$isAuthenticated, needsBusinessRegistration=$needsBusinessRegistration, currentBusinessType=$currentBusinessType")
+                println("App: Estado final - isCheckingSession=$isCheckingSession, isAuthenticated=$isAuthenticated, needsBusinessRegistration=$needsBusinessRegistration")
             }
         }
 
-        // Log cuando currentBusiness cambie (para debug)
-        LaunchedEffect(currentBusiness) {
-            println("App: currentBusiness cambió a ${currentBusiness?.name}, type=${currentBusiness?.type}, derivedType=$currentBusinessType")
+        // Log cuando currentBusiness o currentBranch cambien (para debug)
+        LaunchedEffect(currentBusiness, currentBranch) {
+            println("App: currentBusiness=${currentBusiness?.name}, currentBranch=${currentBranch?.name}")
         }
 
         when {
@@ -161,8 +160,8 @@ fun App(viewModels: AppViewModels) {
                 )
             }
 
-            // Caso 2: Usuario autenticado CON negocio y datos cargados → Dashboard
-            isAuthenticated && !needsBusinessRegistration && currentBusinessType != null -> {
+            // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada → Dashboard
+            isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
             Box(modifier = Modifier) {
                 // Contenido principal con navegación condicional
                 when {
@@ -254,9 +253,10 @@ fun App(viewModels: AppViewModels) {
                     }
                     showProductDetail && productToView != null -> {
                         // Pantalla de detalle del producto (solo lectura)
+                        // TODO: Refactorizar ProductDetailScreen para no necesitar businessType
                         ProductDetailScreen(
                             product = productToView!!,
-                            businessType = currentBusinessType!!,
+                            businessType = BusinessType.RESTAURANT, // Temporal: todas las pantallas son genéricas ahora
                             onNavigateBack = {
                                 showProductDetail = false
                                 productToView = null
@@ -271,8 +271,9 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     showAddProduct -> {
+                        // TODO: Refactorizar AddProductScreen para no necesitar businessType
                         AddProductScreen(
-                            businessType = currentBusinessType!!,
+                            businessType = BusinessType.RESTAURANT, // Temporal: todas las pantallas son genéricas ahora
                             branchId = authViewModel.getCurrentBranchId(),  // Pasar branchId actual
                             onNavigateBack = {
                                 showAddProduct = false
@@ -340,10 +341,10 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     else -> {
-                        // ✅ BusinessHomeScreen genérico que se personaliza según el nicho
+                        // BusinessHomeScreen genérico (sin diferenciación por tipo)
                         BusinessHomeScreen(
                             authViewModel = authViewModel,
-                            businessType = currentBusinessType!!, // Pasa el tipo de negocio
+                            businessType = BusinessType.RESTAURANT, // Temporal: pantallas genéricas
                             onNavigateToProfile = { showProfile = true },
                             onNavigateToStatistics = { showStatistics = true },
                             onNavigateToChats = { showChats = true },
@@ -391,15 +392,33 @@ fun App(viewModels: AppViewModels) {
             }
             }
 
-            // Caso 3: Usuario autenticado CON negocio pero datos AÚN cargando → Loading
-            isAuthenticated && !needsBusinessRegistration && currentBusinessType == null -> {
-                // Mostrar pantalla de carga mientras se obtienen los datos del negocio
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
+            // Caso 3: Usuario autenticado CON negocio pero SIN sucursal seleccionada
+            isAuthenticated && !needsBusinessRegistration && currentBranch == null -> {
+                if (branches.isEmpty()) {
+                    // Cargando sucursales
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.foundation.layout.Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            androidx.compose.foundation.layout.Spacer(
+                                modifier = Modifier.height(16.dp)
+                            )
+                            androidx.compose.material3.Text("Cargando sucursales...")
+                        }
+                    }
+                } else {
+                    // Mostrar selector de sucursales (solo si hay múltiples)
+                    BranchSelectorScreen(
+                        branches = branches,
+                        onBranchSelected = { branch ->
+                            authViewModel.setCurrentBranch(branch)
+                        }
                     )
                 }
             }
@@ -408,9 +427,9 @@ fun App(viewModels: AppViewModels) {
             else -> {
                 LoginScreen(
                     viewModel = authViewModel,
-                    onLoginSuccess = { _ ->
+                    onLoginSuccess = {
                         // isAuthenticated se actualiza automáticamente via uiState
-                        // currentBusinessType se actualiza automáticamente via currentBusiness StateFlow
+                        // currentBranch se carga automáticamente cuando hay sucursales
                         // No necesitamos hacer nada aquí, la reactividad se encarga
                     }
                 )

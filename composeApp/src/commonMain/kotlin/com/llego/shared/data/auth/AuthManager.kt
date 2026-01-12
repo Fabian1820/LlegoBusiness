@@ -198,16 +198,13 @@ class AuthManager(private val tokenManager: TokenManager) {
     // ============= HELPER METHODS =============
 
     /**
-     * Obtiene el tipo de negocio actual desde el currentBusiness
+     * DEPRECATED: Ya no existe el concepto de tipo de negocio
+     * La diferenciación ahora se hace por Branch.tipos, no por Business.type
      */
+    @Deprecated("Ya no existe business.type - usar Branch.tipos en su lugar")
     fun getCurrentBusinessType(): BusinessType? {
-        val business = currentBusiness.value ?: return null
-        return when (business.type.lowercase()) {
-            "restaurant" -> BusinessType.RESTAURANT
-            "grocery", "market" -> BusinessType.MARKET
-            "candy_store", "candy" -> BusinessType.CANDY_STORE
-            else -> null
-        }
+        // Retornar valor por defecto para mantener compatibilidad temporal
+        return BusinessType.RESTAURANT
     }
 
     /**

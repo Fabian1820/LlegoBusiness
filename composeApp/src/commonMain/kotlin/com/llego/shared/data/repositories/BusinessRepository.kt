@@ -342,7 +342,9 @@ class BusinessRepository(
                 )
             }
 
-            response.data?.branches?.let { branchesData ->
+            response.data?.branches?.let { branchesConnection ->
+                // Extraer los nodos de la estructura paginada edges[].node
+                val branchesData = branchesConnection.edges.map { it.node }
                 println("BusinessRepository.getBranches: branchesData count=${branchesData.size}")
 
                 val branchesList = branchesData.map { it.toDomain() }
@@ -353,14 +355,18 @@ class BusinessRepository(
                     println("  - Branch: id=${branch.id}, name=${branch.name}")
                 }
 
-                // Si solo hay una sucursal, establecerla como actual
+                // Si solo hay una sucursal, establecerla como actual automáticamente
+                // Si hay múltiples sucursales, NO seleccionar ninguna - mostrar selector
                 if (branchesList.size == 1) {
                     _currentBranch.value = branchesList.first()
-                    println("BusinessRepository.getBranches: establecida currentBranch=${branchesList.first().name}")
+                    println("BusinessRepository.getBranches: una sola sucursal, establecida currentBranch=${branchesList.first().name}")
                 } else if (branchesList.isNotEmpty()) {
-                    _currentBranch.value = branchesList.first()
-                    println("BusinessRepository.getBranches: múltiples sucursales, establecida primera=${branchesList.first().name}")
+                    // NO establecer currentBranch para múltiples sucursales
+                    // El usuario debe elegir en BranchSelectorScreen
+                    _currentBranch.value = null
+                    println("BusinessRepository.getBranches: múltiples sucursales (${branchesList.size}), esperando selección del usuario")
                 } else {
+                    _currentBranch.value = null
                     println("BusinessRepository.getBranches: no hay sucursales para este negocio")
                 }
 

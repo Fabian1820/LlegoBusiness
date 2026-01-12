@@ -36,19 +36,20 @@ import com.llego.shared.ui.components.molecules.ImageUploadSize
 
 /**
  * Pantalla fullscreen para agregar/editar productos
- * Se adapta según el tipo de negocio
+ * Genérica para todos los tipos de negocio
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(
-    businessType: BusinessType,
+    businessType: BusinessType, // DEPRECATED: Se mantiene para compatibilidad temporal
     branchId: String?,  // ID de la sucursal actual
     onNavigateBack: () -> Unit,
     onSave: (Product) -> Unit,
     existingProduct: Product? = null,
     modifier: Modifier = Modifier
 ) {
-    val categories = BusinessConfigProvider.getCategoriesForBusiness(businessType)
+    // Usar categorías genéricas
+    val categories = BusinessConfigProvider.getCategories()
     val imageUploadService = remember { ImageUploadServiceFactory.create() }
 
     // Tipo de producto (Individual o Varios)
@@ -57,26 +58,19 @@ fun AddProductScreen(
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
-    
+
     // Estado de upload de imagen del producto
     var productImageState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
-    
+
     // El path de S3 se extrae del estado Success
     val selectedImageUrl = (productImageState as? ImageUploadState.Success)?.s3Path ?: ""
-    
-    // Inicializar categoría desde existingProduct
-    var selectedCategoryId by remember(businessType, existingProduct?.category) { 
+
+    // Inicializar categoría desde existingProduct de forma genérica
+    var selectedCategoryId by remember(existingProduct?.category) {
         mutableStateOf<String?>(
             existingProduct?.let { product ->
-                // Si es restaurante, mapear MenuCategory a categoryId
-                if (businessType == BusinessType.RESTAURANT) {
-                    val menuCategory = com.llego.nichos.common.utils.mapToMenuCategory(product.category, businessType)
-                    menuCategory?.toCategoryId()
-                } else {
-                    // Para otros nichos, buscar el categoryId desde la categoría
-                    com.llego.nichos.common.utils.mapToCategoryId(product.category, businessType) 
-                        ?: categories.find { it.displayName.equals(product.category, ignoreCase = true) }?.id
-                }
+                // Buscar categoryId desde la categoría de forma genérica
+                categories.find { it.displayName.equals(product.category, ignoreCase = true) }?.id
             }
         )
     }

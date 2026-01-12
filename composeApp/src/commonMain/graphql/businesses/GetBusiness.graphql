@@ -2,10 +2,9 @@ query GetBusiness($id: String!, $jwt: String) {
   business(id: $id, jwt: $jwt) {
     id
     name
-    type
     description
-    avatarUrl
-    coverUrl
+    avatar
+    coverImage
     tags
     globalRating
     isActive

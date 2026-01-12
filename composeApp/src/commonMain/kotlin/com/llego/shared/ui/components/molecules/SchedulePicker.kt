@@ -411,18 +411,29 @@ private fun DayScheduleCard(
                         }
                     }
 
-                    // Botón agregar rango
-                    if (daySchedule.timeRanges.size < 3) {
-                        TextButton(
+                    // Botón agregar rango (máximo 5 rangos por día)
+                    if (daySchedule.timeRanges.size < 5) {
+                        OutlinedButton(
                             onClick = {
                                 val newRanges = daySchedule.timeRanges + TimeRange("16:00", "20:00")
                                 onScheduleChange(daySchedule.copy(timeRanges = newRanges))
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Agregar horario")
+                            Text("Agregar otro horario")
                         }
+                    }
+
+                    // Mensaje informativo si alcanzó el límite
+                    if (daySchedule.timeRanges.size >= 5) {
+                        Text(
+                            text = "✓ Máximo 5 rangos horarios por día",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = primaryColor
+                            )
+                        )
                     }
                 }
             }

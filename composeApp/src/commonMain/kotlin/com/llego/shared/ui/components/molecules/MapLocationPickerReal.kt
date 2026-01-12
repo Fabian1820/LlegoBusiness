@@ -236,31 +236,25 @@ private fun FullScreenMapDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(primaryColor)
+                    .statusBarsPadding()
             ) {
-                // TopBar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(primaryColor)
-                        .statusBarsPadding()
-                ) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "Seleccionar ubicación",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { contentVisible = false }) {
-                                Icon(Icons.Default.ArrowBack, "Volver", tint = Color.White)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                        windowInsets = WindowInsets(0)
-                    )
-                }
+                // TopBar con edge-to-edge
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Seleccionar ubicación",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { contentVisible = false }) {
+                            Icon(Icons.Default.ArrowBack, "Volver", tint = Color.White)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Mapa interactivo
                 BusinessLocationMap(

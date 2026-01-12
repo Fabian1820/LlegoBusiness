@@ -10,9 +10,8 @@ mutation RegisterBusiness(
   ) {
     id
     name
-    type
-    avatarUrl
-    coverUrl
+    avatar
+    coverImage
     description
     tags
     isActive

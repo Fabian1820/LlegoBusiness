@@ -52,7 +52,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (BusinessType) -> Unit,
+    onLoginSuccess: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AuthViewModel
 ) {
@@ -85,16 +85,15 @@ fun LoginScreen(
         cardVisible = true
     }
 
-    // NOTA: Ya no navegamos desde LoginScreen
-    // La navegación se maneja en App.kt que usa AuthManager.getCurrentBusinessType()
-    // para obtener datos reales del backend
+    // La navegación se maneja completamente en App.kt basado en:
+    // - isAuthenticated: si el usuario tiene sesión
+    // - needsBusinessRegistration: si el usuario necesita registrar un negocio
+    // - currentBranch: si el usuario tiene una sucursal seleccionada
 
-    // Si el usuario está autenticado, llamamos onLoginSuccess con un BusinessType temporal
-    // pero la navegación real se decidirá en App.kt basado en datos del backend
+    // Si el usuario está autenticado, notificamos al padre
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated && uiState.user != null) {
-            // Usar RESTAURANT como placeholder - App.kt usará el tipo real
-            onLoginSuccess(BusinessType.RESTAURANT)
+            onLoginSuccess()
         }
     }
 

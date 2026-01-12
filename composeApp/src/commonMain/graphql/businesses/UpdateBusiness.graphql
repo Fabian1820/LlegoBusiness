@@ -6,10 +6,9 @@ mutation UpdateBusiness(
   updateBusiness(businessId: $businessId, input: $input, jwt: $jwt) {
     id
     name
-    type
     description
-    avatarUrl
-    coverUrl
+    avatar
+    coverImage
     tags
     isActive
     globalRating

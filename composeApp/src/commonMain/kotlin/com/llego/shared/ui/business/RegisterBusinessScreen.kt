@@ -63,9 +63,12 @@ fun RegisterBusinessScreen(
 
     // Estados del formulario - Negocio
     var businessName by remember { mutableStateOf("") }
-    var businessType by remember { mutableStateOf(BusinessType.RESTAURANT) }
+    var businessType by remember { mutableStateOf(BusinessType.RESTAURANT) } // DEPRECATED: Solo para compatibilidad temporal
     var businessDescription by remember { mutableStateOf("") }
     var businessTagsList by remember { mutableStateOf(emptyList<String>()) }
+
+    // Estado para tipos de sucursal seleccionados (nuevo)
+    var selectedBranchTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
     
     // Estados de upload de imágenes del negocio (usando ImageUploadState)
     var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
@@ -80,8 +83,9 @@ fun RegisterBusinessScreen(
     var branchAddress by remember { mutableStateOf("") }
     var branchPhone by remember { mutableStateOf("") }
     var branchCountryCode by remember { mutableStateOf("+51") }
-    var branchLatitude by remember { mutableStateOf(0.0) }
-    var branchLongitude by remember { mutableStateOf(0.0) }
+    // Coordenadas default: La Habana, Cuba
+    var branchLatitude by remember { mutableStateOf(23.1136) }
+    var branchLongitude by remember { mutableStateOf(-82.3666) }
     var branchSchedule by remember {
         mutableStateOf<Map<String, DaySchedule>>(
             mapOf(
@@ -158,41 +162,6 @@ fun RegisterBusinessScreen(
                     placeholder = "Ej: Restaurante La Havana"
                 )
 
-                // Selector de tipo de negocio
-                Column {
-                    Text(
-                        text = "Tipo de Negocio *",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        BusinessTypeChip(
-                            type = BusinessType.RESTAURANT,
-                            selected = businessType == BusinessType.RESTAURANT,
-                            onClick = { businessType = BusinessType.RESTAURANT },
-                            modifier = Modifier.weight(1f)
-                        )
-                        BusinessTypeChip(
-                            type = BusinessType.MARKET,
-                            selected = businessType == BusinessType.MARKET,
-                            onClick = { businessType = BusinessType.MARKET },
-                            modifier = Modifier.weight(1f)
-                        )
-                        BusinessTypeChip(
-                            type = BusinessType.CANDY_STORE,
-                            selected = businessType == BusinessType.CANDY_STORE,
-                            onClick = { businessType = BusinessType.CANDY_STORE },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
                 LlegoTextField(
                     value = businessDescription,
                     onValueChange = { businessDescription = it },
@@ -254,6 +223,65 @@ fun RegisterBusinessScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 )
+
+                // Selector de tipos de sucursal *
+                Column {
+                    Text(
+                        text = "Tipos de Servicio *",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    Text(
+                        text = "Selecciona uno o más tipos de servicio que ofrece esta sucursal",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        BranchTipoChip(
+                            tipo = BranchTipo.RESTAURANTE,
+                            selected = selectedBranchTipos.contains(BranchTipo.RESTAURANTE),
+                            onClick = {
+                                selectedBranchTipos = if (selectedBranchTipos.contains(BranchTipo.RESTAURANTE)) {
+                                    selectedBranchTipos - BranchTipo.RESTAURANTE
+                                } else {
+                                    selectedBranchTipos + BranchTipo.RESTAURANTE
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        BranchTipoChip(
+                            tipo = BranchTipo.TIENDA,
+                            selected = selectedBranchTipos.contains(BranchTipo.TIENDA),
+                            onClick = {
+                                selectedBranchTipos = if (selectedBranchTipos.contains(BranchTipo.TIENDA)) {
+                                    selectedBranchTipos - BranchTipo.TIENDA
+                                } else {
+                                    selectedBranchTipos + BranchTipo.TIENDA
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        BranchTipoChip(
+                            tipo = BranchTipo.DULCERIA,
+                            selected = selectedBranchTipos.contains(BranchTipo.DULCERIA),
+                            onClick = {
+                                selectedBranchTipos = if (selectedBranchTipos.contains(BranchTipo.DULCERIA)) {
+                                    selectedBranchTipos - BranchTipo.DULCERIA
+                                } else {
+                                    selectedBranchTipos + BranchTipo.DULCERIA
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
 
                 LlegoTextField(
                     value = branchName,
@@ -360,13 +388,13 @@ fun RegisterBusinessScreen(
 
                         val business = CreateBusinessInput(
                             name = businessName,
-                            type = businessType.toBackendType(),
                             description = businessDescription.ifBlank { null },
                             tags = businessTagsList,
                             avatar = businessAvatarPath,
                             coverImage = businessCoverPath
                         )
 
+                        // El usuario selecciona el tipo de sucursal directamente, no hay conversión automática
                         val branch = RegisterBranchInput(
                             name = branchName,
                             address = branchAddress.ifBlank { null },
@@ -376,6 +404,7 @@ fun RegisterBusinessScreen(
                                 lng = branchLongitude
                             ),
                             schedule = branchSchedule.toBackendSchedule(),
+                            tipos = selectedBranchTipos.toList(), // Usar los tipos seleccionados por el usuario
                             avatar = branchAvatarPath,
                             coverImage = branchCoverPath,
                             deliveryRadius = branchDeliveryRadius,
@@ -386,6 +415,7 @@ fun RegisterBusinessScreen(
                     },
                     enabled = !uiState.isLoading &&
                             businessName.isNotBlank() &&
+                            selectedBranchTipos.isNotEmpty() && // Validar que se haya seleccionado al menos un tipo
                             branchName.isNotBlank() &&
                             branchPhone.isNotBlank() &&
                             branchLatitude != 0.0 &&
@@ -429,6 +459,10 @@ fun RegisterBusinessScreen(
     }
 }
 
+/**
+ * DEPRECATED: Ya no se usa BusinessType para diferenciación
+ */
+@Deprecated("Usar BranchTipoChip en su lugar")
 @Composable
 private fun BusinessTypeChip(
     type: BusinessType,
@@ -447,6 +481,46 @@ private fun BusinessTypeChip(
                     BusinessType.RESTAURANT -> "🍽️ Restaurante"
                     BusinessType.MARKET -> "🛒 Tienda"
                     BusinessType.CANDY_STORE -> "🍬 Dulcería"
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = primaryColor.copy(alpha = 0.15f),
+            selectedLabelColor = primaryColor
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            selectedBorderColor = primaryColor,
+            selectedBorderWidth = 2.dp
+        ),
+        modifier = modifier
+    )
+}
+
+/**
+ * Chip para seleccionar tipo de sucursal (BranchTipo)
+ * Soporta selección múltiple
+ */
+@Composable
+private fun BranchTipoChip(
+    tipo: BranchTipo,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = when (tipo) {
+                    BranchTipo.RESTAURANTE -> "🍽️ Restaurante"
+                    BranchTipo.TIENDA -> "🛒 Tienda"
+                    BranchTipo.DULCERIA -> "🍬 Dulcería"
                 },
                 style = MaterialTheme.typography.bodySmall
             )
