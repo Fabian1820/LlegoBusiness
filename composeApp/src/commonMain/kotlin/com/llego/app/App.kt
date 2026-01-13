@@ -12,29 +12,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.llego.shared.data.model.BusinessType
-import com.llego.shared.data.model.toBusinessType
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
-import com.llego.shared.ui.navigation.*
 import com.llego.shared.ui.theme.LlegoBusinessTheme
-import com.llego.nichos.common.ui.screens.BusinessHomeScreen
-import com.llego.nichos.common.ui.screens.AddProductScreen
-import com.llego.nichos.common.ui.screens.ProductDetailScreen
-import com.llego.nichos.restaurant.ui.screens.RestaurantProfileScreen
-import com.llego.nichos.restaurant.ui.screens.BranchesManagementScreen
-import com.llego.nichos.restaurant.ui.screens.StatisticsScreen
-import com.llego.nichos.restaurant.ui.screens.ChatsScreen
-import com.llego.nichos.restaurant.ui.screens.ChatDetailScreen
-import com.llego.nichos.restaurant.ui.screens.OrderConfirmationScreen
-import com.llego.nichos.restaurant.ui.screens.OrderDetailScreen
-import com.llego.nichos.restaurant.ui.screens.ConfirmationType
-import com.llego.nichos.common.data.model.Product
-import com.llego.nichos.restaurant.data.model.OrderStatus
-import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.business.home.ui.screens.BusinessHomeScreen
+import com.llego.business.products.ui.screens.AddProductScreen
+import com.llego.business.products.ui.screens.ProductDetailScreen
+import com.llego.business.profile.ui.screens.BusinessProfileScreen
+import com.llego.business.branches.ui.screens.BranchesManagementScreen
+import com.llego.business.analytics.ui.screens.StatisticsScreen
+import com.llego.business.orders.ui.screens.OrderConfirmationScreen
+import com.llego.business.orders.ui.screens.OrderDetailScreen
+import com.llego.business.orders.ui.screens.ConfirmationType
+import com.llego.shared.data.model.Product
+import com.llego.business.orders.data.model.OrderStatus
+import com.llego.business.chats.ui.viewmodel.ChatsViewModel
+import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.orders.ui.viewmodel.OrdersViewModel
+import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
@@ -48,7 +43,7 @@ data class AppViewModels(
     val auth: AuthViewModel,
     val chats: ChatsViewModel,
     val orders: OrdersViewModel,
-    val menu: MenuViewModel,
+    val products: ProductViewModel,
     val settings: SettingsViewModel,
     val registerBusiness: RegisterBusinessViewModel
 )
@@ -66,9 +61,6 @@ fun App(viewModels: AppViewModels) {
         var showProfile by remember { mutableStateOf(false) }
         var showBranchesManagement by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
-        var showChats by remember { mutableStateOf(false) }
-        var showChatDetail by remember { mutableStateOf(false) }
-        var currentChatOrderId by remember { mutableStateOf<String?>(null) }
         var showAddProduct by remember { mutableStateOf(false) }
         var productToEdit by remember { mutableStateOf<Product?>(null) }
         var showProductDetail by remember { mutableStateOf(false) }
@@ -79,6 +71,7 @@ fun App(viewModels: AppViewModels) {
 
         // Estado para controlar la carga inicial (verificación de sesión)
         var isCheckingSession by remember { mutableStateOf(true) }
+        var isResolvingBusiness by remember { mutableStateOf(false) }
 
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
@@ -86,7 +79,7 @@ fun App(viewModels: AppViewModels) {
 
         val chatsViewModel = viewModels.chats
         val ordersViewModel = viewModels.orders
-        val menuViewModel = viewModels.menu
+        val productViewModel = viewModels.products
         val settingsViewModel = viewModels.settings
 
         // Scope para operaciones asíncronas
@@ -126,12 +119,53 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
+        LaunchedEffect(isAuthenticated) {
+            if (!isAuthenticated) {
+                isResolvingBusiness = false
+                return@LaunchedEffect
+            }
+
+            isResolvingBusiness = true
+            delay(600)
+            isResolvingBusiness = false
+        }
+
+        LaunchedEffect(currentBusiness, branches, isAuthenticated) {
+            if (isAuthenticated && (currentBusiness != null || branches.isNotEmpty())) {
+                isResolvingBusiness = false
+            }
+        }
+
         // Log cuando currentBusiness o currentBranch cambien (para debug)
         LaunchedEffect(currentBusiness, currentBranch) {
             println("App: currentBusiness=${currentBusiness?.name}, currentBranch=${currentBranch?.name}")
         }
 
+        LaunchedEffect(currentBranch) {
+            ordersViewModel.setCurrentBranchId(currentBranch?.id)
+            ordersViewModel.loadMenuItems(currentBranch?.id)
+        }
+
         when {
+            isAuthenticated && isResolvingBusiness -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.foundation.layout.Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        androidx.compose.foundation.layout.Spacer(
+                            modifier = Modifier.height(16.dp)
+                        )
+                        androidx.compose.material3.Text("Cargando datos del negocio...")
+                    }
+                }
+            }
+
             // Caso 0: Verificando sesión al iniciar → Loading
             isCheckingSession -> {
                 Box(
@@ -147,9 +181,7 @@ fun App(viewModels: AppViewModels) {
             // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
             isAuthenticated && needsBusinessRegistration -> {
                 RegisterBusinessScreen(
-                    onRegisterSuccess = { _ ->
-                        // El currentBusinessType se actualizará automáticamente
-                        // cuando currentBusiness cambie en el AuthManager
+                    onRegisterSuccess = {
                         needsBusinessRegistration = false
                     },
                     onNavigateBack = {
@@ -253,10 +285,8 @@ fun App(viewModels: AppViewModels) {
                     }
                     showProductDetail && productToView != null -> {
                         // Pantalla de detalle del producto (solo lectura)
-                        // TODO: Refactorizar ProductDetailScreen para no necesitar businessType
                         ProductDetailScreen(
                             product = productToView!!,
-                            businessType = BusinessType.RESTAURANT, // Temporal: todas las pantallas son genéricas ahora
                             onNavigateBack = {
                                 showProductDetail = false
                                 productToView = null
@@ -271,22 +301,47 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     showAddProduct -> {
-                        // TODO: Refactorizar AddProductScreen para no necesitar businessType
                         AddProductScreen(
-                            businessType = BusinessType.RESTAURANT, // Temporal: todas las pantallas son genéricas ahora
                             branchId = authViewModel.getCurrentBranchId(),  // Pasar branchId actual
                             onNavigateBack = {
                                 showAddProduct = false
                                 productToEdit = null
                             },
-                            onSave = { product ->
-                                val productToSave = product.copy(
-                                    id = productToEdit?.id ?: "product_${kotlin.random.Random.nextLong()}"
-                                )
-                                if (productToEdit == null) {
-                                    menuViewModel.addProduct(productToSave)
-                                } else {
-                                    menuViewModel.updateProduct(productToSave)
+                            onSave = { form ->
+                                val currentBranchId = authViewModel.getCurrentBranchId()
+                                scope.launch {
+                                    if (currentBranchId == null) {
+                                        return@launch
+                                    }
+                                    if (form.imagePath.isNullOrBlank() && productToEdit == null) {
+                                        return@launch
+                                    }
+
+                                    if (productToEdit == null) {
+                                        productViewModel.createProductWithImagePath(
+                                            name = form.name,
+                                            description = form.description,
+                                            price = form.price,
+                                            imagePath = form.imagePath ?: "",
+                                            branchId = currentBranchId,
+                                            currency = "USD",
+                                            weight = form.weight,
+                                            categoryId = form.categoryId
+                                        )
+                                    } else {
+                                        productViewModel.updateProductWithImagePath(
+                                            productId = productToEdit!!.id,
+                                            name = form.name,
+                                            description = form.description,
+                                            price = form.price,
+                                            currency = productToEdit!!.currency,
+                                            weight = form.weight,
+                                            availability = form.availability,
+                                            categoryId = form.categoryId,
+                                            imagePath = form.imagePath
+                                        )
+                                    }
+                                    productViewModel.loadProducts(branchId = currentBranchId)
                                 }
                                 showAddProduct = false
                                 productToEdit = null
@@ -294,31 +349,6 @@ fun App(viewModels: AppViewModels) {
                             existingProduct = productToEdit
                         )
                     }
-                    // MVP: chats deshabilitados en la app de negocios
-                    /*
-                    showChatDetail && currentChatOrderId != null -> {
-                        ChatDetailScreen(
-                            orderId = currentChatOrderId!!,
-                            onNavigateBack = {
-                                showChatDetail = false
-                                currentChatOrderId = null
-                                showChats = true
-                            },
-                            viewModel = chatsViewModel
-                        )
-                    }
-                    showChats -> {
-                        ChatsScreen(
-                            onChatClick = { orderId ->
-                                currentChatOrderId = orderId
-                                showChatDetail = true
-                                showChats = false
-                            },
-                            onNavigateBack = { showChats = false },
-                            viewModel = chatsViewModel
-                        )
-                    }
-                    */
                     showStatistics -> {
                         StatisticsScreen(
                             ordersViewModel = ordersViewModel,
@@ -333,7 +363,7 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     showProfile -> {
-                        RestaurantProfileScreen(
+                        BusinessProfileScreen(
                             authViewModel = authViewModel,
                             businessRepository = businessRepository,
                             onNavigateBack = { showProfile = false },
@@ -344,16 +374,10 @@ fun App(viewModels: AppViewModels) {
                         // BusinessHomeScreen genérico (sin diferenciación por tipo)
                         BusinessHomeScreen(
                             authViewModel = authViewModel,
-                            businessType = BusinessType.RESTAURANT, // Temporal: pantallas genéricas
                             onNavigateToProfile = { showProfile = true },
                             onNavigateToStatistics = { showStatistics = true },
-                            onNavigateToChats = { showChats = true },
                             selectedTabIndex = selectedHomeTabIndex,
                             onTabSelected = { selectedHomeTabIndex = it },
-                            onNavigateToChatDetail = { orderId ->
-                                currentChatOrderId = orderId
-                                showChatDetail = true
-                            },
                             onNavigateToOrderDetail = { orderId ->
                                 selectedOrderId = orderId
                                 showOrderDetail = true
@@ -370,9 +394,8 @@ fun App(viewModels: AppViewModels) {
                                 confirmationType = type
                                 confirmationOrderNumber = orderNumber
                             },
-                            chatsViewModel = chatsViewModel,
                             ordersViewModel = ordersViewModel,
-                            menuViewModel = menuViewModel,
+                            productViewModel = productViewModel,
                             settingsViewModel = settingsViewModel
                         )
                     }

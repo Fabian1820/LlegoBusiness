@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.llego.nichos.restaurant.ui.components.BusinessLocationMap
+import com.llego.business.shared.ui.components.BusinessLocationMap
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.roundToLong

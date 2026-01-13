@@ -3,7 +3,7 @@ package com.llego.shared.data.model
 import kotlinx.serialization.Serializable
 
 /**
- * Modelos para Autenticación y Gestión de Usuarios
+ * Modelos para Autenticaci?n y Gesti?n de Usuarios
  * Basados en la API documentada en docs/users-api.md y docs/google-auth.md
  */
 
@@ -61,7 +61,7 @@ data class AddBranchToUserInput(
 // ============= RESPONSE TYPES =============
 
 /**
- * Respuesta de autenticación (login, register, loginWithGoogle)
+ * Respuesta de autenticaci?n (login, register, loginWithGoogle)
  */
 @Serializable
 data class AuthResponse(
@@ -71,8 +71,8 @@ data class AuthResponse(
 )
 
 /**
- * Modelo de Usuario actualizado según la API
- * Incluye campos para OAuth (Google/Apple) y gestión de negocios/sucursales
+ * Modelo de Usuario actualizado seg?n la API
+ * Incluye campos para OAuth (Google/Apple) y gesti?n de negocios/sucursales
  */
 @Serializable
 data class User(
@@ -94,7 +94,7 @@ data class User(
 // ============= RESULT TYPES =============
 
 /**
- * Resultado de operaciones de autenticación
+ * Resultado de operaciones de autenticaci?n
  */
 sealed class AuthResult<out T> {
     data class Success<T>(val data: T) : AuthResult<T>()
@@ -103,7 +103,7 @@ sealed class AuthResult<out T> {
 }
 
 /**
- * Estado de UI para autenticación
+ * Estado de UI para autenticaci?n
  */
 @Serializable
 data class AuthUiState(
@@ -126,105 +126,16 @@ fun User.hasBusiness(): Boolean = businessIds.isNotEmpty()
 fun User.hasBranches(): Boolean = branchIds.isNotEmpty()
 
 /**
- * Verifica si el usuario está autenticado con Google
+ * Verifica si el usuario est? autenticado con Google
  */
 fun User.isGoogleAuth(): Boolean = authProvider == "google"
 
 /**
- * Verifica si el usuario está autenticado con Apple
+ * Verifica si el usuario est? autenticado con Apple
  */
 fun User.isAppleAuth(): Boolean = authProvider == "apple"
 
 /**
- * Verifica si es autenticación local (email/password)
+ * Verifica si es autenticaci?n local (email/password)
  */
 fun User.isLocalAuth(): Boolean = authProvider == "local"
-
-/**
- * Obtiene el BusinessType del primer negocio (asumiendo un negocio por usuario)
- * DEPRECADO: No usar directamente. Usar AuthManager.getCurrentBusinessType() en su lugar
- * que consulta el Business real desde el backend
- *
- * @return null si el usuario no tiene negocios, BusinessType si tiene
- */
-@Deprecated(
-    "No usar directamente. Usar AuthManager.getCurrentBusinessType() que consulta datos reales del backend",
-    ReplaceWith("authManager.getCurrentBusinessType()")
-)
-fun User.getBusinessType(): BusinessType? {
-    // Retornar null si no hay negocios - esto fuerza a usar datos reales del backend
-    if (businessIds.isEmpty()) return null
-
-    // Si hay businessIds pero no tenemos el Business cargado, retornar null
-    // para forzar la carga desde AuthManager
-    return null
-}
-
-/**
- * Obtiene el BusinessProfile temporal del usuario
- * DEPRECADO: No usar directamente. Usar AuthManager.getBusinessProfile() en su lugar
- * que consulta el Business y Branch real desde el backend
- */
-@Deprecated(
-    "No usar directamente. Usar AuthManager.getBusinessProfile() que consulta datos reales del backend",
-    ReplaceWith("authManager.getBusinessProfile()")
-)
-fun User.getBusinessProfile(): BusinessProfile? {
-    if (businessIds.isEmpty()) return null
-
-    // Temporal: retornamos mock data con BusinessType default
-    return BusinessProfile(
-        businessId = businessIds.first(),
-        businessName = "Mi Negocio",
-        businessType = BusinessType.RESTAURANT, // Default temporal
-        address = "Dirección pendiente",
-        city = "Ciudad",
-        state = "Estado",
-        zipCode = "00000",
-        businessPhone = phone ?: "Sin teléfono",
-        description = "Descripción pendiente",
-        isVerified = false,
-        operatingHours = OperatingHours(),
-        deliveryRadius = 5.0,
-        averageRating = 4.5,
-        totalOrders = 0
-    )
-}
-
-// ============= BUSINESS PROFILE (TEMPORARY) =============
-// BusinessProfile temporal hasta implementar BusinessRepository
-@Serializable
-data class BusinessProfile(
-    val businessId: String,
-    val businessName: String,
-    val businessType: BusinessType,
-    val address: String,
-    val city: String,
-    val state: String,
-    val zipCode: String,
-    val businessPhone: String,
-    val description: String? = null,
-    val isVerified: Boolean = false,
-    val operatingHours: OperatingHours,
-    val deliveryRadius: Double = 5.0,
-    val averageRating: Double = 0.0,
-    val totalOrders: Int = 0
-)
-
-@Serializable
-data class OperatingHours(
-    val monday: DaySchedule = DaySchedule(),
-    val tuesday: DaySchedule = DaySchedule(),
-    val wednesday: DaySchedule = DaySchedule(),
-    val thursday: DaySchedule = DaySchedule(),
-    val friday: DaySchedule = DaySchedule(),
-    val saturday: DaySchedule = DaySchedule(),
-    val sunday: DaySchedule = DaySchedule()
-)
-
-@Serializable
-data class DaySchedule(
-    val isOpen: Boolean = true,
-    val openTime: String = "09:00",
-    val closeTime: String = "21:00"
-)

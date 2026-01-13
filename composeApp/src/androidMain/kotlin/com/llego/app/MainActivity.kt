@@ -7,15 +7,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.llego.app.AppViewModels
-import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.business.chats.ui.viewmodel.ChatsViewModel
+import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.orders.ui.viewmodel.OrdersViewModel
+import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
@@ -38,11 +36,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    private val menuViewModel: MenuViewModel by viewModels {
+    private val productViewModel: ProductViewModel by viewModels {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return MenuViewModel(tokenManager) as T
+                return ProductViewModel(tokenManager) as T
             }
         }
     }
@@ -85,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     auth = authViewModel,
                     chats = chatsViewModel,
                     orders = ordersViewModel,
-                    menu = menuViewModel,
+                    products = productViewModel,
                     settings = settingsViewModel,
                     registerBusiness = registerBusinessViewModel
                 )

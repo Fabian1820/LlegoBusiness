@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.llego.nichos.common.ui.components.rememberImagePickerController
+import com.llego.business.shared.ui.components.rememberImagePickerController
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.ImageUploadState

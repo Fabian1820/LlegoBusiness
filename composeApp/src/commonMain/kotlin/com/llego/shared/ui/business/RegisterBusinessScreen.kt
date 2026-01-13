@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterBusinessScreen(
-    onRegisterSuccess: (BusinessType) -> Unit,
+    onRegisterSuccess: () -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: RegisterBusinessViewModel,
     modifier: Modifier = Modifier
@@ -63,7 +63,6 @@ fun RegisterBusinessScreen(
 
     // Estados del formulario - Negocio
     var businessName by remember { mutableStateOf("") }
-    var businessType by remember { mutableStateOf(BusinessType.RESTAURANT) } // DEPRECATED: Solo para compatibilidad temporal
     var businessDescription by remember { mutableStateOf("") }
     var businessTagsList by remember { mutableStateOf(emptyList<String>()) }
 
@@ -157,7 +156,7 @@ fun RegisterBusinessScreen(
                     value = businessName,
                     onValueChange = { businessName = it },
                     label = "Nombre del Negocio *",
-                    placeholder = "Ej: Restaurante La Havana"
+                    placeholder = "Ej: Mi negocio"
                 )
 
                 LlegoTextField(
@@ -171,8 +170,7 @@ fun RegisterBusinessScreen(
                 // Tags selector mejorado
                 TagsSelector(
                     selectedTags = businessTagsList,
-                    onTagsChange = { businessTagsList = it },
-                    businessType = businessType
+                    onTagsChange = { businessTagsList = it }
                 )
 
                 // Imágenes del Negocio con upload a S3
@@ -439,50 +437,10 @@ fun RegisterBusinessScreen(
             onDismiss = {
                 showSuccessConfirmation = false
                 viewModel.resetState()
-                onRegisterSuccess(businessType)
+                onRegisterSuccess()
             }
         )
     }
-}
-
-/**
- * DEPRECATED: Ya no se usa BusinessType para diferenciación
- */
-@Deprecated("Usar BranchTipoChip en su lugar")
-@Composable
-private fun BusinessTypeChip(
-    type: BusinessType,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = when (type) {
-                    BusinessType.RESTAURANT -> "🍽️ Restaurante"
-                    BusinessType.MARKET -> "🛒 Tienda"
-                    BusinessType.CANDY_STORE -> "🍬 Dulcería"
-                },
-                style = MaterialTheme.typography.bodySmall
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = primaryColor.copy(alpha = 0.15f),
-            selectedLabelColor = primaryColor
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            selectedBorderColor = primaryColor,
-            selectedBorderWidth = 2.dp
-        ),
-        modifier = modifier
-    )
 }
 
 /**

@@ -3,10 +3,10 @@ package com.llego.app
 import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import com.llego.nichos.restaurant.ui.viewmodel.ChatsViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.MenuViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.OrdersViewModel
-import com.llego.nichos.restaurant.ui.viewmodel.SettingsViewModel
+import com.llego.business.chats.ui.viewmodel.ChatsViewModel
+import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.orders.ui.viewmodel.OrdersViewModel
+import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
 import com.llego.shared.ui.auth.AuthViewModel
@@ -26,7 +26,7 @@ fun main() = application {
                 auth = AuthViewModel(),
                 chats = ChatsViewModel(),
                 orders = OrdersViewModel(tokenManager),
-                menu = MenuViewModel(tokenManager),
+                products = ProductViewModel(tokenManager),
                 settings = SettingsViewModel(tokenManager),
                 registerBusiness = RegisterBusinessViewModel(tokenManager)
             )

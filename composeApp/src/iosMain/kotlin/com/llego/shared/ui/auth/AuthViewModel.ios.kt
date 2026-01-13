@@ -8,9 +8,7 @@ import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
-import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.User
-import com.llego.shared.data.model.BusinessProfile
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -27,9 +25,6 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
     private val _password = MutableStateFlow("")
     actual val password: StateFlow<String> = _password.asStateFlow()
-
-    private val _selectedBusinessType = MutableStateFlow<BusinessType?>(BusinessType.RESTAURANT)
-    actual val selectedBusinessType: StateFlow<BusinessType?> = _selectedBusinessType.asStateFlow()
 
     private val _loginError = MutableStateFlow<String?>(null)
     actual val loginError: StateFlow<String?> = _loginError.asStateFlow()
@@ -84,18 +79,8 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         clearLoginError()
     }
 
-    actual fun selectBusinessType(businessType: BusinessType) {
-        _selectedBusinessType.value = businessType
-        clearLoginError()
-    }
-
     actual fun login() {
         viewModelScope.launch {
-            if (_selectedBusinessType.value == null) {
-                _loginError.value = "Selecciona un tipo de negocio"
-                return@launch
-            }
-
             _uiState.value = _uiState.value.copy(isLoading = true)
             _loginError.value = null
 
@@ -197,8 +182,8 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     }
 
     /**
-     * Autenticación directa con JWT del backend (para Android Apple Sign-In OAuth flow)
-     * En iOS no se usa este método, Apple Sign-In usa el SDK nativo
+     * Autenticaci?n directa con JWT del backend (para Android Apple Sign-In OAuth flow)
+     * En iOS no se usa este m?todo, Apple Sign-In usa el SDK nativo
      */
     actual fun authenticateWithToken(token: String) {
         viewModelScope.launch {
@@ -259,15 +244,10 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     private fun clearLoginForm() {
         _email.value = ""
         _password.value = ""
-        _selectedBusinessType.value = null
         _loginError.value = null
     }
 
     actual fun getCurrentUser(): User? = authManager.currentUser.value
-
-    actual fun getCurrentBusinessType(): BusinessType? = authManager.getCurrentBusinessType()
-
-    actual fun getBusinessProfile(): BusinessProfile? = authManager.getBusinessProfile()
 
     actual fun getCurrentBranchId(): String? = authManager.currentBranch.value?.id
 

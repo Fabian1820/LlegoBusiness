@@ -542,7 +542,7 @@ class AuthViewModel(
    - Radio de entrega
 4. Al enviar: `registerBusiness` mutation
 5. Automáticamente el `businessId` se agrega al usuario
-6. Redirigir a Dashboard del nicho correspondiente
+6. Redirigir a Dashboard principal correspondiente
 
 #### 7.3 ProfileScreen Updates
 
@@ -571,7 +571,7 @@ class AuthViewModel(
    ↓
 6. businessId agregado automáticamente a user.businessIds
    ↓
-7. Navegación a Dashboard del nicho
+7. Navegación a Dashboard principal
 ```
 
 ### Flujo 2: Login Existente
@@ -584,12 +584,12 @@ class AuthViewModel(
    ↓
 4. Si user.businessIds.isEmpty() → RegisterBusinessScreen
    ↓
-5. Si user.businessIds.isNotEmpty() → Dashboard del nicho
+5. Si user.businessIds.isNotEmpty() → Dashboard principal
 ```
 
 ### Flujo 3: Crear Producto
 ```
-1. MenuScreen → "Agregar Producto"
+1. ProductsScreen → "Agregar Producto"
    ↓
 2. ProductFormScreen → Formulario
    ↓

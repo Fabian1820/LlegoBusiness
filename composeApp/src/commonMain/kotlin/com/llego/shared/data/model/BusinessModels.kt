@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Modelo de negocio (Business)
- * IMPORTANTE: Ya no tiene campo 'type' - La diferenciación se hace por Branch.tipos
+ * IMPORTANTE: Ya no tiene campo 'type' - La diferenciaci?n se hace por Branch.tipos
  */
 @Serializable
 data class Business(
@@ -55,7 +55,7 @@ data class Branch(
 )
 
 /**
- * Enum de tipos de sucursal (BranchTipo) según backend
+ * Enum de tipos de sucursal (BranchTipo) seg?n backend
  * MVP: RESTAURANTE, TIENDA, DULCERIA
  */
 @Serializable
@@ -70,19 +70,12 @@ enum class BranchTipo {
  */
 fun BranchTipo.toDisplayName(): String = when (this) {
     BranchTipo.RESTAURANTE -> "Restaurante"
-    BranchTipo.DULCERIA -> "Dulcería"
+    BranchTipo.DULCERIA -> "Dulcer?a"
     BranchTipo.TIENDA -> "Tienda"
 }
 
 /**
- * DEPRECATED: Ya no se usa la conversión automática BusinessType -> BranchTipo
- * El usuario elige directamente los tipos de sucursal
- */
-@Deprecated("Ya no existe relación directa entre BusinessType y BranchTipo")
-fun BusinessType.toBranchTipo(): BranchTipo = BranchTipo.RESTAURANTE // Valor por defecto
-
-/**
- * Coordenadas geográficas (GeoJSON Point)
+ * Coordenadas geogr?ficas (GeoJSON Point)
  */
 @Serializable
 data class Coordinates(
@@ -132,7 +125,7 @@ data class UpdateBusinessInput(
 )
 
 /**
- * Input para registrar una sucursal durante creación de negocio (alineado con backend)
+ * Input para registrar una sucursal durante creaci?n de negocio (alineado con backend)
  */
 @Serializable
 data class RegisterBranchInput(
@@ -208,67 +201,4 @@ sealed class BusinessResult<out T> {
     data class Success<T>(val data: T) : BusinessResult<T>()
     data class Error(val message: String, val code: String? = null) : BusinessResult<Nothing>()
     data object Loading : BusinessResult<Nothing>()
-}
-
-// ============= EXTENSION FUNCTIONS =============
-
-/**
- * DEPRECATED: BusinessProfile ya no se usa en la nueva arquitectura genérica
- * Se mantiene temporalmente para compatibilidad con código legacy
- */
-@Deprecated("Ya no se usa BusinessProfile en arquitectura genérica")
-fun Business.toBusinessProfile(branch: Branch?): BusinessProfile {
-    return BusinessProfile(
-        businessId = id,
-        businessName = name,
-        businessType = BusinessType.RESTAURANT, // Valor por defecto para compatibilidad
-        address = branch?.address ?: "Sin dirección",
-        city = "Ciudad",
-        state = "Estado",
-        zipCode = "00000",
-        businessPhone = branch?.phone ?: "Sin teléfono",
-        description = description,
-        isVerified = true,
-        operatingHours = branch?.schedule?.toOperatingHours() ?: OperatingHours(),
-        deliveryRadius = branch?.deliveryRadius ?: 5.0,
-        averageRating = globalRating,
-        totalOrders = 0
-    )
-}
-
-/**
- * Convierte Map de schedule del backend a OperatingHours
- * Backend format: {"mon": ["08:00-12:00", "14:00-20:00"], "tue": ["08:00-20:00"], "wed": []}
- * [] = cerrado
- * Múltiples rangos = horario partido
- */
-fun Map<String, List<String>>.toOperatingHours(): OperatingHours {
-    fun parseDay(ranges: List<String>?): DaySchedule {
-        if (ranges.isNullOrEmpty()) {
-            return DaySchedule(isOpen = false, openTime = "", closeTime = "")
-        }
-
-        // Tomar el primer rango como principal
-        val firstRange = ranges.first()
-        val parts = firstRange.split("-")
-        if (parts.size == 2) {
-            return DaySchedule(
-                isOpen = true,
-                openTime = parts[0],
-                closeTime = parts[1]
-            )
-        }
-
-        return DaySchedule(isOpen = false, openTime = "", closeTime = "")
-    }
-
-    return OperatingHours(
-        monday = parseDay(get("mon")),
-        tuesday = parseDay(get("tue")),
-        wednesday = parseDay(get("wed")),
-        thursday = parseDay(get("thu")),
-        friday = parseDay(get("fri")),
-        saturday = parseDay(get("sat")),
-        sunday = parseDay(get("sun"))
-    )
 }

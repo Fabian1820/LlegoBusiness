@@ -9,9 +9,7 @@ import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
-import com.llego.shared.data.model.BusinessType
 import com.llego.shared.data.model.User
-import com.llego.shared.data.model.BusinessProfile
 import com.llego.shared.data.model.BusinessResult
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,7 +17,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "AuthViewModel"
 
 /**
- * Implementación Android del AuthViewModel
+ * Implementaci?n Android del AuthViewModel
  * Usa AndroidViewModel para tener acceso al Application context
  */
 actual class AuthViewModel : ViewModel {
@@ -31,15 +29,12 @@ actual class AuthViewModel : ViewModel {
     private val _uiState = MutableStateFlow(AuthUiState())
     actual val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    // Estados específicos para el formulario de login
+    // Estados espec?ficos para el formulario de login
     private val _email = MutableStateFlow("")
     actual val email: StateFlow<String> = _email.asStateFlow()
 
     private val _password = MutableStateFlow("")
     actual val password: StateFlow<String> = _password.asStateFlow()
-
-    private val _selectedBusinessType = MutableStateFlow<BusinessType?>(BusinessType.RESTAURANT)
-    actual val selectedBusinessType: StateFlow<BusinessType?> = _selectedBusinessType.asStateFlow()
 
     private val _loginError = MutableStateFlow<String?>(null)
     actual val loginError: StateFlow<String?> = _loginError.asStateFlow()
@@ -66,8 +61,8 @@ actual class AuthViewModel : ViewModel {
         }
 
     actual constructor() : super() {
-        // Constructor sin parámetros requerido por expect/actual
-        // Inicialización lazy con TokenManager mock
+        // Constructor sin par?metros requerido por expect/actual
+        // Inicializaci?n lazy con TokenManager mock
         Log.d(TAG, "constructor: AuthViewModel creado")
     }
 
@@ -81,7 +76,7 @@ actual class AuthViewModel : ViewModel {
             authManager = AuthManager(tokenManager = tokenManager)
             isInitialized = true
 
-            // Observar cambios en el estado de autenticación y business data
+            // Observar cambios en el estado de autenticaci?n y business data
             viewModelScope.launch {
                 combine(
                     authManager.isAuthenticated,
@@ -97,46 +92,46 @@ actual class AuthViewModel : ViewModel {
                 }.collect()
             }
 
-            // IMPORTANTE: Intentar restaurar sesión automáticamente al inicializar
+            // IMPORTANTE: Intentar restaurar sesi?n autom?ticamente al inicializar
             restoreSessionIfNeeded()
         }
     }
 
     init {
-        // Asegurar que se inicializa automáticamente al crear el ViewModel
+        // Asegurar que se inicializa autom?ticamente al crear el ViewModel
         ensureInitialized()
     }
-    
+
     /**
-     * Restaura la sesión del usuario si hay un token guardado
+     * Restaura la sesi?n del usuario si hay un token guardado
      */
     private fun restoreSessionIfNeeded() {
         viewModelScope.launch {
             Log.d(TAG, "restoreSessionIfNeeded: verificando token guardado")
-            
+
             // Verificar si hay token guardado
             if (TokenManager.hasStoredToken()) {
-                Log.d(TAG, "restoreSessionIfNeeded: token encontrado, restaurando sesión...")
+                Log.d(TAG, "restoreSessionIfNeeded: token encontrado, restaurando sesi?n...")
                 _uiState.value = _uiState.value.copy(isLoading = true)
-                
+
                 // Obtener usuario actual desde el backend
                 val result = authManager.getCurrentUser()
-                
+
                 when (result) {
                     is AuthResult.Success -> {
-                        Log.d(TAG, "restoreSessionIfNeeded: sesión restaurada para ${result.data.email}")
+                        Log.d(TAG, "restoreSessionIfNeeded: sesi?n restaurada para ${result.data.email}")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             isAuthenticated = true,
                             user = result.data,
                             error = null
                         )
-                        
+
                         // Cargar datos de negocio y sucursales
                         loadBusinessData()
                     }
                     is AuthResult.Error -> {
-                        Log.w(TAG, "restoreSessionIfNeeded: error restaurando sesión: ${result.message}")
+                        Log.w(TAG, "restoreSessionIfNeeded: error restaurando sesi?n: ${result.message}")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             isAuthenticated = false,
@@ -198,20 +193,10 @@ actual class AuthViewModel : ViewModel {
         clearLoginError()
     }
 
-    actual fun selectBusinessType(businessType: BusinessType) {
-        _selectedBusinessType.value = businessType
-        clearLoginError()
-    }
-
     actual fun login() {
         ensureInitialized()
 
         viewModelScope.launch {
-            if (_selectedBusinessType.value == null) {
-                _loginError.value = "Selecciona un tipo de negocio"
-                return@launch
-            }
-
             _uiState.value = _uiState.value.copy(isLoading = true)
             _loginError.value = null
 
@@ -245,7 +230,7 @@ actual class AuthViewModel : ViewModel {
                     _loginError.value = result.message
                 }
                 else -> {
-                    // AuthResult.Loading - no debería llegar aquí
+                    // AuthResult.Loading - no deber?a llegar aqu?
                 }
             }
         }
@@ -322,12 +307,12 @@ actual class AuthViewModel : ViewModel {
     }
 
     /**
-     * Autenticación directa con JWT del backend (para Android Apple Sign-In OAuth flow)
+     * Autenticaci?n directa con JWT del backend (para Android Apple Sign-In OAuth flow)
      * El token ya viene validado del backend, solo se guarda y se obtiene el usuario
      */
     actual fun authenticateWithToken(token: String) {
         ensureInitialized()
-        
+
         Log.d(TAG, "authenticateWithToken: iniciando con token length=${token.length}")
 
         viewModelScope.launch {
@@ -338,7 +323,7 @@ actual class AuthViewModel : ViewModel {
 
             when (result) {
                 is AuthResult.Success -> {
-                    Log.d(TAG, "authenticateWithToken: éxito - usuario=${result.data.email}")
+                    Log.d(TAG, "authenticateWithToken: ?xito - usuario=${result.data.email}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isAuthenticated = true,
@@ -395,23 +380,12 @@ actual class AuthViewModel : ViewModel {
     private fun clearLoginForm() {
         _email.value = ""
         _password.value = ""
-        _selectedBusinessType.value = null
         _loginError.value = null
     }
 
     actual fun getCurrentUser(): User? {
         ensureInitialized()
         return authManager.currentUser.value
-    }
-
-    actual fun getCurrentBusinessType(): BusinessType? {
-        ensureInitialized()
-        return authManager.getCurrentBusinessType()
-    }
-
-    actual fun getBusinessProfile(): BusinessProfile? {
-        ensureInitialized()
-        return authManager.getBusinessProfile()
     }
 
     /**

@@ -15,25 +15,21 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.llego.shared.data.model.BusinessType
 
 /**
  * Selector interactivo de tags/etiquetas para el negocio
  *
- * Muestra tags sugeridos según el tipo de negocio y permite
- * agregar tags personalizados. Los tags seleccionados se muestran
- * como chips removibles.
+ * Muestra tags sugeridos gen?ricos y permite agregar tags personalizados.
+ * Los tags seleccionados se muestran como chips removibles.
  *
  * @param selectedTags Lista de tags seleccionados
  * @param onTagsChange Callback cuando cambian los tags
- * @param businessType Tipo de negocio (para sugerir tags relevantes)
  * @param modifier Modificador opcional
  */
 @Composable
 fun TagsSelector(
     selectedTags: List<String>,
     onTagsChange: (List<String>) -> Unit,
-    businessType: BusinessType,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -43,8 +39,8 @@ fun TagsSelector(
     var showCustomInput by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Tags sugeridos según tipo de negocio
-    val suggestedTags = getSuggestedTags(businessType)
+    // Tags sugeridos gen?ricos
+    val suggestedTags = getSuggestedTags()
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -206,10 +202,10 @@ fun TagsSelector(
             }
         }
 
-        // Límite de tags
+        // L?mite de tags
         if (selectedTags.size >= 10) {
             Text(
-                text = "⚠️ Máximo 10 tags alcanzado",
+                text = "?? M?ximo 10 tags alcanzado",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.error
                 )
@@ -290,51 +286,21 @@ private fun SelectedTagChip(
 }
 
 /**
- * Obtiene tags sugeridos según el tipo de negocio
+ * Obtiene tags sugeridos gen?ricos
  */
-private fun getSuggestedTags(businessType: BusinessType): List<String> {
-    return when (businessType) {
-        BusinessType.RESTAURANT -> listOf(
-            "delivery",
-            "comida rápida",
-            "gourmet",
-            "vegano",
-            "vegetariano",
-            "sin gluten",
-            "familiar",
-            "romántico",
-            "buffet",
-            "reservas",
-            "para llevar",
-            "comida casera"
-        )
-        BusinessType.MARKET -> listOf(
-            "abarrotes",
-            "frutas frescas",
-            "verduras",
-            "24 horas",
-            "productos orgánicos",
-            "carnes",
-            "lácteos",
-            "panadería",
-            "congelados",
-            "limpieza",
-            "bebidas",
-            "snacks"
-        )
-        BusinessType.CANDY_STORE -> listOf(
-            "postres",
-            "dulces",
-            "artesanal",
-            "sin azúcar",
-            "chocolates",
-            "tortas",
-            "galletas",
-            "helados",
-            "bombones",
-            "repostería",
-            "para eventos",
-            "vegano"
-        )
-    }
+private fun getSuggestedTags(): List<String> {
+    return listOf(
+        "delivery",
+        "24 horas",
+        "para llevar",
+        "familiar",
+        "premium",
+        "econ?mico",
+        "r?pido",
+        "local",
+        "recomendado",
+        "nuevo",
+        "popular",
+        "promociones"
+    )
 }

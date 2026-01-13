@@ -34,8 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.auth.rememberAppleSignInHelper
 import com.llego.shared.data.auth.rememberGoogleSignInHelper
-import com.llego.shared.data.model.BusinessType
-import com.llego.shared.data.model.getBusinessType
 import com.llego.shared.ui.auth.components.AppTipsSection
 import com.llego.shared.ui.auth.components.LlegoLogo
 import com.llego.shared.ui.auth.components.SocialButtons

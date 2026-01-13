@@ -4,8 +4,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Resultado de la subida de una imagen
- * Backend devuelve snake_case (image_path, image_url)
+ * Resultado de la subida de una imagen.
+ * Backend devuelve snake_case (image_path, image_url).
  */
 @Serializable
 data class ImageUploadResponse(
@@ -16,7 +16,7 @@ data class ImageUploadResponse(
 )
 
 /**
- * Resultado de operaciones de subida de imágenes
+ * Resultado de operaciones de subida de imagenes.
  */
 sealed class ImageUploadResult {
     data class Success(val response: ImageUploadResponse) : ImageUploadResult()
@@ -25,45 +25,33 @@ sealed class ImageUploadResult {
 }
 
 /**
- * Tipos de entidades para las que se pueden subir imágenes
- */
-enum class ImageUploadEntityType {
-    PRODUCT,        // Imagen de producto
-    USER_AVATAR,    // Avatar de usuario
-    BUSINESS_AVATAR, // Avatar de negocio
-    BUSINESS_COVER,  // Portada de negocio
-    BRANCH_AVATAR,   // Avatar de sucursal
-    BRANCH_COVER     // Portada de sucursal
-}
-
-/**
- * Estado del proceso de selección y subida de imagen.
- * Representa el ciclo completo: Idle → Selected → Uploading → (Success | Error)
+ * Estado del proceso de seleccion y subida de imagen.
+ * Representa el ciclo completo: Idle -> Selected -> Uploading -> (Success | Error).
  */
 sealed class ImageUploadState {
     /** Estado inicial, sin imagen seleccionada */
     data object Idle : ImageUploadState()
-    
+
     /** Imagen seleccionada, lista para subir */
     data class Selected(
         val localUri: String,
         val filename: String
     ) : ImageUploadState()
-    
+
     /** Imagen en proceso de subida a S3 */
     data class Uploading(
         val localUri: String,
         val filename: String,
         val progress: Float? = null
     ) : ImageUploadState()
-    
+
     /** Subida completada exitosamente */
     data class Success(
         val localUri: String,
         val s3Path: String,
         val filename: String
     ) : ImageUploadState()
-    
+
     /** Error durante la subida */
     data class Error(
         val localUri: String,

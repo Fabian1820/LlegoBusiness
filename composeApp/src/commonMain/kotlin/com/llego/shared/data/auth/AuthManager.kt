@@ -1,12 +1,12 @@
 package com.llego.shared.data.auth
 
 import com.llego.shared.data.model.*
-import com.llego.shared.data.repositories.AuthRepository
 import com.llego.shared.data.repositories.BusinessRepository
+import com.llego.shared.data.repositories.AuthRepository
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Manager centralizado para la autenticación en las apps de Llego
+ * Manager centralizado para la autenticaci?n en las apps de Llego
  * Coordina entre el AuthRepository, BusinessRepository y las diferentes pantallas
  * Actualizado para usar GraphQL con Business y Branch data
  */
@@ -15,46 +15,57 @@ class AuthManager(private val tokenManager: TokenManager) {
     private val authRepository = AuthRepository(tokenManager = tokenManager)
     private val businessRepository = BusinessRepository(tokenManager = tokenManager)
 
-    // Exposición de los flows del repository
+    // Exposici?n de los flows del repository
     val currentUser: StateFlow<User?> = authRepository.currentUser
     val isAuthenticated: StateFlow<Boolean> = authRepository.isAuthenticated
 
-    // Exposición de los flows de Business
+    // Exposici?n de los flows de Business
     val currentBusiness: StateFlow<Business?> = businessRepository.currentBusiness
     val businesses: StateFlow<List<Business>> = businessRepository.businesses
     val branches: StateFlow<List<Branch>> = businessRepository.branches
     val currentBranch: StateFlow<Branch?> = businessRepository.currentBranch
 
+    private suspend fun refreshUserAfterAuth(result: AuthResult<User>): AuthResult<User> {
+        if (result is AuthResult.Success) {
+            return when (val refreshed = authRepository.getCurrentUser()) {
+                is AuthResult.Success -> refreshed
+                is AuthResult.Error -> result
+                AuthResult.Loading -> result
+            }
+        }
+        return result
+    }
+
     /**
      * Realiza el login del usuario
      */
     suspend fun login(email: String, password: String): AuthResult<User> {
-        return authRepository.login(email, password)
+        return refreshUserAfterAuth(authRepository.login(email, password))
     }
 
     /**
      * Registra un nuevo usuario
      */
     suspend fun register(input: RegisterInput): AuthResult<User> {
-        return authRepository.register(input)
+        return refreshUserAfterAuth(authRepository.register(input))
     }
 
     /**
      * Login con Google
      */
     suspend fun loginWithGoogle(idToken: String, nonce: String? = null): AuthResult<User> {
-        return authRepository.loginWithGoogle(idToken, nonce)
+        return refreshUserAfterAuth(authRepository.loginWithGoogle(idToken, nonce))
     }
 
     /**
      * Login con Apple usando Identity Token (para iOS)
      */
     suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
-        return authRepository.loginWithApple(identityToken, nonce)
+        return refreshUserAfterAuth(authRepository.loginWithApple(identityToken, nonce))
     }
 
     /**
-     * Autenticación directa con JWT del backend (para Android Apple Sign-In)
+     * Autenticaci?n directa con JWT del backend (para Android Apple Sign-In)
      * El JWT ya viene validado del backend, solo necesitamos guardarlo y obtener el usuario
      */
     suspend fun authenticateWithToken(token: String): AuthResult<User> {
@@ -124,7 +135,7 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
-     * Obtiene un negocio específico por ID
+     * Obtiene un negocio espec?fico por ID
      */
     suspend fun getBusiness(id: String): BusinessResult<Business> {
         return businessRepository.getBusiness(id)
@@ -151,7 +162,7 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
-     * Obtiene una sucursal específica por ID
+     * Obtiene una sucursal espec?fica por ID
      */
     suspend fun getBranch(id: String): BusinessResult<Branch> {
         return businessRepository.getBranch(id)
@@ -182,51 +193,28 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
-     * Verifica si el usuario está autenticado (sincrónico)
+     * Verifica si el usuario est? autenticado (sincr?nico)
      */
     fun isUserAuthenticated(): Boolean {
         return authRepository.isUserAuthenticated()
     }
 
     /**
-     * Obtiene el usuario actual del estado (sincrónico)
+     * Obtiene el usuario actual del estado (sincr?nico)
      */
     fun getCurrentUserSync(): User? {
         return currentUser.value
     }
 
-    // ============= HELPER METHODS =============
-
     /**
-     * DEPRECATED: Ya no existe el concepto de tipo de negocio
-     * La diferenciación ahora se hace por Branch.tipos, no por Business.type
-     */
-    @Deprecated("Ya no existe business.type - usar Branch.tipos en su lugar")
-    fun getCurrentBusinessType(): BusinessType? {
-        // Retornar valor por defecto para mantener compatibilidad temporal
-        return BusinessType.RESTAURANT
-    }
-
-    /**
-     * Obtiene el perfil de negocio del usuario actual
-     * Combina datos de Business y Branch actual
-     */
-    fun getBusinessProfile(): BusinessProfile? {
-        val business = currentBusiness.value ?: return null
-        val branch = currentBranch.value
-
-        return business.toBusinessProfile(branch)
-    }
-
-    /**
-     * Obtiene el negocio actual sincrónico
+     * Obtiene el negocio actual sincr?nico
      */
     fun getCurrentBusinessSync(): Business? {
         return currentBusiness.value
     }
 
     /**
-     * Obtiene la sucursal actual sincrónico
+     * Obtiene la sucursal actual sincr?nico
      */
     fun getCurrentBranchSync(): Branch? {
         return currentBranch.value
@@ -245,10 +233,3 @@ class AuthManager(private val tokenManager: TokenManager) {
         }
     }
 }
-
-/**
- * Modelos de compatibilidad para código legacy
- */
-
-// NOTE: BusinessProfile, OperatingHours, DaySchedule, and AuthUiState
-// are now defined in com.llego.shared.data.model.AuthModels.kt

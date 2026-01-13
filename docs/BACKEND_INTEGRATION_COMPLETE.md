@@ -171,7 +171,7 @@ Product (Qdrant)
 4. RegisterBusinessScreen → registerBusiness mutation
 5. Negocio y sucursales creados
 6. businessId agregado automáticamente a user.businessIds
-7. Navegación a Dashboard del nicho
+7. Navegación a Dashboard principal
 ```
 
 #### Flujo 2: Login Existente
@@ -180,12 +180,12 @@ Product (Qdrant)
 2. JWT guardado en TokenManager
 3. me query para obtener usuario completo
 4. Si user.businessIds.isEmpty() → RegisterBusinessScreen
-5. Si user.businessIds.isNotEmpty() → Dashboard del nicho
+5. Si user.businessIds.isNotEmpty() → Dashboard principal
 ```
 
 #### Flujo 3: Crear Producto
 ```
-1. MenuScreen → "Agregar Producto"
+1. ProductsScreen → "Agregar Producto"
 2. ProductFormScreen → Formulario
 3. Upload imagen → ImageUploadService
 4. Recibir image_path
@@ -234,7 +234,6 @@ composeApp/src/commonMain/graphql/
 shared/data/model/
 ├── AuthModels.kt       ✅ (User, AuthResult, Inputs)
 ├── BusinessModels.kt   ✅ (Business, Branch, Coordinates)
-├── BusinessType.kt     ✅ (Enum con conversiones)
 └── ImageUpload.kt      ✅ (UploadResponse, UploadResult)
 ```
 
