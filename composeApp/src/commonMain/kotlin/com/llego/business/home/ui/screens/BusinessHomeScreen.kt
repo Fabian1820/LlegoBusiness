@@ -63,6 +63,7 @@ fun BusinessHomeScreen(
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (Product?) -> Unit = {},
     onNavigateToProductDetail: (Product) -> Unit = {},
+    onNavigateToProductSearch: () -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     ordersViewModel: OrdersViewModel,
     productViewModel: ProductViewModel,
@@ -209,7 +210,8 @@ fun BusinessHomeScreen(
                         viewModel = productViewModel,
                         branchId = authViewModel.getCurrentBranchId(),
                         onNavigateToAddProduct = onNavigateToAddProduct,
-                        onNavigateToProductDetail = onNavigateToProductDetail
+                        onNavigateToProductDetail = onNavigateToProductDetail,
+                        onNavigateToProductSearch = onNavigateToProductSearch
                     )
                 }
                 "wallet" -> {

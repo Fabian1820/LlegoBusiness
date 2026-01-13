@@ -18,6 +18,7 @@ import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.business.home.ui.screens.BusinessHomeScreen
 import com.llego.business.products.ui.screens.AddProductScreen
 import com.llego.business.products.ui.screens.ProductDetailScreen
+import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
@@ -65,6 +66,7 @@ fun App(viewModels: AppViewModels) {
         var productToEdit by remember { mutableStateOf<Product?>(null) }
         var showProductDetail by remember { mutableStateOf(false) }
         var productToView by remember { mutableStateOf<Product?>(null) }
+        var showProductSearch by remember { mutableStateOf(false) }
         var showOrderDetail by remember { mutableStateOf(false) }
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
         var selectedHomeTabIndex by rememberSaveable { mutableStateOf(0) }
@@ -81,6 +83,7 @@ fun App(viewModels: AppViewModels) {
         val ordersViewModel = viewModels.orders
         val productViewModel = viewModels.products
         val settingsViewModel = viewModels.settings
+        val productsState by productViewModel.productsState.collectAsState()
 
         // Scope para operaciones asíncronas
         val scope = rememberCoroutineScope()
@@ -197,6 +200,18 @@ fun App(viewModels: AppViewModels) {
             Box(modifier = Modifier) {
                 // Contenido principal con navegación condicional
                 when {
+                    showProductSearch -> {
+                        ProductSearchScreen(
+                            productsState = productsState,
+                            onNavigateBack = { showProductSearch = false },
+                            onProductSelected = { product ->
+                                showProductSearch = false
+                                productToView = product
+                                showProductDetail = true
+                            },
+                            onRetry = { productViewModel.loadProducts(branchId = authViewModel.getCurrentBranchId()) }
+                        )
+                    }
                     showOrderDetail && selectedOrderId != null -> {
                         // Pantalla de detalle del pedido con animación
                         AnimatedVisibility(
@@ -389,6 +404,9 @@ fun App(viewModels: AppViewModels) {
                             onNavigateToProductDetail = { product ->
                                 productToView = product
                                 showProductDetail = true
+                            },
+                            onNavigateToProductSearch = {
+                                showProductSearch = true
                             },
                             onShowConfirmation = { type, orderNumber ->
                                 confirmationType = type

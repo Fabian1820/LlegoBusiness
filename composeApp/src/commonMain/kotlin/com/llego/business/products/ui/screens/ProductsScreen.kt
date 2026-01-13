@@ -65,6 +65,7 @@ fun ProductsScreen(
     branchId: String?,
     onNavigateToAddProduct: (Product?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
+    onNavigateToProductSearch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val productsState by viewModel.productsState.collectAsState()
@@ -73,7 +74,6 @@ fun ProductsScreen(
 
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<Product?>(null) }
-    var showSearch by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
@@ -90,19 +90,6 @@ fun ProductsScreen(
 
     val filteredProducts = products.filter { product ->
         selectedCategoryId == null || product.categoryId == selectedCategoryId
-    }
-
-    if (showSearch) {
-        ProductSearchScreen(
-            productsState = productsState,
-            onNavigateBack = { showSearch = false },
-            onProductSelected = { product ->
-                showSearch = false
-                onNavigateToProductDetail(product)
-            },
-            onRetry = { viewModel.loadProducts(branchId = branchId) }
-        )
-        return
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -211,7 +198,7 @@ fun ProductsScreen(
             horizontalAlignment = Alignment.End
         ) {
             FloatingActionButton(
-                onClick = { showSearch = true },
+                onClick = onNavigateToProductSearch,
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = Color.White
             ) {
