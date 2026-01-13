@@ -24,14 +24,12 @@ fun GetBusinessesQuery.Business.toDomain(): Business {
         ownerId = "", // No viene en la query lista
         globalRating = globalRating,
         avatar = null,
-        coverImage = null,
         description = description,
         socialMedia = null,
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatar
     )
 }
 
@@ -42,14 +40,12 @@ fun GetBusinessQuery.Business.toDomain(): Business {
         ownerId = ownerId,
         globalRating = globalRating,
         avatar = null,
-        coverImage = null,
         description = description,
         socialMedia = null,
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatar
     )
 }
 
@@ -60,14 +56,12 @@ fun RegisterBusinessMutation.RegisterBusiness.toDomain(): Business {
         ownerId = "", // Se llenará del context
         globalRating = globalRating,
         avatar = null,
-        coverImage = null,
         description = description,
         socialMedia = null,
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatar
     )
 }
 
@@ -78,14 +72,12 @@ fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business {
         ownerId = "", // No cambia en update
         globalRating = globalRating,
         avatar = null,
-        coverImage = null,
         description = description,
         socialMedia = null,
         tags = tags,
         isActive = isActive,
         createdAt = "", // No viene en update
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatar
     )
 }
 
@@ -271,7 +263,6 @@ fun CreateBusinessInput.toGraphQL(): GQLCreateBusinessInput {
     return GQLCreateBusinessInput(
         name = name,
         avatar = Optional.presentIfNotNull(avatar),
-        coverImage = Optional.presentIfNotNull(coverImage),
         description = Optional.presentIfNotNull(description),
         tags = Optional.presentIfNotNull(tags)
     )
@@ -281,7 +272,6 @@ fun UpdateBusinessInput.toGraphQL(): GQLUpdateBusinessInput {
     return GQLUpdateBusinessInput(
         name = Optional.presentIfNotNull(name),
         avatar = Optional.presentIfNotNull(avatar),
-        coverImage = Optional.presentIfNotNull(coverImage),
         description = Optional.presentIfNotNull(description),
         tags = Optional.presentIfNotNull(tags),
         isActive = Optional.presentIfNotNull(isActive)

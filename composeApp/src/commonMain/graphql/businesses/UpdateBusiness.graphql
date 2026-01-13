@@ -8,9 +8,9 @@ mutation UpdateBusiness(
     name
     description
     avatar
-    coverImage
     tags
     isActive
     globalRating
+    avatarUrl
   }
 }

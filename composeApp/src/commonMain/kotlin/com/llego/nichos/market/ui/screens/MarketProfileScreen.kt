@@ -107,7 +107,7 @@ fun MarketProfileScreen(
             item {
                 BannerWithLogoSection(
                     avatarUrl = currentBusiness?.avatarUrl,
-                    coverUrl = currentBusiness?.coverUrl
+                    coverUrl = null  // Business ya no tiene cover
                 )
             }
 

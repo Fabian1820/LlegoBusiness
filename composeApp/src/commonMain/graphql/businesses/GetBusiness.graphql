@@ -4,11 +4,11 @@ query GetBusiness($id: String!, $jwt: String) {
     name
     description
     avatar
-    coverImage
     tags
     globalRating
     isActive
     createdAt
     ownerId
+    avatarUrl
   }
 }

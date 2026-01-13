@@ -60,9 +60,9 @@ type Query {
   branchLocation(branchId: String!, jwt: String = null): CoordinatesType
 
   """
-  Lista de productos con scoring por cercanía
+  Lista de productos con scoring por cercanía (paginado)
   """
-  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, branchTipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): [ScoredProductType!]!
+  products(ids: [String!] = null, branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, branchTipo: BranchTipo = null, radiusKm: Float = null, first: Int = null, after: String = null, jwt: String = null): ProductConnection!
 
   """
   Obtener producto por ID
@@ -152,8 +152,6 @@ type BusinessType {
 
   avatar: String
 
-  coverImage: String
-
   description: String
 
   socialMedia: JSON
@@ -168,11 +166,6 @@ type BusinessType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
-
-  """
-  Presigned URL for the business cover image
-  """
-  coverUrl: String
 }
 
 """
@@ -422,6 +415,22 @@ type ScoredProductType {
   Business associated with this product (through branch)
   """
   business: BusinessType
+}
+
+"""
+Connection type for paginated product results
+"""
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+
+"""
+Edge type for product pagination
+"""
+type ProductEdge {
+  node: ScoredProductType!
+  cursor: String!
 }
 
 type ProductType {
@@ -702,8 +711,6 @@ input CreateBusinessInput {
 
   avatar: String = null
 
-  coverImage: String = null
-
   description: String = null
 
   socialMedia: JSON = null
@@ -753,8 +760,6 @@ input UpdateBusinessInput {
   isActive: Boolean = null
 
   avatar: String = null
-
-  coverImage: String = null
 }
 
 input CreateBranchInput {

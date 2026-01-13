@@ -17,7 +17,8 @@ data class Product(
     val image: String,
     val availability: Boolean,
     val categoryId: String?,
-    val createdAt: String
+    val createdAt: String,
+    val imageUrl: String? = null
 )
 
 /**

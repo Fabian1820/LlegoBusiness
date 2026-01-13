@@ -44,7 +44,8 @@ class ProductRepository(
             ).execute()
 
             if (response.data != null) {
-                val products = response.data!!.products.map { it.toDomain() }
+                // Extraer los nodos de la estructura paginada edges[].node
+                val products = response.data!!.products.edges.map { it.node.toDomain() }
                 ProductsResult.Success(products)
             } else {
                 ProductsResult.Error(response.errors?.firstOrNull()?.message ?: "Unknown error")
@@ -69,7 +70,8 @@ class ProductRepository(
             ).execute()
 
             if (response.data != null) {
-                val products = response.data!!.products.map { it.toDomain() }
+                // Extraer los nodos de la estructura paginada edges[].node
+                val products = response.data!!.products.edges.map { it.node.toDomain() }
                 ProductsResult.Success(products)
             } else {
                 ProductsResult.Error(response.errors?.firstOrNull()?.message ?: "Unknown error")
@@ -82,9 +84,9 @@ class ProductRepository(
     }
 
     /**
-     * Mapea un ProductType de GraphQL a un modelo de dominio Product
+     * Mapea un ProductType de GraphQL (estructura paginada) a un modelo de dominio Product
      */
-    private fun GetProductsQuery.Product.toDomain(): Product {
+    private fun GetProductsQuery.Node.toDomain(): Product {
         return Product(
             id = id,
             branchId = branchId,
@@ -96,14 +98,15 @@ class ProductRepository(
             image = image,
             availability = availability,
             categoryId = categoryId,
-            createdAt = createdAt.toString()
+            createdAt = createdAt.toString(),
+            imageUrl = imageUrl
         )
     }
 
     /**
      * Mapea un ProductType de GraphQL a un modelo de dominio Product (para query de IDs)
      */
-    private fun GetProductsByIdsQuery.Product.toDomain(): Product {
+    private fun GetProductsByIdsQuery.Node.toDomain(): Product {
         return Product(
             id = id,
             branchId = branchId,
@@ -115,7 +118,8 @@ class ProductRepository(
             image = image,
             availability = availability,
             categoryId = categoryId,
-            createdAt = createdAt.toString()
+            createdAt = createdAt.toString(),
+            imageUrl = imageUrl
         )
     }
 
@@ -278,7 +282,8 @@ class ProductRepository(
             image = image,
             availability = availability,
             categoryId = categoryId,
-            createdAt = createdAt.toString()
+            createdAt = createdAt.toString(),
+            imageUrl = imageUrl
         )
     }
 
@@ -297,7 +302,8 @@ class ProductRepository(
             image = image,
             availability = availability,
             categoryId = categoryId,
-            createdAt = createdAt.toString()
+            createdAt = createdAt.toString(),
+            imageUrl = imageUrl
         )
     }
 }

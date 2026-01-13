@@ -11,11 +11,11 @@ mutation RegisterBusiness(
     id
     name
     avatar
-    coverImage
     description
     tags
     isActive
     globalRating
     createdAt
+    avatarUrl
   }
 }

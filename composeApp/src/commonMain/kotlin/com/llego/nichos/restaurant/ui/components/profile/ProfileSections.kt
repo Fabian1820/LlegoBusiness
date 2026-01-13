@@ -34,7 +34,7 @@ fun BannerWithLogoSection(
     avatarUrl: String? = null,
     coverUrl: String? = null,
     onChangeAvatar: () -> Unit = {},
-    onChangeCover: () -> Unit = {}
+    onChangeCover: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -66,19 +66,21 @@ fun BannerWithLogoSection(
             )
         }
 
-        // Botón para cambiar portada
-        IconButton(
-            onClick = onChangeCover,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .background(Color.White.copy(alpha = 0.9f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.CameraAlt,
-                contentDescription = "Cambiar portada",
-                tint = MaterialTheme.colorScheme.primary
-            )
+        // Botón para cambiar portada - solo mostrar si onChangeCover no es null
+        if (onChangeCover != null) {
+            IconButton(
+                onClick = onChangeCover,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.White.copy(alpha = 0.9f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Cambiar portada",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
 
         // Logo circular

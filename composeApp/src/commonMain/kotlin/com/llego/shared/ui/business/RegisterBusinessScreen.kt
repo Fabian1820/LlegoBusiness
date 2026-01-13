@@ -72,11 +72,9 @@ fun RegisterBusinessScreen(
     
     // Estados de upload de imágenes del negocio (usando ImageUploadState)
     var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
-    var businessCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     
     // Paths de S3 (extraídos del estado Success)
     val businessAvatarPath = (businessAvatarState as? ImageUploadState.Success)?.s3Path
-    val businessCoverPath = (businessCoverState as? ImageUploadState.Success)?.s3Path
 
     // Estados del formulario - Sucursal
     var branchName by remember { mutableStateOf("") }
@@ -179,7 +177,7 @@ fun RegisterBusinessScreen(
 
                 // Imágenes del Negocio con upload a S3
                 Text(
-                    text = "Imágenes del Negocio (Opcional)",
+                    text = "Imagen del Negocio (Opcional)",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.primary
@@ -196,17 +194,6 @@ fun RegisterBusinessScreen(
                         onStateChange = { businessAvatarState = it },
                         uploadFunction = { uri, token ->
                             imageUploadService.uploadBusinessAvatar(uri, token)
-                        },
-                        size = ImageUploadSize.MEDIUM,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ImageUploadPreview(
-                        label = "Portada",
-                        uploadState = businessCoverState,
-                        onStateChange = { businessCoverState = it },
-                        uploadFunction = { uri, token ->
-                            imageUploadService.uploadBusinessCover(uri, token)
                         },
                         size = ImageUploadSize.MEDIUM,
                         modifier = Modifier.weight(1f)
@@ -390,8 +377,7 @@ fun RegisterBusinessScreen(
                             name = businessName,
                             description = businessDescription.ifBlank { null },
                             tags = businessTagsList,
-                            avatar = businessAvatarPath,
-                            coverImage = businessCoverPath
+                            avatar = businessAvatarPath
                         )
 
                         // El usuario selecciona el tipo de sucursal directamente, no hay conversión automática

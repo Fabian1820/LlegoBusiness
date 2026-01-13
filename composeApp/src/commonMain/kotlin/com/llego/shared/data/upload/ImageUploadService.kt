@@ -46,17 +46,6 @@ interface ImageUploadService {
     ): ImageUploadResult
 
     /**
-     * Sube una portada de negocio
-     * @param filePath Path del archivo a subir
-     * @param token JWT token para autenticación
-     * @return ImageUploadResult con la respuesta del servidor
-     */
-    suspend fun uploadBusinessCover(
-        filePath: String,
-        token: String?
-    ): ImageUploadResult
-
-    /**
      * Sube un avatar de sucursal
      * @param filePath Path del archivo a subir
      * @param token JWT token para autenticación

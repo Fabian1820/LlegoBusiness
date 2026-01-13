@@ -88,10 +88,6 @@ class JvmImageUploadService : ImageUploadService {
         return uploadImage("/upload/business/avatar", filePath, token)
     }
 
-    override suspend fun uploadBusinessCover(filePath: String, token: String?): ImageUploadResult {
-        return uploadImage("/upload/business/cover", filePath, token)
-    }
-
     override suspend fun uploadBranchAvatar(filePath: String, token: String?): ImageUploadResult {
         return uploadImage("/upload/branch/avatar", filePath, token)
     }

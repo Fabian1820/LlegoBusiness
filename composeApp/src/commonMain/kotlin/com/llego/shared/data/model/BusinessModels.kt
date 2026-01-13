@@ -21,14 +21,12 @@ data class Business(
     val ownerId: String,
     val globalRating: Double = 0.0,
     val avatar: String? = null,
-    val coverImage: String? = null,
     val description: String? = null,
     val socialMedia: Map<String, String>? = null,  // JSON map
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
-    val avatarUrl: String? = null,
-    val coverUrl: String? = null
+    val avatarUrl: String? = null
 )
 
 /**
@@ -114,7 +112,6 @@ data class Coordinates(
 data class CreateBusinessInput(
     val name: String,
     val avatar: String? = null,
-    val coverImage: String? = null,
     val description: String? = null,
     val socialMedia: Map<String, String>? = null,  // {"facebook": "...", "instagram": "..."}
     val tags: List<String>? = null
@@ -128,7 +125,6 @@ data class CreateBusinessInput(
 data class UpdateBusinessInput(
     val name: String? = null,
     val avatar: String? = null,
-    val coverImage: String? = null,
     val description: String? = null,
     val socialMedia: Map<String, String>? = null,
     val tags: List<String>? = null,
