@@ -31,13 +31,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.apple
 import llegobusiness.composeapp.generated.resources.google
@@ -46,11 +44,11 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-internal fun LlegoLogo() {
+internal fun LlegoLogo(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(Res.drawable.logo),
         contentDescription = "Logo Llego",
-        modifier = Modifier.size(140.dp),
+        modifier = modifier.size(140.dp),
         contentScale = ContentScale.Fit
     )
 }
@@ -69,10 +67,10 @@ internal fun AppTipsSection() {
     ) {
         Text(
             text = "¿Por qué Llego Business?",
-            style = MaterialTheme.typography.labelMedium.copy(
+            style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         TipItem(
@@ -110,13 +108,13 @@ private fun TipItem(icon: ImageVector, text: String) {
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.secondary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Start
         )
     }
@@ -139,11 +137,11 @@ internal fun PrimaryButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 8.dp,
+            defaultElevation = 0.dp,
+            pressedElevation = 2.dp,
             disabledElevation = 0.dp
         )
     ) {
@@ -156,7 +154,7 @@ internal fun PrimaryButton(
         } else {
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodyLarge.copy(
+                style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
                 )
             )
@@ -177,7 +175,7 @@ internal fun DividerWithText(text: String) {
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         HorizontalDivider(
@@ -233,9 +231,9 @@ internal fun SocialButton(
         ) {
             Surface(
                 shape = CircleShape,
-                color = Color.White,
-                modifier = Modifier.size(34.dp),
-                shadowElevation = 2.dp
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(32.dp),
+                shadowElevation = 0.dp
             ) {
                 Image(
                     painter = painterResource(icon),
@@ -249,9 +247,8 @@ internal fun SocialButton(
 
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Medium
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -262,7 +259,7 @@ internal fun SocialButton(
         HorizontalDivider(
             modifier = Modifier.fillMaxWidth(),
             thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
         )
     }
 }
@@ -278,7 +275,7 @@ internal fun ToggleAuthMode(
     ) {
         Text(
             text = if (isRegisterMode) "¿Ya tienes cuenta?" else "¿No tienes cuenta?",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -286,10 +283,10 @@ internal fun ToggleAuthMode(
 
         Text(
             text = if (isRegisterMode) "Inicia sesión" else "Regístrate",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { onToggle() }
         )
     }

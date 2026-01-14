@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -37,6 +36,8 @@ import com.llego.business.orders.data.model.*
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import com.llego.business.orders.ui.viewmodel.DateRangeFilter
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoSuccess
 import kotlinx.coroutines.delay
 
 /**
@@ -76,7 +77,7 @@ fun OrdersScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         when (uiState) {
             is OrdersUiState.Loading -> {
@@ -261,7 +262,7 @@ private fun iOSStylePicker(
 ) {
     // Animación suave para la elevación
     val elevation by animateDpAsState(
-        targetValue = if (isExpanded) 6.dp else 2.dp,
+        targetValue = if (isExpanded) 4.dp else 1.dp,
         animationSpec = tween(150),
         label = "picker_elevation"
     )
@@ -276,14 +277,14 @@ private fun iOSStylePicker(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ),
-            shape = RoundedCornerShape(12.dp),
-            color = Color.White,
+            shape = LlegoCustomShapes.secondaryButton,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = elevation
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -291,20 +292,20 @@ private fun iOSStylePicker(
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = selectedValue,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Medium
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -328,9 +329,9 @@ private fun iOSStylePicker(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                shadowElevation = 8.dp
+                shape = LlegoCustomShapes.secondaryButton,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
@@ -362,20 +363,20 @@ private fun iOSStylePickerOption(
                 indication = null, // Quitar ripple
                 interactionSource = remember { MutableInteractionSource() }
             ),
-        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
+        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )
             )
             if (isSelected) {
@@ -390,8 +391,8 @@ private fun iOSStylePickerOption(
     }
     if (!isSelected) {
         HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            color = Color(0xFFE0E0E0),
+            modifier = Modifier.padding(horizontal = 14.dp),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
             thickness = 0.5.dp
         )
     }
@@ -425,16 +426,17 @@ private fun DateRangeFilterChips(
         }
     }
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = LlegoCustomShapes.secondaryButton,
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = surfaceColor
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = 1.dp
         )
     ) {
         Box {
@@ -448,7 +450,7 @@ private fun DateRangeFilterChips(
                         drawRect(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
-                                    Color.White,
+                                    surfaceColor,
                                     Color.Transparent
                                 ),
                                 startX = 0f,
@@ -460,7 +462,7 @@ private fun DateRangeFilterChips(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.White
+                                    surfaceColor
                                 ),
                                 startX = size.width - 80f,
                                 endX = size.width
@@ -534,16 +536,17 @@ private fun StatusFilterChips(
         listState.animateScrollToItem(targetIndex)
     }
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = LlegoCustomShapes.secondaryButton,
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = surfaceColor
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = 1.dp
         )
     ) {
         Box {
@@ -557,7 +560,7 @@ private fun StatusFilterChips(
                         drawRect(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
-                                    Color.White,
+                                    surfaceColor,
                                     Color.Transparent
                                 ),
                                 startX = 0f,
@@ -569,7 +572,7 @@ private fun StatusFilterChips(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.White
+                                    surfaceColor
                                 ),
                                 startX = size.width - 80f,
                                 endX = size.width
@@ -643,15 +646,14 @@ private fun OrderCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
+            defaultElevation = 1.dp,
+            pressedElevation = 3.dp
         )
     ) {
         Column(
@@ -673,68 +675,59 @@ private fun OrderCard(
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Icon(
                             imageVector = Icons.Default.TwoWheeler,
                             contentDescription = "Domicilio",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(30.dp)
                                 .padding(6.dp)
                         )
                     }
                     Text(
                         text = order.orderNumber,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
 
                 // Badge de estado con colores Llego
+                val statusColor = when (order.status) {
+                    OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                    OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                    OrderStatus.READY -> LlegoSuccess
+                    OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                }
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = when (order.status) {
-                        OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
-                        OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        OrderStatus.READY -> Color(0xFF4CAF50).copy(alpha = 0.15f)
-                        OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                    },
+                    shape = LlegoCustomShapes.secondaryButton,
+                    color = statusColor.copy(alpha = 0.12f),
                     border = BorderStroke(
-                        1.5.dp,
-                        when (order.status) {
-                            OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
-                            OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
-                            OrderStatus.READY -> Color(0xFF4CAF50)
-                            OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
-                        }
+                        1.dp,
+                        statusColor.copy(alpha = 0.4f)
                     )
                 ) {
                     Text(
                         text = order.status.getDisplayName(),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = when (order.status) {
-                                OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
-                                OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
-                                OrderStatus.READY -> Color(0xFF4CAF50)
-                                OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
-                            }
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = statusColor
                         )
                     )
                 }
             }
 
-            HorizontalDivider(color = Color(0xFFE0E0E0))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
 
             // Footer: Total + Método de pago + Tiempo estimado
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                shape = LlegoCustomShapes.infoCard,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ) {
                 Row(
                     modifier = Modifier
@@ -751,24 +744,24 @@ private fun OrderCard(
                         )
                         Text(
                             text = "$${order.total}",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         )
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                            shape = LlegoCustomShapes.secondaryButton,
+                            color = MaterialTheme.colorScheme.surface
                         ) {
                             Text(
                                 text = order.paymentMethod.getDisplayName(),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -781,15 +774,15 @@ private fun OrderCard(
                                 Icon(
                                     imageVector = Icons.Default.Timer,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "$time min",
                                     style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.Medium
                                     ),
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -820,7 +813,7 @@ private fun EmptyOrdersView(hasFilter: Boolean) {
             Icon(
                 imageVector = Icons.Default.ShoppingCart,
                 contentDescription = null,
-                tint = Color.Gray.copy(alpha = 0.3f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.size(80.dp)
             )
             Text(
@@ -830,13 +823,13 @@ private fun EmptyOrdersView(hasFilter: Boolean) {
                     "No hay pedidos activos"
                 },
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (hasFilter) {
                 Text(
                     text = "Intenta con otro filtro",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

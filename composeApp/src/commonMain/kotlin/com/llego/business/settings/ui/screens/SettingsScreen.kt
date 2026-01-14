@@ -2,33 +2,33 @@ package com.llego.business.settings.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.llego.business.orders.data.model.PaymentMethod
 import com.llego.business.orders.data.model.getDisplayName
 import com.llego.business.settings.data.model.*
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsUiState
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 import kotlinx.coroutines.delay
 
 /**
- * Pantalla de Configuración del Restaurante
- * Incluye: Cuenta y seguridad, Notificaciones, Métodos de pago, Datos y privacidad, Soporte
+ * Pantalla de Configuracion del Restaurante
+ * Incluye: Cuenta y seguridad, Notificaciones, Metodos de pago, Datos y privacidad, Soporte
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +41,7 @@ fun SettingsScreen(
     val uiState by settingsViewModel.uiState.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()
 
-    // Animación de entrada
+    // Animacion de entrada
     LaunchedEffect(Unit) {
         delay(100)
         animateContent = true
@@ -50,7 +50,7 @@ fun SettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         AnimatedVisibility(
             visible = animateContent,
@@ -109,10 +109,10 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Métodos de Pago
+                        // Metodos de Pago
                         item {
                             SettingsSection(
-                                title = "Métodos de Pago",
+                                title = "Metodos de Pago",
                                 icon = Icons.Default.Payment,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             ) {
@@ -174,7 +174,7 @@ fun SettingsScreen(
                             )
                         ) {
                             Text(
-                                text = "Error al cargar la configuración",
+                                text = "Error al cargar la configuracion",
                                 modifier = Modifier.padding(16.dp),
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
@@ -187,7 +187,7 @@ fun SettingsScreen(
 }
 
 /**
- * Sección de configuración con título y contenido - Colores Llego
+ * Seccion de configuracion con titulo y contenido - Colores Llego
  */
 @Composable
 private fun SettingsSection(
@@ -198,9 +198,13 @@ private fun SettingsSection(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = LlegoCustomShapes.infoCard,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -213,14 +217,14 @@ private fun SettingsSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = LlegoShapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(10.dp)
@@ -229,20 +233,17 @@ private fun SettingsSection(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.SemiBold
                     ),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             content()
         }
     }
 }
 
-/**
- * Sección de Cuenta y Seguridad
- */
 @Composable
 private fun AccountSecuritySection(
     onEmailChange: () -> Unit,
@@ -251,13 +252,13 @@ private fun AccountSecuritySection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SettingsRow(
             title = "Email",
-            subtitle = "Cambiar dirección de correo electrónico",
+            subtitle = "Cambiar direccion de correo electronico",
             icon = Icons.Default.Email,
             onClick = onEmailChange
         )
         SettingsRow(
-            title = "Contraseña",
-            subtitle = "Cambiar contraseña de acceso",
+            title = "Contrasena",
+            subtitle = "Cambiar contrasena de acceso",
             icon = Icons.Default.Lock,
             onClick = onPasswordChange
         )
@@ -265,7 +266,7 @@ private fun AccountSecuritySection(
 }
 
 /**
- * Sección de Notificaciones (reutilizada de BusinessProfileScreen)
+ * Seccion de Notificaciones (reutilizada de BusinessProfileScreen)
  */
 @Composable
 private fun NotificationSettingsSection(
@@ -284,7 +285,7 @@ private fun NotificationSettingsSection(
 
         SettingSwitchRow(
             label = "Notificaciones de Horarios",
-            description = "Recibe recordatorios sobre horarios de operación",
+            description = "Recibe recordatorios sobre horarios de operacion",
             checked = notificationSettings.orderStatusUpdates,
             onCheckedChange = {
                 onUpdate(notificationSettings.copy(orderStatusUpdates = it))
@@ -312,7 +313,7 @@ private fun NotificationSettingsSection(
 }
 
 /**
- * Sección de Métodos de Pago - Colores Llego
+ * Seccion de Metodos de Pago - Colores Llego
  */
 @Composable
 private fun PaymentMethodsSection(
@@ -334,19 +335,22 @@ private fun PaymentMethodsSection(
                         }
                         onUpdate(updated)
                     },
-                shape = RoundedCornerShape(12.dp),
+                shape = LlegoShapes.small,
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isAccepted)
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                    else
-                        Color(0xFFF5F5F5)
+                    containerColor = if (isAccepted) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
                 ),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.5.dp,
-                    if (isAccepted)
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-                    else
-                        Color(0xFFE0E0E0)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(
+                    1.dp,
+                    if (isAccepted) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    }
                 )
             ) {
                 Row(
@@ -361,11 +365,12 @@ private fun PaymentMethodsSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            color = if (isAccepted)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+                            shape = CircleShape,
+                            color = if (isAccepted) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
                         ) {
                             Icon(
                                 imageVector = when (method) {
@@ -375,7 +380,11 @@ private fun PaymentMethodsSection(
                                     PaymentMethod.DIGITAL_WALLET -> Icons.Default.PhoneAndroid
                                 },
                                 contentDescription = null,
-                                tint = if (isAccepted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isAccepted) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                                 modifier = Modifier
                                     .size(40.dp)
                                     .padding(8.dp)
@@ -384,9 +393,9 @@ private fun PaymentMethodsSection(
                         Text(
                             text = method.getDisplayName(),
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = if (isAccepted) FontWeight.Bold else FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                                fontWeight = if (isAccepted) FontWeight.SemiBold else FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -401,9 +410,9 @@ private fun PaymentMethodsSection(
                             onUpdate(updated)
                         },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.secondary,
+                            checkedColor = MaterialTheme.colorScheme.primary,
                             uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            checkmarkColor = MaterialTheme.colorScheme.primary
+                            checkmarkColor = MaterialTheme.colorScheme.onPrimary
                         )
                     )
                 }
@@ -412,21 +421,18 @@ private fun PaymentMethodsSection(
     }
 }
 
-/**
- * Sección de Datos y Privacidad
- */
 @Composable
 private fun DataPrivacySection() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SettingsRow(
-            title = "Política de Privacidad",
-            subtitle = "Lee nuestra política de privacidad",
+            title = "Politica de Privacidad",
+            subtitle = "Lee nuestra politica de privacidad",
             icon = Icons.Default.PrivacyTip,
             onClick = { /* TODO */ }
         )
         SettingsRow(
-            title = "Términos y Condiciones",
-            subtitle = "Consulta los términos de servicio",
+            title = "Terminos y Condiciones",
+            subtitle = "Consulta los terminos de servicio",
             icon = Icons.Default.Description,
             onClick = { /* TODO */ }
         )
@@ -447,7 +453,7 @@ private fun DataPrivacySection() {
 }
 
 /**
- * Sección de Soporte
+ * Seccion de Soporte
  */
 @Composable
 private fun SupportSection() {
@@ -466,12 +472,12 @@ private fun SupportSection() {
         )
         SettingsRow(
             title = "Reportar un Problema",
-            subtitle = "Notifica errores o problemas técnicos",
+            subtitle = "Notifica errores o problemas tecnicos",
             icon = Icons.Default.BugReport,
             onClick = { /* TODO */ }
         )
         SettingsRow(
-            title = "Versión de la App",
+            title = "Version de la App",
             subtitle = "1.0.0",
             icon = Icons.Default.Info,
             onClick = { /* TODO */ }
@@ -480,7 +486,7 @@ private fun SupportSection() {
 }
 
 /**
- * Fila de configuración individual - Colores Llego
+ * Fila de configuracion individual - Colores Llego
  */
 @Composable
 private fun SettingsRow(
@@ -494,8 +500,12 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = Color.Transparent
+        shape = LlegoShapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -505,20 +515,22 @@ private fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (isDestructive)
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                else
-                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                shape = LlegoShapes.small,
+                color = if (isDestructive) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isDestructive)
+                    tint = if (isDestructive) {
                         MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary,
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(10.dp)
@@ -531,9 +543,13 @@ private fun SettingsRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = if (isDestructive) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
                 Text(
                     text = subtitle,
@@ -544,16 +560,13 @@ private fun SettingsRow(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
     }
 }
 
-/**
- * Row de configuración con switch - Colores Llego
- */
 @Composable
 private fun SettingSwitchRow(
     label: String,
@@ -563,19 +576,22 @@ private fun SettingSwitchRow(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = LlegoShapes.small,
         colors = CardDefaults.cardColors(
-            containerColor = if (checked)
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-            else
-                Color(0xFFF5F5F5)
+            containerColor = if (checked) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.5.dp,
-            if (checked)
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-            else
-                Color(0xFFE0E0E0)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            if (checked) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+            }
         )
     ) {
         Row(
@@ -592,9 +608,9 @@ private fun SettingSwitchRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = description,
@@ -607,7 +623,7 @@ private fun SettingSwitchRow(
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.secondary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     uncheckedTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
@@ -615,4 +631,3 @@ private fun SettingSwitchRow(
         }
     }
 }
-

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Image
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.ui.theme.LlegoCustomShapes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,9 +81,10 @@ fun ProductSearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Buscar productos") },
                         singleLine = true,
+                        shape = LlegoCustomShapes.inputField,
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             cursorColor = MaterialTheme.colorScheme.primary
@@ -96,10 +97,11 @@ fun ProductSearchScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = modifier
@@ -168,14 +170,14 @@ private fun SearchProductRow(
 ) {
     val imageUrl = product.imageUrl?.takeIf { it.isNotBlank() } ?: product.image
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
+            shape = LlegoCustomShapes.productCard,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,7 +188,7 @@ private fun SearchProductRow(
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(LlegoCustomShapes.infoCard)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -228,7 +230,7 @@ private fun SearchProductRow(
                 Text(
                     text = "${product.currency} ${formatSearchPrice(product.price)}",
                     style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 )

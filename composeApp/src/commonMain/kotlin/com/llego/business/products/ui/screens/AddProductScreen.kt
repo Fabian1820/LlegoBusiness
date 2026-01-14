@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -27,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -40,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -51,6 +50,7 @@ import com.llego.shared.data.model.extractFilename
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.theme.LlegoCustomShapes
 
 /**
  * Datos normalizados del formulario de producto.
@@ -112,6 +112,12 @@ fun AddProductScreen(
         priceValue != null &&
         selectedCategoryId != null &&
         !imagePath.isNullOrBlank()
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -120,7 +126,7 @@ fun AddProductScreen(
                 title = {
                     Text(
                         text = if (existingProduct != null) "Editar producto" else "Nuevo producto",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 },
                 navigationIcon = {
@@ -129,20 +135,20 @@ fun AddProductScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = Color(0xFFF5F5F5),
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 12.dp,
-                tonalElevation = 4.dp,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp,
+                tonalElevation = 0.dp,
+                shape = LlegoCustomShapes.bottomSheet
             ) {
                 Row(
                     modifier = Modifier
@@ -153,13 +159,13 @@ fun AddProductScreen(
                     OutlinedButton(
                         onClick = onNavigateBack,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = LlegoCustomShapes.secondaryButton,
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.secondary
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         border = BorderStroke(
-                            width = 1.5.dp,
-                            color = MaterialTheme.colorScheme.secondary
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                         )
                     ) {
                         Text(
@@ -190,7 +196,7 @@ fun AddProductScreen(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = isSaveEnabled,
-                        shape = RoundedCornerShape(14.dp)
+                        shape = LlegoCustomShapes.primaryButton
                     ) {
                         Text("Guardar")
                     }
@@ -213,7 +219,10 @@ fun AddProductScreen(
             ) {
                 Text(
                     text = "Imagen del producto",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 )
 
                 ImageUploadPreview(
@@ -229,8 +238,9 @@ fun AddProductScreen(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    shape = LlegoCustomShapes.productCard,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -240,7 +250,7 @@ fun AddProductScreen(
                     ) {
                         Text(
                             text = "Informacion basica",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
 
                         OutlinedTextField(
@@ -249,7 +259,8 @@ fun AddProductScreen(
                             label = { Text("Nombre del producto *") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = LlegoCustomShapes.inputField,
+                            colors = textFieldColors
                         )
 
                         OutlinedTextField(
@@ -259,7 +270,8 @@ fun AddProductScreen(
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3,
                             maxLines = 5,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = LlegoCustomShapes.inputField,
+                            colors = textFieldColors
                         )
 
                         ExposedDropdownMenuBox(
@@ -277,7 +289,8 @@ fun AddProductScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .menuAnchor(),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = LlegoCustomShapes.inputField,
+                                colors = textFieldColors
                             )
                             ExposedDropdownMenu(
                                 expanded = showCategoryDropdown,
@@ -306,7 +319,8 @@ fun AddProductScreen(
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = LlegoCustomShapes.inputField,
+                                colors = textFieldColors
                             )
 
                             OutlinedTextField(
@@ -315,7 +329,8 @@ fun AddProductScreen(
                                 label = { Text("Peso (opcional)") },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = LlegoCustomShapes.inputField,
+                                colors = textFieldColors
                             )
                         }
 

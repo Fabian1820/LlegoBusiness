@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
@@ -14,13 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.ui.theme.LlegoCustomShapes
 
 /**
  * Pantalla de selección de sucursal
@@ -48,9 +47,7 @@ fun BranchSelectorScreen(
             // Título
             Text(
                 text = "Selecciona una sucursal",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
@@ -65,12 +62,12 @@ fun BranchSelectorScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Lista de sucursales
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(branches) { branch ->
                     BranchCard(
@@ -93,19 +90,19 @@ private fun BranchCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 8.dp
+            defaultElevation = 1.dp,
+            pressedElevation = 4.dp
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
             // Nombre de la sucursal
             Row(
@@ -116,16 +113,14 @@ private fun BranchCard(
                     imageVector = Icons.Default.Store,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
                     text = branch.name,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -134,7 +129,7 @@ private fun BranchCard(
 
             // Tipos de negocio
             if (branch.tipos.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -157,8 +152,8 @@ private fun BranchCard(
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.size(20.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -166,7 +161,7 @@ private fun BranchCard(
                     Text(
                         text = branch.address,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -183,8 +178,8 @@ private fun BranchCard(
                 Icon(
                     imageVector = Icons.Default.Phone,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -192,7 +187,7 @@ private fun BranchCard(
                 Text(
                     text = branch.phone,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -205,19 +200,19 @@ private fun BranchTypeChip(
     modifier: Modifier = Modifier
 ) {
     val (label, color) = when (tipo) {
-        BranchTipo.RESTAURANTE -> "Restaurante" to Color(0xFFFF6B6B)
-        BranchTipo.TIENDA -> "Tienda" to Color(0xFF4ECDC4)
-        BranchTipo.DULCERIA -> "Dulcería" to Color(0xFFFFBE0B)
+        BranchTipo.RESTAURANTE -> "Restaurante" to MaterialTheme.colorScheme.secondary
+        BranchTipo.TIENDA -> "Tienda" to MaterialTheme.colorScheme.primary
+        BranchTipo.DULCERIA -> "Dulcería" to MaterialTheme.colorScheme.tertiary
     }
 
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.15f)
+        shape = LlegoCustomShapes.secondaryButton,
+        color = color.copy(alpha = 0.12f)
     ) {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Medium
             ),

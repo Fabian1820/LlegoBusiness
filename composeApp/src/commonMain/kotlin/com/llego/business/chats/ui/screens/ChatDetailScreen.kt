@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.llego.business.chats.data.model.*
 import com.llego.business.chats.ui.viewmodel.ChatsViewModel
+import com.llego.shared.ui.theme.LlegoCustomShapes
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -181,7 +182,7 @@ fun ChatDetailScreen(
                 }
             )
         },
-        containerColor = Color(0xFFF8F9FA) // Fondo claro consistente con Llego
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         val chat = currentChat
         if (chat == null) {
@@ -290,7 +291,7 @@ fun ChatDetailScreen(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -321,7 +322,7 @@ private fun ChatTopBar(
                     Surface(
                         modifier = Modifier.size(40.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -330,7 +331,7 @@ private fun ChatTopBar(
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -343,19 +344,19 @@ private fun ChatTopBar(
                         Text(
                             text = chat.customerName,
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                         )
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            shape = LlegoCustomShapes.secondaryButton,
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = chat.orderNumber,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             )
                         }
@@ -370,7 +371,7 @@ private fun ChatTopBar(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -379,13 +380,13 @@ private fun ChatTopBar(
                 Icon(
                     imageVector = Icons.Default.Phone,
                     contentDescription = "Llamar",
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -503,7 +504,7 @@ private fun BusinessMessageBubble(
                 bottomStart = 16.dp,
                 bottomEnd = 4.dp
             ),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
             shadowElevation = 1.dp
         ) {
             Column(
@@ -532,7 +533,7 @@ private fun BusinessMessageBubble(
                     Text(
                         text = message.timestamp,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     // Check de leído con colores Llego
@@ -542,7 +543,7 @@ private fun BusinessMessageBubble(
                         tint = if (message.isRead)
                             MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -570,8 +571,8 @@ private fun CustomerMessageBubble(
                 bottomStart = 4.dp,
                 bottomEnd = 16.dp
             ),
-            color = Color.White,
-            shadowElevation = 2.dp
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 1.dp
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -594,7 +595,7 @@ private fun CustomerMessageBubble(
                 Text(
                     text = message.timestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -614,8 +615,8 @@ private fun SystemMessageBubble(message: ChatMessage) {
         Surface(
             modifier = Modifier.widthIn(max = 280.dp),
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-            shadowElevation = 1.dp
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = 0.dp
         ) {
             Column(
                 modifier = Modifier.padding(12.dp),
@@ -625,7 +626,7 @@ private fun SystemMessageBubble(message: ChatMessage) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -633,13 +634,13 @@ private fun SystemMessageBubble(message: ChatMessage) {
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = message.timestamp,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -657,9 +658,9 @@ private fun ReplyIndicator(
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = if (isOwnMessage)
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         else
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
     ) {
         Row(
             modifier = Modifier
@@ -697,7 +698,7 @@ private fun ReplyIndicator(
                 Text(
                     text = replyToMessage,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -718,8 +719,8 @@ private fun ChatInputBar(
     onSendMessage: () -> Unit
 ) {
     Surface(
-        color = Color.White,
-        shadowElevation = 8.dp,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.ime.only(WindowInsetsSides.Bottom))
@@ -735,7 +736,7 @@ private fun ChatInputBar(
             ) {
                 if (replyingTo != null) {
                     Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -777,7 +778,7 @@ private fun ChatInputBar(
                                 Text(
                                     text = replyingTo.message,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -812,10 +813,10 @@ private fun ChatInputBar(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFFF5F5F5),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     )
                 ) {
                     TextField(
@@ -826,7 +827,7 @@ private fun ChatInputBar(
                             Text(
                                 "Escribe un mensaje...",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         shape = RoundedCornerShape(24.dp),
@@ -855,7 +856,7 @@ private fun ChatInputBar(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Enviar mensaje",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(22.dp)
                     )
                 }

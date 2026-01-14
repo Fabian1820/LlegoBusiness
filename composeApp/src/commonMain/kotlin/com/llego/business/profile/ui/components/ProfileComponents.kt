@@ -1,28 +1,20 @@
 package com.llego.business.profile.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.llego.shared.data.model.Business
-import com.llego.shared.data.model.Branch
-import com.llego.shared.data.model.User
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 
 /**
  * Card base para secciones del perfil
@@ -36,9 +28,13 @@ fun ProfileSectionCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+        shape = LlegoCustomShapes.infoCard,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -56,7 +52,6 @@ fun ProfileSectionCard(
 @Composable
 fun SectionHeader(
     title: String,
-    emoji: String = "",
     isEditing: Boolean = false,
     onEditClick: (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
@@ -67,14 +62,13 @@ fun SectionHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = if (emoji.isNotEmpty()) "$emoji $title" else title,
+            text = title,
             style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontWeight = FontWeight.SemiBold
             ),
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
-        
+
         if (trailing != null) {
             trailing()
         } else if (onEditClick != null) {
@@ -113,10 +107,10 @@ fun EditableField(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
-        
+
         if (isEditing && !readOnly) {
             OutlinedTextField(
                 value = value,
@@ -131,25 +125,33 @@ fun EditableField(
                             Icon(Icons.Default.Check, "Guardar", tint = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = onCancelClick) {
-                            Icon(Icons.Default.Close, "Cancelar", tint = Color.Gray)
+                            Icon(Icons.Default.Close, "Cancelar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
-                )
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = LlegoCustomShapes.inputField
             )
         } else {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = value.ifEmpty { placeholder.ifEmpty { "No configurado" } },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (value.isEmpty()) Color.Gray else Color.Black
+                    color = if (value.isEmpty()) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
             }
             if (!readOnly) {
@@ -157,7 +159,7 @@ fun EditableField(
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Editar",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -183,19 +185,23 @@ fun ReadOnlyField(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Column {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = value.ifEmpty { "No configurado" },
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (value.isEmpty()) Color.Gray else Color.Black
+                color = if (value.isEmpty()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                }
             )
         }
     }
@@ -207,19 +213,19 @@ fun ReadOnlyField(
 @Composable
 fun StatusBadge(status: String?) {
     val (color, text) = when(status) {
-        "active" -> Color(0xFF4CAF50) to "Activa"
-        "inactive" -> Color.Gray to "Inactiva"
-        else -> Color(0xFFFFC107) to "Pendiente"
+        "active" -> MaterialTheme.colorScheme.primary to "Activa"
+        "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant to "Inactiva"
+        else -> MaterialTheme.colorScheme.secondary to "Pendiente"
     }
-    
+
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = LlegoShapes.small,
         color = color.copy(alpha = 0.2f)
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = color
         )
     }
@@ -234,8 +240,12 @@ fun TagChip(
     onRemove: (() -> Unit)? = null
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        shape = LlegoShapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -245,7 +255,7 @@ fun TagChip(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (onRemove != null) {
                 Icon(
@@ -254,7 +264,7 @@ fun TagChip(
                     modifier = Modifier
                         .size(16.dp)
                         .clickable { onRemove() },
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

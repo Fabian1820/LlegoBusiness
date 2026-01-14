@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -22,7 +21,6 @@ import com.llego.business.wallet.data.model.*
 import com.llego.business.wallet.ui.viewmodel.WalletViewModel
 import com.llego.business.wallet.ui.viewmodel.WalletUiState
 import com.llego.business.wallet.util.formatToTwoDecimals
-import com.llego.shared.ui.theme.*
 
 /**
  * Sheet modal para solicitar retiros
@@ -71,8 +69,8 @@ fun WithdrawalSheet(
                         .size(80.dp)
                         .background(
                             color = when (selectedCurrency) {
-                                WalletCurrency.USD -> LlegoPrimary.copy(alpha = 0.15f)
-                                WalletCurrency.CUP -> LlegoTertiary.copy(alpha = 0.15f)
+                                WalletCurrency.USD -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                WalletCurrency.CUP -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
                             },
                             shape = RoundedCornerShape(40.dp)
                         ),
@@ -83,8 +81,8 @@ fun WithdrawalSheet(
                         contentDescription = null,
                         modifier = Modifier.size(36.dp),
                         tint = when (selectedCurrency) {
-                            WalletCurrency.USD -> LlegoPrimary
-                            WalletCurrency.CUP -> LlegoTertiary
+                            WalletCurrency.USD -> MaterialTheme.colorScheme.primary
+                            WalletCurrency.CUP -> MaterialTheme.colorScheme.tertiary
                         }
                     )
                 }
@@ -97,7 +95,7 @@ fun WithdrawalSheet(
                 )
 
                 Text(
-                    text = "Retira tu saldo de forma segura a tu cuenta bancaria o método de pago preferido",
+                    text = "Retira tu saldo de forma segura a tu cuenta bancaria o metodo de pago preferido",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(horizontal = 32.dp)
@@ -164,7 +162,7 @@ fun WithdrawalSheet(
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                // Botones de monto rápido
+                // Botones de monto rapido
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -188,10 +186,10 @@ fun WithdrawalSheet(
                 }
             }
 
-            // Método de retiro
+            // Metodo de retiro
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Método de retiro",
+                    text = "Metodo de retiro",
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -211,8 +209,8 @@ fun WithdrawalSheet(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = when (withdrawalMethod) {
-                        WithdrawalMethod.BANK_TRANSFER -> "Número de cuenta bancaria"
-                        WithdrawalMethod.MOBILE_PAYMENT -> "Número de teléfono"
+                        WithdrawalMethod.BANK_TRANSFER -> "Numero de cuenta bancaria"
+                        WithdrawalMethod.MOBILE_PAYMENT -> "Numero de telefono"
                         WithdrawalMethod.CASH_PICKUP -> "Nombre completo"
                         WithdrawalMethod.INTERNAL_TRANSFER -> "Usuario Llego"
                     },
@@ -231,7 +229,7 @@ fun WithdrawalSheet(
                             when (withdrawalMethod) {
                                 WithdrawalMethod.BANK_TRANSFER -> "Ej: 1234567890"
                                 WithdrawalMethod.MOBILE_PAYMENT -> "Ej: +53 5 123 4567"
-                                WithdrawalMethod.CASH_PICKUP -> "Ej: Juan Pérez"
+                                WithdrawalMethod.CASH_PICKUP -> "Ej: Juan Perez"
                                 WithdrawalMethod.INTERNAL_TRANSFER -> "Ej: usuario123"
                             }
                         )
@@ -271,7 +269,7 @@ fun WithdrawalSheet(
                 }
             }
 
-            // Botón de confirmar
+            // Boton de confirmar
             Button(
                 onClick = { viewModel.requestWithdrawal() },
                 modifier = Modifier
@@ -281,15 +279,15 @@ fun WithdrawalSheet(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when (selectedCurrency) {
-                        WalletCurrency.USD -> LlegoPrimary
-                        WalletCurrency.CUP -> LlegoTertiary
+                        WalletCurrency.USD -> MaterialTheme.colorScheme.primary
+                        WalletCurrency.CUP -> MaterialTheme.colorScheme.tertiary
                     }
                 )
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
                     Row(
@@ -311,7 +309,7 @@ fun WithdrawalSheet(
                 }
             }
 
-            // Información adicional
+            // Informacion adicional
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -332,7 +330,7 @@ fun WithdrawalSheet(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Los retiros se procesan en un plazo de 24-48 horas hábiles. Se te notificará cuando el dinero esté disponible.",
+                        text = "Los retiros se procesan en un plazo de 24-48 horas habiles. Se te notificara cuando el dinero este disponible.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -343,7 +341,7 @@ fun WithdrawalSheet(
 }
 
 /**
- * Opción de método de retiro
+ * Opcion de metodo de retiro
  */
 @Composable
 private fun WithdrawalMethodOption(
@@ -357,14 +355,14 @@ private fun WithdrawalMethodOption(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                LlegoPrimary.copy(alpha = 0.1f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             }
         ),
         border = if (isSelected) {
             CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(LlegoPrimary),
+                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
                 width = 2.dp
             )
         } else null
@@ -388,14 +386,14 @@ private fun WithdrawalMethodOption(
                         WithdrawalMethod.INTERNAL_TRANSFER -> Icons.Default.SwapHoriz
                     },
                     contentDescription = null,
-                    tint = if (isSelected) LlegoPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 Text(
                     text = method.displayName,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                     ),
-                    color = if (isSelected) LlegoPrimary else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -403,7 +401,7 @@ private fun WithdrawalMethodOption(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = LlegoPrimary
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -551,7 +549,7 @@ fun TransferSheet(
                     modifier = Modifier
                         .size(80.dp)
                         .background(
-                            color = LlegoSecondary.copy(alpha = 0.2f),
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
                             shape = RoundedCornerShape(40.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -560,7 +558,7 @@ fun TransferSheet(
                         imageVector = Icons.Default.SwapHoriz,
                         contentDescription = null,
                         modifier = Modifier.size(36.dp),
-                        tint = LlegoSecondary
+                        tint = MaterialTheme.colorScheme.secondary
                     )
                 }
 
@@ -572,7 +570,7 @@ fun TransferSheet(
                 )
 
                 Text(
-                    text = "Envía dinero a otra cuenta Llego de forma instantánea",
+                    text = "Envia dinero a otra cuenta Llego de forma instantanea",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -601,7 +599,7 @@ fun TransferSheet(
                         text = "${selectedCurrency.symbol}${balance.formatToTwoDecimals()}",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            color = LlegoPrimary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -644,7 +642,7 @@ fun TransferSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = LlegoPrimary.copy(alpha = 0.08f)
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                 )
             ) {
                 Row(
@@ -657,17 +655,17 @@ fun TransferSheet(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = LlegoPrimary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Las transferencias entre cuentas Llego son instantáneas y sin comisión.",
+                        text = "Las transferencias entre cuentas Llego son instantaneas y sin comision.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
                 }
             }
 
-            // Botón
+            // Boton
             Button(
                 onClick = { /* TODO: Implementar transferencia */ },
                 modifier = Modifier
@@ -676,7 +674,7 @@ fun TransferSheet(
                 enabled = recipientAccount.isNotBlank() && transferAmount.isNotBlank(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = LlegoSecondary
+                    containerColor = MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text(
@@ -684,7 +682,7 @@ fun TransferSheet(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = LlegoPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -692,7 +690,7 @@ fun TransferSheet(
 }
 
 /**
- * Sheet de reportes y estadísticas
+ * Sheet de reportes y estadisticas
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -789,7 +787,7 @@ fun ReportsSheet(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = LlegoPrimary.copy(alpha = 0.08f)
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
                         )
                     ) {
                         Column(
@@ -805,7 +803,7 @@ fun ReportsSheet(
                                 Icon(
                                     imageVector = Icons.Default.FileDownload,
                                     contentDescription = null,
-                                    tint = LlegoPrimary
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "Exportar reporte",
@@ -830,7 +828,7 @@ fun ReportsSheet(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = LlegoPrimary
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
                                     Icon(
@@ -847,7 +845,7 @@ fun ReportsSheet(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = LlegoPrimary
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
                                     Icon(

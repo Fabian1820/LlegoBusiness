@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +21,7 @@ import com.llego.business.chats.data.model.Chat
 import com.llego.business.chats.data.model.hasUnreadMessages
 import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.chats.ui.viewmodel.ChatsUiState
+import com.llego.shared.ui.theme.LlegoCustomShapes
 
 /**
  * Pantalla de Chats - Lista de conversaciones con clientes
@@ -48,23 +47,12 @@ fun ChatsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Forum,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                    Text(
+                        text = "Conversaciones",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            text = "Conversaciones",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
+                    )
                 },
                 navigationIcon = {
                     if (onNavigateBack != null) {
@@ -72,7 +60,7 @@ fun ChatsScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -91,8 +79,8 @@ fun ChatsScreen(
                                         text = unreadChats.toString(),
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onError
                                         )
                                     )
                                 }
@@ -102,12 +90,12 @@ fun ChatsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         // Contenido según estado
         when (chatsState) {
@@ -198,9 +186,9 @@ private fun ChatCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         color = if (chat.hasUnreadMessages())
-            Color(0xFFF0F8FF) // Azul muy claro si hay mensajes sin leer
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
         else
-            Color.White
+            MaterialTheme.colorScheme.surface
     ) {
         Column {
             Row(
@@ -217,7 +205,7 @@ private fun ChatCard(
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Box(
                             contentAlignment = Alignment.Center
@@ -225,7 +213,7 @@ private fun ChatCard(
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -246,8 +234,8 @@ private fun ChatCard(
                                 Text(
                                     text = if (chat.unreadCount > 9) "9+" else chat.unreadCount.toString(),
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.SemiBold,
                                         fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
                                     )
                                 )
@@ -271,7 +259,7 @@ private fun ChatCard(
                         Text(
                             text = chat.customerName,
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             ),
                             modifier = Modifier.weight(1f),
                             maxLines = 1,
@@ -283,7 +271,7 @@ private fun ChatCard(
                             color = if (chat.hasUnreadMessages())
                                 MaterialTheme.colorScheme.primary
                             else
-                                Color.Gray
+                                MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -293,15 +281,15 @@ private fun ChatCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            shape = LlegoCustomShapes.secondaryButton,
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = chat.orderNumber,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             )
                         }
@@ -321,7 +309,7 @@ private fun ChatCard(
                                     tint = if (message.isRead)
                                         MaterialTheme.colorScheme.primary
                                     else
-                                        Color.Gray,
+                                        MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -330,9 +318,9 @@ private fun ChatCard(
                                 text = message.message,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (chat.hasUnreadMessages())
-                                    Color.Black
+                                    MaterialTheme.colorScheme.onSurface
                                 else
-                                    Color.Gray,
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (chat.hasUnreadMessages())
                                     FontWeight.Medium
                                 else
@@ -349,7 +337,7 @@ private fun ChatCard(
             // Divider
             HorizontalDivider(
                 modifier = Modifier.padding(start = 84.dp),
-                color = Color(0xFFE0E0E0)
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
             )
         }
     }
@@ -372,18 +360,18 @@ private fun EmptyChatsView() {
             Icon(
                 imageVector = Icons.Default.ChatBubbleOutline,
                 contentDescription = null,
-                tint = Color.Gray.copy(alpha = 0.3f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.size(80.dp)
             )
             Text(
                 text = "No hay conversaciones",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "Las conversaciones con tus clientes aparecerán aquí",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

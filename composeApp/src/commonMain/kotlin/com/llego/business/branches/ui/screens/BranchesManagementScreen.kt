@@ -1,35 +1,74 @@
 package com.llego.business.branches.ui.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeliveryDining
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.shared.data.model.*
+import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.CoordinatesInput
+import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Pantalla de Gestión de Sucursales
- *
- * Permite:
- * - Ver todas las sucursales
- * - Seleccionar sucursal activa
- * - Editar sucursales existentes
- * - Agregar nuevas sucursales
- * - Eliminar sucursales (si hay más de una)
+ * Pantalla de gestion de sucursales
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +92,7 @@ fun BranchesManagementScreen(
     // Mostrar mensaje temporal
     LaunchedEffect(statusMessage) {
         statusMessage?.let {
-            kotlinx.coroutines.delay(3000)
+            delay(3000)
             statusMessage = null
         }
     }
@@ -62,73 +101,63 @@ fun BranchesManagementScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Store,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "Sucursales",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            text = "Gestión de Sucursales",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddBranchDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar Sucursal",
-                    tint = Color.White
+                    contentDescription = "Agregar sucursal"
                 )
             }
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Mensaje de estado
             if (statusMessage != null) {
                 item {
                     Card(
+                        shape = LlegoCustomShapes.infoCard,
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
                         Text(
                             text = statusMessage ?: "",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -139,10 +168,9 @@ fun BranchesManagementScreen(
                 Text(
                     text = "Selecciona la sucursal activa y gestiona tus ubicaciones",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
             // Lista de sucursales
             items(branches) { branch ->
                 BranchCard(
@@ -151,7 +179,7 @@ fun BranchesManagementScreen(
                     onSelect = {
                         coroutineScope.launch {
                             authViewModel.setCurrentBranch(branch)
-                            statusMessage = "✓ Sucursal '${branch.name}' seleccionada como activa"
+                            statusMessage = "OK: Sucursal '${branch.name}' seleccionada como activa"
                         }
                     },
                     onEdit = { branchToEdit = branch },
@@ -159,7 +187,7 @@ fun BranchesManagementScreen(
                         if (branches.size > 1) {
                             branchToDelete = branch
                         } else {
-                            statusMessage = "✗ No puedes eliminar la última sucursal"
+                            statusMessage = "Error: No puedes eliminar la ultima sucursal"
                         }
                     }
                 )
@@ -170,7 +198,13 @@ fun BranchesManagementScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = LlegoCustomShapes.infoCard,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
                     ) {
                         Column(
                             modifier = Modifier
@@ -182,18 +216,18 @@ fun BranchesManagementScreen(
                             Icon(
                                 imageVector = Icons.Default.Store,
                                 contentDescription = null,
-                                tint = Color.Gray,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(48.dp)
                             )
                             Text(
                                 text = "No hay sucursales registradas",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = "Agrega tu primera sucursal",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.LightGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -201,7 +235,7 @@ fun BranchesManagementScreen(
             }
         }
 
-        // Diálogos
+        // Dialogos
         if (showAddBranchDialog) {
             AddBranchDialog(
                 businessId = currentBusiness?.id ?: "",
@@ -209,13 +243,13 @@ fun BranchesManagementScreen(
                 onDismiss = { showAddBranchDialog = false },
                 onSuccess = { newBranch ->
                     showAddBranchDialog = false
-                    statusMessage = "✓ Sucursal '${newBranch.name}' agregada correctamente"
+                    statusMessage = "OK: Sucursal '${newBranch.name}' agregada correctamente"
                     coroutineScope.launch {
                         businessRepository.getBranches(currentBusiness?.id)
                     }
                 },
                 onError = { error ->
-                    statusMessage = "✗ Error: $error"
+                    statusMessage = "Error: $error"
                 }
             )
         }
@@ -227,10 +261,10 @@ fun BranchesManagementScreen(
                 onDismiss = { branchToEdit = null },
                 onSuccess = { updatedBranch ->
                     branchToEdit = null
-                    statusMessage = "✓ Sucursal '${updatedBranch.name}' actualizada"
+                    statusMessage = "OK: Sucursal '${updatedBranch.name}' actualizada"
                 },
                 onError = { error ->
-                    statusMessage = "✗ Error: $error"
+                    statusMessage = "Error: $error"
                 }
             )
         }
@@ -238,15 +272,18 @@ fun BranchesManagementScreen(
         if (branchToDelete != null) {
             AlertDialog(
                 onDismissRequest = { branchToDelete = null },
-                title = { Text("Eliminar Sucursal") },
+                title = { Text("Eliminar sucursal") },
                 text = {
-                    Text("¿Estás seguro de que deseas eliminar la sucursal '${branchToDelete?.name}'? Esta acción no se puede deshacer.")
+                    Text(
+                        "Estas seguro de que deseas eliminar la sucursal '${branchToDelete?.name}'? " +
+                            "Esta accion no se puede deshacer."
+                    )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             // TODO: Implement delete branch mutation
-                            statusMessage = "La eliminación de sucursales estará disponible pronto"
+                            statusMessage = "La eliminacion de sucursales estara disponible pronto"
                             branchToDelete = null
                         }
                     ) {
@@ -257,14 +294,16 @@ fun BranchesManagementScreen(
                     TextButton(onClick = { branchToDelete = null }) {
                         Text("Cancelar")
                     }
-                }
+                },
+                shape = LlegoCustomShapes.infoCard,
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
     }
 }
 
 /**
- * Card de sucursal con información y acciones
+ * Card de sucursal con informacion y acciones
  */
 @Composable
 fun BranchCard(
@@ -274,26 +313,33 @@ fun BranchCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val statusColor = when (branch.status) {
+        "active" -> MaterialTheme.colorScheme.tertiary
+        "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.secondary
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() },
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             } else {
-                Color.White
+                MaterialTheme.colorScheme.surface
             }
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isActive) 4.dp else 2.dp
-        ),
-        border = if (isActive) {
-            androidx.compose.foundation.BorderStroke(
-                2.dp,
-                MaterialTheme.colorScheme.primary
-            )
-        } else null
+        shape = LlegoCustomShapes.infoCard,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            if (isActive) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            }
+        )
     ) {
         Column(
             modifier = Modifier
@@ -317,31 +363,27 @@ fun BranchCard(
                         tint = if (isActive) {
                             MaterialTheme.colorScheme.primary
                         } else {
-                            Color.Gray
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                     Text(
                         text = branch.name,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.SemiBold
                         ),
-                        color = if (isActive) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            Color.Black
-                        }
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     if (isActive) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primary
+                            shape = LlegoShapes.small,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "ACTIVA",
+                                text = "Activa",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -350,17 +392,13 @@ fun BranchCard(
                 // Estado
                 Surface(
                     shape = CircleShape,
-                    color = when (branch.status) {
-                        "active" -> Color(0xFF4CAF50)
-                        "inactive" -> Color.Gray
-                        else -> Color(0xFFFFC107)
-                    }
+                    color = statusColor
                 ) {
-                    Box(modifier = Modifier.size(12.dp))
+                    Box(modifier = Modifier.size(10.dp))
                 }
             }
 
-            // Información
+            // Informacion
             branch.address?.let { address ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -369,13 +407,13 @@ fun BranchCard(
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = address,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -387,13 +425,13 @@ fun BranchCard(
                 Icon(
                     imageVector = Icons.Default.Phone,
                     contentDescription = null,
-                    tint = Color.Gray,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
                     text = branch.phone,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -405,13 +443,13 @@ fun BranchCard(
                     Icon(
                         imageVector = Icons.Default.DeliveryDining,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = "Radio: $radius km",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -442,7 +480,7 @@ fun BranchCard(
 }
 
 /**
- * Diálogo para agregar nueva sucursal
+ * Dialogo para agregar nueva sucursal
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -465,7 +503,7 @@ fun AddBranchDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Agregar Nueva Sucursal") },
+        title = { Text("Agregar nueva sucursal") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -475,22 +513,43 @@ fun AddBranchDialog(
                     onValueChange = { name = it },
                     label = { Text("Nombre de la sucursal *") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Teléfono *") },
+                    label = { Text("Telefono *") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("Dirección") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Direccion") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 Row(
@@ -502,7 +561,14 @@ fun AddBranchDialog(
                         onValueChange = { latitude = it },
                         label = { Text("Latitud *") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = LlegoCustomShapes.inputField,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
 
                     OutlinedTextField(
@@ -510,7 +576,14 @@ fun AddBranchDialog(
                         onValueChange = { longitude = it },
                         label = { Text("Longitud *") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = LlegoCustomShapes.inputField,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
                 }
 
@@ -519,7 +592,14 @@ fun AddBranchDialog(
                     onValueChange = { deliveryRadius = it },
                     label = { Text("Radio de entrega (km)") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         },
@@ -552,7 +632,7 @@ fun AddBranchDialog(
                                 "sat" to listOf("10:00-14:00"),
                                 "sun" to emptyList() // closed
                             ),
-                            tipos = listOf(com.llego.shared.data.model.BranchTipo.RESTAURANTE), // Por defecto RESTAURANTE
+                            tipos = listOf(BranchTipo.RESTAURANTE), // Por defecto RESTAURANTE
                             deliveryRadius = deliveryRadius.toDoubleOrNull()
                         )
 
@@ -569,12 +649,13 @@ fun AddBranchDialog(
                         isLoading = false
                     }
                 },
-                enabled = !isLoading
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -586,12 +667,14 @@ fun AddBranchDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
-        }
+        },
+        shape = LlegoCustomShapes.infoCard,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
 /**
- * Diálogo para editar sucursal existente
+ * Dialogo para editar sucursal existente
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -612,7 +695,7 @@ fun EditBranchDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar Sucursal") },
+        title = { Text("Editar sucursal") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -622,22 +705,43 @@ fun EditBranchDialog(
                     onValueChange = { name = it },
                     label = { Text("Nombre de la sucursal") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Teléfono") },
+                    label = { Text("Telefono") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("Dirección") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Direccion") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 OutlinedTextField(
@@ -645,7 +749,14 @@ fun EditBranchDialog(
                     onValueChange = { deliveryRadius = it },
                     label = { Text("Radio de entrega (km)") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         },
@@ -676,12 +787,13 @@ fun EditBranchDialog(
                         isLoading = false
                     }
                 },
-                enabled = !isLoading
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -693,6 +805,8 @@ fun EditBranchDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
-        }
+        },
+        shape = LlegoCustomShapes.infoCard,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }

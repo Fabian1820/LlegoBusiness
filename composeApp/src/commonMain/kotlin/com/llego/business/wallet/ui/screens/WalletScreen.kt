@@ -6,18 +6,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.llego.business.wallet.data.model.WalletCurrency
 import com.llego.business.wallet.ui.components.*
@@ -63,14 +61,7 @@ fun WalletScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                Color(0xFFF8F9FA)
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.background)
             )
 
             // Contenido principal
@@ -116,7 +107,7 @@ fun WalletScreen(
                     }
                 }
 
-                // Acciones rápidas
+                // Acciones rapidas
                 item {
                     AnimatedVisibility(
                         visible = animateContent,
@@ -130,14 +121,14 @@ fun WalletScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Acciones rápidas",
+                                    text = "Acciones rapidas",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     )
                                 )
 
                                 Surface(
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = LlegoShapes.small,
                                     color = MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
@@ -265,13 +256,13 @@ fun WalletScreen(
                             WalletInfoCard(
                                 icon = Icons.Default.Security,
                                 title = "Transacciones seguras",
-                                description = "Protección bancaria nivel 256-bit",
+                                description = "Proteccion bancaria nivel 256-bit",
                                 iconColor = MaterialTheme.colorScheme.primary
                             )
 
                             WalletInfoCard(
                                 icon = Icons.Default.Speed,
-                                title = "Retiros rápidos",
+                                title = "Retiros rapidos",
                                 description = "Procesa tus retiros en 24-48 horas",
                                 iconColor = MaterialTheme.colorScheme.secondary
                             )
@@ -285,7 +276,7 @@ fun WalletScreen(
                 }
             }
 
-            // Mensaje de éxito flotante
+            // Mensaje de exito flotante
             successMessage?.let { message ->
                 Box(
                     modifier = Modifier
@@ -294,12 +285,16 @@ fun WalletScreen(
                     contentAlignment = Alignment.TopCenter
                 ) {
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = LlegoCustomShapes.infoCard,
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         ),
                         elevation = CardDefaults.cardElevation(
-                            defaultElevation = 8.dp
+                            defaultElevation = 0.dp
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     ) {
                         Row(
@@ -311,7 +306,7 @@ fun WalletScreen(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = Color(0xFF4CAF50)
+                                tint = MaterialTheme.colorScheme.tertiary
                             )
                             Text(
                                 text = message,

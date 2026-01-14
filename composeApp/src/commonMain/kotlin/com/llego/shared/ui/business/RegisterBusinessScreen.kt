@@ -5,19 +5,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.*
 import com.llego.shared.data.upload.ImageUploadServiceFactory
-import com.llego.shared.ui.components.atoms.LlegoTextField
 import com.llego.shared.ui.components.atoms.LlegoButton
+import com.llego.shared.ui.components.atoms.LlegoButtonSize
+import com.llego.shared.ui.components.atoms.LlegoTextField
 import com.llego.shared.ui.components.molecules.DaySchedule
 import com.llego.shared.ui.components.molecules.TimeRange
 import com.llego.shared.ui.components.molecules.DeliveryRadiusPicker
@@ -32,6 +31,7 @@ import com.llego.shared.ui.components.molecules.SchedulePicker
 import com.llego.shared.ui.components.molecules.TagsSelector
 import com.llego.shared.ui.components.molecules.combinePhoneNumber
 import com.llego.shared.ui.components.molecules.toBackendSchedule
+import com.llego.shared.ui.theme.LlegoCustomShapes
 import kotlinx.coroutines.launch
 
 /**
@@ -113,9 +113,7 @@ fun RegisterBusinessScreen(
                 title = {
                     Text(
                         "Registrar Negocio",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 },
                 navigationIcon = {
@@ -124,9 +122,9 @@ fun RegisterBusinessScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         }
@@ -141,14 +139,14 @@ fun RegisterBusinessScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // SECCIÓN: Información del Negocio
                 Text(
                     text = "Información del Negocio",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 )
 
@@ -176,9 +174,9 @@ fun RegisterBusinessScreen(
                 // Imágenes del Negocio con upload a S3
                 Text(
                     text = "Imagen del Negocio (Opcional)",
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
 
@@ -198,14 +196,14 @@ fun RegisterBusinessScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // SECCIÓN: Primera Sucursal
                 Text(
                     text = "Primera Sucursal",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 )
 
@@ -213,9 +211,9 @@ fun RegisterBusinessScreen(
                 Column {
                     Text(
                         text = "Tipos de Servicio *",
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     Text(
@@ -224,7 +222,7 @@ fun RegisterBusinessScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -321,9 +319,9 @@ fun RegisterBusinessScreen(
                 // Imágenes de la Sucursal
                 Text(
                     text = "Imágenes de la Sucursal (Opcional)",
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
 
@@ -359,7 +357,7 @@ fun RegisterBusinessScreen(
                     Text(
                         text = uiState.error!!,
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
 
@@ -368,6 +366,8 @@ fun RegisterBusinessScreen(
                 // Botón de registro
                 LlegoButton(
                     text = "Registrar Negocio",
+                    modifier = Modifier.fillMaxWidth(),
+                    size = LlegoButtonSize.LARGE,
                     onClick = {
                         registeredBusinessName = businessName
 
@@ -455,30 +455,35 @@ private fun BranchTipoChip(
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    val label = when (tipo) {
+        BranchTipo.RESTAURANTE -> "Restaurante"
+        BranchTipo.TIENDA -> "Tienda"
+        BranchTipo.DULCERIA -> "Dulcería"
+    }
 
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = {
             Text(
-                text = when (tipo) {
-                    BranchTipo.RESTAURANTE -> "🍽️ Restaurante"
-                    BranchTipo.TIENDA -> "🛒 Tienda"
-                    BranchTipo.DULCERIA -> "🍬 Dulcería"
-                },
-                style = MaterialTheme.typography.bodySmall
+                text = label,
+                style = MaterialTheme.typography.labelMedium
             )
         },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = primaryColor.copy(alpha = 0.15f),
-            selectedLabelColor = primaryColor
+            selectedContainerColor = primaryColor.copy(alpha = 0.12f),
+            selectedLabelColor = primaryColor,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            selectedBorderColor = primaryColor,
-            selectedBorderWidth = 2.dp
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+            selectedBorderColor = primaryColor.copy(alpha = 0.5f),
+            selectedBorderWidth = 1.dp
         ),
+        shape = LlegoCustomShapes.secondaryButton,
         modifier = modifier
     )
 }

@@ -12,19 +12,19 @@ import androidx.compose.ui.unit.dp
 
 val LlegoShapes = Shapes(
     // Formas pequeñas para elementos como chips, badges
-    extraSmall = RoundedCornerShape(8.dp),
+    extraSmall = RoundedCornerShape(6.dp),
 
     // Formas pequeñas para botones secundarios, inputs
-    small = RoundedCornerShape(12.dp),
+    small = RoundedCornerShape(10.dp),
 
     // Formas medianas para cards principales
-    medium = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(14.dp),
 
     // Formas grandes para cards destacadas, modals
-    large = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(18.dp),
 
     // Formas extra grandes para pantallas completas, sheets
-    extraLarge = RoundedCornerShape(28.dp)
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 /**
@@ -33,13 +33,13 @@ val LlegoShapes = Shapes(
 object LlegoCustomShapes {
 
     // Para botones primarios (más redondeados)
-    val primaryButton = RoundedCornerShape(28.dp)
+    val primaryButton = RoundedCornerShape(14.dp)
 
     // Para botones secundarios
-    val secondaryButton = RoundedCornerShape(16.dp)
+    val secondaryButton = RoundedCornerShape(12.dp)
 
     // Para cards de productos
-    val productCard = RoundedCornerShape(16.dp)
+    val productCard = RoundedCornerShape(14.dp)
 
     // Para cards de información
     val infoCard = RoundedCornerShape(12.dp)
@@ -48,20 +48,20 @@ object LlegoCustomShapes {
     val circular = RoundedCornerShape(50)
 
     // Para inputs y campos de texto
-    val inputField = RoundedCornerShape(14.dp)
+    val inputField = RoundedCornerShape(12.dp)
 
     // Para modals y dialogs
     val modal = RoundedCornerShape(
-        topStart = 24.dp,
-        topEnd = 24.dp,
+        topStart = 20.dp,
+        topEnd = 20.dp,
         bottomStart = 0.dp,
         bottomEnd = 0.dp
     )
 
     // Para bottom sheets
     val bottomSheet = RoundedCornerShape(
-        topStart = 28.dp,
-        topEnd = 28.dp,
+        topStart = 24.dp,
+        topEnd = 24.dp,
         bottomStart = 0.dp,
         bottomEnd = 0.dp
     )

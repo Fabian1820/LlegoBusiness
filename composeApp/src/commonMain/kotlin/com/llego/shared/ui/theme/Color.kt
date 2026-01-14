@@ -13,16 +13,16 @@ import androidx.compose.ui.graphics.Color
 val LlegoPrimary = Color(2, 49, 51)                    // #023133 - Teal oscuro principal
 val LlegoSecondary = Color(225, 199, 142)              // #E1C78E - Beige cálido
 val LlegoTertiary = Color(124, 65, 43)                 // #7C412B - Marrón
-val LlegoBackground = Color(0xFFF3F3F3)                // Gris claro de fondo
+val LlegoBackground = Color(0xFFF7F7F7)                // Gris claro de fondo
 val LlegoSurface = Color(0xFFFFFFFF)                   // Blanco para cards
 val LlegoOnBackground = Color(0xFF1B1B1B)              // Texto principal
-val LlegoOnSurfaceVariant = Color(19, 45, 47)          // Texto secundario
+val LlegoOnSurfaceVariant = Color(0xFF4A4A4A)          // Texto secundario
 
 // Colores de acento
 val LlegoAccent = Color(178, 214, 154)                 // #B2D69A - Verde claro (alias principal)
 val LlegoAccentPrimary = Color(178, 214, 154)          // #B2D69A - Verde claro
 val LlegoAccentSecondary = Color(157, 205, 120)        // #9DCD78 - Verde medio
-val LlegoSurfaceVariant = Color(236, 240, 233)         // #ECF0E9 - Fondo suave
+val LlegoSurfaceVariant = Color(0xFFF1F2F2)            // Fondo suave
 
 // Colores adicionales para estados
 val LlegoError = Color(0xFFD32F2F)                     // Rojo para errores

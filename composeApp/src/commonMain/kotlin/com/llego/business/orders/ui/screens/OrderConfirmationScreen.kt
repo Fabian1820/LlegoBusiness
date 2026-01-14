@@ -12,9 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,7 +28,7 @@ enum class ConfirmationType {
 
 /**
  * Pantalla animada de confirmación de acciones en pedidos
- * Fullscreen con fondo degradado usando color primario de la app
+ * Fullscreen con fondo suave usando color primario de la app
  * Se muestra brevemente y se cierra automáticamente a los 2.5 segundos
  */
 @Composable
@@ -39,7 +37,7 @@ fun OrderConfirmationScreen(
     orderNumber: String,
     onDismiss: () -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val accentColor = MaterialTheme.colorScheme.primary
     var visible by remember { mutableStateOf(false) }
 
     // Animación de entrada
@@ -51,15 +49,6 @@ fun OrderConfirmationScreen(
         delay(300) // Esperar a que termine la animación de salida
         onDismiss()
     }
-
-    // Gradiente vertical con color primario de la app (sin opacidad)
-    val gradientBrush = Brush.verticalGradient(
-        colors = listOf(
-            primaryColor,
-            primaryColor.copy(alpha = 0.95f),
-            primaryColor
-        )
-    )
 
     AnimatedVisibility(
         visible = visible,
@@ -78,12 +67,13 @@ fun OrderConfirmationScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(brush = gradientBrush),
+                .background(accentColor.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center
         ) {
             ConfirmationContent(
                 type = type,
-                orderNumber = orderNumber
+                orderNumber = orderNumber,
+                accentColor = accentColor
             )
         }
     }
@@ -95,12 +85,13 @@ fun OrderConfirmationScreen(
 @Composable
 private fun ConfirmationContent(
     type: ConfirmationType,
-    orderNumber: String
+    orderNumber: String,
+    accentColor: Color
 ) {
     // Animación del icono con efecto de pulso
     val scale by rememberInfiniteTransition().animateFloat(
         initialValue = 1f,
-        targetValue = 1.15f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -117,10 +108,10 @@ private fun ConfirmationContent(
         // Icono animado grande
         Surface(
             modifier = Modifier
-                .size(140.dp)
+                .size(96.dp)
                 .scale(scale),
             shape = CircleShape,
-            color = Color.White.copy(alpha = 0.25f)
+            color = accentColor.copy(alpha = 0.12f)
         ) {
             Box(
                 contentAlignment = Alignment.Center
@@ -131,13 +122,13 @@ private fun ConfirmationContent(
                         ConfirmationType.ORDER_READY -> Icons.Default.Done
                     },
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(80.dp)
+                    tint = accentColor,
+                    modifier = Modifier.size(52.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Título en blanco
         Text(
@@ -145,14 +136,12 @@ private fun ConfirmationContent(
                 ConfirmationType.ORDER_ACCEPTED -> "¡Orden Aceptada!"
                 ConfirmationType.ORDER_READY -> "¡Orden Lista!"
             },
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            ),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Mensaje descriptivo en blanco
         Text(
@@ -162,21 +151,20 @@ private fun ConfirmationContent(
                 ConfirmationType.ORDER_READY ->
                     "El pedido $orderNumber está listo para entregar"
             },
-            style = MaterialTheme.typography.titleMedium.copy(
-                color = Color.White.copy(alpha = 0.9f)
-            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Indicador de progreso en blanco
         LinearProgressIndicator(
             modifier = Modifier
-                .width(200.dp)
-                .height(3.dp),
-            color = Color.White,
-            trackColor = Color.White.copy(alpha = 0.3f)
+                .width(180.dp)
+                .height(2.dp),
+            color = accentColor,
+            trackColor = accentColor.copy(alpha = 0.2f)
         )
     }
 }

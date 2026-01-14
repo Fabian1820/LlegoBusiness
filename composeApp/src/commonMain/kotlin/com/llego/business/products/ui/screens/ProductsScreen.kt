@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -57,6 +56,7 @@ import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.ui.theme.LlegoCustomShapes
 import kotlinx.coroutines.launch
 
 @Composable
@@ -92,7 +92,11 @@ fun ProductsScreen(
         selectedCategoryId == null || product.categoryId == selectedCategoryId
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -108,7 +112,10 @@ fun ProductsScreen(
                         onClick = { selectedCategoryId = null },
                         label = { Text("Todas") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -118,7 +125,10 @@ fun ProductsScreen(
                         onClick = { selectedCategoryId = category.id },
                         label = { Text(category.displayName) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -258,9 +268,9 @@ private fun ProductRow(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = LlegoCustomShapes.productCard,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
@@ -273,7 +283,7 @@ private fun ProductRow(
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(LlegoCustomShapes.infoCard)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -315,12 +325,12 @@ private fun ProductRow(
                 Text(
                     text = categoryName,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${product.currency} ${formatPrice(product.price)}",
                     style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 )
@@ -328,16 +338,20 @@ private fun ProductRow(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
                 IconButton(onClick = { onToggleAvailability(!product.availability) }) {
                     Icon(
                         if (product.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                         contentDescription = "Cambiar disponibilidad",
-                        tint = MaterialTheme.colorScheme.secondary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

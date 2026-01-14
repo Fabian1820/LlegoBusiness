@@ -64,7 +64,7 @@ fun LlegoTextField(
         targetValue = when {
             isError -> MaterialTheme.colorScheme.error
             isFocused -> MaterialTheme.colorScheme.primary
-            else -> MaterialTheme.colorScheme.outline
+            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
         },
         animationSpec = tween(200),
         label = "border_color"
@@ -84,7 +84,7 @@ fun LlegoTextField(
         targetValue = when {
             !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             isFocused -> MaterialTheme.colorScheme.surface
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
         },
         animationSpec = tween(200),
         label = "background_color"
@@ -99,7 +99,7 @@ fun LlegoTextField(
                     color = labelColor,
                     fontWeight = FontWeight.Medium
                 ),
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             )
         }
 
@@ -110,11 +110,11 @@ fun LlegoTextField(
                 .clip(LlegoCustomShapes.inputField)
                 .background(backgroundColor)
                 .border(
-                    width = if (isFocused || isError) 2.dp else 1.dp,
+                    width = if (isFocused || isError) 1.dp else 0.dp,
                     color = borderColor,
                     shape = LlegoCustomShapes.inputField
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

@@ -1,6 +1,7 @@
 package com.llego.business.home.ui.screens
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -18,8 +19,10 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,7 +30,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -84,9 +86,7 @@ fun BusinessHomeScreen(
                 title = {
                     Text(
                         businessName,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 },
                 actions = {
@@ -94,8 +94,8 @@ fun BusinessHomeScreen(
                         Icon(
                             imageVector = Icons.Default.BarChart,
                             contentDescription = "Estadisticas",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
@@ -103,86 +103,88 @@ fun BusinessHomeScreen(
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
                             contentDescription = "Perfil",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
         bottomBar = {
             if (!isKeyboardVisible) {
-                Surface(
-                    shadowElevation = 16.dp,
-                    tonalElevation = 0.dp
-                ) {
-                    NavigationBar(
-                        containerColor = Color.White,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier.fillMaxWidth(),
-                        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-                    ) {
-                        val pendingCount = ordersViewModel.getPendingOrdersCount()
+                Surface(shadowElevation = 6.dp, tonalElevation = 0.dp) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                        )
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.fillMaxWidth(),
+                            windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                        ) {
+                            val pendingCount = ordersViewModel.getPendingOrdersCount()
 
-                        tabs.forEachIndexed { index, tab ->
-                            val isSelected = selectedTabIndex == index
+                            tabs.forEachIndexed { index, tab ->
+                                val isSelected = selectedTabIndex == index
 
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { onTabSelected(index) },
-                                icon = {
-                                    if (tab.id == "orders" && pendingCount > 0) {
-                                        BadgedBox(
-                                            badge = {
-                                                Badge(
-                                                    containerColor = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(18.dp)
-                                                ) {
-                                                    Text(
-                                                        text = pendingCount.toString(),
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
-                                                        ),
-                                                        color = Color.White
-                                                    )
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { onTabSelected(index) },
+                                    icon = {
+                                        if (tab.id == "orders" && pendingCount > 0) {
+                                            BadgedBox(
+                                                badge = {
+                                                    Badge(
+                                                        containerColor = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(18.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = pendingCount.toString(),
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.85f
+                                                            ),
+                                                            color = Color.White
+                                                        )
+                                                    }
                                                 }
+                                            ) {
+                                                Icon(
+                                                    imageVector = tab.icon,
+                                                    contentDescription = tab.title,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             }
-                                        ) {
+                                        } else {
                                             Icon(
                                                 imageVector = tab.icon,
                                                 contentDescription = tab.title,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
-                                    } else {
-                                        Icon(
-                                            imageVector = tab.icon,
-                                            contentDescription = tab.title,
-                                            modifier = Modifier.size(24.dp)
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tab.title,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                                            )
                                         )
-                                    }
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                    unselectedIconColor = Color.Gray.copy(alpha = 0.6f),
-                                    unselectedTextColor = Color.Gray.copy(alpha = 0.6f)
                                 )
-                            )
+                            }
                         }
                     }
                 }

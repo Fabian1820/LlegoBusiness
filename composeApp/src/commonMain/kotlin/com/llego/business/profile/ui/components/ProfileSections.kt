@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,16 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.User
 import com.llego.shared.utils.formatDouble
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 
 // ============= BANNER SECTION =============
 
@@ -38,7 +37,7 @@ fun BannerWithLogoSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(240.dp)
     ) {
         // Banner de fondo - Imagen o gradiente
         if (!coverUrl.isNullOrEmpty()) {
@@ -57,27 +56,30 @@ fun BannerWithLogoSection(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                MaterialTheme.colorScheme.surface
                             )
                         )
                     )
             )
         }
 
-        // Botón para cambiar portada - solo mostrar si onChangeCover no es null
+        // Boton para cambiar portada - solo mostrar si onChangeCover no es null
         if (onChangeCover != null) {
             IconButton(
                 onClick = onChangeCover,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp)
-                    .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        CircleShape
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Cambiar portada",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -87,14 +89,17 @@ fun BannerWithLogoSection(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 20.dp, bottom = 20.dp)
-                .offset(y = 55.dp)
+                .offset(y = 48.dp)
         ) {
             Surface(
-                modifier = Modifier.size(110.dp),
+                modifier = Modifier.size(96.dp),
                 shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 15.dp,
-                border = BorderStroke(5.dp, Color.White)
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 2.dp,
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
             ) {
                 if (!avatarUrl.isNullOrEmpty()) {
                     // Mostrar avatar desde el backend
@@ -105,31 +110,39 @@ fun BannerWithLogoSection(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    // Fallback: emoji por defecto
+                    // Fallback: icono por defecto
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text(text = "🍽️", fontSize = 48.sp)
+                        Icon(
+                            imageVector = Icons.Default.Store,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(36.dp)
+                        )
                     }
                 }
             }
-            
-            // Botón para cambiar avatar
+
+            // Boton para cambiar avatar
             IconButton(
                 onClick = onChangeAvatar,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(32.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .size(28.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        CircleShape
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Cambiar logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }
     }
-    Spacer(modifier = Modifier.height(55.dp))
+    Spacer(modifier = Modifier.height(48.dp))
 }
 
 // ============= BUSINESS INFO SECTION =============
@@ -141,12 +154,10 @@ fun BusinessInfoSection(
     onSave: (name: String, description: String, tags: List<String>) -> Unit = { _, _, _ -> }
 ) {
     var businessName by remember(business) { mutableStateOf(business?.name ?: "") }
-    // Removed: category ya no existe (no hay business.type)
     var description by remember(business) { mutableStateOf(business?.description ?: "") }
     var address by remember(branch) { mutableStateOf(branch?.address ?: "") }
 
     var isEditingName by remember { mutableStateOf(false) }
-    // Removed: isEditingCategory ya no se necesita
     var isEditingDescription by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
 
@@ -158,7 +169,7 @@ fun BusinessInfoSection(
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Nombre y Rating
+        // Nombre y rating
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -171,37 +182,43 @@ fun BusinessInfoSection(
                         value = businessName,
                         onValueChange = { businessName = it },
                         modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.SemiBold
                         ),
                         trailingIcon = {
                             Row {
                                 IconButton(onClick = { isEditingName = false }) {
                                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                                 }
-                                IconButton(onClick = { 
+                                IconButton(onClick = {
                                     businessName = business?.name ?: ""
-                                    isEditingName = false 
+                                    isEditingName = false
                                 }) {
-                                    Icon(Icons.Default.Close, null, tint = Color.Gray)
+                                    Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         },
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = LlegoCustomShapes.inputField
                     )
                 } else {
                     Text(
                         text = businessName.ifEmpty { "Sin nombre" },
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.clickable { isEditingName = true }
                     )
                 }
 
-                // Dirección
+                // Direccion
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -210,22 +227,21 @@ fun BusinessInfoSection(
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = address.ifEmpty { "Agregar dirección" },
+                        text = address.ifEmpty { "Agregar direccion" },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (address.isEmpty()) Color.Gray else Color.DarkGray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             // Rating badge
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            Surface(
+                shape = LlegoShapes.small,
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -243,21 +259,23 @@ fun BusinessInfoSection(
                         )
                         Text(
                             text = formatDouble("%.1f", rating),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = Color.Black
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         }
 
-        // Removed: Categoría ya no existe (no hay business.type)
-
-        // Descripción
+        // Descripcion
         Text(
-            text = description.ifEmpty { "Agregar descripción" },
+            text = description.ifEmpty { "Agregar descripcion" },
             style = MaterialTheme.typography.bodyMedium,
-            color = if (description.isEmpty()) Color.Gray else Color.DarkGray,
+            color = if (description.isEmpty()) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
             modifier = Modifier.clickable { isEditingDescription = true }
         )
     }
@@ -276,7 +294,7 @@ fun UserInfoSection(
     var isEditingPhone by remember { mutableStateOf(false) }
 
     ProfileSectionCard {
-        SectionHeader(title = "Información del Propietario", emoji = "👤")
+        SectionHeader(title = "Informacion del propietario")
 
         EditableField(
             label = "Nombre",
@@ -296,7 +314,7 @@ fun UserInfoSection(
         )
 
         EditableField(
-            label = "Teléfono",
+            label = "Telefono",
             value = userPhone,
             onValueChange = { userPhone = it },
             isEditing = isEditingPhone,
@@ -304,7 +322,7 @@ fun UserInfoSection(
             onSaveClick = { isEditingPhone = false },
             onCancelClick = { userPhone = user?.phone ?: ""; isEditingPhone = false },
             icon = Icons.Default.Phone,
-            placeholder = "Agregar teléfono"
+            placeholder = "Agregar telefono"
         )
     }
 }
@@ -320,7 +338,7 @@ fun BranchInfoSection(
     var branchPhone by remember(branch) { mutableStateOf(branch?.phone ?: "") }
     var branchAddress by remember(branch) { mutableStateOf(branch?.address ?: "") }
     var deliveryRadius by remember(branch) { mutableStateOf(branch?.deliveryRadius?.toString() ?: "") }
-    
+
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingPhone by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
@@ -332,7 +350,7 @@ fun BranchInfoSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionHeader(title = "Información de la Sucursal", emoji = "🏪")
+            SectionHeader(title = "Informacion de la sucursal")
             StatusBadge(branch?.status)
         }
 
@@ -348,7 +366,7 @@ fun BranchInfoSection(
         )
 
         EditableField(
-            label = "Teléfono",
+            label = "Telefono",
             value = branchPhone,
             onValueChange = { branchPhone = it },
             isEditing = isEditingPhone,
@@ -359,7 +377,7 @@ fun BranchInfoSection(
         )
 
         EditableField(
-            label = "Dirección",
+            label = "Direccion",
             value = branchAddress,
             onValueChange = { branchAddress = it },
             isEditing = isEditingAddress,
@@ -367,11 +385,11 @@ fun BranchInfoSection(
             onSaveClick = { isEditingAddress = false },
             onCancelClick = { branchAddress = branch?.address ?: ""; isEditingAddress = false },
             icon = Icons.Default.LocationOn,
-            placeholder = "Agregar dirección"
+            placeholder = "Agregar direccion"
         )
 
         EditableField(
-            label = "Radio de Entrega (km)",
+            label = "Radio de entrega (km)",
             value = deliveryRadius,
             onValueChange = { deliveryRadius = it },
             isEditing = isEditingRadius,
@@ -399,12 +417,12 @@ fun BusinessTagsSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionHeader(title = "Etiquetas del Negocio", emoji = "🏷️")
+            SectionHeader(title = "Etiquetas del negocio")
             IconButton(onClick = { isEditing = !isEditing }) {
                 Icon(
                     imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
                     contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -413,7 +431,7 @@ fun BusinessTagsSection(
             Text(
                 text = "Sin etiquetas",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
@@ -426,7 +444,19 @@ fun BusinessTagsSection(
                         selected = false,
                         onClick = {},
                         label = { Text(tag) },
-                        enabled = false
+                        enabled = false,
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = false,
+                            selected = false,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
                     )
                 }
             }
@@ -444,31 +474,18 @@ fun BranchFacilitiesSection(
     var isEditing by remember { mutableStateOf(false) }
     val facilities = branch?.facilities ?: emptyList()
 
-    val facilityIcons = mapOf(
-        "Estacionamiento" to "🅿️",
-        "WiFi" to "📶",
-        "Aire acondicionado" to "❄️",
-        "Acceso para sillas de ruedas" to "♿",
-        "Terraza" to "🌿",
-        "Zona infantil" to "👶",
-        "Pet friendly" to "🐕",
-        "Para llevar" to "🥡",
-        "Pago con tarjeta" to "💳",
-        "Delivery propio" to "🚗"
-    )
-
     ProfileSectionCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionHeader(title = "Instalaciones", emoji = "🏢")
+            SectionHeader(title = "Instalaciones")
             IconButton(onClick = { isEditing = !isEditing }) {
                 Icon(
                     imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
                     contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -477,7 +494,7 @@ fun BranchFacilitiesSection(
             Text(
                 text = "Sin instalaciones especificadas",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
@@ -489,16 +506,20 @@ fun BranchFacilitiesSection(
                     FilterChip(
                         selected = false,
                         onClick = {},
-                        label = {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(facilityIcons[facility] ?: "")
-                                Text(facility)
-                            }
-                        },
-                        enabled = false
+                        label = { Text(facility) },
+                        enabled = false,
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = false,
+                            selected = false,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
                     )
                 }
             }
@@ -519,10 +540,10 @@ fun BranchScheduleSection(
     val dayNames = mapOf(
         "mon" to "Lunes",
         "tue" to "Martes",
-        "wed" to "Miércoles",
+        "wed" to "Miercoles",
         "thu" to "Jueves",
         "fri" to "Viernes",
-        "sat" to "Sábado",
+        "sat" to "Sabado",
         "sun" to "Domingo"
     )
 
@@ -532,12 +553,12 @@ fun BranchScheduleSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionHeader(title = "Horarios de Atención", emoji = "🕐")
+            SectionHeader(title = "Horarios de atencion")
             IconButton(onClick = { isEditing = !isEditing }) {
                 Icon(
                     imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
                     contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -546,7 +567,7 @@ fun BranchScheduleSection(
             Text(
                 text = "Sin horarios configurados",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
@@ -562,13 +583,17 @@ fun BranchScheduleSection(
                         Text(
                             text = dayNames[day] ?: day,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         val hoursText = if (hoursList.isEmpty()) "Cerrado" else hoursList.joinToString(", ")
                         Text(
                             text = hoursText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (hoursList.isEmpty()) Color.Gray else MaterialTheme.colorScheme.primary
+                            color = if (hoursList.isEmpty()) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
                         )
                     }
                 }

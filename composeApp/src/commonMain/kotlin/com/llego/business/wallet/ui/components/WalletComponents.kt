@@ -1,12 +1,9 @@
 package com.llego.business.wallet.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,19 +11,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.llego.business.wallet.data.model.*
 import com.llego.business.wallet.util.formatToTwoDecimals
-import com.llego.shared.ui.theme.*
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 
 /**
- * Card de balance de wallet con diseño visual atractivo
+ * Card de balance de wallet con diseno visual atractivo
  */
 @Composable
 fun WalletBalanceCard(
@@ -36,171 +31,94 @@ fun WalletBalanceCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.02f else 1f,
-        animationSpec = tween(300)
-    )
-
-    val gradientColors = when (currency) {
-        WalletCurrency.USD -> listOf(LlegoPrimary, LlegoPrimary.copy(alpha = 0.85f))
-        WalletCurrency.CUP -> listOf(LlegoTertiary, LlegoTertiary.copy(alpha = 0.82f))
+    val borderColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     }
 
     Card(
         modifier = modifier
-            .height(220.dp)
-            .clickable(onClick = onClick)
-            .shadow(
-                elevation = if (isSelected) 20.dp else 12.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = gradientColors[0].copy(alpha = 0.3f)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
+            .height(180.dp)
+            .clickable(onClick = onClick),
+        shape = LlegoCustomShapes.infoCard,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, borderColor)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = gradientColors
-                    )
-                )
+                .padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Decoración circular superior derecha
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .offset(x = 110.dp, y = (-90).dp)
-                    .background(
-                        color = when (currency) {
-                            WalletCurrency.USD -> Color.White.copy(alpha = 0.12f)
-                            WalletCurrency.CUP -> LlegoSecondary.copy(alpha = 0.28f)
-                        },
-                        shape = CircleShape
-                    )
-            )
-
-            // Decoración circular inferior izquierda
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .offset(x = (-90).dp, y = 110.dp)
-                    .background(
-                        color = when (currency) {
-                            WalletCurrency.USD -> LlegoSecondary.copy(alpha = 0.18f)
-                            WalletCurrency.CUP -> LlegoAccent.copy(alpha = 0.18f)
-                        },
-                        shape = CircleShape
-                    )
-            )
-
-            // Contenido
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Llego Wallet Business",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White.copy(alpha = 0.9f)
-                            )
-                        )
-                        Text(
-                            text = when (currency) {
-                                WalletCurrency.USD -> "Balance disponible"
-                                WalletCurrency.CUP -> "Saldo en CUP"
-                            },
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.AccountBalanceWallet,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = LlegoSecondary
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Saldo disponible",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Cuenta ${currency.code}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                // Balance
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                Surface(
+                    shape = LlegoShapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = currency.symbol,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = balance.formatToTwoDecimals(),
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.White.copy(alpha = 0.18f)
-                    ) {
-                        Text(
-                            text = currency.code,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                        )
-                    }
+                    Text(
+                        text = currency.code,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+            }
 
-                // Decoración de puntos
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = currency.symbol,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = balance.formatToTwoDecimals(),
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            if (isSelected) {
+                Surface(
+                    shape = LlegoShapes.small,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 ) {
-                    repeat(6) { index ->
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(
-                                    color = Color.White.copy(
-                                        alpha = if (index % 2 == 0) 0.35f else 0.25f
-                                    ),
-                                    shape = CircleShape
-                                )
-                        )
-                    }
+                    Text(
+                        text = "Activa",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
     }
 }
 
-/**
- * Botón de acción rápida con icono y texto
- */
 @Composable
 fun WalletActionButton(
     icon: ImageVector,
@@ -209,80 +127,69 @@ fun WalletActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = LlegoCustomShapes.infoCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        contentPadding = PaddingValues(0.dp),
-        shape = RoundedCornerShape(16.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 2.dp,
-                pressedElevation = 4.dp
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Surface(
+                shape = CircleShape,
+                color = iconColor.copy(alpha = 0.12f),
+                modifier = Modifier.size(48.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            color = iconColor.copy(alpha = 0.15f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                         tint = iconColor
                     )
                 }
-
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
             }
+
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
 
-/**
- * Card de información con icono y texto
- */
 @Composable
 fun WalletInfoCard(
     icon: ImageVector,
     title: String,
     description: String,
-    iconColor: Color = LlegoPrimary,
+    iconColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = LlegoCustomShapes.infoCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
     ) {
         Row(
@@ -304,21 +211,19 @@ fun WalletInfoCard(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold
-                    )
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
 
-/**
- * Chip selector de moneda
- */
 @Composable
 fun CurrencyChip(
     currency: WalletCurrency,
@@ -327,42 +232,43 @@ fun CurrencyChip(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
-        when (currency) {
-            WalletCurrency.USD -> LlegoPrimary
-            WalletCurrency.CUP -> LlegoTertiary
-        }
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
 
     val textColor = if (isSelected) {
-        Color.White
+        MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(LlegoShapes.small)
             .clickable(onClick = onClick),
         color = backgroundColor,
-        shape = RoundedCornerShape(20.dp)
+        shape = LlegoShapes.small,
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            }
+        )
     ) {
         Text(
             text = "Cuenta ${currency.code}",
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
+                fontWeight = FontWeight.SemiBold
             ),
             color = textColor
         )
     }
 }
 
-/**
- * Item de transacción en la lista
- */
 @Composable
 fun TransactionItem(
     transaction: WalletTransaction,
@@ -371,12 +277,14 @@ fun TransactionItem(
 ) {
     Card(
         modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = LlegoCustomShapes.infoCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
     ) {
         Row(
@@ -391,31 +299,40 @@ fun TransactionItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Icono según tipo de transacción
+                // Icono segun tipo de transaccion
                 val (icon, iconColor) = when (transaction.type) {
-                    TransactionType.INCOME -> Icons.Default.Add to LlegoSuccess
-                    TransactionType.WITHDRAWAL -> Icons.Default.Remove to LlegoWarning
-                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz to LlegoPrimary
-                    TransactionType.REFUND -> Icons.Default.Undo to LlegoError
-                    TransactionType.FEE -> Icons.Default.Receipt to LlegoOnSurfaceVariant
-                    TransactionType.ADJUSTMENT -> Icons.Default.Edit to LlegoSecondary
+                    TransactionType.INCOME -> Icons.Default.Add to MaterialTheme.colorScheme.primary
+                    TransactionType.WITHDRAWAL -> Icons.Default.Remove to MaterialTheme.colorScheme.error
+                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz to MaterialTheme.colorScheme.secondary
+                    TransactionType.REFUND -> Icons.Default.Undo to MaterialTheme.colorScheme.error
+                    TransactionType.FEE -> Icons.Default.Receipt to MaterialTheme.colorScheme.onSurfaceVariant
+                    TransactionType.ADJUSTMENT -> Icons.Default.Edit to MaterialTheme.colorScheme.tertiary
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = iconColor.copy(alpha = 0.15f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                val statusColor = when (transaction.status) {
+                    TransactionStatus.PENDING -> MaterialTheme.colorScheme.secondary
+                    TransactionStatus.PROCESSING -> MaterialTheme.colorScheme.tertiary
+                    TransactionStatus.FAILED -> MaterialTheme.colorScheme.error
+                    TransactionStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = iconColor
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = iconColor
+                        )
+                    }
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -424,6 +341,7 @@ fun TransactionItem(
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium
                         ),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
                     Row(
@@ -433,31 +351,19 @@ fun TransactionItem(
                         Text(
                             text = transaction.type.displayName,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         // Badge de estado
                         if (transaction.status != TransactionStatus.COMPLETED) {
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = when (transaction.status) {
-                                    TransactionStatus.PENDING -> LlegoWarning.copy(alpha = 0.15f)
-                                    TransactionStatus.PROCESSING -> LlegoInfo.copy(alpha = 0.15f)
-                                    TransactionStatus.FAILED -> LlegoError.copy(alpha = 0.15f)
-                                    TransactionStatus.CANCELLED -> LlegoOnSurfaceVariant.copy(alpha = 0.15f)
-                                    else -> Color.Transparent
-                                }
+                                shape = LlegoShapes.small,
+                                color = statusColor.copy(alpha = 0.12f)
                             ) {
                                 Text(
                                     text = transaction.status.displayName,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = when (transaction.status) {
-                                        TransactionStatus.PENDING -> LlegoWarning
-                                        TransactionStatus.PROCESSING -> LlegoInfo
-                                        TransactionStatus.FAILED -> LlegoError
-                                        TransactionStatus.CANCELLED -> LlegoOnSurfaceVariant
-                                        else -> LlegoPrimary
-                                    }
+                                    color = statusColor
                                 )
                             }
                         }
@@ -469,21 +375,18 @@ fun TransactionItem(
             Text(
                 text = "${transaction.currency.symbol}${kotlin.math.abs(transaction.amount).formatToTwoDecimals()}",
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = if (transaction.amount >= 0) {
-                        LlegoSuccess
-                    } else {
-                        LlegoError
-                    }
-                )
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = if (transaction.amount >= 0) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
             )
         }
     }
 }
 
-/**
- * Card de resumen de ganancias
- */
 @Composable
 fun EarningsSummaryCard(
     summary: EarningsSummary,
@@ -491,12 +394,14 @@ fun EarningsSummaryCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = LlegoCustomShapes.infoCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         )
     ) {
         Column(
@@ -513,8 +418,9 @@ fun EarningsSummaryCard(
                     else -> "Ingresos"
                 },
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             // Ingresos netos destacados
@@ -525,18 +431,19 @@ fun EarningsSummaryCard(
             ) {
                 Text(
                     text = "Ingresos netos",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${summary.currency.symbol}${summary.netEarnings.formatToTwoDecimals()}",
                     style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = LlegoSuccess
-                    )
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Divider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
             // Detalles
             SummaryRow("Ingresos totales", summary.totalIncome, summary.currency, true)
@@ -551,13 +458,14 @@ fun EarningsSummaryCard(
                 Text(
                     text = "Transacciones",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${summary.transactionCount}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold
-                    )
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -578,14 +486,18 @@ private fun SummaryRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "${if (!isPositive && amount > 0) "-" else ""}${currency.symbol}${amount.formatToTwoDecimals()}",
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = if (isPositive) LlegoSuccess else MaterialTheme.colorScheme.onSurface
-            )
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = if (isPositive) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
         )
     }
 }

@@ -3,7 +3,6 @@ package com.llego.shared.ui.auth
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -26,8 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -105,33 +103,17 @@ fun LoginScreen(
             ) {
                 Box(modifier = Modifier.fillMaxSize())
             }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF023133).copy(alpha = 0.3f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = 100f
-                        )
-                    )
-            )
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
+                    .height(200.dp)
                     .graphicsLayer { translationY = headerOffsetY },
                 contentAlignment = Alignment.Center
             ) {
-                LlegoLogo()
+                LlegoLogo(modifier = Modifier.size(120.dp))
             }
 
             Surface(
@@ -140,11 +122,11 @@ fun LoginScreen(
                     .weight(1f)
                     .graphicsLayer { translationY = cardOffsetY },
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                    topStart = 32.dp,
-                    topEnd = 32.dp
+                    topStart = 24.dp,
+                    topEnd = 24.dp
                 ),
-                color = Color.White,
-                shadowElevation = 12.dp
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier
@@ -154,20 +136,11 @@ fun LoginScreen(
                         .imePadding(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
                     Text(
                         text = "Bienvenido a Llego",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                                )
-                            )
-                        ),
+                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -177,12 +150,12 @@ fun LoginScreen(
                     Text(
                         text = "Inicia sesión para gestionar tu negocio",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     // Botones de OAuth - Google y Apple Sign-In
                     val googleSignInHelper = rememberGoogleSignInHelper()
@@ -232,12 +205,12 @@ fun LoginScreen(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     // Tips de la app
                     AppTipsSection()
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }

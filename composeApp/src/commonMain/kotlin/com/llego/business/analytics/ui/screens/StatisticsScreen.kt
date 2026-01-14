@@ -2,6 +2,7 @@ package com.llego.business.analytics.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,13 +19,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import kotlinx.coroutines.delay
 
 /**
- * Pantalla de Estadísticas del Restaurante
- * Dashboard con métricas principales y gráficos
+ * Pantalla de Estadisticas del Restaurante
+ * Dashboard con metricas principales y graficos
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,7 @@ fun StatisticsScreen(
     var animateContent by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf<PeriodFilter>(PeriodFilter.DAY) }
 
-    // Animación de entrada
+    // Animacion de entrada
     LaunchedEffect(Unit) {
         delay(100)
         animateContent = true
@@ -45,41 +45,29 @@ fun StatisticsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "Estadísticas",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            ),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = "Estadisticas",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         AnimatedVisibility(
             visible = animateContent,
@@ -96,7 +84,7 @@ fun StatisticsScreen(
                 contentPadding = PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Selector de período
+                // Selector de periodo
                 item {
                     PeriodSelector(
                         selectedPeriod = selectedPeriod,
@@ -105,7 +93,7 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Dashboard principal - Métricas clave
+                // Dashboard principal - Metricas clave
                 item {
                     DashboardMetricsSection(
                         ordersViewModel = ordersViewModel,
@@ -114,7 +102,7 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Gráficos
+                // Graficos
                 item {
                     ChartsSection(
                         ordersViewModel = ordersViewModel,
@@ -123,7 +111,7 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Productos más vendidos
+                // Productos mas vendidos
                 item {
                     TopProductsSection(
                         ordersViewModel = ordersViewModel,
@@ -138,7 +126,7 @@ fun StatisticsScreen(
 }
 
 /**
- * Selector de período (Día/Semana/Mes)
+ * Selector de periodo (Dia/Semana/Mes)
  */
 @Composable
 private fun PeriodSelector(
@@ -149,8 +137,12 @@ private fun PeriodSelector(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -171,8 +163,15 @@ private fun PeriodSelector(
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = selectedPeriod == period,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     ),
                     modifier = Modifier.weight(1f)
                 )
@@ -182,7 +181,7 @@ private fun PeriodSelector(
 }
 
 /**
- * Sección de métricas principales del dashboard
+ * Seccion de metricas principales del dashboard
  */
 @Composable
 private fun DashboardMetricsSection(
@@ -197,16 +196,16 @@ private fun DashboardMetricsSection(
         Text(
             text = "Dashboard Principal",
             style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Ventas del día
+            // Ventas del dia
             MetricCard(
                 title = "Ventas del ${period.displayName.lowercase()}",
                 value = "$${getSalesForPeriod(ordersViewModel, period)}",
@@ -238,9 +237,9 @@ private fun DashboardMetricsSection(
                 modifier = Modifier.weight(1f)
             )
 
-            // Calificación promedio
+            // Calificacion promedio
             MetricCard(
-                title = "Calificación",
+                title = "Calificacion",
                 value = "${getAverageRating(ordersViewModel)}",
                 icon = Icons.Default.Star,
                 iconColor = MaterialTheme.colorScheme.tertiary,
@@ -252,7 +251,7 @@ private fun DashboardMetricsSection(
 }
 
 /**
- * Card de métrica individual
+ * Card de metrica individual
  */
 @Composable
 private fun MetricCard(
@@ -265,8 +264,12 @@ private fun MetricCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -291,21 +294,21 @@ private fun MetricCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
 }
 
 /**
- * Card de comparativa con período anterior
+ * Card de comparativa con periodo anterior
  */
 @Composable
 private fun ComparisonCard(
@@ -322,8 +325,12 @@ private fun ComparisonCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -336,7 +343,7 @@ private fun ComparisonCard(
                 Text(
                     text = "Comparativa con ${currentPeriod.getPreviousPeriod().displayName.lowercase()} anterior",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "${if (isPositive) "+" else ""}$change%",
@@ -357,7 +364,7 @@ private fun ComparisonCard(
 }
 
 /**
- * Sección de gráficos
+ * Seccion de graficos
  */
 @Composable
 private fun ChartsSection(
@@ -370,18 +377,22 @@ private fun ChartsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Gráficos",
+            text = "Graficos",
             style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -395,7 +406,7 @@ private fun ChartsSection(
                         fontWeight = FontWeight.Bold
                     )
                 )
-                // Gráfico de barras simple con datos de prueba
+                // Grafico de barras simple con datos de prueba
                 SalesBarChart(
                     data = getSalesChartData(ordersViewModel, period),
                     modifier = Modifier
@@ -408,7 +419,7 @@ private fun ChartsSection(
 }
 
 /**
- * Sección de productos más vendidos
+ * Seccion de productos mas vendidos
  */
 @Composable
 private fun TopProductsSection(
@@ -423,18 +434,22 @@ private fun TopProductsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Productos Más Vendidos",
+            text = "Productos Mas Vendidos",
             style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -450,7 +465,7 @@ private fun TopProductsSection(
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (index < topProducts.size - 1) {
-                        HorizontalDivider(color = Color(0xFFE0E0E0))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     }
                 }
             }
@@ -502,13 +517,13 @@ private fun TopProductRow(
         Text(
             text = "$quantity ventas",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 /**
- * Sección de horarios pico
+ * Seccion de horarios pico
  */
 @Composable
 private fun PeakHoursSection(
@@ -525,16 +540,20 @@ private fun PeakHoursSection(
         Text(
             text = "Horarios Pico",
             style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -585,7 +604,7 @@ private fun PeakHourRow(
             Text(
                 text = "$orderCount pedidos",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         LinearProgressIndicator(
@@ -595,7 +614,7 @@ private fun PeakHourRow(
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp)),
             color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
@@ -603,7 +622,7 @@ private fun PeakHourRow(
 // Enums y funciones helper
 
 enum class PeriodFilter(val displayName: String) {
-    DAY("Día"),
+    DAY("Dia"),
     WEEK("Semana"),
     MONTH("Mes");
 
@@ -617,7 +636,7 @@ enum class PeriodFilter(val displayName: String) {
 }
 
 /**
- * Gráfico de barras simple para ventas
+ * Grafico de barras simple para ventas
  */
 @Composable
 private fun SalesBarChart(
@@ -639,7 +658,12 @@ private fun SalesBarChart(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -801,7 +825,7 @@ private fun LegendItem(
 
 // Funciones helper para obtener datos (mock por ahora)
 private fun getSalesForPeriod(ordersViewModel: OrdersViewModel, period: PeriodFilter): Double {
-    // Mock data - en producción obtener de ordersViewModel
+    // Mock data - en produccion obtener de ordersViewModel
     return when (period) {
         PeriodFilter.DAY -> 1250.50
         PeriodFilter.WEEK -> 8750.75
@@ -810,7 +834,7 @@ private fun getSalesForPeriod(ordersViewModel: OrdersViewModel, period: PeriodFi
 }
 
 private fun getSalesChartData(ordersViewModel: OrdersViewModel, period: PeriodFilter): List<Pair<String, Double>> {
-    // Datos de prueba para el gráfico
+    // Datos de prueba para el grafico
     return when (period) {
         PeriodFilter.DAY -> listOf(
             "00-06" to 120.0,
@@ -821,10 +845,10 @@ private fun getSalesChartData(ordersViewModel: OrdersViewModel, period: PeriodFi
         PeriodFilter.WEEK -> listOf(
             "Lun" to 1200.0,
             "Mar" to 1450.0,
-            "Mié" to 1100.0,
+            "Mie" to 1100.0,
             "Jue" to 1650.0,
             "Vie" to 1800.0,
-            "Sáb" to 2100.0,
+            "Sab" to 2100.0,
             "Dom" to 1450.0
         )
         PeriodFilter.MONTH -> listOf(
@@ -860,34 +884,34 @@ private fun getAverageRating(ordersViewModel: OrdersViewModel): String {
 }
 
 private fun getTopProducts(ordersViewModel: OrdersViewModel, period: PeriodFilter): List<Pair<String, Int>> {
-    // Datos de prueba más realistas
+    // Datos de prueba mas realistas
     return when (period) {
         PeriodFilter.DAY -> listOf(
             "Pizza Margarita" to 25,
-            "Hamburguesa Clásica" to 18,
+            "Hamburguesa Clasica" to 18,
             "Pasta Carbonara" to 15,
-            "Ensalada César" to 12,
-            "Sándwich Club" to 10
+            "Ensalada Cesar" to 12,
+            "Sandwich Club" to 10
         )
         PeriodFilter.WEEK -> listOf(
             "Pizza Margarita" to 120,
-            "Hamburguesa Clásica" to 95,
+            "Hamburguesa Clasica" to 95,
             "Pasta Carbonara" to 78,
-            "Ensalada César" to 65,
-            "Sándwich Club" to 52
+            "Ensalada Cesar" to 65,
+            "Sandwich Club" to 52
         )
         PeriodFilter.MONTH -> listOf(
             "Pizza Margarita" to 485,
-            "Hamburguesa Clásica" to 392,
+            "Hamburguesa Clasica" to 392,
             "Pasta Carbonara" to 315,
-            "Ensalada César" to 268,
-            "Sándwich Club" to 220
+            "Ensalada Cesar" to 268,
+            "Sandwich Club" to 220
         )
     }
 }
 
 private fun getPeakHours(ordersViewModel: OrdersViewModel, period: PeriodFilter): List<Pair<String, Int>> {
-    // Datos de prueba más realistas
+    // Datos de prueba mas realistas
     return when (period) {
         PeriodFilter.DAY -> listOf(
             "12:00 - 13:00" to 12,

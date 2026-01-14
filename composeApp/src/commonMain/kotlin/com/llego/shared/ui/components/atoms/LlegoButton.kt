@@ -3,6 +3,7 @@ package com.llego.shared.ui.components.atoms
 // import androidx.compose.animation.animateFloatAsState  // TODO: Habilitar cuando esté soportado en KMP
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -52,6 +53,7 @@ fun LlegoButton(
     val buttonColors = getButtonColors(variant, enabled)
     val buttonPadding = getButtonPadding(size)
     val textStyle = getButtonTextStyle(size)
+    val borderColor = getBorderColor(variant, enabled)
 
     Box(
         modifier = modifier
@@ -61,6 +63,17 @@ fun LlegoButton(
                 color = if (enabled) buttonColors.container else buttonColors.disabledContainer,
                 shape = shape
             )
+            .then(
+                if (borderColor != null) {
+                    Modifier.border(
+                        width = 1.dp,
+                        color = borderColor,
+                        shape = shape
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -68,9 +81,8 @@ fun LlegoButton(
             ) {
                 onClick()
             }
-            .then(
-                Modifier.padding(buttonPadding)
-            ),
+            .heightIn(min = 44.dp)
+            .padding(buttonPadding),
         contentAlignment = Alignment.Center
     ) {
         if (isLoading) {
@@ -145,13 +157,13 @@ private fun getButtonColors(variant: LlegoButtonVariant, enabled: Boolean): Butt
         LlegoButtonVariant.PRIMARY -> ButtonColors(
             container = colorScheme.primary,
             content = colorScheme.onPrimary,
-            disabledContainer = colorScheme.onSurface.copy(alpha = 0.12f),
+            disabledContainer = colorScheme.surfaceVariant.copy(alpha = 0.5f),
             disabledContent = colorScheme.onSurface.copy(alpha = 0.38f)
         )
         LlegoButtonVariant.SECONDARY -> ButtonColors(
-            container = colorScheme.secondary,
+            container = colorScheme.secondary.copy(alpha = 0.9f),
             content = colorScheme.onSecondary,
-            disabledContainer = colorScheme.onSurface.copy(alpha = 0.12f),
+            disabledContainer = colorScheme.surfaceVariant.copy(alpha = 0.5f),
             disabledContent = colorScheme.onSurface.copy(alpha = 0.38f)
         )
         LlegoButtonVariant.OUTLINE -> ButtonColors(
@@ -170,11 +182,21 @@ private fun getButtonColors(variant: LlegoButtonVariant, enabled: Boolean): Butt
 }
 
 @Composable
+private fun getBorderColor(variant: LlegoButtonVariant, enabled: Boolean): Color? {
+    if (!enabled) return null
+    val colorScheme = MaterialTheme.colorScheme
+    return when (variant) {
+        LlegoButtonVariant.OUTLINE -> colorScheme.primary.copy(alpha = 0.35f)
+        else -> null
+    }
+}
+
+@Composable
 private fun getButtonPadding(size: LlegoButtonSize): PaddingValues {
     return when (size) {
-        LlegoButtonSize.SMALL -> PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-        LlegoButtonSize.MEDIUM -> PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-        LlegoButtonSize.LARGE -> PaddingValues(horizontal = 32.dp, vertical = 16.dp)
+        LlegoButtonSize.SMALL -> PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+        LlegoButtonSize.MEDIUM -> PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+        LlegoButtonSize.LARGE -> PaddingValues(horizontal = 24.dp, vertical = 12.dp)
     }
 }
 
@@ -182,5 +204,5 @@ private fun getButtonPadding(size: LlegoButtonSize): PaddingValues {
 private fun getButtonTextStyle(size: LlegoButtonSize) = when (size) {
     LlegoButtonSize.SMALL -> MaterialTheme.typography.labelMedium
     LlegoButtonSize.MEDIUM -> MaterialTheme.typography.labelLarge
-    LlegoButtonSize.LARGE -> MaterialTheme.typography.titleMedium
+    LlegoButtonSize.LARGE -> MaterialTheme.typography.titleSmall
 }
