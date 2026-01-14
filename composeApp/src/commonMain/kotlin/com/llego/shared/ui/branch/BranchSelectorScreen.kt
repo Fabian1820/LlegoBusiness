@@ -88,8 +88,7 @@ private fun BranchCard(
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -97,7 +96,8 @@ private fun BranchCard(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp,
             pressedElevation = 4.dp
-        )
+        ),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier

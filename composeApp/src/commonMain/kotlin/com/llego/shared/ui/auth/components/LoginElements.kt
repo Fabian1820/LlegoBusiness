@@ -1,18 +1,22 @@
 package com.llego.shared.ui.auth.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
@@ -28,9 +32,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -195,15 +203,23 @@ internal fun SocialButtons(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         SocialButton(
-            text = "Continuar con Google",
-            icon = Res.drawable.google,
-            onClick = onGoogleClick
+            text = "Continuar con Apple",
+            icon = Res.drawable.apple,
+            onClick = onAppleClick,
+            containerColor = Color.Black,
+            contentColor = Color.White,
+            borderColor = Color.Black,
+            iconTint = null  // Sin tint para que se vea el logo correctamente
         )
 
         SocialButton(
-            text = "Continuar con Apple",
-            icon = Res.drawable.apple,
-            onClick = onAppleClick
+            text = "Continuar con Google",
+            icon = Res.drawable.google,
+            onClick = onGoogleClick,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+            iconTint = null
         )
     }
 }
@@ -212,55 +228,74 @@ internal fun SocialButtons(
 internal fun SocialButton(
     text: String,
     icon: DrawableResource,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    containerColor: Color,
+    contentColor: Color,
+    borderColor: Color?,
+    iconTint: Color?
 ) {
-    Column(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale = animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        label = "social_button_scale"
+    )
+    val overlayColor = if (isPressed) contentColor.copy(alpha = 0.12f) else Color.Transparent
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .height(52.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            }
             .clickable(
                 onClick = onClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
-            .padding(vertical = 12.dp)
+                interactionSource = interactionSource
+            ),
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        border = borderColor?.let { androidx.compose.foundation.BorderStroke(1.dp, it) },
+        shadowElevation = if (containerColor == MaterialTheme.colorScheme.surface) 1.dp else 0.dp
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(overlayColor),
+            contentAlignment = Alignment.Center
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.size(32.dp),
-                shadowElevation = 0.dp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    modifier = Modifier.padding(6.dp),
-                    contentScale = ContentScale.Fit
+                // Icono con ancho fijo para alineación
+                Box(
+                    modifier = Modifier.width(32.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Image(
+                        painter = painterResource(icon),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        contentScale = ContentScale.Fit,
+                        colorFilter = iconTint?.let { ColorFilter.tint(it) }
+                    )
+                }
+
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = contentColor,
+                    textAlign = TextAlign.Start
                 )
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        HorizontalDivider(
-            modifier = Modifier.fillMaxWidth(),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-        )
     }
 }
 
