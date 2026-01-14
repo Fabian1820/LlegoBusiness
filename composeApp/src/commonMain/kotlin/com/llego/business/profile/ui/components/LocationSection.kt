@@ -13,15 +13,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -104,30 +101,27 @@ fun LocationMapSection(
     }
 
     ProfileSectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionHeader(title = "Ubicacion del negocio")
-
-            IconButton(
-                onClick = { showFullScreenMap = true },
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        shape = LlegoShapes.small
+        SectionHeader(
+            title = "Ubicacion del negocio",
+            trailing = {
+                IconButton(
+                    onClick = { showFullScreenMap = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            shape = LlegoShapes.small
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fullscreen,
+                        contentDescription = "Ampliar mapa",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
                     )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fullscreen,
-                    contentDescription = "Ampliar mapa",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
+                }
             }
-        }
+        )
 
         // Mapa preview
         BusinessLocationMap(
@@ -194,7 +188,10 @@ private fun FullScreenMapDialog(
 
     Dialog(
         onDismissRequest = { contentVisible = false },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         AnimatedVisibility(
             visible = contentVisible,
@@ -207,33 +204,27 @@ private fun FullScreenMapDialog(
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 // TopBar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .statusBarsPadding()
-                ) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "Seleccionar ubicacion",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleLarge
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Seleccionar ubicacion",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { contentVisible = false }) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                "Volver",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { contentVisible = false }) {
-                                Icon(
-                                    Icons.Default.ArrowBack,
-                                    "Volver",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-                        windowInsets = WindowInsets(0)
-                    )
-                }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+                    windowInsets = TopAppBarDefaults.windowInsets,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Mapa
                 BusinessLocationMap(
