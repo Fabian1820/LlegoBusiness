@@ -34,6 +34,7 @@ import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
+import com.llego.shared.ui.screens.MapSelectionScreen
 import com.llego.shared.data.model.hasBusiness
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,6 +67,13 @@ fun App(viewModels: AppViewModels) {
         var showOrderDetail by remember { mutableStateOf(false) }
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
         var selectedHomeTabIndex by rememberSaveable { mutableStateOf(0) }
+        
+        // Estado para la pantalla de selección de mapa
+        var showMapSelection by remember { mutableStateOf(false) }
+        var mapSelectionTitle by remember { mutableStateOf("") }
+        var mapSelectionInitialLat by remember { mutableStateOf(0.0) }
+        var mapSelectionInitialLng by remember { mutableStateOf(0.0) }
+        var mapSelectionCallback by remember { mutableStateOf<((Double, Double) -> Unit)?>(null) }
 
         // Estado para controlar la carga inicial (verificación de sesión)
         var isCheckingSession by remember { mutableStateOf(true) }
@@ -196,6 +204,22 @@ fun App(viewModels: AppViewModels) {
             Box(modifier = Modifier) {
                 // Contenido principal con navegación condicional
                 when {
+                    showMapSelection -> {
+                        MapSelectionScreen(
+                            title = mapSelectionTitle,
+                            initialLatitude = mapSelectionInitialLat,
+                            initialLongitude = mapSelectionInitialLng,
+                            onNavigateBack = {
+                                showMapSelection = false
+                                mapSelectionCallback = null
+                            },
+                            onLocationConfirmed = { lat, lng ->
+                                mapSelectionCallback?.invoke(lat, lng)
+                                showMapSelection = false
+                                mapSelectionCallback = null
+                            }
+                        )
+                    }
                     showProductSearch -> {
                         ProductSearchScreen(
                             productsState = productsState,
@@ -369,7 +393,14 @@ fun App(viewModels: AppViewModels) {
                     showBranchesManagement -> {
                         BranchesManagementScreen(
                             authViewModel = authViewModel,
-                            onNavigateBack = { showBranchesManagement = false }
+                            onNavigateBack = { showBranchesManagement = false },
+                            onOpenMapSelection = { title, lat, lng, callback ->
+                                mapSelectionTitle = title
+                                mapSelectionInitialLat = lat
+                                mapSelectionInitialLng = lng
+                                mapSelectionCallback = callback
+                                showMapSelection = true
+                            }
                         )
                     }
                     showProfile -> {

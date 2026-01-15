@@ -111,7 +111,8 @@ fun BusinessHomeScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+                ),
+                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
             )
         },
         bottomBar = {

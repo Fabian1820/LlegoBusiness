@@ -9,7 +9,24 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,8 +34,23 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.theme.LlegoShapes
 import com.llego.business.shared.ui.components.BusinessLocationMap
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -38,6 +72,7 @@ import kotlin.math.roundToLong
  * @param latitude Latitud actual
  * @param longitude Longitud actual
  * @param onLocationSelected Callback cuando se selecciona una ubicación
+ * @param onOpenMapSelection Callback para abrir la pantalla de selección de mapa (opcional, si no se proporciona usa Dialog)
  * @param modifier Modificador opcional
  */
 @Composable
@@ -45,6 +80,7 @@ fun MapLocationPickerReal(
     latitude: Double,
     longitude: Double,
     onLocationSelected: (Double, Double) -> Unit,
+    onOpenMapSelection: ((String, Double, Double, (Double, Double) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -93,7 +129,19 @@ fun MapLocationPickerReal(
 
             // Botón para abrir selector de mapa
             OutlinedButton(
-                onClick = { showFullScreenMap = true },
+                onClick = {
+                    if (onOpenMapSelection != null) {
+                        // Usar navegación
+                        onOpenMapSelection("Seleccionar ubicación", selectedLatitude, selectedLongitude) { lat, lng ->
+                            selectedLatitude = lat
+                            selectedLongitude = lng
+                            onLocationSelected(lat, lng)
+                        }
+                    } else {
+                        // Usar Dialog (fallback)
+                        showFullScreenMap = true
+                    }
+                },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = primaryColor
                 ),
@@ -116,7 +164,7 @@ fun MapLocationPickerReal(
         BusinessLocationMap(
             latitude = selectedLatitude,
             longitude = selectedLongitude,
-            onLocationSelected = { _, _ -> }, // No interactivo en preview
+            onLocationSelected = { _: Double, _: Double -> }, // No interactivo en preview
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
@@ -129,7 +177,17 @@ fun MapLocationPickerReal(
                         Color.Gray.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(12.dp)
                 )
-                .clickable { showFullScreenMap = true },
+                .clickable {
+                    if (onOpenMapSelection != null) {
+                        onOpenMapSelection("Seleccionar ubicación", selectedLatitude, selectedLongitude) { lat, lng ->
+                            selectedLatitude = lat
+                            selectedLongitude = lng
+                            onLocationSelected(lat, lng)
+                        }
+                    } else {
+                        showFullScreenMap = true
+                    }
+                },
             isInteractive = false
         )
 
@@ -173,8 +231,8 @@ fun MapLocationPickerReal(
         )
     }
 
-    // Dialog del mapa fullscreen
-    if (showFullScreenMap) {
+    // Dialog del mapa fullscreen (solo si no se usa navegación)
+    if (showFullScreenMap && onOpenMapSelection == null) {
         FullScreenMapDialog(
             latitude = selectedLatitude,
             longitude = selectedLongitude,
@@ -198,9 +256,9 @@ fun MapLocationPickerReal(
 }
 
 /**
- * Diálogo de mapa a pantalla completa
+ * Diálogo de mapa a pantalla completa edge-to-edge
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun FullScreenMapDialog(
     latitude: Double,
@@ -211,7 +269,6 @@ private fun FullScreenMapDialog(
     onDismiss: () -> Unit,
     hasLocationChange: Boolean
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
     var contentVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { contentVisible = true }
@@ -232,107 +289,124 @@ private fun FullScreenMapDialog(
             enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
             exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(primaryColor)
-                    .statusBarsPadding()
-            ) {
-                // TopBar con edge-to-edge
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Seleccionar ubicación",
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { contentVisible = false }) {
-                            Icon(Icons.Default.ArrowBack, "Volver", tint = Color.White)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                    modifier = Modifier.fillMaxWidth()
-                )
+            androidx.compose.material3.Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                "Seleccionar ubicación",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { contentVisible = false }) {
+                                Icon(
+                                    Icons.Default.ArrowBack,
+                                    "Volver"
+                                )
+                            }
+                        },
+                        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
+                    )
+                },
+                bottomBar = {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                        shadowElevation = 8.dp,
+                        shape = LlegoCustomShapes.modal
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = 18.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Coordenadas
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = LlegoShapes.small,
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
 
-                // Mapa interactivo
+                            // Botones
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = onReset,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    shape = LlegoCustomShapes.secondaryButton,
+                                    enabled = hasLocationChange,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.onSurface
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Deshacer")
+                                }
+
+                                Button(
+                                    onClick = onConfirm,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    shape = LlegoCustomShapes.primaryButton,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Confirmar")
+                                }
+                            }
+                        }
+                    }
+                }
+            ) { paddingValues ->
+                // Mapa fullscreen
                 BusinessLocationMap(
                     latitude = latitude,
                     longitude = longitude,
                     onLocationSelected = onLocationChange,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     isInteractive = true
                 )
-
-                // Bottom bar
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = primaryColor,
-                    shadowElevation = 12.dp,
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 18.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Coordenadas
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "📍 ${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = Color.White
-                            )
-                        }
-
-                        // Botones
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Button(
-                                onClick = onReset,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                enabled = hasLocationChange,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = primaryColor,
-                                    disabledContainerColor = Color.White.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Deshacer")
-                            }
-
-                            Button(
-                                onClick = onConfirm,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = primaryColor
-                                )
-                            ) {
-                                Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Confirmar")
-                            }
-                        }
-                    }
-                }
             }
         }
     }

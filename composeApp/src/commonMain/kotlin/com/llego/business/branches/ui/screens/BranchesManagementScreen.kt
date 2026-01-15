@@ -15,13 +15,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -108,7 +113,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun BranchesManagementScreen(
     authViewModel: AuthViewModel,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -145,7 +151,8 @@ fun BranchesManagementScreen(
                     statusMessage = "OK: Sucursal '${newBranch.name}' agregada correctamente"
                 },
                 onError = { error -> statusMessage = "Error: $error" },
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
+                onOpenMapSelection = onOpenMapSelection
             )
         }
         editingBranch != null -> {
@@ -210,7 +217,8 @@ fun BranchesManagementScreen(
                             else -> {}
                         }
                     }
-                }
+                },
+                onOpenMapSelection = onOpenMapSelection
             )
         }
     }
@@ -268,34 +276,9 @@ fun BranchCard(
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onLocationUpdate: (Double, Double) -> Unit = { _, _ -> }
+    onLocationUpdate: (Double, Double) -> Unit = { _, _ -> },
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
-    var showLocationMap by remember { mutableStateOf(false) }
-    var selectedLatitude by remember(branch) { mutableStateOf(branch.coordinates.latitude) }
-    var selectedLongitude by remember(branch) { mutableStateOf(branch.coordinates.longitude) }
-
-    // Dialogo de mapa fullscreen
-    if (showLocationMap) {
-        BranchLocationDialog(
-            latitude = selectedLatitude,
-            longitude = selectedLongitude,
-            branchName = branch.name,
-            onLocationChange = { lat, lng ->
-                selectedLatitude = lat
-                selectedLongitude = lng
-            },
-            onConfirm = {
-                onLocationUpdate(selectedLatitude, selectedLongitude)
-                showLocationMap = false
-            },
-            onDismiss = {
-                selectedLatitude = branch.coordinates.latitude
-                selectedLongitude = branch.coordinates.longitude
-                showLocationMap = false
-            }
-        )
-    }
-
     val statusColor = when (branch.status) {
         "active" -> MaterialTheme.colorScheme.tertiary
         "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -455,7 +438,15 @@ fun BranchCard(
                         Text("Activar")
                     }
                 }
-                IconButton(onClick = { showLocationMap = true }) {
+                IconButton(onClick = {
+                    onOpenMapSelection(
+                        branch.name,
+                        branch.coordinates.latitude,
+                        branch.coordinates.longitude
+                    ) { lat, lng ->
+                        onLocationUpdate(lat, lng)
+                    }
+                }) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = "Editar ubicacion",
@@ -481,146 +472,6 @@ fun BranchCard(
     }
 }
 
-/**
- * Dialogo de mapa fullscreen para editar ubicacion de sucursal
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BranchLocationDialog(
-    latitude: Double,
-    longitude: Double,
-    branchName: String,
-    onLocationChange: (Double, Double) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    var contentVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { contentVisible = true }
-
-    LaunchedEffect(contentVisible) {
-        if (!contentVisible) {
-            delay(180)
-            onDismiss()
-        }
-    }
-
-    Dialog(
-        onDismissRequest = { contentVisible = false },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        AnimatedVisibility(
-            visible = contentVisible,
-            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
-            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Ubicacion de $branchName",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { contentVisible = false }) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                "Volver",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Mapa interactivo
-                BusinessLocationMap(
-                    latitude = latitude,
-                    longitude = longitude,
-                    onLocationSelected = onLocationChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    isInteractive = true
-                )
-
-                // Bottom bar con boton guardar
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 8.dp,
-                    shape = LlegoCustomShapes.modal
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 18.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Coordenadas
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = LlegoShapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "Lat ${formatCoordinate(latitude)}, Lng ${formatCoordinate(longitude)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Boton guardar
-                        Button(
-                            onClick = onConfirm,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = LlegoCustomShapes.primaryButton,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.size(6.dp))
-                            Text("Guardar ubicacion")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Formatea coordenadas a 6 decimales
- */
-private fun formatCoordinate(value: Double): String {
-    val rounded = (value * 1_000_000.0).toLong() / 1_000_000.0
-    val text = rounded.toString()
-    return if (text.contains(".")) {
-        val parts = text.split(".")
-        val decimals = parts[1].padEnd(6, '0').take(6)
-        parts[0] + "." + decimals
-    } else {
-        text + ".000000"
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BranchCreateScreen(
@@ -628,7 +479,8 @@ fun BranchCreateScreen(
     onNavigateBack: () -> Unit,
     onSuccess: (Branch) -> Unit,
     onError: (String) -> Unit,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -768,7 +620,8 @@ fun BranchCreateScreen(
                 onLocationSelected = { lat, lng ->
                     branchLatitude = lat
                     branchLongitude = lng
-                }
+                },
+                onOpenMapSelection = onOpenMapSelection
             )
 
             OutlinedTextField(
@@ -1297,7 +1150,8 @@ fun BranchesListScreen(
     onSetActive: (Branch) -> Unit,
     onEdit: (Branch) -> Unit,
     onDelete: (Branch) -> Unit,
-    onLocationUpdate: (Branch, Double, Double) -> Unit = { _, _, _ -> }
+    onLocationUpdate: (Branch, Double, Double) -> Unit = { _, _, _ -> },
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     Scaffold(
         topBar = {
@@ -1376,7 +1230,8 @@ fun BranchesListScreen(
                     onSetActive = { onSetActive(branch) },
                     onEdit = { onEdit(branch) },
                     onDelete = { onDelete(branch) },
-                    onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) }
+                    onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
+                    onOpenMapSelection = onOpenMapSelection
                 )
             }
         }

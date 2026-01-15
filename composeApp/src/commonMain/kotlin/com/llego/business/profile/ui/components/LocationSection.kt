@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -27,15 +30,12 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -172,9 +172,8 @@ fun LocationMapSection(
 }
 
 /**
- * Dialogo de mapa a pantalla completa
+ * Dialogo de mapa a pantalla completa edge-to-edge
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FullScreenMapDialog(
     latitude: Double,
@@ -198,58 +197,70 @@ private fun FullScreenMapDialog(
 
     Dialog(
         onDismissRequest = { contentVisible = false },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        )
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         AnimatedVisibility(
             visible = contentVisible,
             enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
             exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                // TopBar
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Seleccionar ubicacion",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { contentVisible = false }) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                "Volver",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-                    windowInsets = TopAppBarDefaults.windowInsets,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Mapa
+                // Mapa fullscreen edge-to-edge
                 BusinessLocationMap(
                     latitude = latitude,
                     longitude = longitude,
                     onLocationSelected = onLocationChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     isInteractive = true
                 )
 
-                // Bottom bar
+                // Overlay: Boton cerrar en la esquina superior izquierda
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(16.dp)
+                        .align(Alignment.TopStart),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 4.dp
+                ) {
+                    IconButton(onClick = { contentVisible = false }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "Volver",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                // Overlay: Titulo en el centro superior
+                Surface(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(top = 20.dp)
+                        .align(Alignment.TopCenter),
+                    shape = LlegoShapes.medium,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 4.dp
+                ) {
+                    Text(
+                        text = "Seleccionar ubicacion",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Overlay: Bottom bar con coordenadas y botones
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
                     shadowElevation = 8.dp,
                     shape = LlegoCustomShapes.modal
                 ) {
@@ -257,8 +268,8 @@ private fun FullScreenMapDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 18.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Coordenadas
                         Surface(
@@ -269,12 +280,20 @@ private fun FullScreenMapDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.Center
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(6.dp))
                                 Text(
-                                    text = "Lat ${formatCoordinate(latitude)}, Lng ${formatCoordinate(longitude)}",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}",
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -287,15 +306,17 @@ private fun FullScreenMapDialog(
                         ) {
                             OutlinedButton(
                                 onClick = onReset,
-                                modifier = Modifier.weight(1f),
-                                enabled = hasLocationChange,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
                                 shape = LlegoCustomShapes.secondaryButton,
+                                enabled = hasLocationChange,
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.colorScheme.onSurface
                                 )
                             ) {
                                 Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.size(6.dp))
+                                Spacer(Modifier.width(6.dp))
                                 Text("Restaurar")
                             }
 
@@ -304,7 +325,9 @@ private fun FullScreenMapDialog(
                                     onConfirm()
                                     contentVisible = false
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
                                 shape = LlegoCustomShapes.primaryButton,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
@@ -312,7 +335,7 @@ private fun FullScreenMapDialog(
                                 )
                             ) {
                                 Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.size(6.dp))
+                                Spacer(Modifier.width(6.dp))
                                 Text("Guardar")
                             }
                         }
