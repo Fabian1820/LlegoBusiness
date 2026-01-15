@@ -57,7 +57,19 @@ fun SocialLinksSection(
         SectionHeader(
             title = "Redes sociales",
             isEditing = isEditing,
-            onEditClick = { isEditing = !isEditing }
+            onEditClick = {
+                if (isEditing) {
+                    val updated = mutableMapOf<String, String>()
+                    val instagramValue = instagram.trim()
+                    val facebookValue = facebook.trim()
+                    val whatsappValue = whatsapp.trim()
+                    if (instagramValue.isNotEmpty()) updated["instagram"] = instagramValue
+                    if (facebookValue.isNotEmpty()) updated["facebook"] = facebookValue
+                    if (whatsappValue.isNotEmpty()) updated["whatsapp"] = whatsappValue
+                    onSave(updated)
+                }
+                isEditing = !isEditing
+            }
         )
 
         if (isEditing) {
@@ -128,16 +140,19 @@ fun SocialLinksSection(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SocialLinkButton(
                     label = "Instagram",
+                    value = instagram,
                     icon = Icons.Default.CameraAlt,
                     onClick = { /* TODO: Abrir Instagram */ }
                 )
                 SocialLinkButton(
                     label = "Facebook",
+                    value = facebook,
                     icon = Icons.Default.Public,
                     onClick = { /* TODO: Abrir Facebook */ }
                 )
                 SocialLinkButton(
                     label = "WhatsApp",
+                    value = whatsapp,
                     icon = Icons.Default.Chat,
                     onClick = { /* TODO: Abrir WhatsApp */ }
                 )
@@ -149,6 +164,7 @@ fun SocialLinksSection(
 @Composable
 private fun SocialLinkButton(
     label: String,
+    value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
@@ -171,10 +187,17 @@ private fun SocialLinkButton(
             tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = value.ifEmpty { "No configurado" },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

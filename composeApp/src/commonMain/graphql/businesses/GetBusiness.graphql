@@ -5,6 +5,7 @@ query GetBusiness($id: String!, $jwt: String) {
     description
     avatar
     tags
+    socialMedia
     globalRating
     isActive
     createdAt

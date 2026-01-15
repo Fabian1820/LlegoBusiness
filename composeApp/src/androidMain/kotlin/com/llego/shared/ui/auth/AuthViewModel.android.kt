@@ -9,8 +9,12 @@ import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
-import com.llego.shared.data.model.User
 import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.UpdateBranchInput
+import com.llego.shared.data.model.UpdateBusinessInput
+import com.llego.shared.data.model.UpdateUserInput
+import com.llego.shared.data.model.User
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -386,6 +390,37 @@ actual class AuthViewModel : ViewModel {
     actual fun getCurrentUser(): User? {
         ensureInitialized()
         return authManager.currentUser.value
+    }
+
+    actual suspend fun updateUser(input: UpdateUserInput): AuthResult<User> {
+        ensureInitialized()
+        return authManager.updateUser(input)
+    }
+
+    actual suspend fun updateBusiness(
+        businessId: String,
+        input: UpdateBusinessInput
+    ): BusinessResult<Business> {
+        ensureInitialized()
+        return authManager.updateBusiness(businessId, input)
+    }
+
+    actual suspend fun updateBranch(
+        branchId: String,
+        input: UpdateBranchInput
+    ): BusinessResult<Branch> {
+        ensureInitialized()
+        return authManager.updateBranch(branchId, input)
+    }
+
+    actual suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch> {
+        ensureInitialized()
+        return authManager.createBranch(input)
+    }
+
+    actual suspend fun deleteBranch(branchId: String): BusinessResult<Boolean> {
+        ensureInitialized()
+        return authManager.deleteBranch(branchId)
     }
 
     /**

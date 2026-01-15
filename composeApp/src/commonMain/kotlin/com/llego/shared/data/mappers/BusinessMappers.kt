@@ -23,13 +23,13 @@ fun GetBusinessesQuery.Business.toDomain(): Business {
         name = name,
         ownerId = "", // No viene en la query lista
         globalRating = globalRating,
-        avatar = null,
+        avatar = avatar,
         description = description,
-        socialMedia = null,
+        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar
+        avatarUrl = avatarUrl
     )
 }
 
@@ -39,13 +39,13 @@ fun GetBusinessQuery.Business.toDomain(): Business {
         name = name,
         ownerId = ownerId,
         globalRating = globalRating,
-        avatar = null,
+        avatar = avatar,
         description = description,
-        socialMedia = null,
+        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar
+        avatarUrl = avatarUrl
     )
 }
 
@@ -55,13 +55,13 @@ fun RegisterBusinessMutation.RegisterBusiness.toDomain(): Business {
         name = name,
         ownerId = "", // Se llenará del context
         globalRating = globalRating,
-        avatar = null,
+        avatar = avatar,
         description = description,
-        socialMedia = null,
+        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar
+        avatarUrl = avatarUrl
     )
 }
 
@@ -71,13 +71,13 @@ fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business {
         name = name,
         ownerId = "", // No cambia en update
         globalRating = globalRating,
-        avatar = null,
+        avatar = avatar,
         description = description,
-        socialMedia = null,
+        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = "", // No viene en update
-        avatarUrl = avatar
+        avatarUrl = avatarUrl
     )
 }
 
@@ -88,8 +88,7 @@ fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business {
  * La respuesta viene en formato: branches.edges[].node
  */
 fun GetBranchesQuery.Node.toDomain(): Branch {
-    @Suppress("UNCHECKED_CAST")
-    val scheduleMap = (schedule as? Map<String, List<String>>) ?: emptyMap()
+    val scheduleMap = parseSchedule(schedule)
 
     // Convertir tipos de GraphQL a modelo de dominio
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
@@ -112,8 +111,8 @@ fun GetBranchesQuery.Node.toDomain(): Branch {
         tipos = branchTipos,
         managerIds = managerIds ?: emptyList(),
         status = status ?: "active",
-        avatar = null,
-        coverImage = null,
+        avatar = avatar,
+        coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities ?: emptyList(),
         createdAt = createdAt.toString(),
@@ -123,8 +122,7 @@ fun GetBranchesQuery.Node.toDomain(): Branch {
 }
 
 fun GetBranchQuery.Branch.toDomain(): Branch {
-    @Suppress("UNCHECKED_CAST")
-    val scheduleMap = (schedule as? Map<String, List<String>>) ?: emptyMap()
+    val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
         when (gqlTipo) {
@@ -146,19 +144,18 @@ fun GetBranchQuery.Branch.toDomain(): Branch {
         tipos = branchTipos,
         managerIds = managerIds ?: emptyList(),
         status = status ?: "active",
-        avatar = null,
-        coverImage = null,
+        avatar = avatar,
+        coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities ?: emptyList(),
         createdAt = createdAt.toString(),
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatarUrl,
+        coverUrl = coverUrl
     )
 }
 
 fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
-    @Suppress("UNCHECKED_CAST")
-    val scheduleMap = (schedule as? Map<String, List<String>>) ?: emptyMap()
+    val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
         when (gqlTipo) {
@@ -180,19 +177,18 @@ fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
         tipos = branchTipos,
         managerIds = emptyList(),
         status = status,
-        avatar = null,
-        coverImage = null,
+        avatar = avatar,
+        coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
         createdAt = createdAt.toString(),
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatarUrl,
+        coverUrl = coverUrl
     )
 }
 
 fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
-    @Suppress("UNCHECKED_CAST")
-    val scheduleMap = (schedule as? Map<String, List<String>>) ?: emptyMap()
+    val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
         when (gqlTipo) {
@@ -214,13 +210,13 @@ fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
         tipos = branchTipos,
         managerIds = emptyList(),
         status = status,
-        avatar = null,
-        coverImage = null,
+        avatar = avatar,
+        coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
         createdAt = "", // No viene en update
-        avatarUrl = avatar,
-        coverUrl = coverImage
+        avatarUrl = avatarUrl,
+        coverUrl = coverUrl
     )
 }
 
@@ -264,6 +260,7 @@ fun CreateBusinessInput.toGraphQL(): GQLCreateBusinessInput {
         name = name,
         avatar = Optional.presentIfNotNull(avatar),
         description = Optional.presentIfNotNull(description),
+        socialMedia = Optional.presentIfNotNull(socialMedia),
         tags = Optional.presentIfNotNull(tags)
     )
 }
@@ -273,6 +270,7 @@ fun UpdateBusinessInput.toGraphQL(): GQLUpdateBusinessInput {
         name = Optional.presentIfNotNull(name),
         avatar = Optional.presentIfNotNull(avatar),
         description = Optional.presentIfNotNull(description),
+        socialMedia = Optional.presentIfNotNull(socialMedia),
         tags = Optional.presentIfNotNull(tags),
         isActive = Optional.presentIfNotNull(isActive)
     )
@@ -284,8 +282,9 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         coordinates = coordinates.toGraphQL(),
         phone = phone,
         schedule = schedule,
-        tipos = listOf(com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE), // Default: RESTAURANTE
+        tipos = tipos.toGraphQLList(),
         address = Optional.presentIfNotNull(address),
+        managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
@@ -300,8 +299,9 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         coordinates = coordinates.toGraphQL(),
         phone = phone,
         schedule = schedule,
-        tipos = listOf(com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE), // Default: RESTAURANTE
+        tipos = tipos.toGraphQLList(),
         address = Optional.presentIfNotNull(address),
+        managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
@@ -312,6 +312,7 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
 fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
     return GQLUpdateBranchInput(
         name = Optional.presentIfNotNull(name),
+        coordinates = Optional.presentIfNotNull(coordinates?.toGraphQL()),
         phone = Optional.presentIfNotNull(phone),
         schedule = Optional.presentIfNotNull(schedule),
         address = Optional.presentIfNotNull(address),
@@ -319,7 +320,9 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         coverImage = Optional.presentIfNotNull(coverImage),
         status = Optional.presentIfNotNull(status),
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities)
+        facilities = Optional.presentIfNotNull(facilities),
+        managerIds = Optional.presentIfNotNull(managerIds),
+        tipos = Optional.presentIfNotNull(tipos?.toGraphQLList())
     )
 }
 
@@ -328,4 +331,37 @@ fun CoordinatesInput.toGraphQL(): GQLCoordinatesInput {
         lat = lat,
         lng = lng
     )
+}
+
+private fun parseSchedule(raw: Any?): Map<String, List<String>> {
+    val map = raw as? Map<*, *> ?: return emptyMap()
+    return map.mapNotNull { (key, value) ->
+        val day = key as? String ?: return@mapNotNull null
+        val hours = when (value) {
+            is String -> listOf(value)
+            is List<*> -> value.filterIsInstance<String>()
+            else -> emptyList()
+        }
+        day to hours
+    }.toMap()
+}
+
+private fun parseStringMap(raw: Any?): Map<String, String>? {
+    val map = raw as? Map<*, *> ?: return null
+    val parsed = map.mapNotNull { (key, value) ->
+        val mapKey = key as? String ?: return@mapNotNull null
+        val mapValue = value as? String ?: value?.toString()
+        if (mapValue.isNullOrBlank()) null else mapKey to mapValue
+    }.toMap()
+    return parsed.takeIf { it.isNotEmpty() }
+}
+
+private fun List<BranchTipo>.toGraphQLList(): List<com.llego.multiplatform.graphql.type.BranchTipo> {
+    return map { tipo ->
+        when (tipo) {
+            BranchTipo.RESTAURANTE -> com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE
+            BranchTipo.TIENDA -> com.llego.multiplatform.graphql.type.BranchTipo.TIENDA
+            BranchTipo.DULCERIA -> com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA
+        }
+    }
 }

@@ -35,8 +35,6 @@ import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.data.model.hasBusiness
-import com.llego.shared.data.repositories.BusinessRepository
-import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -54,8 +52,6 @@ fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
         val authViewModel = viewModels.auth
 
-        // Crear BusinessRepository para pantallas que lo necesitan
-        val businessRepository = remember { BusinessRepository(tokenManager = TokenManager()) }
 
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
@@ -373,14 +369,12 @@ fun App(viewModels: AppViewModels) {
                     showBranchesManagement -> {
                         BranchesManagementScreen(
                             authViewModel = authViewModel,
-                            businessRepository = businessRepository,
                             onNavigateBack = { showBranchesManagement = false }
                         )
                     }
                     showProfile -> {
                         BusinessProfileScreen(
                             authViewModel = authViewModel,
-                            businessRepository = businessRepository,
                             onNavigateBack = { showProfile = false },
                             onNavigateToBranches = { showBranchesManagement = true }
                         )

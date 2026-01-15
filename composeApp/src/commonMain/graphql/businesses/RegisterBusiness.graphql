@@ -13,6 +13,7 @@ mutation RegisterBusiness(
     avatar
     description
     tags
+    socialMedia
     isActive
     globalRating
     createdAt

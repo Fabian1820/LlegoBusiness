@@ -6,6 +6,7 @@ query GetBusinesses($jwt: String) {
     globalRating
     isActive
     tags
+    socialMedia
     description
     createdAt
     avatarUrl

@@ -1,0 +1,3 @@
+mutation DeleteBranch($branchId: String!, $jwt: String) {
+  deleteBranch(branchId: $branchId, jwt: $jwt)
+}

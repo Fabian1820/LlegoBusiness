@@ -9,6 +9,7 @@ mutation UpdateBusiness(
     description
     avatar
     tags
+    socialMedia
     isActive
     globalRating
     avatarUrl

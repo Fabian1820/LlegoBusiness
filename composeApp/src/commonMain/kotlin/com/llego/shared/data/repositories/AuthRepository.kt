@@ -195,8 +195,7 @@ class AuthRepository(
                         name = input.name,
                         email = input.email,
                         password = input.password,
-                        phone = Optional.presentIfNotNull(input.phone),
-                        role = Optional.presentIfNotNull(input.role)
+                        phone = Optional.presentIfNotNull(input.phone)
                     )
                 )
             ).execute()

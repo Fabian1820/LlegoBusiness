@@ -28,8 +28,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,20 +45,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.profile.ui.components.BannerWithLogoSection
-import com.llego.business.profile.ui.components.BranchFacilitiesSection
-import com.llego.business.profile.ui.components.BranchInfoSection
-import com.llego.business.profile.ui.components.BranchScheduleSection
 import com.llego.business.profile.ui.components.BusinessInfoSection
 import com.llego.business.profile.ui.components.BusinessTagsSection
-import com.llego.business.profile.ui.components.LocationMapSection
 import com.llego.business.profile.ui.components.LogoutDialog
 import com.llego.business.profile.ui.components.ShareDialog
 import com.llego.business.profile.ui.components.SocialLinksSection
 import com.llego.business.profile.ui.components.UserInfoSection
+import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
-import com.llego.shared.data.repositories.BusinessRepository
+import com.llego.shared.data.model.UpdateUserInput
+import com.llego.shared.data.upload.ImageUploadServiceFactory
+import com.llego.shared.ui.components.molecules.ImageUploadPreview
+import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import kotlinx.coroutines.delay
@@ -69,7 +73,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun BusinessProfileScreen(
     authViewModel: AuthViewModel,
-    businessRepository: BusinessRepository,
     onNavigateBack: () -> Unit = {},
     onNavigateToBranches: () -> Unit = {}
 ) {
@@ -79,6 +82,12 @@ fun BusinessProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
+
+    var showBranchAvatarDialog by remember { mutableStateOf(false) }
+    var showBranchCoverDialog by remember { mutableStateOf(false) }
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
 
     // Datos del usuario, negocio y sucursal
     val authUiState by authViewModel.uiState.collectAsState()
@@ -94,6 +103,10 @@ fun BusinessProfileScreen(
             saveMessage = null
         }
     }
+
+    val branchAvatarUrl = currentBranch?.avatarUrl ?: currentBusiness?.avatarUrl
+    val branchCoverUrl = currentBranch?.coverUrl
+    val canEditBranch = currentBranch != null
 
     Scaffold(
         topBar = {
@@ -140,8 +153,24 @@ fun BusinessProfileScreen(
             // Banner y logo
             item {
                 BannerWithLogoSection(
-                    avatarUrl = currentBusiness?.avatarUrl,
-                    coverUrl = null // Business ya no tiene cover
+                    avatarUrl = branchAvatarUrl,
+                    coverUrl = branchCoverUrl,
+                    onChangeAvatar = {
+                        if (canEditBranch) {
+                            branchAvatarState = ImageUploadState.Idle
+                            showBranchAvatarDialog = true
+                        } else {
+                            saveMessage = "Selecciona una sucursal para editar imagenes"
+                        }
+                    },
+                    onChangeCover = if (canEditBranch) {
+                        {
+                            branchCoverState = ImageUploadState.Idle
+                            showBranchCoverDialog = true
+                        }
+                    } else {
+                        null
+                    }
                 )
             }
 
@@ -171,7 +200,6 @@ fun BusinessProfileScreen(
             item {
                 BusinessInfoSection(
                     business = currentBusiness,
-                    branch = currentBranch,
                     onSave = { name, description, tags ->
                         currentBusiness?.let { business ->
                             coroutineScope.launch {
@@ -184,7 +212,7 @@ fun BusinessProfileScreen(
                                     tags = tags.takeIf { it != business.tags }
                                 )
 
-                                when (val result = businessRepository.updateBusiness(business.id, input)) {
+                                when (val result = authViewModel.updateBusiness(business.id, input)) {
                                     is BusinessResult.Success -> {
                                         saveMessage = "OK: Negocio actualizado correctamente"
                                     }
@@ -206,8 +234,91 @@ fun BusinessProfileScreen(
                 UserInfoSection(
                     user = currentUser,
                     onSave = { name, phone ->
-                        // TODO: Implement user update via AuthRepository
-                        saveMessage = "La actualizacion de usuario estara disponible pronto"
+                        currentUser?.let { user ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Guardando cambios del usuario..."
+
+                                val input = UpdateUserInput(
+                                    name = name.takeIf { it != user.name },
+                                    phone = phone.takeIf { it != user.phone }
+                                )
+
+                                when (val result = authViewModel.updateUser(input)) {
+                                    is AuthResult.Success -> {
+                                        saveMessage = "OK: Usuario actualizado correctamente"
+                                    }
+                                    is AuthResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Redes sociales
+            item {
+                SocialLinksSection(
+                    socialMedia = currentBusiness?.socialMedia,
+                    onSave = { socialMedia ->
+                        currentBusiness?.let { business ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Guardando redes sociales..."
+
+                                val input = UpdateBusinessInput(
+                                    socialMedia = socialMedia.takeIf { it != business.socialMedia }
+                                )
+
+                                when (val result = authViewModel.updateBusiness(business.id, input)) {
+                                    is BusinessResult.Success -> {
+                                        saveMessage = "OK: Redes sociales actualizadas"
+                                    }
+                                    is BusinessResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Tags
+            item {
+                BusinessTagsSection(
+                    business = currentBusiness,
+                    onSave = { tags ->
+                        currentBusiness?.let { business ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Guardando etiquetas..."
+
+                                val input = UpdateBusinessInput(
+                                    tags = tags.takeIf { it != business.tags }
+                                )
+
+                                when (val result = authViewModel.updateBusiness(business.id, input)) {
+                                    is BusinessResult.Success -> {
+                                        saveMessage = "OK: Etiquetas actualizadas"
+                                    }
+                                    is BusinessResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                            }
+                        }
                     }
                 )
             }
@@ -270,65 +381,6 @@ fun BusinessProfileScreen(
                 }
             }
 
-            // Informacion de la sucursal
-            item {
-                BranchInfoSection(
-                    branch = currentBranch,
-                    onSave = { name, phone, address, deliveryRadius ->
-                        currentBranch?.let { branch ->
-                            coroutineScope.launch {
-                                isSaving = true
-                                saveMessage = "Guardando datos de la sucursal..."
-
-                                val input = UpdateBranchInput(
-                                    name = name.takeIf { it != branch.name },
-                                    phone = phone.takeIf { it != branch.phone },
-                                    address = address.takeIf { it != branch.address },
-                                    deliveryRadius = deliveryRadius.takeIf { it != branch.deliveryRadius }
-                                )
-
-                                when (val result = businessRepository.updateBranch(branch.id, input)) {
-                                    is BusinessResult.Success -> {
-                                        saveMessage = "OK: Sucursal actualizada correctamente"
-                                    }
-                                    is BusinessResult.Error -> {
-                                        saveMessage = "Error: ${result.message}"
-                                    }
-                                    else -> {}
-                                }
-
-                                isSaving = false
-                            }
-                        }
-                    }
-                )
-            }
-
-            // Redes sociales
-            item {
-                SocialLinksSection(socialMedia = currentBusiness?.socialMedia)
-            }
-
-            // Horarios
-            item {
-                BranchScheduleSection(branch = currentBranch)
-            }
-
-            // Mapa de ubicacion
-            item {
-                LocationMapSection(branch = currentBranch)
-            }
-
-            // Tags
-            item {
-                BusinessTagsSection(business = currentBusiness)
-            }
-
-            // Facilidades
-            item {
-                BranchFacilitiesSection(branch = currentBranch)
-            }
-
             // Cerrar sesion
             item {
                 OutlinedButton(
@@ -360,6 +412,89 @@ fun BusinessProfileScreen(
             }
         }
 
+        if (showBranchAvatarDialog) {
+            ImageUploadDialog(
+                title = "Avatar de la sucursal",
+                label = "Avatar",
+                uploadState = branchAvatarState,
+                onStateChange = { state ->
+                    branchAvatarState = state
+                    if (state is ImageUploadState.Success) {
+                        currentBranch?.let { branch ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Guardando avatar de la sucursal..."
+
+                                when (val result = authViewModel.updateBranch(
+                                    branch.id,
+                                    UpdateBranchInput(avatar = state.s3Path)
+                                )) {
+                                    is BusinessResult.Success -> {
+                                        saveMessage = "OK: Avatar de sucursal actualizado"
+                                    }
+                                    is BusinessResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                                showBranchAvatarDialog = false
+                                branchAvatarState = ImageUploadState.Idle
+                            }
+                        }
+                    }
+                },
+                uploadFunction = { uri, token -> imageUploadService.uploadBranchAvatar(uri, token) },
+                onDismiss = {
+                    showBranchAvatarDialog = false
+                    branchAvatarState = ImageUploadState.Idle
+                }
+            )
+        }
+
+        if (showBranchCoverDialog) {
+            ImageUploadDialog(
+                title = "Portada de la sucursal",
+                label = "Portada",
+                uploadState = branchCoverState,
+                size = ImageUploadSize.LARGE,
+                onStateChange = { state ->
+                    branchCoverState = state
+                    if (state is ImageUploadState.Success) {
+                        currentBranch?.let { branch ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Guardando portada de la sucursal..."
+
+                                when (val result = authViewModel.updateBranch(
+                                    branch.id,
+                                    UpdateBranchInput(coverImage = state.s3Path)
+                                )) {
+                                    is BusinessResult.Success -> {
+                                        saveMessage = "OK: Portada de sucursal actualizada"
+                                    }
+                                    is BusinessResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                                showBranchCoverDialog = false
+                                branchCoverState = ImageUploadState.Idle
+                            }
+                        }
+                    }
+                },
+                uploadFunction = { uri, token -> imageUploadService.uploadBranchCover(uri, token) },
+                onDismiss = {
+                    showBranchCoverDialog = false
+                    branchCoverState = ImageUploadState.Idle
+                }
+            )
+        }
+
         // Dialogos
         if (showShareDialog) {
             ShareDialog(onDismiss = { showShareDialog = false })
@@ -375,4 +510,35 @@ fun BusinessProfileScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ImageUploadDialog(
+    title: String,
+    label: String,
+    uploadState: ImageUploadState,
+    onStateChange: (ImageUploadState) -> Unit,
+    uploadFunction: suspend (filePath: String, token: String?) -> ImageUploadResult,
+    onDismiss: () -> Unit,
+    size: ImageUploadSize = ImageUploadSize.MEDIUM
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
+        text = {
+            ImageUploadPreview(
+                label = label,
+                uploadState = uploadState,
+                onStateChange = onStateChange,
+                uploadFunction = uploadFunction,
+                size = size,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        }
+    )
 }

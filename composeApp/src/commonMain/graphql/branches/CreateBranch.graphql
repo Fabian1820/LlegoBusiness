@@ -8,6 +8,8 @@ mutation CreateBranch($input: CreateBranchInput!, $jwt: String) {
     tipos
     avatar
     coverImage
+    avatarUrl
+    coverUrl
     status
     deliveryRadius
     coordinates {

@@ -524,6 +524,50 @@ class BusinessRepository(
         }
     }
 
+    /**
+     * Elimina una sucursal
+     */
+    suspend fun deleteBranch(branchId: String): BusinessResult<Boolean> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesi\u00f3n activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                DeleteBranchMutation(
+                    branchId = branchId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            val deleted = response.data?.deleteBranch == true
+            if (deleted) {
+                val updatedBranches = _branches.value.filterNot { it.id == branchId }
+                _branches.value = updatedBranches
+
+                if (_currentBranch.value?.id == branchId) {
+                    _currentBranch.value = when (updatedBranches.size) {
+                        1 -> updatedBranches.first()
+                        else -> null
+                    }
+                }
+
+                BusinessResult.Success(true)
+            } else {
+                BusinessResult.Error("No se pudo eliminar la sucursal", "DELETE_FAILED")
+            }
+        } catch (e: ApolloException) {
+            BusinessResult.Error(
+                e.message ?: "Error de conexi\u00f3n al eliminar sucursal",
+                "APOLLO_ERROR"
+            )
+        } catch (e: Exception) {
+            BusinessResult.Error(
+                e.message ?: "Error desconocido al eliminar sucursal",
+                "UNKNOWN_ERROR"
+            )
+        }
+    }
+
     // ============= HELPER METHODS =============
 
     /**

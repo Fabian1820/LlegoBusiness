@@ -49,20 +49,21 @@ data class DaySchedule(
 fun SchedulePicker(
     schedule: Map<String, DaySchedule>,
     onScheduleChange: (Map<String, DaySchedule>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showHeader: Boolean = true
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
 
     // Días de la semana
     val daysOfWeek = listOf(
-        "lun" to "Lunes",
-        "mar" to "Martes",
-        "mie" to "Miércoles",
-        "jue" to "Jueves",
-        "vie" to "Viernes",
-        "sab" to "Sábado",
-        "dom" to "Domingo"
+        "mon" to "Lunes",
+        "tue" to "Martes",
+        "wed" to "Miercoles",
+        "thu" to "Jueves",
+        "fri" to "Viernes",
+        "sat" to "Sabado",
+        "sun" to "Domingo"
     )
 
     var showDetailedPicker by remember { mutableStateOf(false) }
@@ -72,8 +73,9 @@ fun SchedulePicker(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header
-        Row(
+        if (showHeader) {
+            // Header
+            Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -101,6 +103,8 @@ fun SchedulePicker(
             ) {
                 Text(if (showDetailedPicker) "Modo Simple" else "Modo Avanzado")
             }
+        }
+
         }
 
         if (!showDetailedPicker) {
@@ -445,7 +449,8 @@ private fun DayScheduleCard(
  * Convierte el schedule de DaySchedule a formato del backend
  */
 fun Map<String, DaySchedule>.toBackendSchedule(): Map<String, List<String>> {
-    return this.mapValues { (_, daySchedule) ->
+    val normalized = normalizeScheduleKeys()
+    return normalized.mapValues { (_, daySchedule) ->
         if (daySchedule.isOpen) {
             daySchedule.timeRanges.map { "${it.start}-${it.end}" }
         } else {
@@ -458,10 +463,15 @@ fun Map<String, DaySchedule>.toBackendSchedule(): Map<String, List<String>> {
  * Convierte el schedule del backend a DaySchedule
  */
 fun Map<String, List<String>>.toDaySchedule(): Map<String, DaySchedule> {
-    val allDays = listOf("lun", "mar", "mie", "jue", "vie", "sab", "dom")
+    val normalized = mutableMapOf<String, List<String>>()
+    forEach { (key, value) ->
+        normalized[normalizeDayKey(key.lowercase())] = value
+    }
+
+    val allDays = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
     return allDays.associateWith { day ->
-        val ranges = this[day]
+        val ranges = normalized[day]
         if (ranges.isNullOrEmpty()) {
             DaySchedule(isOpen = false, timeRanges = emptyList())
         } else {
@@ -473,5 +483,30 @@ fun Map<String, List<String>>.toDaySchedule(): Map<String, DaySchedule> {
                 }
             )
         }
+    }
+}
+
+private fun Map<String, DaySchedule>.normalizeScheduleKeys(): Map<String, DaySchedule> {
+    if (isEmpty()) {
+        return this
+    }
+
+    val normalized = mutableMapOf<String, DaySchedule>()
+    forEach { (key, value) ->
+        normalized[normalizeDayKey(key.lowercase())] = value
+    }
+    return normalized
+}
+
+private fun normalizeDayKey(key: String): String {
+    return when (key) {
+        "lun" -> "mon"
+        "mar" -> "tue"
+        "mie" -> "wed"
+        "jue" -> "thu"
+        "vie" -> "fri"
+        "sab" -> "sat"
+        "dom" -> "sun"
+        else -> key
     }
 }

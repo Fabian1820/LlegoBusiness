@@ -21,7 +21,11 @@ import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.User
+import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.utils.formatDouble
+import com.llego.shared.ui.components.molecules.SchedulePicker
+import com.llego.shared.ui.components.molecules.toBackendSchedule
+import com.llego.shared.ui.components.molecules.toDaySchedule
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
 
@@ -150,18 +154,18 @@ fun BannerWithLogoSection(
 @Composable
 fun BusinessInfoSection(
     business: Business?,
-    branch: Branch?,
     onSave: (name: String, description: String, tags: List<String>) -> Unit = { _, _, _ -> }
 ) {
     var businessName by remember(business) { mutableStateOf(business?.name ?: "") }
     var description by remember(business) { mutableStateOf(business?.description ?: "") }
-    var address by remember(branch) { mutableStateOf(branch?.address ?: "") }
-
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingDescription by remember { mutableStateOf(false) }
-    var isEditingAddress by remember { mutableStateOf(false) }
 
     val rating = business?.globalRating ?: 0.0
+    val tags = business?.tags ?: emptyList()
+    val saveChanges = {
+        onSave(businessName.trim(), description.trim(), tags)
+    }
 
     Column(
         modifier = Modifier
@@ -187,7 +191,10 @@ fun BusinessInfoSection(
                         ),
                         trailingIcon = {
                             Row {
-                                IconButton(onClick = { isEditingName = false }) {
+                                IconButton(onClick = {
+                                    saveChanges()
+                                    isEditingName = false
+                                }) {
                                     Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = {
@@ -218,24 +225,6 @@ fun BusinessInfoSection(
                     )
                 }
 
-                // Direccion
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { isEditingAddress = true }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = address.ifEmpty { "Agregar direccion" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
 
             // Rating badge
@@ -268,16 +257,50 @@ fun BusinessInfoSection(
         }
 
         // Descripcion
-        Text(
-            text = description.ifEmpty { "Agregar descripcion" },
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (description.isEmpty()) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-            modifier = Modifier.clickable { isEditingDescription = true }
-        )
+        if (isEditingDescription) {
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Descripcion") },
+                minLines = 3,
+                maxLines = 5,
+                trailingIcon = {
+                    Row {
+                        IconButton(onClick = {
+                            saveChanges()
+                            isEditingDescription = false
+                        }) {
+                            Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                        IconButton(onClick = {
+                            description = business?.description ?: ""
+                            isEditingDescription = false
+                        }) {
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = LlegoCustomShapes.inputField
+            )
+        } else {
+            Text(
+                text = description.ifEmpty { "Agregar descripcion" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (description.isEmpty()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.clickable { isEditingDescription = true }
+            )
+        }
     }
 }
 
@@ -302,7 +325,10 @@ fun UserInfoSection(
             onValueChange = { userName = it },
             isEditing = isEditingName,
             onEditClick = { isEditingName = true },
-            onSaveClick = { isEditingName = false },
+            onSaveClick = {
+                onSave(userName.trim(), userPhone.trim())
+                isEditingName = false
+            },
             onCancelClick = { userName = user?.name ?: ""; isEditingName = false },
             icon = Icons.Default.Person
         )
@@ -319,7 +345,10 @@ fun UserInfoSection(
             onValueChange = { userPhone = it },
             isEditing = isEditingPhone,
             onEditClick = { isEditingPhone = true },
-            onSaveClick = { isEditingPhone = false },
+            onSaveClick = {
+                onSave(userName.trim(), userPhone.trim())
+                isEditingPhone = false
+            },
             onCancelClick = { userPhone = user?.phone ?: ""; isEditingPhone = false },
             icon = Icons.Default.Phone,
             placeholder = "Agregar telefono"
@@ -344,6 +373,19 @@ fun BranchInfoSection(
     var isEditingAddress by remember { mutableStateOf(false) }
     var isEditingRadius by remember { mutableStateOf(false) }
 
+    val tiposLabel = branch?.tipos
+        ?.joinToString(", ") { it.toDisplayName() }
+        .orEmpty()
+
+    val saveChanges = {
+        onSave(
+            branchName.trim(),
+            branchPhone.trim(),
+            branchAddress.trim(),
+            deliveryRadius.toDoubleOrNull()
+        )
+    }
+
     ProfileSectionCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -360,7 +402,10 @@ fun BranchInfoSection(
             onValueChange = { branchName = it },
             isEditing = isEditingName,
             onEditClick = { isEditingName = true },
-            onSaveClick = { isEditingName = false },
+            onSaveClick = {
+                saveChanges()
+                isEditingName = false
+            },
             onCancelClick = { branchName = branch?.name ?: ""; isEditingName = false },
             icon = Icons.Default.Store
         )
@@ -371,7 +416,10 @@ fun BranchInfoSection(
             onValueChange = { branchPhone = it },
             isEditing = isEditingPhone,
             onEditClick = { isEditingPhone = true },
-            onSaveClick = { isEditingPhone = false },
+            onSaveClick = {
+                saveChanges()
+                isEditingPhone = false
+            },
             onCancelClick = { branchPhone = branch?.phone ?: ""; isEditingPhone = false },
             icon = Icons.Default.Phone
         )
@@ -382,10 +430,19 @@ fun BranchInfoSection(
             onValueChange = { branchAddress = it },
             isEditing = isEditingAddress,
             onEditClick = { isEditingAddress = true },
-            onSaveClick = { isEditingAddress = false },
+            onSaveClick = {
+                saveChanges()
+                isEditingAddress = false
+            },
             onCancelClick = { branchAddress = branch?.address ?: ""; isEditingAddress = false },
             icon = Icons.Default.LocationOn,
             placeholder = "Agregar direccion"
+        )
+
+        ReadOnlyField(
+            label = "Tipos",
+            value = tiposLabel,
+            icon = Icons.Default.Label
         )
 
         EditableField(
@@ -394,9 +451,13 @@ fun BranchInfoSection(
             onValueChange = { deliveryRadius = it },
             isEditing = isEditingRadius,
             onEditClick = { isEditingRadius = true },
-            onSaveClick = { isEditingRadius = false },
+            onSaveClick = {
+                saveChanges()
+                isEditingRadius = false
+            },
             onCancelClick = { deliveryRadius = branch?.deliveryRadius?.toString() ?: ""; isEditingRadius = false },
-            icon = Icons.Default.DeliveryDining
+            icon = Icons.Default.DeliveryDining,
+            placeholder = "Ej: 5.0"
         )
     }
 }
@@ -409,25 +470,24 @@ fun BusinessTagsSection(
     onSave: (List<String>) -> Unit = {}
 ) {
     var isEditing by remember { mutableStateOf(false) }
-    val tags = business?.tags ?: emptyList()
+    var currentTags by remember(business) { mutableStateOf(business?.tags ?: emptyList()) }
+    var newTag by remember { mutableStateOf("") }
 
     ProfileSectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionHeader(title = "Etiquetas del negocio")
-            IconButton(onClick = { isEditing = !isEditing }) {
-                Icon(
-                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                    contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        SectionHeader(
+            title = "Etiquetas del negocio",
+            isEditing = isEditing,
+            onEditClick = {
+                if (isEditing) {
+                    onSave(currentTags)
+                } else {
+                    currentTags = business?.tags ?: emptyList()
+                }
+                isEditing = !isEditing
             }
-        }
+        )
 
-        if (tags.isEmpty()) {
+        if (currentTags.isEmpty() && !isEditing) {
             Text(
                 text = "Sin etiquetas",
                 style = MaterialTheme.typography.bodyMedium,
@@ -439,25 +499,47 @@ fun BusinessTagsSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                items(tags) { tag ->
-                    FilterChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text(tag) },
-                        enabled = false,
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = false,
-                            selected = false,
-                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
+                items(currentTags) { tag ->
+                    TagChip(
+                        text = tag,
+                        onRemove = if (isEditing) {{
+                            currentTags = currentTags - tag
+                        }} else null
                     )
+                }
+            }
+        }
+
+        if (isEditing) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = newTag,
+                    onValueChange = { newTag = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Nueva etiqueta") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = LlegoCustomShapes.inputField
+                )
+                IconButton(
+                    onClick = {
+                        val tag = newTag.trim()
+                        if (tag.isNotEmpty() && !currentTags.contains(tag)) {
+                            currentTags = currentTags + tag
+                            newTag = ""
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.Add, "Agregar", tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -472,55 +554,101 @@ fun BranchFacilitiesSection(
     onSave: (List<String>) -> Unit = {}
 ) {
     var isEditing by remember { mutableStateOf(false) }
-    val facilities = branch?.facilities ?: emptyList()
+    var currentFacilities by remember(branch) { mutableStateOf(branch?.facilities ?: emptyList()) }
+
+    val facilityOptions = listOf(
+        "parking" to "Estacionamiento",
+        "wifi" to "WiFi gratis",
+        "ac" to "Aire acondicionado",
+        "wheelchair" to "Acceso sillas de ruedas",
+        "terrace" to "Terraza",
+        "kids_area" to "Zona para ninos",
+        "pet_friendly" to "Pet friendly",
+        "takeout" to "Para llevar",
+        "card_payment" to "Pago con tarjeta",
+        "delivery" to "Delivery propio"
+    )
 
     ProfileSectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionHeader(title = "Instalaciones")
-            IconButton(onClick = { isEditing = !isEditing }) {
-                Icon(
-                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                    contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        SectionHeader(
+            title = "Instalaciones",
+            isEditing = isEditing,
+            onEditClick = {
+                if (isEditing) {
+                    onSave(currentFacilities)
+                } else {
+                    currentFacilities = branch?.facilities ?: emptyList()
+                }
+                isEditing = !isEditing
             }
-        }
+        )
 
-        if (facilities.isEmpty()) {
-            Text(
-                text = "Sin instalaciones especificadas",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        } else {
-            LazyRow(
+        if (isEditing) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(facilities) { facility ->
+                facilityOptions.forEach { (key, label) ->
                     FilterChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text(facility) },
-                        enabled = false,
+                        selected = currentFacilities.contains(key),
+                        onClick = {
+                            currentFacilities = if (currentFacilities.contains(key)) {
+                                currentFacilities - key
+                            } else {
+                                currentFacilities + key
+                            }
+                        },
+                        label = { Text(label) },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
-                            enabled = false,
-                            selected = false,
-                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            enabled = true,
+                            selected = currentFacilities.contains(key),
+                            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     )
+                }
+            }
+        } else {
+            if (currentFacilities.isEmpty()) {
+                Text(
+                    text = "Sin instalaciones especificadas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    items(currentFacilities) { facility ->
+                        val label = facilityOptions.firstOrNull { it.first == facility }?.second ?: facility
+                        FilterChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(label) },
+                            enabled = false,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = false,
+                                selected = false,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -535,9 +663,10 @@ fun BranchScheduleSection(
     onSave: (Map<String, List<String>>) -> Unit = {}
 ) {
     var isEditing by remember { mutableStateOf(false) }
-    val schedule = branch?.schedule ?: emptyMap()
+    val backendSchedule = branch?.schedule ?: emptyMap()
+    var editableSchedule by remember(branch) { mutableStateOf(backendSchedule.toDaySchedule()) }
 
-    val dayNames = mapOf(
+    val dayNames = listOf(
         "mon" to "Lunes",
         "tue" to "Martes",
         "wed" to "Miercoles",
@@ -548,53 +677,65 @@ fun BranchScheduleSection(
     )
 
     ProfileSectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionHeader(title = "Horarios de atencion")
-            IconButton(onClick = { isEditing = !isEditing }) {
-                Icon(
-                    imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                    contentDescription = if (isEditing) "Guardar" else "Editar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        SectionHeader(
+            title = "Horarios de atencion",
+            isEditing = isEditing,
+            onEditClick = {
+                if (isEditing) {
+                    onSave(editableSchedule.toBackendSchedule())
+                } else {
+                    editableSchedule = backendSchedule.toDaySchedule()
+                }
+                isEditing = !isEditing
             }
-        }
+        )
 
-        if (schedule.isEmpty()) {
-            Text(
-                text = "Sin horarios configurados",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
+        if (isEditing) {
+            SchedulePicker(
+                schedule = editableSchedule,
+                onScheduleChange = { editableSchedule = it }
             )
         } else {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                schedule.forEach { (day, hoursList) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = dayNames[day] ?: day,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        val hoursText = if (hoursList.isEmpty()) "Cerrado" else hoursList.joinToString(", ")
-                        Text(
-                            text = hoursText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (hoursList.isEmpty()) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            }
-                        )
+            val scheduleForDisplay = backendSchedule.toDaySchedule()
+            if (backendSchedule.isEmpty()) {
+                Text(
+                    text = "Sin horarios configurados",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    dayNames.forEach { (key, label) ->
+                        val daySchedule = scheduleForDisplay[key]
+                        val hoursText = if (daySchedule == null || !daySchedule.isOpen) {
+                            "Cerrado"
+                        } else {
+                            daySchedule.timeRanges.joinToString(", ") { "${it.start}-${it.end}" }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = hoursText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (hoursText == "Cerrado") {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        }
                     }
                 }
             }

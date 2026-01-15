@@ -1,9 +1,15 @@
 package com.llego.shared.ui.auth
 
 import androidx.lifecycle.ViewModel
+import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.AuthUiState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
+import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.UpdateBranchInput
+import com.llego.shared.data.model.UpdateBusinessInput
+import com.llego.shared.data.model.UpdateUserInput
 import com.llego.shared.data.model.User
 import kotlinx.coroutines.flow.StateFlow
 
@@ -44,6 +50,11 @@ expect class AuthViewModel() : ViewModel {
     fun logout()
     fun clearLoginError()
     fun getCurrentUser(): User?
+    suspend fun updateUser(input: UpdateUserInput): AuthResult<User>
+    suspend fun updateBusiness(businessId: String, input: UpdateBusinessInput): BusinessResult<Business>
+    suspend fun updateBranch(branchId: String, input: UpdateBranchInput): BusinessResult<Branch>
+    suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch>
+    suspend fun deleteBranch(branchId: String): BusinessResult<Boolean>
 
     /** Obtiene el ID de la sucursal actual */
     fun getCurrentBranchId(): String?

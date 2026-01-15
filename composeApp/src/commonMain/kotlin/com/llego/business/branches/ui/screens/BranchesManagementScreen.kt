@@ -1,27 +1,45 @@
 package com.llego.business.branches.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +48,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,17 +73,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
-import com.llego.shared.data.repositories.BusinessRepository
+import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.components.molecules.DaySchedule
+import com.llego.shared.ui.components.molecules.FacilitiesSelector
+import com.llego.shared.ui.components.molecules.ImageUploadPreview
+import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.components.molecules.SchedulePicker
+import com.llego.shared.ui.components.molecules.TimeRange
+import com.llego.shared.ui.components.molecules.toBackendSchedule
+import com.llego.shared.ui.components.molecules.toDaySchedule
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
+import com.llego.shared.ui.components.molecules.MapLocationPickerReal
+import com.llego.business.shared.ui.components.BusinessLocationMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -74,7 +108,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun BranchesManagementScreen(
     authViewModel: AuthViewModel,
-    businessRepository: BusinessRepository,
     onNavigateBack: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -84,10 +117,15 @@ fun BranchesManagementScreen(
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
 
-    var showAddBranchDialog by remember { mutableStateOf(false) }
-    var branchToEdit by remember { mutableStateOf<Branch?>(null) }
+    var showCreateBranch by remember { mutableStateOf(false) }
+    var selectedBranchId by remember { mutableStateOf<String?>(null) }
+    var editingBranchId by remember { mutableStateOf<String?>(null) }
     var branchToDelete by remember { mutableStateOf<Branch?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    val selectedBranch = branches.firstOrNull { it.id == selectedBranchId }
+    val editingBranch = branches.firstOrNull { it.id == editingBranchId }
+    val showListScreen = !showCreateBranch && editingBranch == null && selectedBranch == null
 
     // Mostrar mensaje temporal
     LaunchedEffect(statusMessage) {
@@ -97,208 +135,125 @@ fun BranchesManagementScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Sucursales",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddBranchDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar sucursal"
-                )
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Mensaje de estado
-            if (statusMessage != null) {
-                item {
-                    Card(
-                        shape = LlegoCustomShapes.infoCard,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Text(
-                            text = statusMessage ?: "",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Header
-            item {
-                Text(
-                    text = "Selecciona la sucursal activa y gestiona tus ubicaciones",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // Lista de sucursales
-            items(branches) { branch ->
-                BranchCard(
-                    branch = branch,
-                    isActive = branch.id == currentBranch?.id,
-                    onSelect = {
-                        coroutineScope.launch {
-                            authViewModel.setCurrentBranch(branch)
-                            statusMessage = "OK: Sucursal '${branch.name}' seleccionada como activa"
-                        }
-                    },
-                    onEdit = { branchToEdit = branch },
-                    onDelete = {
-                        if (branches.size > 1) {
-                            branchToDelete = branch
-                        } else {
-                            statusMessage = "Error: No puedes eliminar la ultima sucursal"
-                        }
-                    }
-                )
-            }
-
-            // Empty state
-            if (branches.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = LlegoCustomShapes.infoCard,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Store,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Text(
-                                text = "No hay sucursales registradas",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Agrega tu primera sucursal",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Dialogos
-        if (showAddBranchDialog) {
-            AddBranchDialog(
-                businessId = currentBusiness?.id ?: "",
-                businessRepository = businessRepository,
-                onDismiss = { showAddBranchDialog = false },
+    when {
+        showCreateBranch -> {
+            BranchCreateScreen(
+                businessId = currentBusiness?.id.orEmpty(),
+                onNavigateBack = { showCreateBranch = false },
                 onSuccess = { newBranch ->
-                    showAddBranchDialog = false
+                    showCreateBranch = false
                     statusMessage = "OK: Sucursal '${newBranch.name}' agregada correctamente"
-                    coroutineScope.launch {
-                        businessRepository.getBranches(currentBusiness?.id)
-                    }
                 },
-                onError = { error ->
-                    statusMessage = "Error: $error"
-                }
+                onError = { error -> statusMessage = "Error: $error" },
+                authViewModel = authViewModel
             )
         }
-
-        if (branchToEdit != null) {
-            EditBranchDialog(
-                branch = branchToEdit!!,
-                businessRepository = businessRepository,
-                onDismiss = { branchToEdit = null },
+        editingBranch != null -> {
+            BranchEditScreen(
+                branch = editingBranch,
+                onNavigateBack = { editingBranchId = null },
                 onSuccess = { updatedBranch ->
-                    branchToEdit = null
+                    editingBranchId = null
+                    selectedBranchId = updatedBranch.id
                     statusMessage = "OK: Sucursal '${updatedBranch.name}' actualizada"
                 },
-                onError = { error ->
-                    statusMessage = "Error: $error"
+                onError = { error -> statusMessage = "Error: $error" },
+                authViewModel = authViewModel
+            )
+        }
+        selectedBranch != null -> {
+            BranchDetailScreen(
+                branch = selectedBranch,
+                isActive = selectedBranch.id == currentBranch?.id,
+                onNavigateBack = { selectedBranchId = null },
+                onEdit = { editingBranchId = selectedBranch.id },
+                onSetActive = {
+                    authViewModel.setCurrentBranch(selectedBranch)
+                    statusMessage = "OK: Sucursal '${selectedBranch.name}' seleccionada como activa"
                 }
             )
         }
-
-        if (branchToDelete != null) {
-            AlertDialog(
-                onDismissRequest = { branchToDelete = null },
-                title = { Text("Eliminar sucursal") },
-                text = {
-                    Text(
-                        "Estas seguro de que deseas eliminar la sucursal '${branchToDelete?.name}'? " +
-                            "Esta accion no se puede deshacer."
-                    )
+        else -> {
+            BranchesListScreen(
+                branches = branches,
+                currentBranchId = currentBranch?.id,
+                statusMessage = statusMessage,
+                onNavigateBack = onNavigateBack,
+                onAddBranch = { showCreateBranch = true },
+                onOpenDetails = { selectedBranchId = it.id },
+                onSetActive = { branch ->
+                    coroutineScope.launch {
+                        authViewModel.setCurrentBranch(branch)
+                        statusMessage = "OK: Sucursal '${branch.name}' seleccionada como activa"
+                    }
                 },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            // TODO: Implement delete branch mutation
-                            statusMessage = "La eliminacion de sucursales estara disponible pronto"
-                            branchToDelete = null
+                onEdit = { editingBranchId = it.id },
+                onDelete = { branch ->
+                    if (branches.size > 1) {
+                        branchToDelete = branch
+                    } else {
+                        statusMessage = "Error: No puedes eliminar la ultima sucursal"
+                    }
+                },
+                onLocationUpdate = { branch, lat, lng ->
+                    coroutineScope.launch {
+                        val input = UpdateBranchInput(
+                            coordinates = CoordinatesInput(lat = lat, lng = lng)
+                        )
+                        when (val result = authViewModel.updateBranch(branch.id, input)) {
+                            is BusinessResult.Success -> {
+                                statusMessage = "OK: Ubicacion de '${branch.name}' actualizada"
+                            }
+                            is BusinessResult.Error -> {
+                                statusMessage = "Error: ${result.message}"
+                            }
+                            else -> {}
                         }
-                    ) {
-                        Text("Eliminar", color = MaterialTheme.colorScheme.error)
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { branchToDelete = null }) {
-                        Text("Cancelar")
-                    }
-                },
-                shape = LlegoCustomShapes.infoCard,
-                containerColor = MaterialTheme.colorScheme.surface
+                }
             )
         }
+    }
+
+    if (showListScreen && branchToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { branchToDelete = null },
+            title = { Text("Eliminar sucursal") },
+            text = {
+                Text(
+                    "Estas seguro de que deseas eliminar la sucursal '${branchToDelete?.name}'? " +
+                        "Esta accion no se puede deshacer."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val branch = branchToDelete ?: return@TextButton
+                        coroutineScope.launch {
+                            when (val result = authViewModel.deleteBranch(branch.id)) {
+                                is BusinessResult.Success -> {
+                                    statusMessage = "OK: Sucursal '${branch.name}' eliminada"
+                                }
+                                is BusinessResult.Error -> {
+                                    statusMessage = "Error: ${result.message}"
+                                }
+                                else -> {}
+                            }
+                            branchToDelete = null
+                        }
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { branchToDelete = null }) {
+                    Text("Cancelar")
+                }
+            },
+            shape = LlegoCustomShapes.infoCard,
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     }
 }
 
@@ -309,10 +264,38 @@ fun BranchesManagementScreen(
 fun BranchCard(
     branch: Branch,
     isActive: Boolean,
-    onSelect: () -> Unit,
+    onOpenDetails: () -> Unit,
+    onSetActive: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onLocationUpdate: (Double, Double) -> Unit = { _, _ -> }
 ) {
+    var showLocationMap by remember { mutableStateOf(false) }
+    var selectedLatitude by remember(branch) { mutableStateOf(branch.coordinates.latitude) }
+    var selectedLongitude by remember(branch) { mutableStateOf(branch.coordinates.longitude) }
+
+    // Dialogo de mapa fullscreen
+    if (showLocationMap) {
+        BranchLocationDialog(
+            latitude = selectedLatitude,
+            longitude = selectedLongitude,
+            branchName = branch.name,
+            onLocationChange = { lat, lng ->
+                selectedLatitude = lat
+                selectedLongitude = lng
+            },
+            onConfirm = {
+                onLocationUpdate(selectedLatitude, selectedLongitude)
+                showLocationMap = false
+            },
+            onDismiss = {
+                selectedLatitude = branch.coordinates.latitude
+                selectedLongitude = branch.coordinates.longitude
+                showLocationMap = false
+            }
+        )
+    }
+
     val statusColor = when (branch.status) {
         "active" -> MaterialTheme.colorScheme.tertiary
         "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -322,7 +305,7 @@ fun BranchCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect() },
+            .clickable { onOpenDetails() },
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -460,6 +443,25 @@ fun BranchCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (!isActive) {
+                    TextButton(onClick = onSetActive) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Activar",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Activar")
+                    }
+                }
+                IconButton(onClick = { showLocationMap = true }) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Editar ubicacion",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
                 IconButton(onClick = onEdit) {
                     Icon(
                         imageVector = Icons.Default.Edit,
@@ -480,167 +482,416 @@ fun BranchCard(
 }
 
 /**
- * Dialogo para agregar nueva sucursal
+ * Dialogo de mapa fullscreen para editar ubicacion de sucursal
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddBranchDialog(
+private fun BranchLocationDialog(
+    latitude: Double,
+    longitude: Double,
+    branchName: String,
+    onLocationChange: (Double, Double) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var contentVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { contentVisible = true }
+
+    LaunchedEffect(contentVisible) {
+        if (!contentVisible) {
+            delay(180)
+            onDismiss()
+        }
+    }
+
+    Dialog(
+        onDismissRequest = { contentVisible = false },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        AnimatedVisibility(
+            visible = contentVisible,
+            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
+            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Ubicacion de $branchName",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { contentVisible = false }) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                "Volver",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Mapa interactivo
+                BusinessLocationMap(
+                    latitude = latitude,
+                    longitude = longitude,
+                    onLocationSelected = onLocationChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    isInteractive = true
+                )
+
+                // Bottom bar con boton guardar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
+                    shape = LlegoCustomShapes.modal
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Coordenadas
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = LlegoShapes.small,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Lat ${formatCoordinate(latitude)}, Lng ${formatCoordinate(longitude)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Boton guardar
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = LlegoCustomShapes.primaryButton,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text("Guardar ubicacion")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Formatea coordenadas a 6 decimales
+ */
+private fun formatCoordinate(value: Double): String {
+    val rounded = (value * 1_000_000.0).toLong() / 1_000_000.0
+    val text = rounded.toString()
+    return if (text.contains(".")) {
+        val parts = text.split(".")
+        val decimals = parts[1].padEnd(6, '0').take(6)
+        parts[0] + "." + decimals
+    } else {
+        text + ".000000"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BranchCreateScreen(
     businessId: String,
-    businessRepository: BusinessRepository,
-    onDismiss: () -> Unit,
+    onNavigateBack: () -> Unit,
     onSuccess: (Branch) -> Unit,
-    onError: (String) -> Unit
+    onError: (String) -> Unit,
+    authViewModel: AuthViewModel
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
 
+    var statusMessage by remember { mutableStateOf<String?>(null) }
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    var latitude by remember { mutableStateOf("") }
-    var longitude by remember { mutableStateOf("") }
-    var deliveryRadius by remember { mutableStateOf("5.0") }
+    // Coordenadas default: La Habana, Cuba
+    var branchLatitude by remember { mutableStateOf(23.1136) }
+    var branchLongitude by remember { mutableStateOf(-82.3666) }
+    var deliveryRadius by remember { mutableStateOf("") }
+    var managerIds by remember { mutableStateOf("") }
+    var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
+    var branchSchedule by remember {
+        mutableStateOf(
+            mapOf(
+                "mon" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "tue" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "wed" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "thu" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "fri" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "sat" to DaySchedule(false, emptyList()),
+                "sun" to DaySchedule(false, emptyList())
+            )
+        )
+    }
+    var branchFacilities by remember { mutableStateOf(emptyList<String>()) }
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Agregar nueva sucursal") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Nombre de la sucursal *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = LlegoCustomShapes.inputField,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
+    val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
+    val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
+    val isUploading = branchAvatarState is ImageUploadState.Uploading ||
+        branchCoverState is ImageUploadState.Uploading
 
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Telefono *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = LlegoCustomShapes.inputField,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Nueva sucursal",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = { Text("Direccion") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = LlegoCustomShapes.inputField,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            statusMessage?.let { message ->
+                Card(
+                    shape = LlegoCustomShapes.infoCard,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = latitude,
-                        onValueChange = { latitude = it },
-                        label = { Text("Latitud *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = longitude,
-                        onValueChange = { longitude = it },
-                        label = { Text("Longitud *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
 
-                OutlinedTextField(
-                    value = deliveryRadius,
-                    onValueChange = { deliveryRadius = it },
-                    label = { Text("Radio de entrega (km)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = LlegoCustomShapes.inputField,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre de la sucursal *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Telefono *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Direccion") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            // Selector de ubicacion con mapa
+            MapLocationPickerReal(
+                latitude = branchLatitude,
+                longitude = branchLongitude,
+                onLocationSelected = { lat, lng ->
+                    branchLatitude = lat
+                    branchLongitude = lng
+                }
+            )
+
+            OutlinedTextField(
+                value = deliveryRadius,
+                onValueChange = { deliveryRadius = it },
+                label = { Text("Radio de entrega (km)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Text(
+                text = "Tipos de servicio *",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            BranchTipoSelector(
+                selectedTipos = selectedTipos,
+                onSelectionChange = { selectedTipos = it }
+            )
+
+            SchedulePicker(
+                schedule = branchSchedule,
+                onScheduleChange = { branchSchedule = it }
+            )
+
+            FacilitiesSelector(
+                selectedFacilities = branchFacilities,
+                onFacilitiesChange = { branchFacilities = it }
+            )
+
+            Text(
+                text = "Imagenes (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ImageUploadPreview(
+                    label = "Avatar",
+                    uploadState = branchAvatarState,
+                    onStateChange = { branchAvatarState = it },
+                    uploadFunction = { uri, token ->
+                        imageUploadService.uploadBranchAvatar(uri, token)
+                    },
+                    size = ImageUploadSize.SMALL,
+                    modifier = Modifier.weight(1f)
+                )
+                ImageUploadPreview(
+                    label = "Portada",
+                    uploadState = branchCoverState,
+                    onStateChange = { branchCoverState = it },
+                    uploadFunction = { uri, token ->
+                        imageUploadService.uploadBranchCover(uri, token)
+                    },
+                    size = ImageUploadSize.SMALL,
+                    modifier = Modifier.weight(1f)
                 )
             }
-        },
-        confirmButton = {
+
             Button(
                 onClick = {
-                    if (name.isBlank() || phone.isBlank() || latitude.isBlank() || longitude.isBlank()) {
-                        onError("Completa todos los campos requeridos")
+                    if (businessId.isBlank()) {
+                        statusMessage = "Selecciona un negocio para continuar"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (name.isBlank() || phone.isBlank()) {
+                        statusMessage = "Completa todos los campos requeridos"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (branchLatitude == 0.0 && branchLongitude == 0.0) {
+                        statusMessage = "Selecciona la ubicacion en el mapa"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (selectedTipos.isEmpty()) {
+                        statusMessage = "Selecciona al menos un tipo de sucursal"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (isUploading) {
+                        statusMessage = "Espera a que terminen las subidas de imagen"
+                        onError(statusMessage ?: "")
                         return@Button
                     }
 
                     coroutineScope.launch {
                         isLoading = true
+                        val parsedManagerIds = parseManagerIds(managerIds)
 
                         val input = CreateBranchInput(
                             businessId = businessId,
-                            name = name,
-                            phone = phone,
-                            address = address.takeIf { it.isNotBlank() },
+                            name = name.trim(),
+                            phone = phone.trim(),
+                            address = address.trim().takeIf { it.isNotBlank() },
                             coordinates = CoordinatesInput(
-                                lat = latitude.toDoubleOrNull() ?: 0.0,
-                                lng = longitude.toDoubleOrNull() ?: 0.0
+                                lat = branchLatitude,
+                                lng = branchLongitude
                             ),
-                            schedule = mapOf(
-                                "mon" to listOf("09:00-18:00"),
-                                "tue" to listOf("09:00-18:00"),
-                                "wed" to listOf("09:00-18:00"),
-                                "thu" to listOf("09:00-18:00"),
-                                "fri" to listOf("09:00-18:00"),
-                                "sat" to listOf("10:00-14:00"),
-                                "sun" to emptyList() // closed
-                            ),
-                            tipos = listOf(BranchTipo.RESTAURANTE), // Por defecto RESTAURANTE
-                            deliveryRadius = deliveryRadius.toDoubleOrNull()
+                            schedule = branchSchedule.toBackendSchedule(),
+                            tipos = selectedTipos.toList(),
+                            managerIds = parsedManagerIds.takeIf { it.isNotEmpty() },
+                            avatar = avatarPath,
+                            coverImage = coverPath,
+                            deliveryRadius = deliveryRadius.toDoubleOrNull(),
+                            facilities = branchFacilities.takeIf { it.isNotEmpty() }
                         )
 
-                        when (val result = businessRepository.createBranch(input)) {
+                        when (val result = authViewModel.createBranch(input)) {
                             is BusinessResult.Success -> {
                                 onSuccess(result.data)
                             }
                             is BusinessResult.Error -> {
+                                statusMessage = result.message
                                 onError(result.message)
                             }
                             else -> {}
@@ -649,28 +900,22 @@ fun AddBranchDialog(
                         isLoading = false
                     }
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && !isUploading,
+                modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Agregar")
+                    Text("Crear sucursal")
                 }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        },
-        shape = LlegoCustomShapes.infoCard,
-        containerColor = MaterialTheme.colorScheme.surface
-    )
+        }
+    }
 }
 
 /**
@@ -680,24 +925,44 @@ fun AddBranchDialog(
 @Composable
 fun EditBranchDialog(
     branch: Branch,
-    businessRepository: BusinessRepository,
+    authViewModel: AuthViewModel,
     onDismiss: () -> Unit,
     onSuccess: (Branch) -> Unit,
     onError: (String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
 
     var name by remember { mutableStateOf(branch.name) }
     var phone by remember { mutableStateOf(branch.phone) }
-    var address by remember { mutableStateOf(branch.address ?: "") }
-    var deliveryRadius by remember { mutableStateOf(branch.deliveryRadius?.toString() ?: "5.0") }
+    var address by remember { mutableStateOf(branch.address.orEmpty()) }
+    var latitude by remember { mutableStateOf(branch.coordinates.latitude.toString()) }
+    var longitude by remember { mutableStateOf(branch.coordinates.longitude.toString()) }
+    var deliveryRadius by remember { mutableStateOf(branch.deliveryRadius?.toString().orEmpty()) }
+    var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
+    var selectedTipos by remember { mutableStateOf(branch.tipos.toSet()) }
+    var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
+    var branchFacilities by remember(branch) { mutableStateOf(branch.facilities) }
+    var status by remember { mutableStateOf(if (branch.status == "inactive") "inactive" else "active") }
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
+
+    val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
+    val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
+    val isUploading = branchAvatarState is ImageUploadState.Uploading ||
+        branchCoverState is ImageUploadState.Uploading
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar sucursal") },
         text = {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedTextField(
@@ -744,10 +1009,91 @@ fun EditBranchDialog(
                     )
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = latitude,
+                        onValueChange = { latitude = it },
+                        label = { Text("Latitud") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = LlegoCustomShapes.inputField,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = longitude,
+                        onValueChange = { longitude = it },
+                        label = { Text("Longitud") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = LlegoCustomShapes.inputField,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+                }
+
                 OutlinedTextField(
                     value = deliveryRadius,
                     onValueChange = { deliveryRadius = it },
                     label = { Text("Radio de entrega (km)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+
+                Text(
+                    text = "Tipos de servicio *",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+                BranchTipoSelector(
+                    selectedTipos = selectedTipos,
+                    onSelectionChange = { selectedTipos = it }
+                )
+
+                Text(
+                    text = "Estado",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+                BranchStatusSelector(
+                    status = status,
+                    onStatusChange = { status = it }
+                )
+
+                SchedulePicker(
+                    schedule = branchSchedule,
+                    onScheduleChange = { branchSchedule = it }
+                )
+
+                FacilitiesSelector(
+                    selectedFacilities = branchFacilities,
+                    onFacilitiesChange = { branchFacilities = it }
+                )
+
+                OutlinedTextField(
+                    value = managerIds,
+                    onValueChange = { managerIds = it },
+                    label = { Text("Manager IDs (separados por coma)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = LlegoCustomShapes.inputField,
@@ -758,23 +1104,92 @@ fun EditBranchDialog(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface
                     )
                 )
+
+                Text(
+                    text = "Imagenes (opcional)",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ImageUploadPreview(
+                        label = "Avatar",
+                        uploadState = branchAvatarState,
+                        onStateChange = { branchAvatarState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBranchAvatar(uri, token)
+                        },
+                        size = ImageUploadSize.SMALL,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ImageUploadPreview(
+                        label = "Portada",
+                        uploadState = branchCoverState,
+                        onStateChange = { branchCoverState = it },
+                        uploadFunction = { uri, token ->
+                            imageUploadService.uploadBranchCover(uri, token)
+                        },
+                        size = ImageUploadSize.SMALL,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    if (name.isBlank() || phone.isBlank()) {
+                        onError("Completa los campos requeridos")
+                        return@Button
+                    }
+                    if (selectedTipos.isEmpty()) {
+                        onError("Selecciona al menos un tipo de sucursal")
+                        return@Button
+                    }
+                    if (isUploading) {
+                        onError("Espera a que terminen las subidas de imagen")
+                        return@Button
+                    }
+
+                    val latValue = latitude.toDoubleOrNull()
+                    val lngValue = longitude.toDoubleOrNull()
+                    if (latValue == null || lngValue == null) {
+                        onError("Coordenadas invalidas")
+                        return@Button
+                    }
+
                     coroutineScope.launch {
                         isLoading = true
 
+                        val nameValue = name.trim()
+                        val phoneValue = phone.trim()
+                        val addressValue = address.trim()
+                        val scheduleValue = branchSchedule.toBackendSchedule()
+                        val parsedManagerIds = parseManagerIds(managerIds)
+                        val deliveryValue = deliveryRadius.toDoubleOrNull()
+
                         val input = UpdateBranchInput(
-                            name = name.takeIf { it != branch.name },
-                            phone = phone.takeIf { it != branch.phone },
-                            address = address.takeIf { it != branch.address },
-                            deliveryRadius = deliveryRadius.toDoubleOrNull()
-                                .takeIf { it != branch.deliveryRadius }
+                            name = nameValue.takeIf { it != branch.name },
+                            phone = phoneValue.takeIf { it != branch.phone },
+                            address = addressValue.takeIf { it != branch.address.orEmpty() },
+                            coordinates = if (latValue != branch.coordinates.latitude ||
+                                lngValue != branch.coordinates.longitude) {
+                                CoordinatesInput(lat = latValue, lng = lngValue)
+                            } else {
+                                null
+                            },
+                            schedule = scheduleValue.takeIf { it != branch.schedule },
+                            tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                            status = status.takeIf { it != branch.status },
+                            deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
+                            facilities = branchFacilities.takeIf { it != branch.facilities },
+                            managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
+                            avatar = avatarPath,
+                            coverImage = coverPath
                         )
 
-                        when (val result = businessRepository.updateBranch(branch.id, input)) {
+                        when (val result = authViewModel.updateBranch(branch.id, input)) {
                             is BusinessResult.Success -> {
                                 onSuccess(result.data)
                             }
@@ -787,7 +1202,7 @@ fun EditBranchDialog(
                         isLoading = false
                     }
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && !isUploading,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (isLoading) {
@@ -809,4 +1224,976 @@ fun EditBranchDialog(
         shape = LlegoCustomShapes.infoCard,
         containerColor = MaterialTheme.colorScheme.surface
     )
+}
+
+@Composable
+private fun BranchTipoSelector(
+    selectedTipos: Set<BranchTipo>,
+    onSelectionChange: (Set<BranchTipo>) -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+
+    val options = listOf(
+        BranchTipo.RESTAURANTE,
+        BranchTipo.TIENDA,
+        BranchTipo.DULCERIA
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { tipo ->
+            val selected = tipo in selectedTipos
+            val (label, color) = when (tipo) {
+                BranchTipo.RESTAURANTE -> "Restaurante" to secondaryColor
+                BranchTipo.TIENDA -> "Tienda" to primaryColor
+                BranchTipo.DULCERIA -> "Dulceria" to tertiaryColor
+            }
+
+            FilterChip(
+                selected = selected,
+                onClick = {
+                    val updated = if (selected) {
+                        selectedTipos - tipo
+                    } else {
+                        selectedTipos + tipo
+                    }
+                    onSelectionChange(updated)
+                },
+                label = { Text(label) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = color.copy(alpha = 0.15f),
+                    selectedLabelColor = color,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = selected,
+                    selectedBorderColor = color.copy(alpha = 0.6f),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                shape = LlegoCustomShapes.secondaryButton
+            )
+        }
+    }
+}
+
+/**
+ * Pantalla de lista de sucursales
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BranchesListScreen(
+    branches: List<Branch>,
+    currentBranchId: String?,
+    statusMessage: String?,
+    onNavigateBack: () -> Unit,
+    onAddBranch: () -> Unit,
+    onOpenDetails: (Branch) -> Unit,
+    onSetActive: (Branch) -> Unit,
+    onEdit: (Branch) -> Unit,
+    onDelete: (Branch) -> Unit,
+    onLocationUpdate: (Branch, Double, Double) -> Unit = { _, _, _ -> }
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Sucursales",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddBranch,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar sucursal")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Mensaje de estado
+            statusMessage?.let { message ->
+                item {
+                    Card(
+                        shape = LlegoCustomShapes.infoCard,
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (message.startsWith("OK:")) {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                            } else {
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                            }
+                        )
+                    ) {
+                        Text(
+                            text = message,
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (message.startsWith("OK:")) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
+                        )
+                    }
+                }
+            }
+
+            items(branches, key = { it.id }) { branch ->
+                BranchCard(
+                    branch = branch,
+                    isActive = branch.id == currentBranchId,
+                    onOpenDetails = { onOpenDetails(branch) },
+                    onSetActive = { onSetActive(branch) },
+                    onEdit = { onEdit(branch) },
+                    onDelete = { onDelete(branch) },
+                    onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Pantalla de detalle de sucursal (full-screen)
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BranchDetailScreen(
+    branch: Branch,
+    isActive: Boolean,
+    onNavigateBack: () -> Unit,
+    onEdit: () -> Unit,
+    onSetActive: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Detalle de sucursal",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header con nombre y estado activo
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.infoCard,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isActive) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(
+                    1.dp,
+                    if (isActive) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Store,
+                                contentDescription = null,
+                                tint = if (isActive) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = branch.name,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                if (isActive) {
+                                    Text(
+                                        text = "Sucursal activa",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+
+                        // Estado
+                        val statusColor = when (branch.status) {
+                            "active" -> MaterialTheme.colorScheme.tertiary
+                            "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
+                            else -> MaterialTheme.colorScheme.secondary
+                        }
+                        Surface(
+                            shape = LlegoShapes.small,
+                            color = statusColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = if (branch.status == "active") "Activo" else "Inactivo",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = statusColor
+                            )
+                        }
+                    }
+
+                    // Boton para activar sucursal
+                    if (!isActive) {
+                        Button(
+                            onClick = onSetActive,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = LlegoCustomShapes.primaryButton
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Establecer como activa")
+                        }
+                    }
+                }
+            }
+
+            // Informacion de contacto
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.infoCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Informacion de contacto",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+
+                    BranchDetailRow(
+                        icon = Icons.Default.Phone,
+                        label = "Telefono",
+                        value = branch.phone
+                    )
+
+                    branch.address?.let { address ->
+                        BranchDetailRow(
+                            icon = Icons.Default.LocationOn,
+                            label = "Direccion",
+                            value = address
+                        )
+                    }
+
+                    BranchDetailRow(
+                        icon = Icons.Default.LocationOn,
+                        label = "Coordenadas",
+                        value = "${branch.coordinates.latitude}, ${branch.coordinates.longitude}"
+                    )
+
+                    branch.deliveryRadius?.let { radius ->
+                        BranchDetailRow(
+                            icon = Icons.Default.DeliveryDining,
+                            label = "Radio de entrega",
+                            value = "$radius km"
+                        )
+                    }
+                }
+            }
+
+            // Tipos de servicio
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.infoCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Tipos de servicio",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        branch.tipos.forEach { tipo ->
+                            val (label, color) = when (tipo) {
+                                BranchTipo.RESTAURANTE -> "Restaurante" to MaterialTheme.colorScheme.secondary
+                                BranchTipo.TIENDA -> "Tienda" to MaterialTheme.colorScheme.primary
+                                BranchTipo.DULCERIA -> "Dulceria" to MaterialTheme.colorScheme.tertiary
+                            }
+                            Surface(
+                                shape = LlegoShapes.small,
+                                color = color.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = label,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = color
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Facilidades
+            if (branch.facilities.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.infoCard,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Facilidades",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            branch.facilities.forEach { facility ->
+                                Surface(
+                                    shape = LlegoShapes.small,
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Star,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = facility,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Horario
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.infoCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Horario de atencion",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+
+                    val dayNames = mapOf(
+                        "mon" to "Lunes",
+                        "tue" to "Martes",
+                        "wed" to "Miercoles",
+                        "thu" to "Jueves",
+                        "fri" to "Viernes",
+                        "sat" to "Sabado",
+                        "sun" to "Domingo"
+                    )
+
+                    val orderedDays = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+                    orderedDays.forEach { dayKey ->
+                        val daySchedule = branch.schedule[dayKey]
+                        val dayName = dayNames[dayKey] ?: dayKey
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = dayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            if (daySchedule != null && daySchedule.isNotEmpty()) {
+                                Text(
+                                    text = daySchedule.joinToString(", ") { range ->
+                                        range.replace("-", " - ")
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text(
+                                    text = "Cerrado",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun BranchDetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(start = 26.dp)
+        )
+    }
+}
+
+/**
+ * Pantalla de edicion de sucursal (full-screen)
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BranchEditScreen(
+    branch: Branch,
+    onNavigateBack: () -> Unit,
+    onSuccess: (Branch) -> Unit,
+    onError: (String) -> Unit,
+    authViewModel: AuthViewModel
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val imageUploadService = remember { ImageUploadServiceFactory.create() }
+
+    var name by remember { mutableStateOf(branch.name) }
+    var phone by remember { mutableStateOf(branch.phone) }
+    var address by remember { mutableStateOf(branch.address.orEmpty()) }
+    var latitude by remember { mutableStateOf(branch.coordinates.latitude.toString()) }
+    var longitude by remember { mutableStateOf(branch.coordinates.longitude.toString()) }
+    var deliveryRadius by remember { mutableStateOf(branch.deliveryRadius?.toString().orEmpty()) }
+    var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
+    var selectedTipos by remember { mutableStateOf(branch.tipos.toSet()) }
+    var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
+    var branchFacilities by remember(branch) { mutableStateOf(branch.facilities) }
+    var status by remember { mutableStateOf(if (branch.status == "inactive") "inactive" else "active") }
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var isLoading by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
+    val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
+    val isUploading = branchAvatarState is ImageUploadState.Uploading ||
+        branchCoverState is ImageUploadState.Uploading
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Editar sucursal",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            statusMessage?.let { message ->
+                Card(
+                    shape = LlegoCustomShapes.infoCard,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre de la sucursal *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Telefono *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Direccion") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = latitude,
+                    onValueChange = { latitude = it },
+                    label = { Text("Latitud *") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+
+                OutlinedTextField(
+                    value = longitude,
+                    onValueChange = { longitude = it },
+                    label = { Text("Longitud *") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = LlegoCustomShapes.inputField,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+
+            OutlinedTextField(
+                value = deliveryRadius,
+                onValueChange = { deliveryRadius = it },
+                label = { Text("Radio de entrega (km)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Text(
+                text = "Tipos de servicio *",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            BranchTipoSelector(
+                selectedTipos = selectedTipos,
+                onSelectionChange = { selectedTipos = it }
+            )
+
+            Text(
+                text = "Estado",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            BranchStatusSelector(
+                status = status,
+                onStatusChange = { status = it }
+            )
+
+            SchedulePicker(
+                schedule = branchSchedule,
+                onScheduleChange = { branchSchedule = it }
+            )
+
+            FacilitiesSelector(
+                selectedFacilities = branchFacilities,
+                onFacilitiesChange = { branchFacilities = it }
+            )
+
+            Text(
+                text = "Imagenes (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ImageUploadPreview(
+                    label = "Avatar",
+                    uploadState = branchAvatarState,
+                    onStateChange = { branchAvatarState = it },
+                    uploadFunction = { uri, token ->
+                        imageUploadService.uploadBranchAvatar(uri, token)
+                    },
+                    size = ImageUploadSize.SMALL,
+                    modifier = Modifier.weight(1f)
+                )
+                ImageUploadPreview(
+                    label = "Portada",
+                    uploadState = branchCoverState,
+                    onStateChange = { branchCoverState = it },
+                    uploadFunction = { uri, token ->
+                        imageUploadService.uploadBranchCover(uri, token)
+                    },
+                    size = ImageUploadSize.SMALL,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    if (name.isBlank() || phone.isBlank()) {
+                        statusMessage = "Completa los campos requeridos"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (selectedTipos.isEmpty()) {
+                        statusMessage = "Selecciona al menos un tipo de sucursal"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (isUploading) {
+                        statusMessage = "Espera a que terminen las subidas de imagen"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+
+                    val latValue = latitude.toDoubleOrNull()
+                    val lngValue = longitude.toDoubleOrNull()
+                    if (latValue == null || lngValue == null) {
+                        statusMessage = "Coordenadas invalidas"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+
+                    coroutineScope.launch {
+                        isLoading = true
+
+                        val nameValue = name.trim()
+                        val phoneValue = phone.trim()
+                        val addressValue = address.trim()
+                        val scheduleValue = branchSchedule.toBackendSchedule()
+                        val parsedManagerIds = parseManagerIds(managerIds)
+                        val deliveryValue = deliveryRadius.toDoubleOrNull()
+
+                        val input = UpdateBranchInput(
+                            name = nameValue.takeIf { it != branch.name },
+                            phone = phoneValue.takeIf { it != branch.phone },
+                            address = addressValue.takeIf { it != branch.address.orEmpty() },
+                            coordinates = if (latValue != branch.coordinates.latitude ||
+                                lngValue != branch.coordinates.longitude) {
+                                CoordinatesInput(lat = latValue, lng = lngValue)
+                            } else {
+                                null
+                            },
+                            schedule = scheduleValue.takeIf { it != branch.schedule },
+                            tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                            status = status.takeIf { it != branch.status },
+                            deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
+                            facilities = branchFacilities.takeIf { it != branch.facilities },
+                            managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
+                            avatar = avatarPath,
+                            coverImage = coverPath
+                        )
+
+                        when (val result = authViewModel.updateBranch(branch.id, input)) {
+                            is BusinessResult.Success -> {
+                                onSuccess(result.data)
+                            }
+                            is BusinessResult.Error -> {
+                                statusMessage = result.message
+                                onError(result.message)
+                            }
+                            else -> {}
+                        }
+
+                        isLoading = false
+                    }
+                },
+                enabled = !isLoading && !isUploading,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = LlegoCustomShapes.primaryButton
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar cambios")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun BranchStatusSelector(
+    status: String,
+    onStatusChange: (String) -> Unit
+) {
+    val activeSelected = status == "active"
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        FilterChip(
+            selected = activeSelected,
+            onClick = { onStatusChange("active") },
+            label = { Text("Activa") },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = activeColor.copy(alpha = 0.15f),
+                selectedLabelColor = activeColor,
+                containerColor = MaterialTheme.colorScheme.surface,
+                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = activeSelected,
+                selectedBorderColor = activeColor.copy(alpha = 0.6f),
+                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
+            shape = LlegoCustomShapes.secondaryButton
+        )
+        FilterChip(
+            selected = !activeSelected,
+            onClick = { onStatusChange("inactive") },
+            label = { Text("Inactiva") },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = inactiveColor.copy(alpha = 0.15f),
+                selectedLabelColor = inactiveColor,
+                containerColor = MaterialTheme.colorScheme.surface,
+                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = !activeSelected,
+                selectedBorderColor = inactiveColor.copy(alpha = 0.6f),
+                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
+            shape = LlegoCustomShapes.secondaryButton
+        )
+    }
+}
+
+private fun parseManagerIds(value: String): List<String> {
+    return value.split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
 }

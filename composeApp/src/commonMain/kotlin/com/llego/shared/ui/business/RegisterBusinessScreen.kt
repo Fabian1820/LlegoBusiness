@@ -86,13 +86,13 @@ fun RegisterBusinessScreen(
     var branchSchedule by remember {
         mutableStateOf<Map<String, DaySchedule>>(
             mapOf(
-                "lun" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-                "mar" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-                "mie" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-                "jue" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-                "vie" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-                "sab" to DaySchedule(false, emptyList()),
-                "dom" to DaySchedule(false, emptyList())
+                "mon" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "tue" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "wed" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "thu" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "fri" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
+                "sat" to DaySchedule(false, emptyList()),
+                "sun" to DaySchedule(false, emptyList())
             )
         )
     }

@@ -186,6 +186,13 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
+     * Elimina una sucursal
+     */
+    suspend fun deleteBranch(branchId: String): BusinessResult<Boolean> {
+        return businessRepository.deleteBranch(branchId)
+    }
+
+    /**
      * Establece la sucursal actual
      */
     fun setCurrentBranch(branch: Branch) {

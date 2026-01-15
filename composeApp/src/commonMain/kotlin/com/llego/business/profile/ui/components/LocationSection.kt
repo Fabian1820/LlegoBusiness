@@ -70,6 +70,7 @@ fun LocationMapSection(
     var selectedLatitude by remember(branch) { mutableStateOf(originalLatitude) }
     var selectedLongitude by remember(branch) { mutableStateOf(originalLongitude) }
     var showFullScreenMap by remember { mutableStateOf(false) }
+    var resetOnDismiss by remember { mutableStateOf(true) }
 
     val hasLocationChange = abs(selectedLatitude - originalLatitude) > 0.000001 ||
         abs(selectedLongitude - originalLongitude) > 0.000001
@@ -77,6 +78,11 @@ fun LocationMapSection(
     val onLocationSelected: (Double, Double) -> Unit = { lat, lng ->
         selectedLatitude = lat
         selectedLongitude = lng
+    }
+
+    val openFullScreenMap = {
+        resetOnDismiss = true
+        showFullScreenMap = true
     }
 
     if (showFullScreenMap) {
@@ -89,12 +95,16 @@ fun LocationMapSection(
                 selectedLongitude = originalLongitude
             },
             onConfirm = {
+                resetOnDismiss = false
                 onLocationSave(selectedLatitude, selectedLongitude)
             },
             onDismiss = {
-                selectedLatitude = originalLatitude
-                selectedLongitude = originalLongitude
+                if (resetOnDismiss) {
+                    selectedLatitude = originalLatitude
+                    selectedLongitude = originalLongitude
+                }
                 showFullScreenMap = false
+                resetOnDismiss = true
             },
             hasLocationChange = hasLocationChange
         )
@@ -105,7 +115,7 @@ fun LocationMapSection(
             title = "Ubicacion del negocio",
             trailing = {
                 IconButton(
-                    onClick = { showFullScreenMap = true },
+                    onClick = openFullScreenMap,
                     modifier = Modifier
                         .size(36.dp)
                         .background(
@@ -132,7 +142,7 @@ fun LocationMapSection(
                 .fillMaxWidth()
                 .height(200.dp)
                 .clip(LlegoCustomShapes.infoCard)
-                .clickable { showFullScreenMap = true },
+                .clickable { openFullScreenMap() },
             isInteractive = false
         )
 
@@ -189,8 +199,7 @@ private fun FullScreenMapDialog(
     Dialog(
         onDismissRequest = { contentVisible = false },
         properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
+            usePlatformDefaultWidth = false
         )
     ) {
         AnimatedVisibility(
