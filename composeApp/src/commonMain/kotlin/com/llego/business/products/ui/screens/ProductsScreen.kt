@@ -263,7 +263,7 @@ private fun ProductRow(
     onViewDetail: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = product.imageUrl?.takeIf { it.isNotBlank() } ?: product.image
+    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
     val categoryName = ProductCategoryProvider.getCategoryDisplayName(product.categoryId)
 
     Card(

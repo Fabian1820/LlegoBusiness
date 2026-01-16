@@ -55,7 +55,7 @@ fun ProductDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val imageUrl = product.imageUrl?.takeIf { it.isNotBlank() } ?: product.image
+    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -191,7 +191,7 @@ fun ProductDetailScreen(
                         icon = Icons.Default.Money,
                         valueColor = MaterialTheme.colorScheme.primary
                     )
-                    product.weight?.takeIf { it.isNotBlank() }?.let {
+                    product.weight.takeIf { it.isNotBlank() }?.let {
                         DetailRow(label = "Peso", value = it, icon = Icons.Default.Scale)
                     }
                     DetailRow(

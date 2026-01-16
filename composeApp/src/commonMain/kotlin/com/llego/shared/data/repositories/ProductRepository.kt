@@ -85,6 +85,9 @@ class ProductRepository(
 
     /**
      * Mapea un ProductType de GraphQL (estructura paginada) a un modelo de dominio Product
+     * 
+     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
+     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
      */
     private fun GetProductsQuery.Node.toDomain(): Product {
         return Product(
@@ -92,19 +95,22 @@ class ProductRepository(
             branchId = branchId,
             name = name,
             description = description,
-            weight = weight,
+            weight = weight,              // String! -> String (no nullable)
             price = price,
-            currency = currency,
+            currency = currency,          // String! -> String (no nullable)
             image = image,
             availability = availability,
             categoryId = categoryId,
             createdAt = createdAt.toString(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl           // String! -> String (no nullable)
         )
     }
 
     /**
      * Mapea un ProductType de GraphQL a un modelo de dominio Product (para query de IDs)
+     * 
+     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
+     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
      */
     private fun GetProductsByIdsQuery.Node.toDomain(): Product {
         return Product(
@@ -112,14 +118,14 @@ class ProductRepository(
             branchId = branchId,
             name = name,
             description = description,
-            weight = weight,
+            weight = weight,              // String! -> String (no nullable)
             price = price,
-            currency = currency,
+            currency = currency,          // String! -> String (no nullable)
             image = image,
             availability = availability,
             categoryId = categoryId,
             createdAt = createdAt.toString(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl           // String! -> String (no nullable)
         )
     }
 
@@ -131,20 +137,24 @@ class ProductRepository(
      * @param description Descripción del producto
      * @param price Precio del producto
      * @param image Path de la imagen (después de upload)
+     * @param currency Moneda del producto (requerido, debe ser seleccionado en la UI)
      * @param branchId ID de la sucursal (opcional si se pasa businessId)
      * @param businessId ID del negocio (opcional si se pasa branchId)
-     * @param currency Moneda (default: USD)
-     * @param weight Peso del producto (opcional)
+     * @param weight Peso del producto (opcional - si es null, el backend asigna "" como default)
      * @param categoryId ID de la categoría (opcional)
+     * 
+     * Nota: El parámetro weight es opcional. Si se pasa null, el backend asignará
+     * un valor por defecto (""). El campo weight en el modelo Product siempre será
+     * no-nullable ya que el backend garantiza un valor.
      */
     suspend fun createProduct(
         name: String,
         description: String,
         price: Double,
         image: String,
+        currency: String,
         branchId: String? = null,
         businessId: String? = null,
-        currency: String = "USD",
         weight: String? = null,
         categoryId: String? = null
     ): ProductsResult {
@@ -187,11 +197,15 @@ class ProductRepository(
      * @param name Nuevo nombre (opcional)
      * @param description Nueva descripción (opcional)
      * @param price Nuevo precio (opcional)
-     * @param currency Nueva moneda (opcional)
-     * @param weight Nuevo peso (opcional)
+     * @param currency Nueva moneda (opcional - permite cambiar la moneda del producto)
+     * @param weight Nuevo peso (opcional - si es null, no se actualiza; el backend mantiene el valor actual)
      * @param availability Nueva disponibilidad (opcional)
      * @param categoryId Nuevo ID de categoría (opcional)
      * @param image Nuevo path de imagen (opcional)
+     * 
+     * Nota: Todos los campos son opcionales. Si un campo es null, no se actualiza
+     * y el backend mantiene el valor actual. Para campos opcionales en el schema
+     * (como categoryId), pasar null explícitamente puede remover el valor.
      */
     suspend fun updateProduct(
         productId: String,
@@ -269,6 +283,9 @@ class ProductRepository(
 
     /**
      * Mapea CreateProductMutation.CreateProduct a modelo de dominio
+     * 
+     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
+     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
      */
     private fun CreateProductMutation.CreateProduct.toDomain(): Product {
         return Product(
@@ -276,19 +293,22 @@ class ProductRepository(
             branchId = branchId,
             name = name,
             description = description,
-            weight = weight,
+            weight = weight,              // String! -> String (no nullable)
             price = price,
-            currency = currency,
+            currency = currency,          // String! -> String (no nullable)
             image = image,
             availability = availability,
             categoryId = categoryId,
             createdAt = createdAt.toString(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl           // String! -> String (no nullable)
         )
     }
 
     /**
      * Mapea UpdateProductMutation.UpdateProduct a modelo de dominio
+     * 
+     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
+     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
      */
     private fun UpdateProductMutation.UpdateProduct.toDomain(): Product {
         return Product(
@@ -296,14 +316,14 @@ class ProductRepository(
             branchId = branchId,
             name = name,
             description = description,
-            weight = weight,
+            weight = weight,              // String! -> String (no nullable)
             price = price,
-            currency = currency,
+            currency = currency,          // String! -> String (no nullable)
             image = image,
             availability = availability,
             categoryId = categoryId,
             createdAt = createdAt.toString(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl           // String! -> String (no nullable)
         )
     }
 }

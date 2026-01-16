@@ -359,7 +359,7 @@ fun App(viewModels: AppViewModels) {
                                             price = form.price,
                                             imagePath = form.imagePath ?: "",
                                             branchId = currentBranchId,
-                                            currency = "USD",
+                                            currency = form.currency,
                                             weight = form.weight,
                                             categoryId = form.categoryId
                                         )
@@ -369,7 +369,7 @@ fun App(viewModels: AppViewModels) {
                                             name = form.name,
                                             description = form.description,
                                             price = form.price,
-                                            currency = productToEdit!!.currency,
+                                            currency = form.currency,
                                             weight = form.weight,
                                             availability = form.availability,
                                             categoryId = form.categoryId,

@@ -50,10 +50,20 @@ import com.llego.shared.data.model.extractFilename
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.components.molecules.CurrencySelector
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
 /**
  * Datos normalizados del formulario de producto.
+ * 
+ * @property name Nombre del producto (requerido)
+ * @property description Descripción del producto (requerido)
+ * @property price Precio del producto (requerido)
+ * @property categoryId ID de la categoría del producto (requerido)
+ * @property weight Peso del producto (opcional - el backend asigna "" como default si es null)
+ * @property currency Código de moneda del producto (requerido - default "USD")
+ * @property imagePath Ruta S3 de la imagen del producto (requerido)
+ * @property availability Disponibilidad del producto (requerido - default true)
  */
 data class ProductFormData(
     val name: String,
@@ -61,6 +71,7 @@ data class ProductFormData(
     val price: Double,
     val categoryId: String?,
     val weight: String?,
+    val currency: String,
     val imagePath: String?,
     val availability: Boolean
 )
@@ -85,13 +96,14 @@ fun AddProductScreen(
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
     var weight by remember { mutableStateOf(existingProduct?.weight ?: "") }
     var selectedCategoryId by remember { mutableStateOf(existingProduct?.categoryId) }
+    var currency by remember { mutableStateOf(existingProduct?.currency ?: "USD") }
     var isAvailable by remember { mutableStateOf(existingProduct?.availability ?: true) }
 
     var showCategoryDropdown by remember { mutableStateOf(false) }
 
     val initialImageState = remember(existingProduct) {
         existingProduct?.let { product ->
-            val displayUri = product.imageUrl?.takeIf { it.isNotBlank() } ?: product.image
+            val displayUri = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
             if (displayUri.isNotBlank()) {
                 ImageUploadState.Success(
                     localUri = displayUri,
@@ -111,6 +123,7 @@ fun AddProductScreen(
         name.isNotBlank() &&
         priceValue != null &&
         selectedCategoryId != null &&
+        currency.isNotBlank() &&
         !imagePath.isNullOrBlank()
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -189,6 +202,7 @@ fun AddProductScreen(
                                     price = priceValue ?: 0.0,
                                     categoryId = selectedCategoryId,
                                     weight = normalizedWeight,
+                                    currency = currency,
                                     imagePath = imagePath,
                                     availability = isAvailable
                                 )
@@ -333,6 +347,13 @@ fun AddProductScreen(
                                 colors = textFieldColors
                             )
                         }
+
+                        CurrencySelector(
+                            selectedCurrency = currency,
+                            onCurrencySelected = { currency = it },
+                            label = "Moneda *",
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),

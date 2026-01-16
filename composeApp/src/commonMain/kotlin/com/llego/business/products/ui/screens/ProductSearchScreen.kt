@@ -168,7 +168,7 @@ private fun SearchProductRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = product.imageUrl?.takeIf { it.isNotBlank() } ?: product.image
+    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
 
         Card(
             modifier = modifier
