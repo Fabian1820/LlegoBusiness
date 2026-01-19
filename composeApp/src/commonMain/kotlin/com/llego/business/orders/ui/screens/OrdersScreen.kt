@@ -42,6 +42,8 @@ import kotlinx.coroutines.delay
 
 /**
  * Pantalla de Pedidos con diseño moderno y profesional
+ * Actualizada para usar Order y OrderStatus del nuevo modelo
+ * Requirements: 9.1, 9.5, 5.5, 2.7, 2.8, 5.6, 5.7
  */
 @Composable
 fun OrdersScreen(
@@ -79,8 +81,9 @@ fun OrdersScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        when (uiState) {
+        when (val currentState = uiState) {
             is OrdersUiState.Loading -> {
+                // Requirements: 2.7 - Mostrar indicador de carga durante queries
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -89,6 +92,7 @@ fun OrdersScreen(
                 }
             }
             is OrdersUiState.Error -> {
+                // Requirements: 2.8 - Mostrar error con opción de reintentar
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -104,7 +108,7 @@ fun OrdersScreen(
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
-                            text = (uiState as OrdersUiState.Error).message,
+                            text = currentState.message,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -114,66 +118,126 @@ fun OrdersScreen(
                     }
                 }
             }
+            is OrdersUiState.ActionInProgress -> {
+                // Requirements: 5.6 - Mostrar loading durante acciones
+                // Mostrar contenido con overlay de carga
+                OrdersContent(
+                    animateContent = animateContent,
+                    filteredOrders = filteredOrders,
+                    selectedFilter = selectedFilter,
+                    selectedDateRange = selectedDateRange,
+                    ordersListState = ordersListState,
+                    viewModel = viewModel,
+                    onNavigateToOrderDetail = onNavigateToOrderDetail,
+                    actionInProgressOrderId = currentState.orderId
+                )
+            }
+            is OrdersUiState.ActionError -> {
+                // Requirements: 5.7 - Mostrar error de acción
+                OrdersContent(
+                    animateContent = animateContent,
+                    filteredOrders = filteredOrders,
+                    selectedFilter = selectedFilter,
+                    selectedDateRange = selectedDateRange,
+                    ordersListState = ordersListState,
+                    viewModel = viewModel,
+                    onNavigateToOrderDetail = onNavigateToOrderDetail,
+                    actionInProgressOrderId = null
+                )
+                // Mostrar snackbar de error
+                LaunchedEffect(currentState.message) {
+                    // El error se mostrará en un Snackbar manejado por el scaffold padre
+                    delay(3000)
+                    viewModel.clearActionError()
+                }
+            }
             is OrdersUiState.Success -> {
-                AnimatedVisibility(
-                    visible = animateContent,
-                    enter = fadeIn(animationSpec = tween(600)) +
-                            slideInVertically(
-                                initialOffsetY = { it / 4 },
-                                animationSpec = tween(600, easing = EaseOutCubic)
-                            )
+                OrdersContent(
+                    animateContent = animateContent,
+                    filteredOrders = filteredOrders,
+                    selectedFilter = selectedFilter,
+                    selectedDateRange = selectedDateRange,
+                    ordersListState = ordersListState,
+                    viewModel = viewModel,
+                    onNavigateToOrderDetail = onNavigateToOrderDetail,
+                    actionInProgressOrderId = null
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Contenido principal de la pantalla de pedidos
+ */
+@Composable
+private fun OrdersContent(
+    animateContent: Boolean,
+    filteredOrders: List<Order>,
+    selectedFilter: OrderStatus?,
+    selectedDateRange: DateRangeFilter,
+    ordersListState: LazyListState,
+    viewModel: OrdersViewModel,
+    onNavigateToOrderDetail: (String) -> Unit,
+    actionInProgressOrderId: String?
+) {
+    AnimatedVisibility(
+        visible = animateContent,
+        enter = fadeIn(animationSpec = tween(600)) +
+                slideInVertically(
+                    initialOffsetY = { it / 4 },
+                    animationSpec = tween(600, easing = EaseOutCubic)
+                )
+    ) {
+        if (filteredOrders.isEmpty()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Filtros estilo iOS 16
+                iOSStyleFilters(
+                    selectedDateRange = selectedDateRange,
+                    onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
+                    selectedStatus = selectedFilter,
+                    onStatusSelected = { viewModel.setFilter(it) },
+                    onStatusCleared = { viewModel.clearFilter() },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                EmptyOrdersView(hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY)
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = ordersListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = 100.dp, // Espacio mayor para los filtros
+                        bottom = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (filteredOrders.isEmpty()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Filtros estilo iOS 16
-                            iOSStyleFilters(
-                                selectedDateRange = selectedDateRange,
-                                onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
-                                selectedStatus = selectedFilter,
-                                onStatusSelected = { viewModel.setFilter(it) },
-                                onStatusCleared = { viewModel.clearFilter() },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                            EmptyOrdersView(hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY)
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            LazyColumn(
-                                state = ordersListState,
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    top = 100.dp, // Espacio mayor para los filtros
-                                    bottom = 16.dp
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Lista de pedidos
-                                items(
-                                    items = filteredOrders,
-                                    key = { it.id }
-                                ) { order ->
-                                    OrderCard(
-                                        order = order,
-                                        onClick = { onNavigateToOrderDetail(order.id) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
-                                }
-                            }
-                            
-                            // Filtros flotantes por encima
-                            iOSStyleFilters(
-                                selectedDateRange = selectedDateRange,
-                                onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
-                                selectedStatus = selectedFilter,
-                                onStatusSelected = { viewModel.setFilter(it) },
-                                onStatusCleared = { viewModel.clearFilter() },
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .zIndex(10f) // Por encima del contenido
-                            )
-                        }
+                    // Lista de pedidos
+                    items(
+                        items = filteredOrders,
+                        key = { it.id }
+                    ) { order ->
+                        OrderCard(
+                            order = order,
+                            onClick = { onNavigateToOrderDetail(order.id) },
+                            isActionInProgress = order.id == actionInProgressOrderId,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
                     }
                 }
+                
+                // Filtros flotantes por encima
+                iOSStyleFilters(
+                    selectedDateRange = selectedDateRange,
+                    onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
+                    selectedStatus = selectedFilter,
+                    onStatusSelected = { viewModel.setFilter(it) },
+                    onStatusCleared = { viewModel.clearFilter() },
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .zIndex(10f) // Por encima del contenido
+                )
             }
         }
     }
@@ -181,6 +245,8 @@ fun OrdersScreen(
 
 /**
  * Filtros estilo iOS 16 - Dos selectores lado a lado que despliegan opciones animadas
+ * Actualizado para usar OrderStatus del nuevo modelo
+ * Requirements: 9.1, 9.5
  */
 @Composable
 private fun iOSStyleFilters(
@@ -218,7 +284,7 @@ private fun iOSStyleFilters(
             }
         }
 
-        // Selector de estado
+        // Selector de estado - Requirements: 9.1, 9.5 - Usar OrderStatus con nombres localizados
         iOSStylePicker(
             label = "Estado",
             selectedValue = selectedStatus?.getDisplayName() ?: "Todos",
@@ -501,6 +567,8 @@ private fun DateRangeFilterChips(
 
 /**
  * Chips de filtro por estado contenidos en un card con fade en ambos lados
+ * Actualizado para usar OrderStatus del nuevo modelo
+ * Requirements: 9.1, 9.5
  */
 @Composable
 private fun StatusFilterChips(
@@ -636,17 +704,20 @@ private fun StatusFilterChips(
 
 /**
  * Card de Pedido con diseño elegante
+ * Actualizado para usar Order del nuevo modelo
+ * Requirements: 5.5 - Mostrar status con colores correctos, paymentStatus, estimatedMinutesRemaining
  */
 @Composable
 private fun OrderCard(
     order: Order,
     onClick: () -> Unit,
+    isActionInProgress: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = !isActionInProgress, onClick = onClick),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -656,7 +727,8 @@ private fun OrderCard(
             pressedElevation = 3.dp
         )
     ) {
-        Column(
+        Box {
+            Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -695,13 +767,8 @@ private fun OrderCard(
                     )
                 }
 
-                // Badge de estado con colores Llego
-                val statusColor = when (order.status) {
-                    OrderStatus.PENDING -> MaterialTheme.colorScheme.secondary
-                    OrderStatus.PREPARING -> MaterialTheme.colorScheme.primary
-                    OrderStatus.READY -> LlegoSuccess
-                    OrderStatus.CANCELLED -> MaterialTheme.colorScheme.error
-                }
+                // Badge de estado con colores del backend - Requirements: 5.5
+                val statusColor = order.status.getColor()
                 Surface(
                     shape = LlegoCustomShapes.secondaryButton,
                     color = statusColor.copy(alpha = 0.12f),
@@ -723,7 +790,7 @@ private fun OrderCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
 
-            // Footer: Total + Método de pago + Tiempo estimado
+            // Footer: Total + Método de pago + Estado de pago + Tiempo estimado
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = LlegoCustomShapes.infoCard,
@@ -743,7 +810,7 @@ private fun OrderCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "$${order.total}",
+                            text = "${order.currency} ${order.total}",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -752,12 +819,13 @@ private fun OrderCard(
                     }
 
                     Column(horizontalAlignment = Alignment.End) {
+                        // Método de pago
                         Surface(
                             shape = LlegoCustomShapes.secondaryButton,
                             color = MaterialTheme.colorScheme.surface
                         ) {
                             Text(
-                                text = order.paymentMethod.getDisplayName(),
+                                text = order.paymentMethod,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
@@ -765,7 +833,36 @@ private fun OrderCard(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-                        order.estimatedTime?.let { time ->
+                        
+                        // Estado de pago - Requirements: 5.5
+                        val paymentStatusColor = order.paymentStatus.getColor()
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = when (order.paymentStatus) {
+                                    PaymentStatus.COMPLETED -> Icons.Default.CheckCircle
+                                    PaymentStatus.VALIDATED -> Icons.Default.Verified
+                                    PaymentStatus.PENDING -> Icons.Default.Schedule
+                                    PaymentStatus.FAILED -> Icons.Default.Error
+                                },
+                                contentDescription = null,
+                                tint = paymentStatusColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = order.paymentStatus.getDisplayName(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = paymentStatusColor
+                            )
+                        }
+                        
+                        // Tiempo estimado restante - Requirements: 5.5
+                        order.estimatedMinutesRemaining?.let { minutes ->
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -774,15 +871,17 @@ private fun OrderCard(
                                 Icon(
                                     imageVector = Icons.Default.Timer,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (minutes <= 5) MaterialTheme.colorScheme.error 
+                                           else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "$time min",
+                                    text = "$minutes min",
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.Medium
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (minutes <= 5) MaterialTheme.colorScheme.error 
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -790,6 +889,25 @@ private fun OrderCard(
                 }
             }
         }
+        
+        // Overlay de carga durante acciones - Requirements: 5.6
+        if (isActionInProgress) {
+            Surface(
+                modifier = Modifier.matchParentSize(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        strokeWidth = 3.dp
+                    )
+                }
+            }
+        }
+    }
     }
 }
 
@@ -835,3 +953,4 @@ private fun EmptyOrdersView(hasFilter: Boolean) {
         }
     }
 }
+

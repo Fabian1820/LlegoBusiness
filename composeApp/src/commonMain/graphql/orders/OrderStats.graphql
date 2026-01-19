@@ -1,0 +1,20 @@
+query OrderStats(
+  $fromDate: DateTime!
+  $toDate: DateTime!
+  $jwt: String!
+  $branchId: String = null
+) {
+  orderStats(
+    fromDate: $fromDate
+    toDate: $toDate
+    jwt: $jwt
+    branchId: $branchId
+  ) {
+    totalOrders
+    completedOrders
+    cancelledOrders
+    totalRevenue
+    averageOrderValue
+    averageDeliveryTime
+  }
+}

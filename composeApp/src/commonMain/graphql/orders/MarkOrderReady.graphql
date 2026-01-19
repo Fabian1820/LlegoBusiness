@@ -1,0 +1,15 @@
+mutation MarkOrderReady($orderId: String!, $jwt: String!) {
+  markOrderReady(orderId: $orderId, jwt: $jwt) {
+    id
+    orderNumber
+    status
+    updatedAt
+    lastStatusAt
+    timeline {
+      status
+      timestamp
+      message
+      actor
+    }
+  }
+}

@@ -1,0 +1,93 @@
+subscription BranchOrderUpdated($branchId: String!) {
+  branchOrderUpdated(branchId: $branchId) {
+    id
+    orderNumber
+    customerId
+    branchId
+    businessId
+    subtotal
+    deliveryFee
+    total
+    currency
+    status
+    paymentMethod
+    paymentStatus
+    createdAt
+    updatedAt
+    lastStatusAt
+    deliveryPersonId
+    estimatedDeliveryTime
+    isEditable
+    canCancel
+    estimatedMinutesRemaining
+    items {
+      productId
+      name
+      price
+      quantity
+      imageUrl
+      wasModifiedByStore
+      lineTotal
+    }
+    discounts {
+      id
+      title
+      amount
+      type
+    }
+    deliveryAddress {
+      street
+      city
+      reference
+      coordinates {
+        type
+        coordinates
+      }
+    }
+    timeline {
+      status
+      timestamp
+      message
+      actor
+    }
+    comments {
+      id
+      author
+      message
+      timestamp
+    }
+    customer {
+      id
+      name
+      phone
+      avatarUrl
+    }
+    branch {
+      id
+      name
+      address
+      phone
+      avatarUrl
+    }
+    business {
+      id
+      name
+      avatarUrl
+    }
+    deliveryPerson {
+      id
+      name
+      phone
+      rating
+      totalDeliveries
+      vehicleType
+      vehiclePlate
+      profileImageUrl
+      isOnline
+      currentLocation {
+        type
+        coordinates
+      }
+    }
+  }
+}

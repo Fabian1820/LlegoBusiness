@@ -25,6 +25,12 @@ import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.orders.ui.screens.OrderConfirmationScreen
 import com.llego.business.orders.ui.screens.OrderDetailScreen
 import com.llego.business.orders.ui.screens.ConfirmationType
+import com.llego.business.orders.ui.components.BranchSwitchConfirmation
+import com.llego.business.orders.ui.components.BranchSwitchConfirmationData
+import com.llego.business.orders.ui.components.BranchNotFoundSnackbar
+import com.llego.business.orders.data.notification.BranchSwitchHandler
+import com.llego.business.orders.data.notification.BranchSwitchResult
+import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.model.Product
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.chats.ui.viewmodel.ChatsViewModel
@@ -82,6 +88,14 @@ fun App(viewModels: AppViewModels) {
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
         var confirmationOrderNumber by remember { mutableStateOf("") }
+        
+        // Estado para confirmación de cambio de sucursal - Requirements: 12.4
+        var branchSwitchConfirmation by remember { mutableStateOf<BranchSwitchConfirmationData?>(null) }
+        var showBranchNotFound by remember { mutableStateOf(false) }
+        
+        // BranchSwitchHandler y SubscriptionManager - Requirements: 12.2, 12.5
+        val branchSwitchHandler = remember { BranchSwitchHandler.getInstance() }
+        val subscriptionManager = remember { SubscriptionManager.getInstance() }
 
         val chatsViewModel = viewModels.chats
         val ordersViewModel = viewModels.orders
@@ -151,6 +165,57 @@ fun App(viewModels: AppViewModels) {
         LaunchedEffect(currentBranch) {
             ordersViewModel.setCurrentBranchId(currentBranch?.id)
             ordersViewModel.loadMenuItems(currentBranch?.id)
+        }
+        
+        // Observar eventos de cambio de sucursal desde notificaciones - Requirements: 12.2, 12.3, 12.4, 12.5
+        val pendingSwitchEvent by branchSwitchHandler.pendingSwitchEvent.collectAsState()
+        
+        // Ejecutar cambio de sucursal pendiente cuando hay branches disponibles
+        LaunchedEffect(pendingSwitchEvent, branches) {
+            if (pendingSwitchEvent != null && branches.isNotEmpty()) {
+                branchSwitchHandler.executePendingSwitch(
+                    branches = branches,
+                    currentBranch = currentBranch,
+                    setCurrentBranch = { branch ->
+                        authViewModel.setCurrentBranch(branch)
+                        // Actualizar suscripciones para la nueva sucursal activa - Requirements: 12.5
+                        subscriptionManager.updateActiveBranch(branch.id)
+                    }
+                )
+            }
+        }
+        
+        // Observar resultados de cambio de sucursal para mostrar confirmación - Requirements: 12.4
+        LaunchedEffect(Unit) {
+            branchSwitchHandler.switchResult.collect { result ->
+                when (result) {
+                    is BranchSwitchResult.Success -> {
+                        branchSwitchConfirmation = BranchSwitchConfirmationData(
+                            previousBranchName = result.previousBranchName,
+                            newBranchName = result.newBranchName,
+                            orderId = result.orderId
+                        )
+                    }
+                    is BranchSwitchResult.BranchNotFound -> {
+                        showBranchNotFound = true
+                    }
+                    is BranchSwitchResult.Error -> {
+                        // Manejar error si es necesario
+                        println("App: Branch switch error - ${result.message}")
+                    }
+                }
+            }
+        }
+        
+        // Observar navegación a detalle de pedido desde cambio de sucursal - Requirements: 12.3
+        LaunchedEffect(Unit) {
+            branchSwitchHandler.navigateToOrder.collect { orderId ->
+                // Navegar al detalle del pedido
+                selectedOrderId = orderId
+                showOrderDetail = true
+                // Cambiar a la pestaña de pedidos
+                selectedHomeTabIndex = 0
+            }
         }
 
         when {
@@ -251,66 +316,6 @@ fun App(viewModels: AppViewModels) {
                                     order = order,
                                     ordersViewModel = ordersViewModel,
                                     onNavigateBack = {
-                                        showOrderDetail = false
-                                        selectedOrderId = null
-                                    },
-                                    onAcceptOrder = { minutes ->
-                                        showOrderDetail = false
-                                        selectedOrderId = null
-
-                                        scope.launch {
-                                            delay(350)
-                                            ordersViewModel.updateOrderStatus(
-                                                order.id,
-                                                OrderStatus.PREPARING,
-                                                minutes
-                                            )
-                                            delay(100)
-                                            confirmationType = ConfirmationType.ORDER_ACCEPTED
-                                            confirmationOrderNumber = order.orderNumber
-                                        }
-                                    },
-                                    onUpdateStatus = { newStatus ->
-                                        // Primero cerrar la pantalla con animación
-                                        showOrderDetail = false
-                                        selectedOrderId = null
-
-                                        // Esperar a que la animación de salida termine
-                                        scope.launch {
-                                            delay(350) // Duración de la animación de salida
-
-                                            // Actualizar el estado del pedido
-                                            ordersViewModel.updateOrderStatus(order.id, newStatus)
-
-                                            // Pequeño delay adicional para suavizar
-                                            delay(100)
-
-                                            // Mostrar pantalla de confirmación
-                                            when {
-                                                // Pedido aceptado
-                                                order.status.name == "PENDING" && newStatus.name == "PREPARING" -> {
-                                                    confirmationType = ConfirmationType.ORDER_ACCEPTED
-                                                    confirmationOrderNumber = order.orderNumber
-                                                }
-                                                // Pedido listo
-                                                order.status.name == "PREPARING" && newStatus.name == "READY" -> {
-                                                    confirmationType = ConfirmationType.ORDER_READY
-                                                    confirmationOrderNumber = order.orderNumber
-                                                }
-                                            }
-                                        }
-                                    },
-                                    onSubmitModification = { modifiedOrder, state, note ->
-                                        chatsViewModel.createModificationMessage(
-                                            orderId = modifiedOrder.id,
-                                            orderNumber = modifiedOrder.orderNumber,
-                                            customerName = modifiedOrder.customer.name,
-                                            note = note,
-                                            originalItems = state.originalItems,
-                                            modifiedItems = state.modifiedItems,
-                                            originalTotal = state.originalTotal,
-                                            newTotal = state.newTotal
-                                        )
                                         showOrderDetail = false
                                         selectedOrderId = null
                                     }
@@ -453,6 +458,22 @@ fun App(viewModels: AppViewModels) {
                             confirmationType = null
                             confirmationOrderNumber = ""
                         }
+                    )
+                }
+                
+                // Confirmación de cambio de sucursal - Requirements: 12.4
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    BranchSwitchConfirmation(
+                        data = branchSwitchConfirmation,
+                        onDismiss = { branchSwitchConfirmation = null }
+                    )
+                    
+                    BranchNotFoundSnackbar(
+                        visible = showBranchNotFound,
+                        onDismiss = { showBranchNotFound = false }
                     )
                 }
             }

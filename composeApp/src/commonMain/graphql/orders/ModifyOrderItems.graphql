@@ -1,0 +1,34 @@
+mutation ModifyOrderItems($input: ModifyOrderItemsInput!, $jwt: String!) {
+  modifyOrderItems(input: $input, jwt: $jwt) {
+    id
+    orderNumber
+    status
+    subtotal
+    deliveryFee
+    total
+    updatedAt
+    lastStatusAt
+    isEditable
+    items {
+      productId
+      name
+      price
+      quantity
+      imageUrl
+      wasModifiedByStore
+      lineTotal
+    }
+    discounts {
+      id
+      title
+      amount
+      type
+    }
+    timeline {
+      status
+      timestamp
+      message
+      actor
+    }
+  }
+}

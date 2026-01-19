@@ -1,0 +1,15 @@
+mutation UpdateOrderStatus($input: UpdateOrderStatusInput!, $jwt: String!) {
+  updateOrderStatus(input: $input, jwt: $jwt) {
+    id
+    orderNumber
+    status
+    updatedAt
+    lastStatusAt
+    timeline {
+      status
+      timestamp
+      message
+      actor
+    }
+  }
+}

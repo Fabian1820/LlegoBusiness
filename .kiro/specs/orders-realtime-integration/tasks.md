@@ -1,0 +1,320 @@
+# Implementation Plan: Orders Realtime Integration
+
+## Overview
+
+Este plan implementa la integración completa del sistema de pedidos con el backend GraphQL, eliminando datos mock y habilitando actualizaciones en tiempo real. Se usará Kotlin con Apollo GraphQL para Kotlin Multiplatform.
+
+## Tasks
+
+- [x] 1. Crear modelos de datos alineados con backend
+  - [x] 1.1 Crear enums OrderStatus, PaymentStatus, OrderActor, DiscountType alineados con backend
+    - Definir enums con valores exactos del schema GraphQL
+    - Agregar función getDisplayName() para nombres localizados en español
+    - Agregar función getColor() para colores de UI
+    - _Requirements: 1.7, 1.8, 1.9, 9.5_
+  - [x] 1.2 Crear modelo Order con todos los campos del backend
+    - Incluir: id, orderNumber, customerId, branchId, businessId, subtotal, deliveryFee, total, currency, status, paymentMethod, paymentStatus, createdAt, updatedAt, lastStatusAt, deliveryPersonId, estimatedDeliveryTime, paymentId, rating, ratingComment, isEditable, canCancel, estimatedMinutesRemaining
+    - Incluir listas: items, discounts, timeline, comments
+    - Incluir objetos anidados: deliveryAddress, customer, branch, business, deliveryPerson
+    - _Requirements: 1.1_
+  - [x] 1.3 Crear modelos auxiliares OrderItem, DeliveryAddress, OrderTimelineEntry, OrderComment, OrderDiscount
+    - OrderItem con lineTotal calculado
+    - DeliveryAddress con Coordinates
+    - OrderTimelineEntry con status, timestamp, message, actor
+    - OrderComment con id, author, message, timestamp
+    - OrderDiscount con id, title, amount, type
+    - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6_
+  - [x] 1.4 Crear modelos CustomerInfo, DeliveryPersonInfo, OrderStats
+    - CustomerInfo con id, name, phone, avatarUrl
+    - DeliveryPersonInfo con todos los campos del backend
+    - OrderStats con totalOrders, completedOrders, cancelledOrders, totalRevenue, averageOrderValue, averageDeliveryTime
+    - _Requirements: 10.1, 10.4, 11.2_
+  - [ ]* 1.5 Write property test for model serialization round-trip
+    - **Property 1: Model Serialization Round-Trip**
+    - **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6**
+
+- [x] 2. Crear operaciones GraphQL para pedidos
+  - [x] 2.1 Crear query BranchOrders.graphql
+    - Query con parámetros: branchId, jwt, status, fromDate, toDate, limit, offset
+    - Incluir todos los campos de Order y objetos anidados
+    - _Requirements: 2.1, 2.3, 2.4, 2.5_
+  - [x] 2.2 Crear query PendingBranchOrders.graphql
+    - Query con parámetros: branchId, jwt
+    - Campos esenciales para lista rápida
+    - _Requirements: 2.2_
+  - [x] 2.3 Crear query GetOrder.graphql
+    - Query con parámetros: id, jwt
+    - Todos los campos para vista de detalle
+    - _Requirements: 2.6_
+  - [x] 2.4 Crear query OrderStats.graphql
+    - Query con parámetros: fromDate, toDate, jwt, branchId
+    - Todos los campos de estadísticas
+    - _Requirements: 11.1_
+  - [x] 2.5 Crear mutations AcceptOrder, RejectOrder, UpdateOrderStatus, MarkOrderReady
+    - AcceptOrder con orderId, estimatedMinutes, jwt
+    - RejectOrder con orderId, reason, jwt
+    - UpdateOrderStatus con input, jwt
+    - MarkOrderReady con orderId, jwt
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
+  - [x] 2.6 Crear mutations ModifyOrderItems, AddOrderComment
+    - ModifyOrderItems con input (orderId, items, reason), jwt
+    - AddOrderComment con input (orderId, message), jwt
+    - _Requirements: 6.6, 7.3_
+  - [x] 2.7 Crear subscriptions NewBranchOrder, BranchOrderUpdated
+    - NewBranchOrder con branchId
+    - BranchOrderUpdated con branchId
+    - _Requirements: 3.1, 3.2_
+
+- [x] 3. Checkpoint - Verificar generación de código Apollo
+  - Ejecutar gradle build para generar código Apollo
+  - Verificar que los tipos generados coinciden con los modelos
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Implementar OrderRepository con backend real
+  - [x] 4.1 Crear interfaz OrderRepository
+    - Definir métodos para queries, mutations y subscriptions
+    - Usar Result<T> para operaciones que pueden fallar
+    - Usar Flow<T> para subscriptions
+    - _Requirements: 2.1, 2.2, 2.6, 5.1, 5.2, 5.3, 5.4, 6.6, 7.3_
+  - [x] 4.2 Implementar OrderRepositoryImpl con Apollo Client
+    - Inyectar ApolloClient y TokenManager
+    - Implementar getBranchOrders con filtros
+    - Implementar getPendingBranchOrders
+    - Implementar getOrder
+    - Implementar getOrderStats
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 11.1_
+  - [x] 4.3 Implementar mutations en OrderRepositoryImpl
+    - acceptOrder con manejo de errores
+    - rejectOrder con manejo de errores
+    - updateOrderStatus con manejo de errores
+    - markOrderReady con manejo de errores
+    - modifyOrderItems con manejo de errores
+    - addOrderComment con manejo de errores
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 6.6, 7.3_
+  - [x] 4.4 Implementar subscriptions en OrderRepositoryImpl
+    - subscribeToNewOrders retornando Flow<Order>
+    - subscribeToOrderUpdates retornando Flow<Order>
+    - _Requirements: 3.1, 3.2_
+  - [x] 4.5 Crear mappers de tipos Apollo a modelos Kotlin
+    - Mapper para OrderType -> Order
+    - Mapper para OrderItemType -> OrderItem
+    - Mapper para todos los tipos anidados
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
+  - [ ]* 4.6 Write property tests for filtering and pagination
+    - **Property 2: Status Filter Correctness**
+    - **Property 3: Date Range Filter Correctness**
+    - **Property 4: Pagination Limit Correctness**
+    - **Validates: Requirements 2.3, 2.4, 2.5**
+
+- [x] 5. Implementar SubscriptionManager
+  - [x] 5.1 Crear clase SubscriptionManager
+    - Mantener mapa de suscripciones activas por branchId
+    - Exponer SharedFlow para nuevos pedidos
+    - Exponer SharedFlow para actualizaciones de pedidos
+    - _Requirements: 3.1, 3.2, 3.7_
+  - [x] 5.2 Implementar subscribeToAllBranches
+    - Recibir lista de branchIds y activeBranchId
+    - Cancelar suscripciones existentes
+    - Crear suscripciones para cada branch
+    - _Requirements: 3.7_
+  - [x] 5.3 Implementar manejo de reconexión
+    - Detectar pérdida de conexión WebSocket
+    - Reintentar con backoff exponencial
+    - _Requirements: 3.6_
+  - [x] 5.4 Implementar updateActiveBranch
+    - Actualizar flag de branch activo para notificaciones
+    - _Requirements: 3.5_
+  - [ ]* 5.5 Write property test for subscription coverage
+    - **Property 19: Subscription Coverage**
+    - **Validates: Requirements 3.7**
+
+- [x] 6. Implementar NotificationService
+  - [x] 6.1 Crear interfaz NotificationService
+    - showNewOrderNotification(event: NewOrderEvent)
+    - showOrderUpdateNotification(orderId, status)
+    - updateBadgeCount(pendingCount)
+    - playNewOrderSound()
+    - _Requirements: 4.1, 4.2, 4.4, 4.6_
+  - [x] 6.2 Implementar NotificationServiceImpl para Android
+    - Crear NotificationChannel para pedidos
+    - Mostrar notificación con acción "Cambiar para ver" si es otra sucursal
+    - Reproducir sonido de notificación
+    - Actualizar badge de la app
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+  - [x] 6.3 Implementar NotificationServiceImpl para iOS
+    - Usar UNUserNotificationCenter
+    - Configurar acciones de notificación
+    - Reproducir sonido
+    - Actualizar badge
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+  - [ ]* 6.4 Write property test for notification data
+    - **Property 18: Notification Branch Data**
+    - **Validates: Requirements 12.1**
+
+- [x] 7. Checkpoint - Verificar integración de datos
+  - Probar conexión con backend de desarrollo
+  - Verificar que las queries retornan datos
+  - Verificar que las suscripciones se conectan
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. Actualizar OrdersViewModel
+  - [x] 8.1 Refactorizar OrdersViewModel para usar OrderRepository
+    - Inyectar OrderRepository y SubscriptionManager
+    - Eliminar referencia a datos mock
+    - Implementar loadOrders usando repository
+    - _Requirements: 2.1, 2.7, 2.8_
+  - [x] 8.2 Implementar observación de suscripciones
+    - Observar newOrders de SubscriptionManager
+    - Agregar nuevos pedidos a la lista
+    - Observar orderUpdates de SubscriptionManager
+    - Actualizar pedidos existentes en la lista
+    - _Requirements: 3.3, 3.4_
+  - [x] 8.3 Implementar acciones sobre pedidos
+    - acceptOrder con estimatedMinutes
+    - rejectOrder con reason
+    - markOrderReady
+    - Manejar estados de carga y error
+    - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.6, 5.7, 5.8_
+  - [x] 8.4 Implementar filtrado con backend
+    - setStatusFilter que ejecuta nueva query
+    - setDateRange que ejecuta nueva query
+    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [ ]* 8.5 Write property tests for list updates
+    - **Property 5: New Order List Update**
+    - **Property 6: Order Update Propagation**
+    - **Validates: Requirements 3.3, 3.4**
+
+- [x] 9. Implementar modificación de items
+  - [x] 9.1 Actualizar OrderModificationState para nuevos modelos
+    - Usar OrderItem del nuevo modelo
+    - Calcular lineTotal correctamente
+    - _Requirements: 6.7_
+  - [x] 9.2 Implementar lógica de modificación en ViewModel
+    - modifyItemQuantity con validación
+    - removeItem
+    - addItem desde catálogo de productos
+    - modifyItemInstructions
+    - _Requirements: 6.3, 6.4, 6.5_
+  - [x] 9.3 Implementar applyModification con backend
+    - Llamar modifyOrderItems del repository
+    - Actualizar lista local con respuesta
+    - _Requirements: 6.6_
+  - [ ]* 9.4 Write property tests for item modification
+    - **Property 11: Item Quantity Modification**
+    - **Property 12: Item Removal**
+    - **Property 13: Item Addition**
+    - **Property 14: Total Recalculation**
+    - **Validates: Requirements 6.3, 6.4, 6.5, 6.7**
+
+- [x] 10. Actualizar UI de OrdersScreen
+  - [x] 10.1 Actualizar filtros de estado con nuevos valores
+    - Usar OrderStatus enum del nuevo modelo
+    - Mostrar nombres localizados
+    - _Requirements: 9.1, 9.5_
+  - [x] 10.2 Actualizar OrderCard para nuevos campos
+    - Mostrar status con colores correctos
+    - Mostrar paymentStatus
+    - Mostrar estimatedMinutesRemaining si disponible
+    - _Requirements: 5.5_
+  - [x] 10.3 Actualizar indicadores de carga y error
+    - Mostrar loading durante queries
+    - Mostrar error con opción de reintentar
+    - Mostrar loading durante acciones
+    - _Requirements: 2.7, 2.8, 5.6, 5.7_
+  - [ ]* 10.4 Write property test for status display names
+    - **Property 17: Status Display Name Mapping**
+    - **Validates: Requirements 9.5**
+
+- [x] 11. Actualizar UI de OrderDetailScreen
+  - [x] 11.1 Mostrar información completa del cliente
+    - Nombre, teléfono con acción de llamar
+    - Avatar si disponible
+    - _Requirements: 10.1, 10.5_
+  - [x] 11.2 Mostrar dirección de entrega con mapa
+    - Street, city, reference
+    - Mapa con coordenadas si disponibles
+    - _Requirements: 10.2, 10.3_
+  - [x] 11.3 Mostrar información del repartidor si asignado
+    - Nombre, teléfono, tipo de vehículo, rating
+    - _Requirements: 10.4_
+  - [x] 11.4 Mostrar timeline del pedido
+    - Lista de eventos ordenados cronológicamente
+    - Iconos por tipo de actor
+    - _Requirements: 8.1, 8.2, 8.3, 8.4_
+  - [x] 11.5 Mostrar y agregar comentarios
+    - Lista de comentarios existentes
+    - Campo para agregar nuevo comentario
+    - _Requirements: 7.1, 7.2, 7.3, 7.4_
+  - [x] 11.6 Mostrar botones de acción según estado
+    - Aceptar/Rechazar para PENDING_ACCEPTANCE
+    - Marcar listo para PREPARING
+    - Editar items si isEditable
+    - _Requirements: 5.5, 6.1_
+  - [ ]* 11.7 Write property tests for state transitions and ordering
+    - **Property 7: Valid State Transitions - Accept**
+    - **Property 8: Valid State Transitions - Reject**
+    - **Property 9: Valid State Transitions - Ready**
+    - **Property 10: Editable Order Constraint**
+    - **Property 15: Comments Chronological Order**
+    - **Property 16: Timeline Chronological Order**
+    - **Validates: Requirements 5.1, 5.2, 5.4, 6.1, 7.1, 8.3**
+
+- [x] 12. Implementar cambio rápido de sucursal
+  - [x] 12.1 Crear BranchSwitchHandler
+    - Recibir branchId y orderId desde notificación
+    - Cambiar sucursal activa en BranchContext
+    - Navegar a detalle del pedido
+    - _Requirements: 12.2, 12.3_
+  - [x] 12.2 Integrar con NotificationService
+    - Pasar branchId y orderId en datos de notificación
+    - Manejar tap en acción "Cambiar para ver"
+    - _Requirements: 12.1, 12.3_
+  - [x] 12.3 Mostrar confirmación de cambio de sucursal
+    - Toast o Snackbar indicando el cambio
+    - _Requirements: 12.4_
+  - [x] 12.4 Actualizar suscripciones al cambiar sucursal
+    - Llamar updateActiveBranch en SubscriptionManager
+    - _Requirements: 12.5_
+
+- [x] 13. Eliminar datos mock
+  - [x] 13.1 Eliminar getMockOrders y getMockMenuItems de OrdersRepository
+    - Eliminar funciones de datos mock
+    - Eliminar inicialización con datos mock
+    - _Requirements: 1.10_
+  - [x] 13.2 Eliminar datos mock de RestaurantRepository si existe
+    - Verificar y eliminar cualquier referencia a datos mock de pedidos
+    - _Requirements: 1.10_
+  - [x] 13.3 Actualizar inicialización del ViewModel
+    - Cargar datos desde backend al iniciar
+    - No usar datos mock como fallback
+    - _Requirements: 1.10_
+
+- [x] 14. Checkpoint final - Verificar integración completa
+  - Probar flujo completo de nuevo pedido con notificación
+  - Probar cambio de estado de pedido
+  - Probar modificación de items
+  - Probar cambio de sucursal desde notificación
+  - Ensure all tests pass, ask the user if questions arise.
+  
+  **COMPLETED**: 
+  - ✅ Renamed all model files from "Backend" suffix to normal names
+  - ✅ Deleted old mock Order.kt and replaced with backend-integrated version
+  - ✅ Deleted obsolete RestaurantRepository.kt from old nichos folder structure
+  - ✅ Renamed OrderDetailBackendScreen.kt → OrderDetailScreen.kt
+  - ✅ Renamed OrderDetailBackendSections.kt → OrderDetailSections.kt
+  - ✅ Updated all type references across codebase (Order, OrderStatus, PaymentStatus, OrderActor, etc.)
+  - ✅ Updated all component function names (OrderActionsSection, OrderItemsSection, etc.)
+  - ✅ Updated OrderMappers.kt, OrderRepository.kt, OrderRepositoryImpl.kt, SubscriptionManager.kt
+  - ✅ Updated OrdersViewModel.kt and OrdersScreen.kt
+  - ✅ All compilation errors resolved - no diagnostics found
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
+- Se usa Kotest para property-based testing en Kotlin Multiplatform
+- Apollo GraphQL genera código automáticamente desde los archivos .graphql
+

@@ -17,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.business.orders.data.model.PaymentMethod
-import com.llego.business.orders.data.model.getDisplayName
 import com.llego.business.settings.data.model.*
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsUiState

@@ -1,0 +1,15 @@
+mutation RejectOrder($orderId: String!, $reason: String!, $jwt: String!) {
+  rejectOrder(orderId: $orderId, reason: $reason, jwt: $jwt) {
+    id
+    orderNumber
+    status
+    updatedAt
+    lastStatusAt
+    timeline {
+      status
+      timestamp
+      message
+      actor
+    }
+  }
+}

@@ -1,6 +1,5 @@
 package com.llego.business.settings.data.repository
 
-import com.llego.business.orders.data.model.PaymentMethod
 import com.llego.business.settings.data.model.*
 import com.llego.shared.data.auth.TokenManager
 import kotlinx.coroutines.delay

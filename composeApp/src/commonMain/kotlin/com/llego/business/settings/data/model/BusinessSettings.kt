@@ -1,7 +1,6 @@
 package com.llego.business.settings.data.model
 
 import kotlinx.serialization.Serializable
-import com.llego.business.orders.data.model.PaymentMethod
 
 /**
  * Configuración y reglas del Restaurante

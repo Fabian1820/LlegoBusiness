@@ -317,28 +317,18 @@ class ChatsViewModel : ViewModel() {
         originalTotal: Double,
         newTotal: Double
     ): String {
-        val originalById = originalItems.associateBy { it.id }
-        val modifiedById = modifiedItems.associateBy { it.id }
+        val originalById = originalItems.associateBy { it.productId }
+        val modifiedById = modifiedItems.associateBy { it.productId }
 
-        val addedItems = modifiedItems.filter { it.id !in originalById }
-        val removedItems = originalItems.filter { it.id !in modifiedById }
+        val addedItems = modifiedItems.filter { it.productId !in originalById }
+        val removedItems = originalItems.filter { it.productId !in modifiedById }
         val editedItems = modifiedItems.mapNotNull { item ->
-            val original = originalById[item.id] ?: return@mapNotNull null
+            val original = originalById[item.productId] ?: return@mapNotNull null
             val quantityChanged = original.quantity != item.quantity
-            val instructionsChanged = original.specialInstructions != item.specialInstructions
-            if (!quantityChanged && !instructionsChanged) {
+            if (!quantityChanged) {
                 return@mapNotNull null
             }
-            val changes = mutableListOf<String>()
-            if (quantityChanged) {
-                changes.add("cant ${original.quantity}->${item.quantity}")
-            }
-            if (instructionsChanged) {
-                val before = original.specialInstructions ?: "sin"
-                val after = item.specialInstructions ?: "sin"
-                changes.add("instr ${before}->${after}")
-            }
-            "${item.menuItem.name} (${changes.joinToString(", ")})"
+            "${item.name} (cant ${original.quantity}->${item.quantity})"
         }
 
         val lines = mutableListOf<String>()
@@ -363,9 +353,7 @@ class ChatsViewModel : ViewModel() {
     }
 
     private fun formatOrderItemLine(item: OrderItem): String {
-        val base = "${item.quantity}x ${item.menuItem.name}"
-        val instructions = item.specialInstructions?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-        return base + instructions
+        return "${item.quantity}x ${item.name}"
     }
     private fun formatTimestamp(millis: Long): String {
         // Formato simple: "HH:mm"
