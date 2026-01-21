@@ -11,6 +11,7 @@ mutation UpdateBranch(
     phone
     address
     tipos
+    paymentMethodIds
     avatar
     coverImage
     avatarUrl

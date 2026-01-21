@@ -95,10 +95,13 @@ import com.llego.shared.ui.components.molecules.DaySchedule
 import com.llego.shared.ui.components.molecules.FacilitiesSelector
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.components.molecules.PaymentMethodSelector
 import com.llego.shared.ui.components.molecules.SchedulePicker
 import com.llego.shared.ui.components.molecules.TimeRange
 import com.llego.shared.ui.components.molecules.toBackendSchedule
 import com.llego.shared.ui.components.molecules.toDaySchedule
+import com.llego.shared.data.model.PaymentMethod
+import com.llego.shared.data.repositories.PaymentMethodsRepository
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
 import com.llego.shared.ui.components.molecules.MapLocationPickerReal
@@ -485,6 +488,7 @@ fun BranchCreateScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val imageUploadService = remember { ImageUploadServiceFactory.create() }
+    val paymentMethodsRepository = remember { PaymentMethodsRepository() }
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var name by remember { mutableStateOf("") }
@@ -513,6 +517,22 @@ fun BranchCreateScreen(
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
+
+    // Payment methods state
+    var availablePaymentMethods by remember { mutableStateOf<List<PaymentMethod>>(emptyList()) }
+    var isLoadingPaymentMethods by remember { mutableStateOf(false) }
+    var selectedPaymentMethodIds by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Load payment methods on screen open
+    LaunchedEffect(Unit) {
+        isLoadingPaymentMethods = true
+        paymentMethodsRepository.getPaymentMethods().onSuccess { methods ->
+            availablePaymentMethods = methods
+        }.onFailure {
+            // Handle error silently or show a message
+        }
+        isLoadingPaymentMethods = false
+    }
 
     val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
     val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
@@ -659,6 +679,13 @@ fun BranchCreateScreen(
                 onFacilitiesChange = { branchFacilities = it }
             )
 
+            PaymentMethodSelector(
+                availablePaymentMethods = availablePaymentMethods,
+                selectedPaymentMethodIds = selectedPaymentMethodIds,
+                onSelectionChange = { selectedPaymentMethodIds = it },
+                isLoading = isLoadingPaymentMethods
+            )
+
             Text(
                 text = "Imagenes (opcional)",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
@@ -711,6 +738,11 @@ fun BranchCreateScreen(
                         onError(statusMessage ?: "")
                         return@Button
                     }
+                    if (selectedPaymentMethodIds.isEmpty()) {
+                        statusMessage = "Selecciona al menos un metodo de pago"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
                     if (isUploading) {
                         statusMessage = "Espera a que terminen las subidas de imagen"
                         onError(statusMessage ?: "")
@@ -732,6 +764,7 @@ fun BranchCreateScreen(
                             ),
                             schedule = branchSchedule.toBackendSchedule(),
                             tipos = selectedTipos.toList(),
+                            paymentMethodIds = selectedPaymentMethodIds,
                             managerIds = parsedManagerIds.takeIf { it.isNotEmpty() },
                             avatar = avatarPath,
                             coverImage = coverPath,
@@ -786,6 +819,7 @@ fun EditBranchDialog(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val imageUploadService = remember { ImageUploadServiceFactory.create() }
+    val paymentMethodsRepository = remember { PaymentMethodsRepository() }
 
     var name by remember { mutableStateOf(branch.name) }
     var phone by remember { mutableStateOf(branch.phone) }
@@ -801,6 +835,22 @@ fun EditBranchDialog(
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
+
+    // Payment methods state
+    var availablePaymentMethods by remember { mutableStateOf<List<PaymentMethod>>(emptyList()) }
+    var isLoadingPaymentMethods by remember { mutableStateOf(false) }
+    var selectedPaymentMethodIds by remember { mutableStateOf(branch.paymentMethodIds) }
+
+    // Load payment methods on dialog open
+    LaunchedEffect(Unit) {
+        isLoadingPaymentMethods = true
+        paymentMethodsRepository.getPaymentMethods().onSuccess { methods ->
+            availablePaymentMethods = methods
+        }.onFailure {
+            // Handle error silently or show a message
+        }
+        isLoadingPaymentMethods = false
+    }
 
     val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
     val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
@@ -943,6 +993,13 @@ fun EditBranchDialog(
                     onFacilitiesChange = { branchFacilities = it }
                 )
 
+                PaymentMethodSelector(
+                    availablePaymentMethods = availablePaymentMethods,
+                    selectedPaymentMethodIds = selectedPaymentMethodIds,
+                    onSelectionChange = { selectedPaymentMethodIds = it },
+                    isLoading = isLoadingPaymentMethods
+                )
+
                 OutlinedTextField(
                     value = managerIds,
                     onValueChange = { managerIds = it },
@@ -1000,6 +1057,10 @@ fun EditBranchDialog(
                         onError("Selecciona al menos un tipo de sucursal")
                         return@Button
                     }
+                    if (selectedPaymentMethodIds.isEmpty()) {
+                        onError("Selecciona al menos un metodo de pago")
+                        return@Button
+                    }
                     if (isUploading) {
                         onError("Espera a que terminen las subidas de imagen")
                         return@Button
@@ -1034,6 +1095,7 @@ fun EditBranchDialog(
                             },
                             schedule = scheduleValue.takeIf { it != branch.schedule },
                             tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                            paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
                             status = status.takeIf { it != branch.status },
                             deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
                             facilities = branchFacilities.takeIf { it != branch.facilities },
@@ -1675,6 +1737,7 @@ fun BranchEditScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val imageUploadService = remember { ImageUploadServiceFactory.create() }
+    val paymentMethodsRepository = remember { PaymentMethodsRepository() }
 
     var name by remember { mutableStateOf(branch.name) }
     var phone by remember { mutableStateOf(branch.phone) }
@@ -1691,6 +1754,22 @@ fun BranchEditScreen(
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+
+    // Payment methods state
+    var availablePaymentMethods by remember { mutableStateOf<List<PaymentMethod>>(emptyList()) }
+    var isLoadingPaymentMethods by remember { mutableStateOf(false) }
+    var selectedPaymentMethodIds by remember(branch) { mutableStateOf(branch.paymentMethodIds) }
+
+    // Load payment methods on screen open
+    LaunchedEffect(branch.id) {
+        isLoadingPaymentMethods = true
+        paymentMethodsRepository.getPaymentMethods().onSuccess { methods ->
+            availablePaymentMethods = methods
+        }.onFailure {
+            // Handle error silently or show a message
+        }
+        isLoadingPaymentMethods = false
+    }
 
     val avatarPath = (branchAvatarState as? ImageUploadState.Success)?.s3Path
     val coverPath = (branchCoverState as? ImageUploadState.Success)?.s3Path
@@ -1872,6 +1951,13 @@ fun BranchEditScreen(
                 onFacilitiesChange = { branchFacilities = it }
             )
 
+            PaymentMethodSelector(
+                availablePaymentMethods = availablePaymentMethods,
+                selectedPaymentMethodIds = selectedPaymentMethodIds,
+                onSelectionChange = { selectedPaymentMethodIds = it },
+                isLoading = isLoadingPaymentMethods
+            )
+
             Text(
                 text = "Imagenes (opcional)",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
@@ -1916,6 +2002,11 @@ fun BranchEditScreen(
                         onError(statusMessage ?: "")
                         return@Button
                     }
+                    if (selectedPaymentMethodIds.isEmpty()) {
+                        statusMessage = "Selecciona al menos un metodo de pago"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
                     if (isUploading) {
                         statusMessage = "Espera a que terminen las subidas de imagen"
                         onError(statusMessage ?: "")
@@ -1952,6 +2043,7 @@ fun BranchEditScreen(
                             },
                             schedule = scheduleValue.takeIf { it != branch.schedule },
                             tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                            paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
                             status = status.takeIf { it != branch.status },
                             deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
                             facilities = branchFacilities.takeIf { it != branch.facilities },

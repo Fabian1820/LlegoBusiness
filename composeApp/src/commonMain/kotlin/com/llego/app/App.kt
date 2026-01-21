@@ -157,6 +157,13 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
+        LaunchedEffect(currentBusiness, branches, isAuthenticated) {
+            if (isAuthenticated && needsBusinessRegistration && (currentBusiness != null || branches.isNotEmpty())) {
+                needsBusinessRegistration = false
+                println("App: needsBusinessRegistration=false por negocios/sucursales cargados")
+            }
+        }
+
         // Log cuando currentBusiness o currentBranch cambien (para debug)
         LaunchedEffect(currentBusiness, currentBranch) {
             println("App: currentBusiness=${currentBusiness?.name}, currentBranch=${currentBranch?.name}")

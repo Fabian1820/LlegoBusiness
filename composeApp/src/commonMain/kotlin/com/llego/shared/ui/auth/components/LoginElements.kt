@@ -56,7 +56,7 @@ internal fun LlegoLogo(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(Res.drawable.logo),
         contentDescription = "Logo Llego",
-        modifier = modifier.size(140.dp),
+        modifier = modifier.size(180.dp),
         contentScale = ContentScale.Fit
     )
 }
@@ -75,7 +75,7 @@ internal fun AppTipsSection() {
     ) {
         Text(
             text = "¿Por qué Llego Business?",
-            style = MaterialTheme.typography.titleSmall.copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold
             ),
             color = MaterialTheme.colorScheme.onSurface
@@ -115,13 +115,13 @@ private fun TipItem(icon: ImageVector, text: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Start
         )
@@ -140,7 +140,7 @@ internal fun PrimaryButton(
         enabled = enabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(56.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -155,14 +155,14 @@ internal fun PrimaryButton(
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
         } else {
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 )
             )
@@ -175,7 +175,7 @@ internal fun DividerWithText(text: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         HorizontalDivider(
             modifier = Modifier.weight(1f),
@@ -183,7 +183,7 @@ internal fun DividerWithText(text: String) {
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         HorizontalDivider(
@@ -200,7 +200,7 @@ internal fun SocialButtons(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         SocialButton(
             text = "Continuar con Apple",
@@ -245,7 +245,7 @@ internal fun SocialButton(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(60.dp)
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value
@@ -268,7 +268,7 @@ internal fun SocialButton(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 28.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -280,7 +280,7 @@ internal fun SocialButton(
                     Image(
                         painter = painterResource(icon),
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(28.dp),
                         contentScale = ContentScale.Fit,
                         colorFilter = iconTint?.let { ColorFilter.tint(it) }
                     )
@@ -288,7 +288,7 @@ internal fun SocialButton(
 
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.titleSmall.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = contentColor,
@@ -310,7 +310,7 @@ internal fun ToggleAuthMode(
     ) {
         Text(
             text = if (isRegisterMode) "¿Ya tienes cuenta?" else "¿No tienes cuenta?",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -318,7 +318,7 @@ internal fun ToggleAuthMode(
 
         Text(
             text = if (isRegisterMode) "Inicia sesión" else "Regístrate",
-            style = MaterialTheme.typography.bodySmall.copy(
+            style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.SemiBold
             ),
             color = MaterialTheme.colorScheme.primary,

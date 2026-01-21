@@ -6,6 +6,7 @@ mutation CreateBranch($input: CreateBranchInput!, $jwt: String) {
     address
     phone
     tipos
+    paymentMethodIds
     avatar
     coverImage
     avatarUrl

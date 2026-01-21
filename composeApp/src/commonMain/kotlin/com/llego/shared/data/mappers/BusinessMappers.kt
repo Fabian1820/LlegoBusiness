@@ -109,6 +109,7 @@ fun GetBranchesQuery.Node.toDomain(): Branch {
         phone = phone,
         schedule = scheduleMap,
         tipos = branchTipos,
+        paymentMethodIds = paymentMethodIds ?: emptyList(),
         managerIds = managerIds ?: emptyList(),
         status = status ?: "active",
         avatar = avatar,
@@ -142,6 +143,7 @@ fun GetBranchQuery.Branch.toDomain(): Branch {
         phone = phone,
         schedule = scheduleMap,
         tipos = branchTipos,
+        paymentMethodIds = paymentMethodIds ?: emptyList(),
         managerIds = managerIds ?: emptyList(),
         status = status ?: "active",
         avatar = avatar,
@@ -175,6 +177,7 @@ fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
         phone = phone,
         schedule = scheduleMap,
         tipos = branchTipos,
+        paymentMethodIds = paymentMethodIds ?: emptyList(),
         managerIds = emptyList(),
         status = status,
         avatar = avatar,
@@ -208,6 +211,7 @@ fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
         phone = phone,
         schedule = scheduleMap,
         tipos = branchTipos,
+        paymentMethodIds = paymentMethodIds ?: emptyList(),
         managerIds = emptyList(),
         status = status,
         avatar = avatar,
@@ -283,6 +287,7 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
+        paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
@@ -300,6 +305,7 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
+        paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
@@ -322,7 +328,8 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
         facilities = Optional.presentIfNotNull(facilities),
         managerIds = Optional.presentIfNotNull(managerIds),
-        tipos = Optional.presentIfNotNull(tipos?.toGraphQLList())
+        tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
+        paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds)
     )
 }
 

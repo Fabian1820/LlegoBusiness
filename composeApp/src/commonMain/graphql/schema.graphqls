@@ -10,7 +10,7 @@ type Query {
   user(id: String!, jwt: String!): UserType
 
   """
-  Buscar usuarios (requiere rol admin o manager)
+  Buscar usuarios (requiere autenticación)
   """
   searchUsers(query: String!, jwt: String!): [UserType!]!
 
@@ -150,6 +150,46 @@ type Query {
   businessTypeConfigs(lastSyncAt: DateTime = null): [BusinessTypeConfigType!]!
 
   """
+  Obtener todos los métodos de pago disponibles
+  """
+  paymentMethods(jwt: String = null): [PaymentMethodType!]!
+
+  """
+  Obtener método de pago por ID
+  """
+  paymentMethod(id: String!, jwt: String = null): PaymentMethodType
+
+  """
+  Obtener métodos de pago por moneda
+  """
+  paymentMethodsByCurrency(currency: String!, jwt: String = null): [PaymentMethodType!]!
+
+  """
+  Obtener métodos de pago por tipo
+  """
+  paymentMethodsByMethod(method: String!, jwt: String = null): [PaymentMethodType!]!
+
+  """
+  Obtener balance de wallet del usuario actual
+  """
+  myWallet(jwt: String!): WalletStatusType!
+
+  """
+  Obtener historial de transacciones del usuario actual
+  """
+  myWalletTransactions(jwt: String!, limit: Int! = 50, skip: Int! = 0, currency: String = null): [WalletTransactionType!]!
+
+  """
+  Obtener balance de wallet de una sucursal
+  """
+  branchWallet(branchId: String!, jwt: String!): WalletStatusType!
+
+  """
+  Obtener historial de transacciones de una sucursal
+  """
+  branchWalletTransactions(branchId: String!, jwt: String!, limit: Int! = 50, skip: Int! = 0, currency: String = null): [WalletTransactionType!]!
+
+  """
   Saludo de ejemplo
   """
   hello(jwt: String = null): String!
@@ -166,6 +206,8 @@ type UserType {
   name: String!
 
   email: String!
+
+  username: String!
 
   phone: String
 
@@ -185,6 +227,10 @@ type UserType {
 
   applePrivateEmail: String
 
+  wallet: WalletBalanceType!
+
+  walletStatus: String!
+
   """
   URL firmada del avatar del usuario
   """
@@ -200,6 +246,17 @@ scalar String
 Date with time (isoformat)
 """
 scalar DateTime
+
+type WalletBalanceType {
+  local: Float!
+
+  usd: Float!
+}
+
+"""
+The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+"""
+scalar Float
 
 type BusinessType {
   id: String!
@@ -227,11 +284,6 @@ type BusinessType {
   """
   avatarUrl: String
 }
-
-"""
-The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
-"""
-scalar Float
 
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
@@ -289,11 +341,17 @@ type ScoredBranchType {
 
   tipos: [BranchTipo!]!
 
+  paymentMethodIds: [String!]!
+
   createdAt: DateTime!
 
   score: Float!
 
   distanceM: Float
+
+  wallet: WalletBalanceType!
+
+  walletStatus: String!
 
   """
   Presigned URL for the branch avatar (inherits from business if not set)
@@ -314,6 +372,11 @@ type ScoredBranchType {
   Products from this branch
   """
   products(limit: Int! = 6, availableOnly: Boolean! = true): [ProductType!]!
+
+  """
+  Payment methods accepted by this branch
+  """
+  paymentMethods: [PaymentMethodType!]!
 }
 
 type CoordinatesType {
@@ -419,7 +482,13 @@ type BranchType {
 
   tipos: [BranchTipo!]!
 
+  paymentMethodIds: [String!]!
+
   createdAt: DateTime!
+
+  wallet: WalletBalanceType!
+
+  walletStatus: String!
 
   """
   Presigned URL for the branch avatar (inherits from business if not set)
@@ -435,6 +504,28 @@ type BranchType {
   Products from this branch
   """
   products(limit: Int! = 6, availableOnly: Boolean! = true): [ProductType!]!
+
+  """
+  Payment methods accepted by this branch
+  """
+  paymentMethods: [PaymentMethodType!]!
+}
+
+type PaymentMethodType {
+  """
+  Payment method ID
+  """
+  id: String!
+
+  """
+  Currency (e.g., CUP, USD)
+  """
+  currency: String!
+
+  """
+  Payment method (e.g., tarjeta, efectivo, transferencia)
+  """
+  method: String!
 }
 
 type PageInfo {
@@ -490,9 +581,15 @@ type NearbyBranchType {
 
   tipos: [BranchTipo!]!
 
+  paymentMethodIds: [String!]!
+
   createdAt: DateTime!
 
   distanceM: Float!
+
+  wallet: WalletBalanceType!
+
+  walletStatus: String!
 
   """
   Presigned URL for the branch avatar (inherits from business if not set)
@@ -513,6 +610,11 @@ type NearbyBranchType {
   Products from this branch
   """
   products(limit: Int! = 6, availableOnly: Boolean! = true): [ProductType!]!
+
+  """
+  Payment methods accepted by this branch
+  """
+  paymentMethods: [PaymentMethodType!]!
 }
 
 type ProductConnection {
@@ -628,23 +730,6 @@ type AiAssistantOutputType {
 }
 
 union EntityType = ProductType|BranchType|PaymentMethodType
-
-type PaymentMethodType {
-  """
-  Payment method ID
-  """
-  id: String!
-
-  """
-  Currency (e.g., CUP, USD)
-  """
-  currency: String!
-
-  """
-  Payment method (e.g., tarjeta, efectivo, transferencia)
-  """
-  method: String!
-}
 
 input AiAssistantChatInput {
   """
@@ -1016,6 +1101,38 @@ type FeatureType {
   sortOrder: Int!
 }
 
+type WalletStatusType {
+  balance: WalletBalanceType!
+
+  status: String!
+}
+
+type WalletTransactionType {
+  id: String!
+
+  fromOwnerId: String
+
+  fromOwnerType: String
+
+  toOwnerId: String
+
+  toOwnerType: String
+
+  amount: Float!
+
+  currency: String!
+
+  type: String!
+
+  status: String!
+
+  description: String
+
+  createdAt: DateTime!
+
+  completedAt: DateTime
+}
+
 type Mutation {
   """
   Register a new user
@@ -1216,6 +1333,36 @@ type Mutation {
   Delete business type configuration permanently (Admin only)
   """
   deleteBusinessTypeConfig(id: String!, jwt: String!): Boolean!
+
+  """
+  Validar una imagen de transferencia bancaria usando Gemini OCR
+  """
+  validatePaymentImage(file: Upload!, jwt: String = null): PaymentType!
+
+  """
+  Transferir dinero a otro usuario o sucursal
+  """
+  transferMoney(input: TransferInput!, jwt: String!): WalletTransactionType!
+
+  """
+  Depositar dinero en la wallet
+  """
+  depositMoney(input: DepositInput!, jwt: String!): WalletTransactionType!
+
+  """
+  Retirar dinero de la wallet
+  """
+  withdrawMoney(input: WithdrawInput!, jwt: String!): WalletTransactionType!
+
+  """
+  Transferir dinero desde wallet de sucursal
+  """
+  branchTransferMoney(branchId: String!, input: TransferInput!, jwt: String!): WalletTransactionType!
+
+  """
+  Retirar dinero de wallet de sucursal
+  """
+  branchWithdrawMoney(branchId: String!, input: WithdrawInput!, jwt: String!): WalletTransactionType!
 }
 
 type AuthResponse {
@@ -1275,6 +1422,8 @@ input AppleLoginInput {
 input UpdateUserInput {
   name: String = null
 
+  username: String = null
+
   phone: String = null
 
   avatar: String = null
@@ -1312,6 +1461,8 @@ input RegisterBranchInput {
   schedule: JSON!
 
   tipos: [BranchTipo!]!
+
+  paymentMethodIds: [String!]!
 
   address: String = null
 
@@ -1359,6 +1510,8 @@ input CreateBranchInput {
 
   tipos: [BranchTipo!]!
 
+  paymentMethodIds: [String!]!
+
   address: String = null
 
   managerIds: [String!] = null
@@ -1396,6 +1549,8 @@ input UpdateBranchInput {
   coverImage: String = null
 
   tipos: [BranchTipo!] = null
+
+  paymentMethodIds: [String!] = null
 }
 
 input CreateProductInput {
@@ -1640,6 +1795,69 @@ input UpdateBusinessTypeConfigInput {
   pushTitle: String = null
 
   pushBody: String = null
+}
+
+type PaymentType {
+  id: String!
+
+  quienEnvio: String!
+
+  banco: String!
+
+  fecha: DateTime!
+
+  esMensajeBanco: Boolean!
+
+  cantidadTransferida: Float!
+
+  numeroTransferencia: String!
+
+  primeros4Tarjeta: String!
+
+  ultimos4Tarjeta: String!
+
+  createdAt: DateTime!
+}
+
+"""
+Represents a file upload.
+"""
+scalar Upload
+
+input TransferInput {
+  toOwnerId: String = null
+
+  toOwnerEmail: String = null
+
+  toOwnerUsername: String = null
+
+  toOwnerType: String!
+
+  amount: Float!
+
+  currency: String!
+
+  description: String = null
+}
+
+input DepositInput {
+  amount: Float!
+
+  currency: String!
+
+  source: String!
+
+  description: String = null
+}
+
+input WithdrawInput {
+  amount: Float!
+
+  currency: String!
+
+  destination: String!
+
+  description: String = null
 }
 
 type Subscription {

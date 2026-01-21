@@ -43,6 +43,7 @@ data class Branch(
     val phone: String,
     val schedule: Map<String, List<String>> = emptyMap(),  // JSON map: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo> = emptyList(),  // RESTAURANTE, DULCERIA, TIENDA
+    val paymentMethodIds: List<String> = emptyList(),  // IDs of accepted payment methods
     val managerIds: List<String> = emptyList(),
     val status: String = "active",  // "active", "inactive", "pending"
     val avatar: String? = null,
@@ -95,6 +96,30 @@ data class Coordinates(
     }
 }
 
+/**
+ * Payment method model
+ */
+@Serializable
+data class PaymentMethod(
+    val id: String,
+    val currency: String,  // e.g., "CUP", "USD"
+    val method: String     // e.g., "tarjeta", "efectivo", "transferencia"
+)
+
+/**
+ * Returns a display name for the payment method
+ */
+fun PaymentMethod.toDisplayName(): String {
+    val methodName = when (method.lowercase()) {
+        "tarjeta", "card" -> "Tarjeta"
+        "efectivo", "cash" -> "Efectivo"
+        "transferencia", "transfer" -> "Transferencia"
+        "billetera", "wallet", "digital_wallet" -> "Billetera Digital"
+        else -> method.replaceFirstChar { it.uppercase() }
+    }
+    return "$methodName ($currency)"
+}
+
 // ============= INPUT MODELS =============
 
 /**
@@ -135,6 +160,7 @@ data class RegisterBranchInput(
     @Contextual
     val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
+    val paymentMethodIds: List<String>,  // Requerido: IDs of accepted payment methods
     val address: String? = null,
     val managerIds: List<String>? = null,
     val avatar: String? = null,
@@ -155,6 +181,7 @@ data class CreateBranchInput(
     @Contextual
     val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
+    val paymentMethodIds: List<String>,  // Requerido: IDs of accepted payment methods
     val address: String? = null,
     val managerIds: List<String>? = null,
     val avatar: String? = null,
@@ -173,6 +200,7 @@ data class UpdateBranchInput(
     val phone: String? = null,
     val schedule: Map<String, List<String>>? = null,  // {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>? = null,
+    val paymentMethodIds: List<String>? = null,  // IDs of accepted payment methods
     val address: String? = null,
     val avatar: String? = null,
     val coverImage: String? = null,

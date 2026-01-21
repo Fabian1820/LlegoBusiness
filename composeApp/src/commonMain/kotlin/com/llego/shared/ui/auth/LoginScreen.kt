@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.llego.shared.data.auth.rememberAppleSignInHelper
 import com.llego.shared.data.auth.rememberGoogleSignInHelper
 import com.llego.shared.ui.auth.components.AppTipsSection
@@ -256,7 +257,7 @@ fun LoginScreen(
                             // Texto de términos y condiciones (ahora dentro del scroll)
                             ClickableText(
                                 text = termsText,
-                                style = MaterialTheme.typography.bodySmall.copy(
+                                style = MaterialTheme.typography.bodyMedium.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center
                                 ),
@@ -291,6 +292,11 @@ fun LoginScreen(
 private fun LoginHeader() {
     val fullTitle = "Bienvenido a\nLlego Negocios"
     val haptic = LocalHapticFeedback.current
+    val headerStyle = MaterialTheme.typography.displayLarge.copy(
+        fontWeight = FontWeight.Bold,
+        fontSize = 40.sp,
+        lineHeight = 44.sp
+    )
 
     var displayedTitle by remember { mutableStateOf("") }
     var typingDone by remember { mutableStateOf(false) }
@@ -322,9 +328,7 @@ private fun LoginHeader() {
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopStart) {
         Text(
             text = fullTitle,
-            style = MaterialTheme.typography.displayLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = headerStyle,
             color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.alpha(0f)
         )
@@ -332,17 +336,13 @@ private fun LoginHeader() {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = displayedTitle,
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = headerStyle,
                 color = MaterialTheme.colorScheme.onPrimary
             )
             if (!typingDone && cursorVisible) {
                 Text(
                     text = "|",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = headerStyle,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }

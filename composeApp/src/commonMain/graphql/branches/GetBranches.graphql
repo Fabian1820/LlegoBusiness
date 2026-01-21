@@ -9,6 +9,7 @@ query GetBranches($businessId: String, $jwt: String) {
         phone
         status
         tipos
+        paymentMethodIds
         avatar
         coverImage
         deliveryRadius
