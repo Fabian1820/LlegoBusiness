@@ -3,6 +3,7 @@ query Me($jwt: String!) {
     id
     name
     email
+    username
     phone
     role
     avatar
@@ -12,6 +13,11 @@ query Me($jwt: String!) {
     authProvider
     providerUserId
     applePrivateEmail
+    wallet {
+      local
+      usd
+    }
+    walletStatus
     avatarUrl
   }
 }

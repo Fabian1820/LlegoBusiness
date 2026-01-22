@@ -1,0 +1,16 @@
+mutation BranchTransferMoney($branchId: String!, $input: TransferInput!, $jwt: String!) {
+  branchTransferMoney(branchId: $branchId, input: $input, jwt: $jwt) {
+    id
+    fromOwnerId
+    fromOwnerType
+    toOwnerId
+    toOwnerType
+    amount
+    currency
+    type
+    status
+    description
+    createdAt
+    completedAt
+  }
+}

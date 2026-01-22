@@ -1,0 +1,16 @@
+mutation TransferMoney($input: TransferInput!, $jwt: String!) {
+  transferMoney(input: $input, jwt: $jwt) {
+    id
+    fromOwnerId
+    fromOwnerType
+    toOwnerId
+    toOwnerType
+    amount
+    currency
+    type
+    status
+    description
+    createdAt
+    completedAt
+  }
+}

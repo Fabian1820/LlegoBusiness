@@ -11,9 +11,10 @@ import kotlinx.coroutines.launch
  * ViewModel para la gestión de la Wallet del negocio
  * Sigue el patrón de arquitectura del proyecto con Repository y UiState
  */
-class WalletViewModel : ViewModel() {
+class WalletViewModel(initialBranchId: String? = null) : ViewModel() {
 
     private val repository = WalletRepository.getInstance()
+    private val _activeBranchId = MutableStateFlow(initialBranchId)
 
     // Estado de UI
     private val _uiState = MutableStateFlow<WalletUiState>(WalletUiState.Loading)
@@ -59,6 +60,13 @@ class WalletViewModel : ViewModel() {
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            repository.wallet.collect { wallet ->
+                if (wallet != null) {
+                    _uiState.value = WalletUiState.Success(wallet)
+                }
+            }
+        }
         loadWalletData()
     }
 
@@ -67,17 +75,49 @@ class WalletViewModel : ViewModel() {
      */
     fun loadWalletData() {
         viewModelScope.launch {
+            val branchId = _activeBranchId.value
+            if (branchId.isNullOrBlank()) {
+                println("WalletViewModel.loadWalletData: sin sucursal activa")
+                _uiState.value = WalletUiState.Error("No hay sucursal activa")
+                return@launch
+            }
+
+            println("WalletViewModel.loadWalletData: cargando wallet sucursal=$branchId")
             _uiState.value = WalletUiState.Loading
             try {
-                repository.refreshWallet()
-                repository.wallet.collect { wallet ->
-                    if (wallet != null) {
+                val walletResult = repository.getBranchWallet(branchId)
+                val transactionsResult = repository.getBranchTransactions(branchId)
+
+                walletResult.fold(
+                    onSuccess = { wallet ->
+                        println("WalletViewModel.loadWalletData: wallet OK balance=${wallet.balances}")
                         _uiState.value = WalletUiState.Success(wallet)
+                    },
+                    onFailure = { error ->
+                        println("WalletViewModel.loadWalletData: wallet ERROR=${error.message}")
+                        _uiState.value = WalletUiState.Error(error.message ?: "Error al cargar la wallet")
                     }
-                }
+                )
+
+                transactionsResult.fold(
+                    onSuccess = { list ->
+                        println("WalletViewModel.loadWalletData: transacciones OK count=${list.size}")
+                    },
+                    onFailure = { error ->
+                        println("WalletViewModel.loadWalletData: transacciones ERROR=${error.message}")
+                    }
+                )
             } catch (e: Exception) {
+                println("WalletViewModel.loadWalletData: exception=${e.message}")
                 _uiState.value = WalletUiState.Error(e.message ?: "Error al cargar la wallet")
             }
+        }
+    }
+
+    fun setBranchId(branchId: String?) {
+        if (_activeBranchId.value != branchId) {
+            _activeBranchId.value = branchId
+            loadWalletData()
         }
     }
 
@@ -138,6 +178,12 @@ class WalletViewModel : ViewModel() {
     fun requestWithdrawal() {
         viewModelScope.launch {
             try {
+                val branchId = _activeBranchId.value
+                if (branchId.isNullOrBlank()) {
+                    _uiState.value = WalletUiState.Error("No hay sucursal activa")
+                    return@launch
+                }
+
                 val amount = _withdrawalAmount.value.toDoubleOrNull()
                 if (amount == null || amount <= 0) {
                     _uiState.value = WalletUiState.Error("Monto inválido")
@@ -152,6 +198,7 @@ class WalletViewModel : ViewModel() {
                 _uiState.value = WalletUiState.Loading
 
                 val result = repository.requestWithdrawal(
+                    branchId = branchId,
                     currency = _selectedCurrency.value,
                     amount = amount,
                     method = _withdrawalMethod.value,
@@ -179,6 +226,36 @@ class WalletViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = WalletUiState.Error("Error al procesar retiro: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Transfiere dinero a otro usuario o sucursal
+     */
+    suspend fun transferMoney(
+        toOwnerId: String? = null,
+        toOwnerEmail: String? = null,
+        toOwnerUsername: String? = null,
+        amount: Double,
+        currency: String
+    ): Result<WalletTransaction> {
+        return try {
+            val branchId = _activeBranchId.value
+            if (branchId.isNullOrBlank()) {
+                return Result.failure(Exception("No hay sucursal activa"))
+            }
+            repository.branchTransferMoney(
+                branchId = branchId,
+                toOwnerId = toOwnerId,
+                toOwnerEmail = toOwnerEmail,
+                toOwnerUsername = toOwnerUsername,
+                toOwnerType = "user", // Por defecto a usuario, puede ser "branch" para sucursales
+                amount = amount,
+                currency = currency,
+                description = "Transferencia"
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

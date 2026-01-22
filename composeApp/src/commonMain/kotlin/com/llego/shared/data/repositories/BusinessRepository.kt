@@ -336,6 +336,10 @@ class BusinessRepository(
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }
                 println("BusinessRepository.getBranches: GraphQL errors = $errors")
+                if (errors?.contains("_wallet") == true) {
+                    println("BusinessRepository.getBranches: fallback a GetBranch por IDs (error _wallet)")
+                    return fallbackGetBranchesByIds(token, businessId)
+                }
                 return BusinessResult.Error(
                     errors ?: "Error desconocido del servidor",
                     "GRAPHQL_ERROR"
@@ -373,10 +377,7 @@ class BusinessRepository(
                 BusinessResult.Success(branchesList)
             } ?: run {
                 println("BusinessRepository.getBranches: response.data.branches es null")
-                BusinessResult.Error(
-                    "No se recibió respuesta del servidor",
-                    "EMPTY_RESPONSE"
-                )
+                fallbackGetBranchesByIds(token, businessId)
             }
 
         } catch (e: ApolloException) {
@@ -388,6 +389,93 @@ class BusinessRepository(
             )
         } catch (e: Exception) {
             println("BusinessRepository.getBranches: Exception=${e.message}")
+            e.printStackTrace()
+            BusinessResult.Error(
+                e.message ?: "Error desconocido al obtener sucursales",
+                "UNKNOWN_ERROR"
+            )
+        }
+    }
+
+    private suspend fun fallbackGetBranchesByIds(
+        token: String,
+        businessId: String?
+    ): BusinessResult<List<Branch>> {
+        println("BusinessRepository.getBranches: iniciando fallback por IDs...")
+        return try {
+            val meResponse = client.query(MeQuery(jwt = token)).execute()
+            if (meResponse.hasErrors()) {
+                val errors = meResponse.errors?.joinToString(", ") { "${it.message}" }
+                println("BusinessRepository.getBranches: fallback MeQuery errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error al obtener usuario para cargar sucursales",
+                    "GRAPHQL_ERROR"
+                )
+            }
+
+            val branchIds = meResponse.data?.me?.branchIds ?: emptyList()
+            if (branchIds.isEmpty()) {
+                _branches.value = emptyList()
+                _currentBranch.value = null
+                println("BusinessRepository.getBranches: fallback sin branchIds")
+                return BusinessResult.Success(emptyList())
+            }
+
+            val branches = mutableListOf<Branch>()
+            var hadErrors = false
+            branchIds.distinct().forEach { branchId ->
+                val branchResponse = client.query(
+                    GetBranchQuery(
+                        id = branchId,
+                        jwt = Optional.presentIfNotNull(token)
+                    )
+                ).execute()
+
+                if (branchResponse.hasErrors()) {
+                    val errors = branchResponse.errors?.joinToString(", ") { "${it.message}" }
+                    println("BusinessRepository.getBranches: fallback GetBranch error ($branchId) = $errors")
+                    hadErrors = true
+                    return@forEach
+                }
+
+                branchResponse.data?.branch?.let { branchData ->
+                    branches.add(branchData.toDomain())
+                }
+            }
+
+            val filteredBranches = if (businessId != null) {
+                branches.filter { it.businessId == businessId }
+            } else {
+                branches
+            }
+
+            _branches.value = filteredBranches
+
+            if (filteredBranches.size == 1) {
+                _currentBranch.value = filteredBranches.first()
+                println("BusinessRepository.getBranches: fallback una sola sucursal=${filteredBranches.first().name}")
+            } else if (filteredBranches.isNotEmpty()) {
+                _currentBranch.value = null
+                println("BusinessRepository.getBranches: fallback multiples sucursales (${filteredBranches.size})")
+            } else {
+                _currentBranch.value = null
+                println("BusinessRepository.getBranches: fallback sin sucursales para businessId=$businessId")
+            }
+
+            if (filteredBranches.isEmpty() && hadErrors) {
+                BusinessResult.Error("No se pudieron cargar sucursales", "GRAPHQL_ERROR")
+            } else {
+                BusinessResult.Success(filteredBranches)
+            }
+        } catch (e: ApolloException) {
+            println("BusinessRepository.getBranches: fallback ApolloException=${e.message}")
+            e.printStackTrace()
+            BusinessResult.Error(
+                e.message ?: "Error de conexion al obtener sucursales",
+                "APOLLO_ERROR"
+            )
+        } catch (e: Exception) {
+            println("BusinessRepository.getBranches: fallback Exception=${e.message}")
             e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al obtener sucursales",

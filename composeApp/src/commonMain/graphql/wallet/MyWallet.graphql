@@ -1,0 +1,9 @@
+query MyWallet($jwt: String!) {
+  myWallet(jwt: $jwt) {
+    balance {
+      local
+      usd
+    }
+    status
+  }
+}

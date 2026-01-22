@@ -1,0 +1,16 @@
+query BranchWalletTransactions($branchId: String!, $jwt: String!, $limit: Int = 50, $skip: Int = 0, $currency: String) {
+  branchWalletTransactions(branchId: $branchId, jwt: $jwt, limit: $limit, skip: $skip, currency: $currency) {
+    id
+    fromOwnerId
+    fromOwnerType
+    toOwnerId
+    toOwnerType
+    amount
+    currency
+    type
+    status
+    description
+    createdAt
+    completedAt
+  }
+}

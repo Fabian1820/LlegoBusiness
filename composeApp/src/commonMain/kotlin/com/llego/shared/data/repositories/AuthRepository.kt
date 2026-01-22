@@ -28,6 +28,7 @@ private fun com.llego.multiplatform.graphql.LoginMutation.User.toBasicDomain(): 
         id = id,
         name = name,
         email = email,
+        username = "", // Login no retorna username, se obtiene con query 'me'
         phone = phone,
         role = role,
         createdAt = createdAt,
@@ -38,6 +39,8 @@ private fun com.llego.multiplatform.graphql.LoginMutation.User.toBasicDomain(): 
         authProvider = "local",
         providerUserId = null,
         applePrivateEmail = null,
+        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
+        walletStatus = "active",
         avatarUrl = null
     )
 }
@@ -47,6 +50,7 @@ private fun com.llego.multiplatform.graphql.RegisterMutation.User.toBasicDomain(
         id = id,
         name = name,
         email = email,
+        username = "", // Register no retorna username, se obtiene con query 'me'
         phone = phone,
         role = role,
         createdAt = createdAt,
@@ -56,6 +60,8 @@ private fun com.llego.multiplatform.graphql.RegisterMutation.User.toBasicDomain(
         authProvider = "local",
         providerUserId = null,
         applePrivateEmail = null,
+        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
+        walletStatus = "active",
         avatarUrl = null
     )
 }
@@ -65,6 +71,7 @@ private fun com.llego.multiplatform.graphql.LoginWithGoogleMutation.User.toBasic
         id = id,
         name = name,
         email = email,
+        username = "", // Google login no retorna username, se obtiene con query 'me'
         phone = phone,
         role = role,
         createdAt = createdAt,
@@ -74,6 +81,8 @@ private fun com.llego.multiplatform.graphql.LoginWithGoogleMutation.User.toBasic
         authProvider = "google",
         providerUserId = null,
         applePrivateEmail = null,
+        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
+        walletStatus = "active",
         avatarUrl = null
     )
 }
@@ -83,6 +92,7 @@ private fun com.llego.multiplatform.graphql.LoginWithAppleMutation.User.toBasicD
         id = id,
         name = name,
         email = email,
+        username = "", // Apple login no retorna username, se obtiene con query 'me'
         phone = phone,
         role = role,
         createdAt = createdAt,
@@ -92,6 +102,8 @@ private fun com.llego.multiplatform.graphql.LoginWithAppleMutation.User.toBasicD
         authProvider = "apple",
         providerUserId = null,
         applePrivateEmail = null,
+        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
+        walletStatus = "active",
         avatarUrl = null
     )
 }
@@ -102,6 +114,7 @@ private fun com.llego.multiplatform.graphql.MeQuery.Me.toDomain(): User {
         id = id,
         name = name,
         email = email,
+        username = username,
         phone = phone,
         role = role,
         avatar = avatar,
@@ -111,6 +124,11 @@ private fun com.llego.multiplatform.graphql.MeQuery.Me.toDomain(): User {
         authProvider = authProvider,
         providerUserId = providerUserId,
         applePrivateEmail = applePrivateEmail,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus,
         avatarUrl = avatarUrl
     )
 }
@@ -121,11 +139,17 @@ private fun com.llego.multiplatform.graphql.UpdateUserMutation.UpdateUser.toDoma
         id = id,
         name = name,
         email = email,
+        username = username,
         phone = phone,
         role = role,
         avatar = avatar,
         businessIds = businessIds,
         branchIds = branchIds,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus,
         avatarUrl = avatarUrl,
         // Campos que no vienen en UpdateUser response
         createdAt = "", // Se mantiene del usuario actual
@@ -339,6 +363,7 @@ class AuthRepository(
                 UpdateUserMutation(
                     input = GQLUpdateUserInput(
                         name = Optional.presentIfNotNull(input.name),
+                        username = Optional.presentIfNotNull(input.username),
                         phone = Optional.presentIfNotNull(input.phone),
                         avatar = Optional.presentIfNotNull(input.avatar)
                     ),
@@ -493,10 +518,13 @@ class AuthRepository(
         return current.copy(
             name = updated.name,
             email = updated.email,
+            username = updated.username,
             phone = updated.phone,
             avatar = updated.avatar,
             businessIds = updated.businessIds,
             branchIds = updated.branchIds,
+            wallet = updated.wallet,
+            walletStatus = updated.walletStatus,
             avatarUrl = updated.avatarUrl
         )
     }

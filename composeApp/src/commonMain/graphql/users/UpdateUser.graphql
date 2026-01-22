@@ -3,11 +3,17 @@ mutation UpdateUser($input: UpdateUserInput!, $jwt: String!) {
     id
     name
     email
+    username
     phone
     role
     avatar
     businessIds
     branchIds
+    wallet {
+      local
+      usd
+    }
+    walletStatus
     avatarUrl
   }
 }

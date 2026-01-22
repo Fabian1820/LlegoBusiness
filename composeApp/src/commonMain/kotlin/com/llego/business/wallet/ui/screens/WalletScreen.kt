@@ -31,7 +31,8 @@ import com.llego.shared.ui.theme.*
 @Composable
 fun WalletScreen(
     onNavigateBack: () -> Unit,
-    viewModel: WalletViewModel = viewModel { WalletViewModel() }
+    branchId: String?,
+    viewModel: WalletViewModel = viewModel { WalletViewModel(branchId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val wallet by viewModel.wallet.collectAsState()
@@ -48,6 +49,10 @@ fun WalletScreen(
 
     LaunchedEffect(Unit) {
         animateContent = true
+    }
+
+    LaunchedEffect(branchId) {
+        viewModel.setBranchId(branchId)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

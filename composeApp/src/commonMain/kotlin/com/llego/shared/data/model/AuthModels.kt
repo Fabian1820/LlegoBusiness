@@ -46,6 +46,7 @@ data class SocialLoginInput(
 @Serializable
 data class UpdateUserInput(
     val name: String? = null,
+    val username: String? = null,
     val phone: String? = null,
     val avatar: String? = null // Path de imagen (ej: "users/avatars/6774abc123_1234567890.jpg")
 )
@@ -71,6 +72,15 @@ data class AuthResponse(
 )
 
 /**
+ * Wallet balance type
+ */
+@Serializable
+data class WalletBalance(
+    val local: Double,
+    val usd: Double
+)
+
+/**
  * Modelo de Usuario actualizado seg?n la API
  * Incluye campos para OAuth (Google/Apple) y gesti?n de negocios/sucursales
  */
@@ -79,6 +89,7 @@ data class User(
     val id: String,
     val name: String,
     val email: String,
+    val username: String,
     val phone: String? = null,
     val role: String, // merchant, customer, driver, admin
     val avatar: String? = null, // Path en S3
@@ -88,6 +99,8 @@ data class User(
     val authProvider: String = "local", // "local", "google", "apple"
     val providerUserId: String? = null, // ID del usuario en el proveedor OAuth
     val applePrivateEmail: String? = null, // Email privado de Apple (si aplica)
+    val wallet: WalletBalance,
+    val walletStatus: String, // "active", "frozen", "closed"
     val avatarUrl: String? = null // Presigned URL para mostrar (generada por backend)
 )
 

@@ -21,6 +21,7 @@ import com.llego.business.wallet.data.model.*
 import com.llego.business.wallet.ui.viewmodel.WalletViewModel
 import com.llego.business.wallet.ui.viewmodel.WalletUiState
 import com.llego.business.wallet.util.formatToTwoDecimals
+import kotlinx.coroutines.launch
 
 /**
  * Sheet modal para solicitar retiros
@@ -521,9 +522,12 @@ fun TransferSheet(
 ) {
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val balance = viewModel.getBalance(selectedCurrency)
+    val scope = rememberCoroutineScope()
 
     var recipientAccount by remember { mutableStateOf("") }
     var transferAmount by remember { mutableStateOf("") }
+    var isTransferring by remember { mutableStateOf(false) }
+    var transferError by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -665,25 +669,118 @@ fun TransferSheet(
                 }
             }
 
+            // Error message
+            transferError?.let { error ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+
             // Boton
             Button(
-                onClick = { /* TODO: Implementar transferencia */ },
+                onClick = {
+                    scope.launch {
+                        isTransferring = true
+                        transferError = null
+
+                        // Validaciones
+                        if (recipientAccount.isBlank()) {
+                            transferError = "Ingresa un destinatario"
+                            isTransferring = false
+                            return@launch
+                        }
+
+                        val amount = transferAmount.toDoubleOrNull()
+                        if (amount == null || amount <= 0) {
+                            transferError = "Monto invalido"
+                            isTransferring = false
+                            return@launch
+                        }
+
+                        if (amount > balance) {
+                            transferError = "Saldo insuficiente"
+                            isTransferring = false
+                            return@launch
+                        }
+
+                        // Determinar tipo de búsqueda: email, username o ID
+                        val isEmail = recipientAccount.contains("@") && recipientAccount.contains(".")
+                        val isUsername = recipientAccount.startsWith("@") ||
+                                       (!isEmail && recipientAccount.all { it.isLetterOrDigit() || it == '_' })
+
+                        val currencyStr = when (selectedCurrency) {
+                            com.llego.business.wallet.data.model.WalletCurrency.USD -> "usd"
+                            com.llego.business.wallet.data.model.WalletCurrency.CUP -> "local"
+                        }
+
+                        // Ejecutar transferencia
+                        val result = viewModel.transferMoney(
+                            toOwnerId = if (!isEmail && !isUsername) recipientAccount else null,
+                            toOwnerEmail = if (isEmail) recipientAccount else null,
+                            toOwnerUsername = if (isUsername) recipientAccount.removePrefix("@") else null,
+                            amount = amount,
+                            currency = currencyStr
+                        )
+
+                        result.fold(
+                            onSuccess = {
+                                // Éxito - cerrar sheet
+                                onDismiss()
+                            },
+                            onFailure = { error ->
+                                transferError = error.message ?: "Error en la transferencia"
+                            }
+                        )
+
+                        isTransferring = false
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = recipientAccount.isNotBlank() && transferAmount.isNotBlank(),
+                enabled = !isTransferring && recipientAccount.isNotBlank() && transferAmount.isNotBlank(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary
                 )
             ) {
-                Text(
-                    text = "Transferir",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                if (isTransferring) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text(
+                        text = "Transferir",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

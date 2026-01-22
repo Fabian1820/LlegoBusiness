@@ -233,14 +233,18 @@ fun BusinessProfileScreen(
             item {
                 UserInfoSection(
                     user = currentUser,
-                    onSave = { name, phone ->
+                    onSave = { name, username, phone ->
                         currentUser?.let { user ->
                             coroutineScope.launch {
                                 isSaving = true
                                 saveMessage = "Guardando cambios del usuario..."
 
+                                val normalizedUsername = username.trim().removePrefix("@")
                                 val input = UpdateUserInput(
                                     name = name.takeIf { it != user.name },
+                                    username = normalizedUsername.takeIf {
+                                        it.isNotBlank() && it != user.username
+                                    },
                                     phone = phone.takeIf { it != user.phone }
                                 )
 

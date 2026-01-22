@@ -74,6 +74,7 @@ fun BusinessHomeScreen(
     val tabs = HomeTabsProvider.getTabs()
 
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
+    val currentBranch by authViewModel.currentBranch.collectAsState()
     val businessName = currentBusiness?.name ?: "Mi negocio"
 
     val layoutDirection = LocalLayoutDirection.current
@@ -218,7 +219,10 @@ fun BusinessHomeScreen(
                     )
                 }
                 "wallet" -> {
-                    WalletScreen(onNavigateBack = { })
+                    WalletScreen(
+                        onNavigateBack = { },
+                        branchId = currentBranch?.id
+                    )
                 }
                 "settings" -> {
                     com.llego.business.settings.ui.screens.SettingsScreen(

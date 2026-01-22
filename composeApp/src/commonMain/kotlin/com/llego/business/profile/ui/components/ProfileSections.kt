@@ -309,11 +309,13 @@ fun BusinessInfoSection(
 @Composable
 fun UserInfoSection(
     user: User?,
-    onSave: (String, String) -> Unit = { _, _ -> }
+    onSave: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     var userName by remember(user) { mutableStateOf(user?.name ?: "") }
+    var userUsername by remember(user) { mutableStateOf(user?.username ?: "") }
     var userPhone by remember(user) { mutableStateOf(user?.phone ?: "") }
     var isEditingName by remember { mutableStateOf(false) }
+    var isEditingUsername by remember { mutableStateOf(false) }
     var isEditingPhone by remember { mutableStateOf(false) }
 
     ProfileSectionCard {
@@ -326,11 +328,26 @@ fun UserInfoSection(
             isEditing = isEditingName,
             onEditClick = { isEditingName = true },
             onSaveClick = {
-                onSave(userName.trim(), userPhone.trim())
+                onSave(userName.trim(), userUsername.trim(), userPhone.trim())
                 isEditingName = false
             },
             onCancelClick = { userName = user?.name ?: ""; isEditingName = false },
             icon = Icons.Default.Person
+        )
+
+        EditableField(
+            label = "Nombre de usuario",
+            value = userUsername,
+            onValueChange = { userUsername = it },
+            isEditing = isEditingUsername,
+            onEditClick = { isEditingUsername = true },
+            onSaveClick = {
+                onSave(userName.trim(), userUsername.trim(), userPhone.trim())
+                isEditingUsername = false
+            },
+            onCancelClick = { userUsername = user?.username ?: ""; isEditingUsername = false },
+            icon = Icons.Default.AlternateEmail,
+            placeholder = "@usuario"
         )
 
         ReadOnlyField(
@@ -346,7 +363,7 @@ fun UserInfoSection(
             isEditing = isEditingPhone,
             onEditClick = { isEditingPhone = true },
             onSaveClick = {
-                onSave(userName.trim(), userPhone.trim())
+                onSave(userName.trim(), userUsername.trim(), userPhone.trim())
                 isEditingPhone = false
             },
             onCancelClick = { userPhone = user?.phone ?: ""; isEditingPhone = false },

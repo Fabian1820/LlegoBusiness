@@ -1,0 +1,16 @@
+mutation WithdrawMoney($input: WithdrawInput!, $jwt: String!) {
+  withdrawMoney(input: $input, jwt: $jwt) {
+    id
+    fromOwnerId
+    fromOwnerType
+    toOwnerId
+    toOwnerType
+    amount
+    currency
+    type
+    status
+    description
+    createdAt
+    completedAt
+  }
+}

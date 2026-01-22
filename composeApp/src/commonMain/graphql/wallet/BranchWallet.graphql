@@ -1,0 +1,9 @@
+query BranchWallet($branchId: String!, $jwt: String!) {
+  branchWallet(branchId: $branchId, jwt: $jwt) {
+    balance {
+      local
+      usd
+    }
+    status
+  }
+}
