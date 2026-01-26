@@ -29,7 +29,9 @@ import com.llego.shared.ui.theme.LlegoCustomShapes
 fun BranchSelectorScreen(
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    invitationViewModel: com.llego.business.invitations.ui.viewmodel.InvitationViewModel,
+    authViewModel: com.llego.shared.ui.auth.AuthViewModel
 ) {
     Box(
         modifier = modifier
@@ -74,6 +76,29 @@ fun BranchSelectorScreen(
                         branch = branch,
                         onClick = { onBranchSelected(branch) }
                     )
+                }
+                
+                // Codigo de invitacion al final
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    val redeemState by invitationViewModel.redeemState.collectAsState()
+                    
+                    com.llego.business.invitations.ui.components.InvitationCodeInput(
+                        isLoading = redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Loading,
+                        errorMessage = (redeemState as? com.llego.business.invitations.ui.viewmodel.RedeemState.Error)?.message,
+                        onRedeemCode = { code ->
+                            invitationViewModel.redeemInvitationCode(code)
+                        }
+                    )
+                    
+                    // Show success message when code is redeemed
+                    LaunchedEffect(redeemState) {
+                        if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
+                            // Optionally show a success message or reload user data
+                            invitationViewModel.resetRedeemState()
+                        }
+                    }
                 }
             }
         }

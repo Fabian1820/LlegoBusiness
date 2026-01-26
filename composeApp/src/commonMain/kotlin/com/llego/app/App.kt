@@ -22,6 +22,7 @@ import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
+import com.llego.business.invitations.ui.screens.InvitationDashboard
 import com.llego.business.orders.ui.screens.OrderConfirmationScreen
 import com.llego.business.orders.ui.screens.OrderDetailScreen
 import com.llego.business.orders.ui.screens.ConfirmationType
@@ -37,6 +38,7 @@ import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
+import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
@@ -51,7 +53,8 @@ data class AppViewModels(
     val orders: OrdersViewModel,
     val products: ProductViewModel,
     val settings: SettingsViewModel,
-    val registerBusiness: RegisterBusinessViewModel
+    val registerBusiness: RegisterBusinessViewModel,
+    val invitations: InvitationViewModel
 )
 
 @Composable
@@ -65,6 +68,7 @@ fun App(viewModels: AppViewModels) {
         var showProfile by remember { mutableStateOf(false) }
         var showBranchesManagement by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
+        var showInvitations by remember { mutableStateOf(false) }
         var showAddProduct by remember { mutableStateOf(false) }
         var productToEdit by remember { mutableStateOf<Product?>(null) }
         var showProductDetail by remember { mutableStateOf(false) }
@@ -157,13 +161,6 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
-        LaunchedEffect(currentBusiness, branches, isAuthenticated) {
-            if (isAuthenticated && needsBusinessRegistration && (currentBusiness != null || branches.isNotEmpty())) {
-                needsBusinessRegistration = false
-                println("App: needsBusinessRegistration=false por negocios/sucursales cargados")
-            }
-        }
-
         // Log cuando currentBusiness o currentBranch cambien (para debug)
         LaunchedEffect(currentBusiness, currentBranch) {
             println("App: currentBusiness=${currentBusiness?.name}, currentBranch=${currentBranch?.name}")
@@ -240,7 +237,15 @@ fun App(viewModels: AppViewModels) {
                         androidx.compose.foundation.layout.Spacer(
                             modifier = Modifier.height(16.dp)
                         )
-                        androidx.compose.material3.Text("Cargando datos del negocio...")
+                        androidx.compose.material3.Text(
+                            text = if (needsBusinessRegistration) {
+                                "Preparando registro..."
+                            } else {
+                                "Cargando tu negocio..."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }
@@ -251,9 +256,21 @@ fun App(viewModels: AppViewModels) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    androidx.compose.foundation.layout.Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        androidx.compose.foundation.layout.Spacer(
+                            modifier = Modifier.height(16.dp)
+                        )
+                        androidx.compose.material3.Text(
+                            text = "Verificando sesión...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
 
@@ -267,7 +284,9 @@ fun App(viewModels: AppViewModels) {
                         // Cerrar sesión si no quiere registrar negocio
                         authViewModel.logout()
                     },
-                    viewModel = viewModels.registerBusiness
+                    viewModel = viewModels.registerBusiness,
+                    invitationViewModel = viewModels.invitations,
+                    authViewModel = authViewModel
                 )
             }
 
@@ -415,11 +434,26 @@ fun App(viewModels: AppViewModels) {
                             }
                         )
                     }
+                    showInvitations -> {
+                        val currentBusiness by authViewModel.currentBusiness.collectAsState()
+                        val branches by authViewModel.branches.collectAsState()
+                        
+                        if (currentBusiness != null) {
+                            InvitationDashboard(
+                                viewModel = viewModels.invitations,
+                                businessId = currentBusiness!!.id,
+                                businessName = currentBusiness!!.name,
+                                branches = branches.map { it.id to it.name },
+                                onNavigateBack = { showInvitations = false }
+                            )
+                        }
+                    }
                     showProfile -> {
                         BusinessProfileScreen(
                             authViewModel = authViewModel,
                             onNavigateBack = { showProfile = false },
-                            onNavigateToBranches = { showBranchesManagement = true }
+                            onNavigateToBranches = { showBranchesManagement = true },
+                            onNavigateToInvitations = { showInvitations = true }
                         )
                     }
                     else -> {
@@ -503,7 +537,11 @@ fun App(viewModels: AppViewModels) {
                             androidx.compose.foundation.layout.Spacer(
                                 modifier = Modifier.height(16.dp)
                             )
-                            androidx.compose.material3.Text("Cargando sucursales...")
+                            androidx.compose.material3.Text(
+                                text = "Cargando tus sucursales...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
                         }
                     }
                 } else {
@@ -512,7 +550,9 @@ fun App(viewModels: AppViewModels) {
                         branches = branches,
                         onBranchSelected = { branch ->
                             authViewModel.setCurrentBranch(branch)
-                        }
+                        },
+                        invitationViewModel = viewModels.invitations,
+                        authViewModel = authViewModel
                     )
                 }
             }

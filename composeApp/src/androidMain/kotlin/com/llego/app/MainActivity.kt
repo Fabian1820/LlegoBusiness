@@ -14,6 +14,7 @@ import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
+import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
@@ -60,6 +61,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private val invitationViewModel: InvitationViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                val repository = com.llego.business.invitations.data.repository.InvitationRepository(GraphQLClient.apolloClient)
+                return InvitationViewModel(repository) as T
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -85,7 +95,8 @@ class MainActivity : ComponentActivity() {
                     orders = ordersViewModel,
                     products = productViewModel,
                     settings = settingsViewModel,
-                    registerBusiness = registerBusinessViewModel
+                    registerBusiness = registerBusinessViewModel,
+                    invitations = invitationViewModel
                 )
             )
         }

@@ -1,0 +1,3 @@
+mutation RevokeInvitationCode($invitationId: String!) {
+    revokeInvitationCode(invitationId: $invitationId)
+}

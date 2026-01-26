@@ -190,6 +190,31 @@ type Query {
   branchWalletTransactions(branchId: String!, jwt: String!, limit: Int! = 50, skip: Int! = 0, currency: String = null): [WalletTransactionType!]!
 
   """
+  Vista previa de código de invitación (no requiere auth)
+  """
+  invitationByCode(code: String!): BranchInvitationType
+
+  """
+  Todas las invitaciones de un negocio (requiere ser owner)
+  """
+  invitationsByBusiness(businessId: String!, jwt: String = null): [BranchInvitationType!]!
+
+  """
+  Invitaciones activas de un negocio (requiere ser owner)
+  """
+  activeInvitationsByBusiness(businessId: String!, jwt: String = null): [BranchInvitationType!]!
+
+  """
+  Accesos de negocio completo (requiere ser owner)
+  """
+  businessAccessByBusiness(businessId: String!, jwt: String = null): [BusinessAccessType!]!
+
+  """
+  Mis accesos a negocios
+  """
+  myBusinessAccess(jwt: String = null): [BusinessAccessType!]!
+
+  """
   Saludo de ejemplo
   """
   hello(jwt: String = null): String!
@@ -241,6 +266,11 @@ type UserType {
 The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
 """
 scalar String
+
+"""
+The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable.
+"""
+scalar ID
 
 """
 Date with time (isoformat)
@@ -1363,6 +1393,21 @@ type Mutation {
   Retirar dinero de wallet de sucursal
   """
   branchWithdrawMoney(branchId: String!, input: WithdrawInput!, jwt: String!): WalletTransactionType!
+
+  """
+  Generar código de invitación para sucursal o negocio
+  """
+  generateInvitationCode(input: GenerateInvitationInput!, jwt: String = null): BranchInvitationType!
+
+  """
+  Canjear código de invitación
+  """
+  acceptInvitationCode(code: String!, jwt: String = null): BranchInvitationType!
+
+  """
+  Revocar código de invitación
+  """
+  revokeInvitationCode(invitationId: String!, jwt: String = null): Boolean!
 }
 
 type AuthResponse {
@@ -1860,6 +1905,16 @@ input WithdrawInput {
   description: String = null
 }
 
+input GenerateInvitationInput {
+  invitationType: InvitationType!
+
+  businessId: String!
+
+  branchId: String
+
+  accessDurationDays: Int
+}
+
 type Subscription {
   """
   Escuchar cambios en un pedido específico
@@ -2191,6 +2246,66 @@ directive @specifiedBy ("The URL that specifies the behavior of this scalar." ur
 Indicates an Input Object is a OneOf Input Object.
 """
 directive @oneOf on INPUT_OBJECT
+
+"""
+Tipo de invitación
+"""
+enum InvitationType {
+  BRANCH
+  BUSINESS
+}
+
+"""
+Estado de la invitación
+"""
+enum InvitationStatus {
+  PENDING
+  USED
+  REVOKED
+}
+
+"""
+Estado de acceso
+"""
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+"""
+Tipo de invitación de sucursal o negocio
+"""
+type BranchInvitationType {
+  id: ID!
+  code: String!
+  invitationType: InvitationType!
+  status: String!
+  accessDurationDays: Int
+  accessExpiresAt: DateTime
+  isUsable: Boolean!
+  accessStatus: String!
+  createdAt: DateTime!
+  usedAt: DateTime
+  business: BusinessType!
+  branch: BranchType
+  creator: UserType
+  redeemer: UserType
+}
+
+"""
+Acceso a nivel de negocio completo
+"""
+type BusinessAccessType {
+  id: ID!
+  user: UserType!
+  business: BusinessType!
+  expiresAt: DateTime
+  isActive: Boolean!
+  isExpired: Boolean!
+  daysUntilExpiration: Int
+  createdAt: DateTime!
+}
 
 schema {
   query: Query

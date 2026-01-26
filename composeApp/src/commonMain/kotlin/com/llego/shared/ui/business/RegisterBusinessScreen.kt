@@ -55,7 +55,9 @@ fun RegisterBusinessScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: RegisterBusinessViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    invitationViewModel: com.llego.business.invitations.ui.viewmodel.InvitationViewModel,
+    authViewModel: com.llego.shared.ui.auth.AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -428,6 +430,29 @@ fun RegisterBusinessScreen(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Codigo de invitacion
+                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                
+                val redeemState by invitationViewModel.redeemState.collectAsState()
+                
+                com.llego.business.invitations.ui.components.InvitationCodeInput(
+                    isLoading = redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Loading,
+                    errorMessage = (redeemState as? com.llego.business.invitations.ui.viewmodel.RedeemState.Error)?.message,
+                    onRedeemCode = { code ->
+                        invitationViewModel.redeemInvitationCode(code)
+                    }
+                )
+                
+                // Show success message when code is redeemed
+                LaunchedEffect(redeemState) {
+                    if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
+                        // Optionally show a success message or reload user data
+                        invitationViewModel.resetRedeemState()
+                    }
+                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Botón de registro

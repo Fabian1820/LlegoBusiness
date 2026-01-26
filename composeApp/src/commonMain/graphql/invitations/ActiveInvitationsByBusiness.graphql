@@ -1,0 +1,30 @@
+query ActiveInvitationsByBusiness($businessId: String!) {
+    activeInvitationsByBusiness(businessId: $businessId) {
+        id
+        code
+        invitationType
+        status
+        accessDurationDays
+        accessExpiresAt
+        isUsable
+        accessStatus
+        createdAt
+        usedAt
+        business {
+            id
+            name
+        }
+        branch {
+            id
+            name
+        }
+        creator {
+            id
+            name
+        }
+        redeemer {
+            id
+            name
+        }
+    }
+}

@@ -1,0 +1,30 @@
+query InvitationByCode($code: String!) {
+    invitationByCode(code: $code) {
+        id
+        code
+        invitationType
+        status
+        accessDurationDays
+        accessExpiresAt
+        isUsable
+        accessStatus
+        createdAt
+        usedAt
+        business {
+            id
+            name
+        }
+        branch {
+            id
+            name
+        }
+        creator {
+            id
+            name
+        }
+        redeemer {
+            id
+            name
+        }
+    }
+}

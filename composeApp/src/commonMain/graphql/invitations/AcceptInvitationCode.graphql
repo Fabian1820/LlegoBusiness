@@ -1,0 +1,30 @@
+mutation AcceptInvitationCode($code: String!) {
+    acceptInvitationCode(code: $code) {
+        id
+        code
+        invitationType
+        status
+        accessDurationDays
+        accessExpiresAt
+        isUsable
+        accessStatus
+        createdAt
+        usedAt
+        business {
+            id
+            name
+        }
+        branch {
+            id
+            name
+        }
+        creator {
+            id
+            name
+        }
+        redeemer {
+            id
+            name
+        }
+    }
+}
