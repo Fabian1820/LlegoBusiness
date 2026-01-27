@@ -25,6 +25,11 @@ type Query {
   businesses(ownerId: String = null, jwt: String = null): [BusinessType!]!
 
   """
+  Obtener negocios con sucursales anidadas
+  """
+  getBusinessesWithBranches(jwt: String!): [BusinessType!]!
+
+  """
   Obtener negocio por ID
   """
   business(id: String!, jwt: String = null): BusinessType
@@ -313,6 +318,11 @@ type BusinessType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Sucursales asociadas a este negocio
+  """
+  branches: [BranchType!]!
 }
 
 """
@@ -416,12 +426,15 @@ type CoordinatesType {
 }
 
 enum BranchTipo {
-  RESTAURANTE
+  RESTAURANT
 
-  DULCERIA
+  STORE
 
-  TIENDA
+  BAKERY
+
+  CAFE
 }
+
 
 type ProductType {
   id: String!
@@ -1215,6 +1228,11 @@ type Mutation {
   registerBusiness(businessInput: CreateBusinessInput!, branchesInput: [RegisterBranchInput!]!, jwt: String = null): BusinessType!
 
   """
+  Registrar multiples negocios con sus sucursales (operacion atomica)
+  """
+  registerMultipleBusinesses(businessesInput: [RegisterBusinessWithBranchesInput!]!, jwt: String = null): [BusinessType!]!
+
+  """
   Actualizar un negocio
   """
   updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
@@ -1402,7 +1420,7 @@ type Mutation {
   """
   Canjear código de invitación
   """
-  acceptInvitationCode(code: String!, jwt: String = null): BranchInvitationType!
+  acceptInvitationCode(input: AcceptInvitationInput!, jwt: String = null): BranchInvitationType!
 
   """
   Revocar código de invitación
@@ -1521,6 +1539,12 @@ input RegisterBranchInput {
 
   facilities: [String!] = null
 }
+input RegisterBusinessWithBranchesInput {
+  business: CreateBusinessInput!
+
+  branches: [RegisterBranchInput!]!
+}
+
 
 input CoordinatesInput {
   lat: Float!
@@ -1913,6 +1937,10 @@ input GenerateInvitationInput {
   branchId: String
 
   accessDurationDays: Int
+}
+
+input AcceptInvitationInput {
+  code: String!
 }
 
 type Subscription {

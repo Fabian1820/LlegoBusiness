@@ -21,6 +21,7 @@ import com.llego.business.products.ui.screens.ProductDetailScreen
 import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
+import com.llego.business.branches.ui.screens.BranchCreateScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.invitations.ui.screens.InvitationDashboard
 import com.llego.business.orders.ui.screens.OrderConfirmationScreen
@@ -39,6 +40,7 @@ import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
+import com.llego.shared.data.model.hasBranches
 import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
@@ -65,6 +67,7 @@ fun App(viewModels: AppViewModels) {
 
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
+        var canCancelBusinessRegistration by remember { mutableStateOf(false) }
         var showProfile by remember { mutableStateOf(false) }
         var showBranchesManagement by remember { mutableStateOf(false) }
         var showStatistics by remember { mutableStateOf(false) }
@@ -77,6 +80,8 @@ fun App(viewModels: AppViewModels) {
         var showOrderDetail by remember { mutableStateOf(false) }
         var selectedOrderId by remember { mutableStateOf<String?>(null) }
         var selectedHomeTabIndex by rememberSaveable { mutableStateOf(0) }
+
+        var branchCreateBusinessId by remember { mutableStateOf<String?>(null) }
         
         // Estado para la pantalla de selección de mapa
         var showMapSelection by remember { mutableStateOf(false) }
@@ -84,6 +89,13 @@ fun App(viewModels: AppViewModels) {
         var mapSelectionInitialLat by remember { mutableStateOf(0.0) }
         var mapSelectionInitialLng by remember { mutableStateOf(0.0) }
         var mapSelectionCallback by remember { mutableStateOf<((Double, Double) -> Unit)?>(null) }
+        val openMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { title, lat, lng, callback ->
+            mapSelectionTitle = title
+            mapSelectionInitialLat = lat
+            mapSelectionInitialLng = lng
+            mapSelectionCallback = callback
+            showMapSelection = true
+        }
 
         // Estado para controlar la carga inicial (verificación de sesión)
         var isCheckingSession by remember { mutableStateOf(true) }
@@ -130,15 +142,27 @@ fun App(viewModels: AppViewModels) {
                 }
 
                 if (user != null) {
-                    // Verificar si el usuario tiene un negocio registrado
+                    // Verificar si el usuario tiene un negocio registrado O acceso a sucursales (v?a c?digo de invitaci?n)
                     val hasBusiness = user.hasBusiness()
-                    needsBusinessRegistration = !hasBusiness
+                    val hasBranches = user.hasBranches()
+                    val shouldRegister = !hasBusiness && !hasBranches
 
-                    println("App: user.hasBusiness()=$hasBusiness, needsBusinessRegistration=$needsBusinessRegistration")
+                    // Solo actualizar el flujo autom?tico si no estamos en modo "agregar negocio"
+                    if (!canCancelBusinessRegistration) {
+                        needsBusinessRegistration = shouldRegister
+                    }
+
+                    if (shouldRegister) {
+                        canCancelBusinessRegistration = false
+                    }
+
+                    println("App: user.hasBusiness()=$hasBusiness, user.hasBranches()=$hasBranches, needsBusinessRegistration=$needsBusinessRegistration")
                 } else {
                     needsBusinessRegistration = false
+                    canCancelBusinessRegistration = false
                     println("App: user es null")
                 }
+
 
                 println("App: Estado final - isCheckingSession=$isCheckingSession, isAuthenticated=$isAuthenticated, needsBusinessRegistration=$needsBusinessRegistration")
             }
@@ -222,6 +246,7 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
+        Box(modifier = Modifier.fillMaxSize()) {
         when {
             isAuthenticated && isResolvingBusiness -> {
                 Box(
@@ -279,12 +304,19 @@ fun App(viewModels: AppViewModels) {
                 RegisterBusinessScreen(
                     onRegisterSuccess = {
                         needsBusinessRegistration = false
+                        canCancelBusinessRegistration = false
                     },
                     onNavigateBack = {
-                        // Cerrar sesión si no quiere registrar negocio
-                        authViewModel.logout()
+                        if (canCancelBusinessRegistration) {
+                            needsBusinessRegistration = false
+                            canCancelBusinessRegistration = false
+                        } else {
+                            // Cerrar sesi?n si no quiere registrar negocio
+                            authViewModel.logout()
+                        }
                     },
                     viewModel = viewModels.registerBusiness,
+                    onOpenMapSelection = openMapSelection,
                     invitationViewModel = viewModels.invitations,
                     authViewModel = authViewModel
                 )
@@ -295,22 +327,6 @@ fun App(viewModels: AppViewModels) {
             Box(modifier = Modifier) {
                 // Contenido principal con navegación condicional
                 when {
-                    showMapSelection -> {
-                        MapSelectionScreen(
-                            title = mapSelectionTitle,
-                            initialLatitude = mapSelectionInitialLat,
-                            initialLongitude = mapSelectionInitialLng,
-                            onNavigateBack = {
-                                showMapSelection = false
-                                mapSelectionCallback = null
-                            },
-                            onLocationConfirmed = { lat, lng ->
-                                mapSelectionCallback?.invoke(lat, lng)
-                                showMapSelection = false
-                                mapSelectionCallback = null
-                            }
-                        )
-                    }
                     showProductSearch -> {
                         ProductSearchScreen(
                             productsState = productsState,
@@ -425,13 +441,7 @@ fun App(viewModels: AppViewModels) {
                         BranchesManagementScreen(
                             authViewModel = authViewModel,
                             onNavigateBack = { showBranchesManagement = false },
-                            onOpenMapSelection = { title, lat, lng, callback ->
-                                mapSelectionTitle = title
-                                mapSelectionInitialLat = lat
-                                mapSelectionInitialLng = lng
-                                mapSelectionCallback = callback
-                                showMapSelection = true
-                            }
+                            onOpenMapSelection = openMapSelection
                         )
                     }
                     showInvitations -> {
@@ -522,34 +532,31 @@ fun App(viewModels: AppViewModels) {
 
             // Caso 3: Usuario autenticado CON negocio pero SIN sucursal seleccionada
             isAuthenticated && !needsBusinessRegistration && currentBranch == null -> {
-                if (branches.isEmpty()) {
-                    // Cargando sucursales
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.foundation.layout.Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            androidx.compose.foundation.layout.Spacer(
-                                modifier = Modifier.height(16.dp)
-                            )
-                            androidx.compose.material3.Text(
-                                text = "Cargando tus sucursales...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
+                if (branchCreateBusinessId != null) {
+                    BranchCreateScreen(
+                        businessId = branchCreateBusinessId ?: "",
+                        onNavigateBack = { branchCreateBusinessId = null },
+                        onSuccess = { _ ->
+                            branchCreateBusinessId = null
+                            authViewModel.reloadUserData()
+                        },
+                        onError = { _ -> },
+                        authViewModel = authViewModel,
+                        onOpenMapSelection = openMapSelection
+                    )
                 } else {
-                    // Mostrar selector de sucursales (solo si hay múltiples)
                     BranchSelectorScreen(
                         branches = branches,
                         onBranchSelected = { branch ->
                             authViewModel.setCurrentBranch(branch)
+                        },
+                        onAddBusiness = {
+                            branchCreateBusinessId = null
+                            canCancelBusinessRegistration = true
+                            needsBusinessRegistration = true
+                        },
+                        onAddBranch = { businessId ->
+                            branchCreateBusinessId = businessId
                         },
                         invitationViewModel = viewModels.invitations,
                         authViewModel = authViewModel
@@ -565,6 +572,23 @@ fun App(viewModels: AppViewModels) {
                         // isAuthenticated se actualiza automáticamente via uiState
                         // currentBranch se carga automáticamente cuando hay sucursales
                         // No necesitamos hacer nada aquí, la reactividad se encarga
+                    }
+                )
+            }
+        }
+            if (showMapSelection) {
+                MapSelectionScreen(
+                    title = mapSelectionTitle,
+                    initialLatitude = mapSelectionInitialLat,
+                    initialLongitude = mapSelectionInitialLng,
+                    onNavigateBack = {
+                        showMapSelection = false
+                        mapSelectionCallback = null
+                    },
+                    onLocationConfirmed = { lat, lng ->
+                        mapSelectionCallback?.invoke(lat, lng)
+                        showMapSelection = false
+                        mapSelectionCallback = null
                     }
                 )
             }

@@ -1,0 +1,43 @@
+query GetBusinessesWithBranches($jwt: String!) {
+  getBusinessesWithBranches(jwt: $jwt) {
+    id
+    name
+    avatar
+    avatarUrl
+    description
+    tags
+    socialMedia
+    isActive
+    ownerId
+    globalRating
+    createdAt
+    branches {
+      id
+      name
+      businessId
+      address
+      phone
+      tipos
+      coordinates {
+        type
+        coordinates
+      }
+      avatar
+      avatarUrl
+      coverImage
+      coverUrl
+      status
+      wallet {
+        local
+        usd
+      }
+      walletStatus
+      managerIds
+      schedule
+      deliveryRadius
+      facilities
+      paymentMethodIds
+      createdAt
+    }
+  }
+}

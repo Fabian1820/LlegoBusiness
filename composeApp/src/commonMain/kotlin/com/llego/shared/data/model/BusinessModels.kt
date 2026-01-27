@@ -30,6 +30,41 @@ data class Business(
 )
 
 /**
+ * Modelo de negocio con sucursales anidadas (getBusinessesWithBranches)
+ */
+@Serializable
+data class BusinessWithBranches(
+    val id: String,
+    val name: String,
+    val ownerId: String,
+    val globalRating: Double = 0.0,
+    val avatar: String? = null,
+    val description: String? = null,
+    val socialMedia: Map<String, String>? = null,  // JSON map
+    val tags: List<String> = emptyList(),
+    val isActive: Boolean = true,
+    val createdAt: String,
+    val avatarUrl: String? = null,
+    val branches: List<Branch> = emptyList()
+) {
+    fun toBusiness(): Business {
+        return Business(
+            id = id,
+            name = name,
+            ownerId = ownerId,
+            globalRating = globalRating,
+            avatar = avatar,
+            description = description,
+            socialMedia = socialMedia,
+            tags = tags,
+            isActive = isActive,
+            createdAt = createdAt,
+            avatarUrl = avatarUrl
+        )
+    }
+}
+
+/**
  * Modelo de sucursal (Branch)
  * Alineado con backend: tipos campo requerido
  */

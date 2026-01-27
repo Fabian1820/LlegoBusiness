@@ -287,4 +287,11 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     actual fun setCurrentBranch(branch: Branch) {
         authManager.setCurrentBranch(branch)
     }
+
+    actual fun reloadUserData() {
+        viewModelScope.launch {
+            authManager.getCurrentUser()
+            authManager.getBusinesses()
+        }
+    }
 }

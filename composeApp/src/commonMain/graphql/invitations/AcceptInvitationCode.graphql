@@ -1,5 +1,5 @@
-mutation AcceptInvitationCode($code: String!) {
-    acceptInvitationCode(code: $code) {
+mutation AcceptInvitationCode($input: AcceptInvitationInput!, $jwt: String) {
+    acceptInvitationCode(input: $input, jwt: $jwt) {
         id
         code
         invitationType

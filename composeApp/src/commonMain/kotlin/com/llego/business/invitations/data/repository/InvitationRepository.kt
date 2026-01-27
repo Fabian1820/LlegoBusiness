@@ -59,23 +59,47 @@ class InvitationRepository(
         code: String
     ): Result<Invitation> {
         return try {
+            val token = tokenManager.getToken()
+            println("InvitationRepository.acceptInvitationCode: Iniciando...")
+            println("InvitationRepository.acceptInvitationCode: code=${code.uppercase()}")
+            println("InvitationRepository.acceptInvitationCode: token disponible=${token != null}, length=${token?.length ?: 0}")
+
             val response = apolloClient.mutation(
                 AcceptInvitationCodeMutation(
-                    code = code.uppercase()
+                    input = com.llego.multiplatform.graphql.type.AcceptInvitationInput(
+                        code = code.uppercase()
+                    ),
+                    jwt = com.apollographql.apollo.api.Optional.presentIfNotNull(token)
                 )
             ).execute()
-            
+
+            println("InvitationRepository.acceptInvitationCode: Respuesta recibida")
+            println("InvitationRepository.acceptInvitationCode: hasErrors=${response.hasErrors()}")
+            println("InvitationRepository.acceptInvitationCode: errors=${response.errors}")
+            println("InvitationRepository.acceptInvitationCode: data=${response.data}")
+            println("InvitationRepository.acceptInvitationCode: exception=${response.exception}")
+
             if (response.hasErrors()) {
-                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error accepting invitation code"))
+                val errors = response.errors?.joinToString(", ") { "${it.message} (path: ${it.path}, extensions: ${it.extensions})" }
+                println("InvitationRepository.acceptInvitationCode: GraphQL errors = $errors")
+                val errorMsg = response.errors?.firstOrNull()?.message ?: "Error accepting invitation code"
+                Result.failure(Exception(errorMsg))
             } else {
+                println("InvitationRepository.acceptInvitationCode: response.data?.acceptInvitationCode = ${response.data?.acceptInvitationCode}")
+
                 val invitation = response.data?.acceptInvitationCode?.toInvitation()
                 if (invitation != null) {
+                    println("InvitationRepository.acceptInvitationCode: Invitación aceptada exitosamente - id=${invitation.id}, code=${invitation.code}")
                     Result.success(invitation)
                 } else {
+                    println("InvitationRepository.acceptInvitationCode: No data returned (acceptInvitationCode es null)")
                     Result.failure(Exception("No data returned"))
                 }
             }
         } catch (e: Exception) {
+            println("InvitationRepository.acceptInvitationCode: Exception = ${e.message}")
+            println("InvitationRepository.acceptInvitationCode: Exception type = ${e::class.simpleName}")
+            e.printStackTrace()
             Result.failure(e)
         }
     }

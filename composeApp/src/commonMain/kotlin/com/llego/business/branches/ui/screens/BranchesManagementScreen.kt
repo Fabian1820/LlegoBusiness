@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,11 +37,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
@@ -55,10 +59,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -82,8 +87,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.BusinessWithBranches
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.CreateBranchInput
@@ -101,6 +108,7 @@ import com.llego.shared.ui.components.molecules.TimeRange
 import com.llego.shared.ui.components.molecules.toBackendSchedule
 import com.llego.shared.ui.components.molecules.toDaySchedule
 import com.llego.shared.data.model.PaymentMethod
+import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.data.repositories.PaymentMethodsRepository
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
@@ -120,21 +128,85 @@ fun BranchesManagementScreen(
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val businessRepository = remember { BusinessRepository(tokenManager = TokenManager()) }
 
     // Estado
     val branches by authViewModel.branches.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
 
-    var showCreateBranch by remember { mutableStateOf(false) }
+    var businessesWithBranches by remember { mutableStateOf<List<BusinessWithBranches>>(emptyList()) }
+    var isLoadingBusinesses by remember { mutableStateOf(false) }
+    var businessLoadError by remember { mutableStateOf<String?>(null) }
+
+    var createBranchBusinessId by remember { mutableStateOf<String?>(null) }
     var selectedBranchId by remember { mutableStateOf<String?>(null) }
     var editingBranchId by remember { mutableStateOf<String?>(null) }
     var branchToDelete by remember { mutableStateOf<Branch?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
-    val selectedBranch = branches.firstOrNull { it.id == selectedBranchId }
-    val editingBranch = branches.firstOrNull { it.id == editingBranchId }
-    val showListScreen = !showCreateBranch && editingBranch == null && selectedBranch == null
+    val fallbackBusinesses = remember(currentBusiness, branches, businessesWithBranches) {
+        if (businessesWithBranches.isNotEmpty()) {
+            businessesWithBranches
+        } else if (currentBusiness != null && branches.isNotEmpty()) {
+            listOf(
+                BusinessWithBranches(
+                    id = currentBusiness!!.id,
+                    name = currentBusiness!!.name,
+                    ownerId = currentBusiness!!.ownerId,
+                    globalRating = currentBusiness!!.globalRating,
+                    avatar = currentBusiness!!.avatar,
+                    description = currentBusiness!!.description,
+                    socialMedia = currentBusiness!!.socialMedia,
+                    tags = currentBusiness!!.tags,
+                    isActive = currentBusiness!!.isActive,
+                    createdAt = currentBusiness!!.createdAt,
+                    avatarUrl = currentBusiness!!.avatarUrl,
+                    branches = branches
+                )
+            )
+        } else {
+            emptyList()
+        }
+    }
+
+    val allBranches = remember(fallbackBusinesses, branches) {
+        if (fallbackBusinesses.isNotEmpty()) {
+            fallbackBusinesses.flatMap { it.branches }
+        } else {
+            branches
+        }
+    }
+
+    val orphanBranches = remember(branches, fallbackBusinesses) {
+        val knownIds = fallbackBusinesses.flatMap { it.branches }.map { it.id }.toSet()
+        branches.filter { it.id !in knownIds }
+    }
+
+    val selectedBranch = allBranches.firstOrNull { it.id == selectedBranchId }
+    val editingBranch = allBranches.firstOrNull { it.id == editingBranchId }
+    val showListScreen = createBranchBusinessId == null && editingBranch == null && selectedBranch == null
+
+    fun reloadBusinesses() {
+        coroutineScope.launch {
+            isLoadingBusinesses = true
+            when (val result = businessRepository.getBusinessesWithBranches()) {
+                is BusinessResult.Success -> {
+                    businessesWithBranches = result.data
+                    businessLoadError = null
+                }
+                is BusinessResult.Error -> {
+                    businessLoadError = result.message
+                }
+                else -> {}
+            }
+            isLoadingBusinesses = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        reloadBusinesses()
+    }
 
     // Mostrar mensaje temporal
     LaunchedEffect(statusMessage) {
@@ -145,13 +217,14 @@ fun BranchesManagementScreen(
     }
 
     when {
-        showCreateBranch -> {
+        createBranchBusinessId != null -> {
             BranchCreateScreen(
-                businessId = currentBusiness?.id.orEmpty(),
-                onNavigateBack = { showCreateBranch = false },
+                businessId = createBranchBusinessId.orEmpty(),
+                onNavigateBack = { createBranchBusinessId = null },
                 onSuccess = { newBranch ->
-                    showCreateBranch = false
+                    createBranchBusinessId = null
                     statusMessage = "OK: Sucursal '${newBranch.name}' agregada correctamente"
+                    reloadBusinesses()
                 },
                 onError = { error -> statusMessage = "Error: $error" },
                 authViewModel = authViewModel,
@@ -166,6 +239,7 @@ fun BranchesManagementScreen(
                     editingBranchId = null
                     selectedBranchId = updatedBranch.id
                     statusMessage = "OK: Sucursal '${updatedBranch.name}' actualizada"
+                    reloadBusinesses()
                 },
                 onError = { error -> statusMessage = "Error: $error" },
                 authViewModel = authViewModel
@@ -185,11 +259,14 @@ fun BranchesManagementScreen(
         }
         else -> {
             BranchesListScreen(
-                branches = branches,
+                businessesWithBranches = fallbackBusinesses,
+                orphanBranches = orphanBranches,
                 currentBranchId = currentBranch?.id,
                 statusMessage = statusMessage,
+                isLoadingBusinesses = isLoadingBusinesses,
+                errorMessage = businessLoadError,
                 onNavigateBack = onNavigateBack,
-                onAddBranch = { showCreateBranch = true },
+                onAddBranch = { businessId -> createBranchBusinessId = businessId },
                 onOpenDetails = { selectedBranchId = it.id },
                 onSetActive = { branch ->
                     coroutineScope.launch {
@@ -199,7 +276,7 @@ fun BranchesManagementScreen(
                 },
                 onEdit = { editingBranchId = it.id },
                 onDelete = { branch ->
-                    if (branches.size > 1) {
+                    if (allBranches.size > 1) {
                         branchToDelete = branch
                     } else {
                         statusMessage = "Error: No puedes eliminar la ultima sucursal"
@@ -213,6 +290,7 @@ fun BranchesManagementScreen(
                         when (val result = authViewModel.updateBranch(branch.id, input)) {
                             is BusinessResult.Success -> {
                                 statusMessage = "OK: Ubicacion de '${branch.name}' actualizada"
+                                reloadBusinesses()
                             }
                             is BusinessResult.Error -> {
                                 statusMessage = "Error: ${result.message}"
@@ -244,6 +322,7 @@ fun BranchesManagementScreen(
                             when (val result = authViewModel.deleteBranch(branch.id)) {
                                 is BusinessResult.Success -> {
                                     statusMessage = "OK: Sucursal '${branch.name}' eliminada"
+                                    reloadBusinesses()
                                 }
                                 is BusinessResult.Error -> {
                                     statusMessage = "Error: ${result.message}"
@@ -1198,16 +1277,132 @@ private fun BranchTipoSelector(
 }
 
 /**
+ * Grupo de sucursales por negocio
+ */
+@Composable
+private fun BusinessBranchesGroupCard(
+    business: BusinessWithBranches,
+    branches: List<Branch>,
+    currentBranchId: String?,
+    onOpenDetails: (Branch) -> Unit,
+    onSetActive: (Branch) -> Unit,
+    onEdit: (Branch) -> Unit,
+    onDelete: (Branch) -> Unit,
+    onLocationUpdate: (Branch, Double, Double) -> Unit,
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit,
+    onAddBranch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(true) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = LlegoCustomShapes.productCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Business,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = business.name,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${branches.size} ${if (branches.size == 1) "sucursal" else "sucursales"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Colapsar" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (branches.isEmpty()) {
+                    Text(
+                        text = "No hay sucursales registradas",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                } else {
+                    branches.forEach { branch ->
+                        BranchCard(
+                            branch = branch,
+                            isActive = branch.id == currentBranchId,
+                            onOpenDetails = { onOpenDetails(branch) },
+                            onSetActive = { onSetActive(branch) },
+                            onEdit = { onEdit(branch) },
+                            onDelete = { onDelete(branch) },
+                            onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
+                            onOpenMapSelection = onOpenMapSelection
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onAddBranch,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.secondaryButton
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Agregar sucursal")
+                }
+            }
+        }
+    }
+}
+
+/**
  * Pantalla de lista de sucursales
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BranchesListScreen(
-    branches: List<Branch>,
+    businessesWithBranches: List<BusinessWithBranches>,
+    orphanBranches: List<Branch>,
     currentBranchId: String?,
     statusMessage: String?,
+    isLoadingBusinesses: Boolean,
+    errorMessage: String?,
     onNavigateBack: () -> Unit,
-    onAddBranch: () -> Unit,
+    onAddBranch: (String) -> Unit,
     onOpenDetails: (Branch) -> Unit,
     onSetActive: (Branch) -> Unit,
     onEdit: (Branch) -> Unit,
@@ -1238,15 +1433,6 @@ fun BranchesListScreen(
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddBranch,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar sucursal")
-            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -1284,17 +1470,85 @@ fun BranchesListScreen(
                 }
             }
 
-            items(branches, key = { it.id }) { branch ->
-                BranchCard(
-                    branch = branch,
-                    isActive = branch.id == currentBranchId,
-                    onOpenDetails = { onOpenDetails(branch) },
-                    onSetActive = { onSetActive(branch) },
-                    onEdit = { onEdit(branch) },
-                    onDelete = { onDelete(branch) },
-                    onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
-                    onOpenMapSelection = onOpenMapSelection
-                )
+            if (isLoadingBusinesses) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            errorMessage?.let { error ->
+                item {
+                    Card(
+                        shape = LlegoCustomShapes.infoCard,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f)
+                        )
+                    ) {
+                        Text(
+                            text = error,
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            businessesWithBranches.forEach { business ->
+                item(key = "business_${business.id}") {
+                    BusinessBranchesGroupCard(
+                        business = business,
+                        branches = business.branches,
+                        currentBranchId = currentBranchId,
+                        onOpenDetails = onOpenDetails,
+                        onSetActive = onSetActive,
+                        onEdit = onEdit,
+                        onDelete = onDelete,
+                        onLocationUpdate = onLocationUpdate,
+                        onOpenMapSelection = onOpenMapSelection,
+                        onAddBranch = { onAddBranch(business.id) }
+                    )
+                }
+            }
+
+            if (orphanBranches.isNotEmpty()) {
+                item(key = "orphan_header") {
+                    Text(
+                        text = "Otras sucursales",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                items(orphanBranches, key = { it.id }) { branch ->
+                    BranchCard(
+                        branch = branch,
+                        isActive = branch.id == currentBranchId,
+                        onOpenDetails = { onOpenDetails(branch) },
+                        onSetActive = { onSetActive(branch) },
+                        onEdit = { onEdit(branch) },
+                        onDelete = { onDelete(branch) },
+                        onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
+                        onOpenMapSelection = onOpenMapSelection
+                    )
+                }
+            }
+
+            if (!isLoadingBusinesses && businessesWithBranches.isEmpty() && orphanBranches.isEmpty()) {
+                item {
+                    Text(
+                        text = "No hay sucursales disponibles",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

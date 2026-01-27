@@ -448,4 +448,41 @@ actual class AuthViewModel : ViewModel {
         ensureInitialized()
         authManager.setCurrentBranch(branch)
     }
+
+    /**
+     * Recarga los datos del usuario y sus negocios/sucursales desde el backend
+     * Útil después de aceptar una invitación o cualquier cambio que afecte businessIds/branchIds
+     */
+    actual fun reloadUserData() {
+        ensureInitialized()
+
+        Log.d(TAG, "reloadUserData: Iniciando recarga de datos del usuario...")
+
+        viewModelScope.launch {
+            // Primero, recargar el usuario actual desde el backend
+            val result = authManager.getCurrentUser()
+
+            when (result) {
+                is AuthResult.Success -> {
+                    Log.d(TAG, "reloadUserData: Usuario recargado exitosamente - ${result.data.email}")
+                    _uiState.value = _uiState.value.copy(
+                        user = result.data,
+                        isAuthenticated = true
+                    )
+
+                    // Luego cargar negocios y sucursales
+                    loadBusinessData()
+                }
+                is AuthResult.Error -> {
+                    Log.e(TAG, "reloadUserData: Error al recargar usuario - ${result.message}")
+                    _uiState.value = _uiState.value.copy(
+                        error = result.message
+                    )
+                }
+                else -> {
+                    Log.w(TAG, "reloadUserData: Resultado inesperado")
+                }
+            }
+        }
+    }
 }

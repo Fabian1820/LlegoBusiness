@@ -364,14 +364,14 @@ fun BusinessProfileScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = "Gestionar sucursales",
+                                        text = "Gestionar Negocios",
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.SemiBold
                                         ),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "${branches.size} sucursales registradas",
+                                        text = "Administra tus negocios y sucursales",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

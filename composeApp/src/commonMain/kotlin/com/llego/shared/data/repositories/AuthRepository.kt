@@ -212,7 +212,12 @@ class AuthRepository(
      * Registro de nuevo usuario.
      */
     suspend fun register(input: RegisterInput): AuthResult<User> {
+        println("AuthRepository.register: Iniciando registro...")
+        println("AuthRepository.register: Input - name=${input.name}, email=${input.email}, phone=${input.phone}")
+
         return try {
+            println("AuthRepository.register: Ejecutando mutation RegisterMutation...")
+
             val response = client.mutation(
                 RegisterMutation(
                     input = GQLRegisterInput(
@@ -224,22 +229,55 @@ class AuthRepository(
                 )
             ).execute()
 
+            println("AuthRepository.register: Respuesta recibida")
+            println("AuthRepository.register: hasErrors=${response.hasErrors()}")
+            println("AuthRepository.register: errors=${response.errors}")
+            println("AuthRepository.register: data=${response.data}")
+            println("AuthRepository.register: exception=${response.exception}")
+
             if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message} (path: ${it.path})" }
+                println("AuthRepository.register: GraphQL errors = $errors")
                 val message = response.errors?.firstOrNull()?.message ?: "Error en registro"
                 return AuthResult.Error(message, "GRAPHQL_ERROR")
             }
 
-            val authResponse = response.data?.register
-                ?: return AuthResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")
+            response.exception?.let { ex ->
+                println("AuthRepository.register: Exception en response = ${ex.message}")
+                return AuthResult.Error(
+                    ex.message ?: "Error de conexión",
+                    "RESPONSE_EXCEPTION"
+                )
+            }
 
+            val authResponse = response.data?.register
+            println("AuthRepository.register: authResponse = $authResponse")
+
+            if (authResponse == null) {
+                println("AuthRepository.register: authResponse es null")
+                return AuthResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")
+            }
+
+            println("AuthRepository.register: Guardando token (length=${authResponse.accessToken.length})")
             tokenManager.saveToken(authResponse.accessToken)
+
             val user = authResponse.user.toBasicDomain()
+            println("AuthRepository.register: Usuario creado - id=${user.id}, name=${user.name}, email=${user.email}")
+
             _currentUser.value = user
             _isAuthenticated.value = true
+
+            println("AuthRepository.register: Registro exitoso")
             AuthResult.Success(user)
         } catch (e: ApolloException) {
+            println("AuthRepository.register: ApolloException = ${e.message}")
+            println("AuthRepository.register: ApolloException cause = ${e.cause}")
+            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
         } catch (e: Exception) {
+            println("AuthRepository.register: Exception = ${e.message}")
+            println("AuthRepository.register: Exception type = ${e::class.simpleName}")
+            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
         }
     }

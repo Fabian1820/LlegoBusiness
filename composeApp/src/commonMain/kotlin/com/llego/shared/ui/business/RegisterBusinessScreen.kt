@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.*
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.atoms.LlegoButton
@@ -36,7 +35,6 @@ import com.llego.shared.ui.components.molecules.toBackendSchedule
 import com.llego.shared.data.repositories.PaymentMethodsRepository
 import com.llego.shared.data.model.PaymentMethod
 import com.llego.shared.ui.theme.LlegoCustomShapes
-import kotlinx.coroutines.launch
 
 /**
  * Pantalla COMPLETA para registrar negocio con TODAS las integraciones:
@@ -57,10 +55,10 @@ fun RegisterBusinessScreen(
     viewModel: RegisterBusinessViewModel,
     modifier: Modifier = Modifier,
     invitationViewModel: com.llego.business.invitations.ui.viewmodel.InvitationViewModel,
-    authViewModel: com.llego.shared.ui.auth.AuthViewModel
+    authViewModel: com.llego.shared.ui.auth.AuthViewModel,
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
     val imageUploadService = remember { ImageUploadServiceFactory.create() }
     val paymentMethodsRepository = remember { PaymentMethodsRepository() }
 
@@ -83,25 +81,22 @@ fun RegisterBusinessScreen(
         isLoadingPaymentMethods = false
     }
 
-    // Estados del formulario - Negocio
-    var businessName by remember { mutableStateOf("") }
-    var businessDescription by remember { mutableStateOf("") }
-    var businessTagsList by remember { mutableStateOf(emptyList<String>()) }
-
-    // Estados de upload de imágenes del negocio (usando ImageUploadState)
-    var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
-    
-    // Paths de S3 (extraídos del estado Success)
-    val businessAvatarPath = (businessAvatarState as? ImageUploadState.Success)?.s3Path
-
-    // Estados del formulario - Sucursales
+    // Estados del formulario - Múltiples Negocios
+    var nextBusinessId by remember { mutableStateOf(2) }
     var nextBranchId by remember { mutableStateOf(2) }
-    val branchForms = remember {
-        mutableStateListOf(defaultBranchFormState(1))
+    val businessForms = remember {
+        mutableStateListOf(defaultBusinessFormState(1, 1))
     }
 
-    fun updateBranch(index: Int, update: (BranchFormState) -> BranchFormState) {
-        branchForms[index] = update(branchForms[index])
+    fun updateBusiness(index: Int, update: (BusinessFormState) -> BusinessFormState) {
+        businessForms[index] = update(businessForms[index])
+    }
+
+    fun updateBranch(businessIndex: Int, branchIndex: Int, update: (BranchFormState) -> BranchFormState) {
+        val business = businessForms[businessIndex]
+        val updatedBranches = business.branches.toMutableList()
+        updatedBranches[branchIndex] = update(updatedBranches[branchIndex])
+        businessForms[businessIndex] = business.copy(branches = updatedBranches)
     }
 
     Scaffold(
@@ -139,288 +134,317 @@ fun RegisterBusinessScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // SECCION: Informacion del Negocio
-                Text(
-                    text = "Informacion del Negocio",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                businessForms.forEachIndexed { businessIndex, business ->
+                    val isMultipleBusinesses = businessForms.size > 1
+                    val businessTitle = if (isMultipleBusinesses) {
+                        "Negocio ${businessIndex + 1}"
+                    } else {
+                        "Informacion del Negocio"
+                    }
+
+                    Text(
+                        text = businessTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     )
-                )
 
-                LlegoTextField(
-                    value = businessName,
-                    onValueChange = { businessName = it },
-                    label = "Nombre del Negocio *",
-                    placeholder = "Ej: Mi negocio"
-                )
-
-                LlegoTextField(
-                    value = businessDescription,
-                    onValueChange = { businessDescription = it },
-                    label = "Descripcion",
-                    placeholder = "Describe tu negocio",
-                    singleLine = false
-                )
-
-                // Tags selector mejorado
-                TagsSelector(
-                    selectedTags = businessTagsList,
-                    onTagsChange = { businessTagsList = it }
-                )
-
-                // Imagen del Negocio con upload a S3
-                Text(
-                    text = "Imagen del Negocio (Opcional)",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ImageUploadPreview(
-                        label = "Avatar",
-                        uploadState = businessAvatarState,
-                        onStateChange = { businessAvatarState = it },
-                        uploadFunction = { uri, token ->
-                            imageUploadService.uploadBusinessAvatar(uri, token)
+                    LlegoTextField(
+                        value = business.name,
+                        onValueChange = { value ->
+                            updateBusiness(businessIndex) { current -> current.copy(name = value) }
                         },
-                        size = ImageUploadSize.MEDIUM,
-                        modifier = Modifier.weight(1f)
+                        label = "Nombre del Negocio *",
+                        placeholder = "Ej: Mi negocio"
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // SECCION: Sucursales
-                Text(
-                    text = "Sucursales",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    LlegoTextField(
+                        value = business.description,
+                        onValueChange = { value ->
+                            updateBusiness(businessIndex) { current -> current.copy(description = value) }
+                        },
+                        label = "Descripcion",
+                        placeholder = "Describe tu negocio",
+                        singleLine = false
                     )
-                )
 
-                branchForms.forEachIndexed { index, branch ->
-                    key(branch.id) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "Sucursal ${index + 1}",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            )
+                    TagsSelector(
+                        selectedTags = business.tags,
+                        onTagsChange = { tags ->
+                            updateBusiness(businessIndex) { current -> current.copy(tags = tags) }
+                        }
+                    )
 
-                            // Selector de tipos de sucursal *
-                            Column {
+                    Text(
+                        text = "Imagen del Negocio (Opcional)",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ImageUploadPreview(
+                            label = "Avatar",
+                            uploadState = business.avatarState,
+                            onStateChange = { state ->
+                                updateBusiness(businessIndex) { current -> current.copy(avatarState = state) }
+                            },
+                            uploadFunction = { uri, token ->
+                                imageUploadService.uploadBusinessAvatar(uri, token)
+                            },
+                            size = ImageUploadSize.MEDIUM,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Sucursales",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+
+                    business.branches.forEachIndexed { branchIndex, branch ->
+                        key(branch.id) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                                 Text(
-                                    text = "Tipos de Servicio *",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Medium,
+                                    text = "Sucursal ${branchIndex + 1}",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 )
+
+                                Column {
+                                    Text(
+                                        text = "Tipos de Servicio *",
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    )
+                                    Text(
+                                        text = "Selecciona uno o mas tipos de servicio que ofrece esta sucursal",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        BranchTipoChip(
+                                            tipo = BranchTipo.RESTAURANTE,
+                                            selected = branch.selectedTipos.contains(BranchTipo.RESTAURANTE),
+                                            onClick = {
+                                                val updated = if (branch.selectedTipos.contains(BranchTipo.RESTAURANTE)) {
+                                                    branch.selectedTipos - BranchTipo.RESTAURANTE
+                                                } else {
+                                                    branch.selectedTipos + BranchTipo.RESTAURANTE
+                                                }
+                                                updateBranch(businessIndex, branchIndex) { current -> current.copy(selectedTipos = updated) }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        BranchTipoChip(
+                                            tipo = BranchTipo.TIENDA,
+                                            selected = branch.selectedTipos.contains(BranchTipo.TIENDA),
+                                            onClick = {
+                                                val updated = if (branch.selectedTipos.contains(BranchTipo.TIENDA)) {
+                                                    branch.selectedTipos - BranchTipo.TIENDA
+                                                } else {
+                                                    branch.selectedTipos + BranchTipo.TIENDA
+                                                }
+                                                updateBranch(businessIndex, branchIndex) { current -> current.copy(selectedTipos = updated) }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        BranchTipoChip(
+                                            tipo = BranchTipo.DULCERIA,
+                                            selected = branch.selectedTipos.contains(BranchTipo.DULCERIA),
+                                            onClick = {
+                                                val updated = if (branch.selectedTipos.contains(BranchTipo.DULCERIA)) {
+                                                    branch.selectedTipos - BranchTipo.DULCERIA
+                                                } else {
+                                                    branch.selectedTipos + BranchTipo.DULCERIA
+                                                }
+                                                updateBranch(businessIndex, branchIndex) { current -> current.copy(selectedTipos = updated) }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+
+                                LlegoTextField(
+                                    value = branch.name,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(name = value) }
+                                    },
+                                    label = "Nombre de la Sucursal *",
+                                    placeholder = "Ej: Sucursal Centro"
+                                )
+
+                                LlegoTextField(
+                                    value = branch.address,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(address = value) }
+                                    },
+                                    label = "Direccion",
+                                    placeholder = "Ej: Av. Principal 123"
+                                )
+
+                                PhoneInput(
+                                    phoneNumber = branch.phone,
+                                    countryCode = branch.countryCode,
+                                    onPhoneChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(phone = value) }
+                                    },
+                                    onCountryCodeChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(countryCode = value) }
+                                    }
+                                )
+
+                                MapLocationPickerReal(
+                                    latitude = branch.latitude,
+                                    longitude = branch.longitude,
+                                    onLocationSelected = { lat, lng ->
+                                        updateBranch(businessIndex, branchIndex) { current ->
+                                            current.copy(latitude = lat, longitude = lng)
+                                        }
+                                    },
+                                    onOpenMapSelection = onOpenMapSelection
+                                )
+
+                                SchedulePicker(
+                                    schedule = branch.schedule,
+                                    onScheduleChange = { schedule ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(schedule = schedule) }
+                                    }
+                                )
+
+                                DeliveryRadiusPicker(
+                                    radiusKm = branch.deliveryRadius,
+                                    onRadiusChange = { radius ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(deliveryRadius = radius) }
+                                    }
+                                )
+
+                                FacilitiesSelector(
+                                    selectedFacilities = branch.facilities,
+                                    onFacilitiesChange = { facilities ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(facilities = facilities) }
+                                    }
+                                )
+
+                                PaymentMethodSelector(
+                                    availablePaymentMethods = availablePaymentMethods,
+                                    selectedPaymentMethodIds = branch.selectedPaymentMethodIds,
+                                    onSelectionChange = { selection ->
+                                        updateBranch(businessIndex, branchIndex) { current ->
+                                            current.copy(selectedPaymentMethodIds = selection)
+                                        }
+                                    },
+                                    isLoading = isLoadingPaymentMethods,
+                                    layout = PaymentMethodSelectorLayout.FLOW
+                                )
+
                                 Text(
-                                    text = "Selecciona uno o mas tipos de servicio que ofrece esta sucursal",
-                                    style = MaterialTheme.typography.bodySmall.copy(
+                                    text = "Imagenes de la Sucursal (Opcional)",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 )
-                                Spacer(modifier = Modifier.height(10.dp))
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    BranchTipoChip(
-                                        tipo = BranchTipo.RESTAURANTE,
-                                        selected = branch.selectedTipos.contains(BranchTipo.RESTAURANTE),
-                                        onClick = {
-                                            val updated = if (branch.selectedTipos.contains(BranchTipo.RESTAURANTE)) {
-                                                branch.selectedTipos - BranchTipo.RESTAURANTE
-                                            } else {
-                                                branch.selectedTipos + BranchTipo.RESTAURANTE
-                                            }
-                                            updateBranch(index) { current -> current.copy(selectedTipos = updated) }
+                                    ImageUploadPreview(
+                                        label = "Avatar",
+                                        uploadState = branch.avatarState,
+                                        onStateChange = { state ->
+                                            updateBranch(businessIndex, branchIndex) { current -> current.copy(avatarState = state) }
                                         },
+                                        uploadFunction = { uri, token ->
+                                            imageUploadService.uploadBranchAvatar(uri, token)
+                                        },
+                                        size = ImageUploadSize.MEDIUM,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    BranchTipoChip(
-                                        tipo = BranchTipo.TIENDA,
-                                        selected = branch.selectedTipos.contains(BranchTipo.TIENDA),
-                                        onClick = {
-                                            val updated = if (branch.selectedTipos.contains(BranchTipo.TIENDA)) {
-                                                branch.selectedTipos - BranchTipo.TIENDA
-                                            } else {
-                                                branch.selectedTipos + BranchTipo.TIENDA
-                                            }
-                                            updateBranch(index) { current -> current.copy(selectedTipos = updated) }
+
+                                    ImageUploadPreview(
+                                        label = "Portada",
+                                        uploadState = branch.coverState,
+                                        onStateChange = { state ->
+                                            updateBranch(businessIndex, branchIndex) { current -> current.copy(coverState = state) }
                                         },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    BranchTipoChip(
-                                        tipo = BranchTipo.DULCERIA,
-                                        selected = branch.selectedTipos.contains(BranchTipo.DULCERIA),
-                                        onClick = {
-                                            val updated = if (branch.selectedTipos.contains(BranchTipo.DULCERIA)) {
-                                                branch.selectedTipos - BranchTipo.DULCERIA
-                                            } else {
-                                                branch.selectedTipos + BranchTipo.DULCERIA
-                                            }
-                                            updateBranch(index) { current -> current.copy(selectedTipos = updated) }
+                                        uploadFunction = { uri, token ->
+                                            imageUploadService.uploadBranchCover(uri, token)
                                         },
+                                        size = ImageUploadSize.MEDIUM,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
+                        }
 
-                            LlegoTextField(
-                                value = branch.name,
-                                onValueChange = { value ->
-                                    updateBranch(index) { current -> current.copy(name = value) }
-                                },
-                                label = "Nombre de la Sucursal *",
-                                placeholder = "Ej: Sucursal Centro"
-                            )
-
-                            LlegoTextField(
-                                value = branch.address,
-                                onValueChange = { value ->
-                                    updateBranch(index) { current -> current.copy(address = value) }
-                                },
-                                label = "Direccion",
-                                placeholder = "Ej: Av. Principal 123"
-                            )
-
-                            // PhoneInput con codigo de pais
-                            PhoneInput(
-                                phoneNumber = branch.phone,
-                                countryCode = branch.countryCode,
-                                onPhoneChange = { value ->
-                                    updateBranch(index) { current -> current.copy(phone = value) }
-                                },
-                                onCountryCodeChange = { value ->
-                                    updateBranch(index) { current -> current.copy(countryCode = value) }
-                                }
-                            )
-
-                            // MapLocationPicker con Google Maps REAL
-                            MapLocationPickerReal(
-                                latitude = branch.latitude,
-                                longitude = branch.longitude,
-                                onLocationSelected = { lat, lng ->
-                                    updateBranch(index) { current ->
-                                        current.copy(latitude = lat, longitude = lng)
-                                    }
-                                }
-                            )
-
-                            // SchedulePicker interactivo
-                            SchedulePicker(
-                                schedule = branch.schedule,
-                                onScheduleChange = { schedule ->
-                                    updateBranch(index) { current -> current.copy(schedule = schedule) }
-                                }
-                            )
-
-                            // DeliveryRadiusPicker
-                            DeliveryRadiusPicker(
-                                radiusKm = branch.deliveryRadius,
-                                onRadiusChange = { radius ->
-                                    updateBranch(index) { current -> current.copy(deliveryRadius = radius) }
-                                }
-                            )
-
-                            // FacilitiesSelector
-                            FacilitiesSelector(
-                                selectedFacilities = branch.facilities,
-                                onFacilitiesChange = { facilities ->
-                                    updateBranch(index) { current -> current.copy(facilities = facilities) }
-                                }
-                            )
-
-                            // PaymentMethodSelector
-                            PaymentMethodSelector(
-                                availablePaymentMethods = availablePaymentMethods,
-                                selectedPaymentMethodIds = branch.selectedPaymentMethodIds,
-                                onSelectionChange = { selection ->
-                                    updateBranch(index) { current ->
-                                        current.copy(selectedPaymentMethodIds = selection)
-                                    }
-                                },
-                                isLoading = isLoadingPaymentMethods,
-                                layout = PaymentMethodSelectorLayout.FLOW
-                            )
-
-                            // Imagenes de la Sucursal
-                            Text(
-                                text = "Imagenes de la Sucursal (Opcional)",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-
-                            Row(
+                        if (branchIndex < business.branches.lastIndex) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                ImageUploadPreview(
-                                    label = "Avatar",
-                                    uploadState = branch.avatarState,
-                                    onStateChange = { state ->
-                                        updateBranch(index) { current -> current.copy(avatarState = state) }
-                                    },
-                                    uploadFunction = { uri, token ->
-                                        imageUploadService.uploadBranchAvatar(uri, token)
-                                    },
-                                    size = ImageUploadSize.MEDIUM,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                ImageUploadPreview(
-                                    label = "Portada",
-                                    uploadState = branch.coverState,
-                                    onStateChange = { state ->
-                                        updateBranch(index) { current -> current.copy(coverState = state) }
-                                    },
-                                    uploadFunction = { uri, token ->
-                                        imageUploadService.uploadBranchCover(uri, token)
-                                    },
-                                    size = ImageUploadSize.MEDIUM,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
 
-                    if (index < branchForms.lastIndex) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val updatedBranches = business.branches + defaultBranchFormState(nextBranchId)
+                            nextBranchId += 1
+                            updateBusiness(businessIndex) { current -> current.copy(branches = updatedBranches) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LlegoCustomShapes.secondaryButton
+                    ) {
+                        Text("Agregar sucursal")
+                    }
+
+                    if (businessIndex < businessForms.lastIndex) {
+                        Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
 
                 OutlinedButton(
                     onClick = {
-                        branchForms.add(defaultBranchFormState(nextBranchId))
+                        val newBusiness = defaultBusinessFormState(nextBusinessId, nextBranchId)
+                        nextBusinessId += 1
                         nextBranchId += 1
+                        businessForms.add(newBusiness)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = LlegoCustomShapes.secondaryButton
                 ) {
-                    Text("Agregar sucursal")
+                    Text("Agregar negocio")
                 }
-
                 // Mensaje de error
                 if (uiState.error != null) {
                     Text(
@@ -445,63 +469,85 @@ fun RegisterBusinessScreen(
                     }
                 )
                 
-                // Show success message when code is redeemed
+                // Handle invitation redemption success
                 LaunchedEffect(redeemState) {
                     if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-                        // Optionally show a success message or reload user data
+                        println("RegisterBusinessScreen: Invitación redimida exitosamente, recargando datos del usuario...")
+
+                        // Reload user data to get updated businessIds and branchIds
+                        authViewModel.reloadUserData()
+
+                        // Navigate to success (will handle branch selection if needed)
+                        onRegisterSuccess()
+
+                        // Reset state
                         invitationViewModel.resetRedeemState()
                     }
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Botón de registro
-                val branchesValid = branchForms.all { branch ->
-                    branch.name.isNotBlank() &&
-                        branch.phone.isNotBlank() &&
-                        branch.selectedTipos.isNotEmpty() &&
-                        branch.selectedPaymentMethodIds.isNotEmpty() &&
-                        branch.latitude != 0.0 &&
-                        branch.longitude != 0.0
+                // Bot?n de registro
+                val businessesValid = businessForms.all { business ->
+                    business.name.isNotBlank() &&
+                        business.branches.all { branch ->
+                            branch.name.isNotBlank() &&
+                                branch.phone.isNotBlank() &&
+                                branch.selectedTipos.isNotEmpty() &&
+                                branch.selectedPaymentMethodIds.isNotEmpty() &&
+                                branch.latitude != 0.0 &&
+                                branch.longitude != 0.0
+                        }
                 }
+                val isMultipleBusinesses = businessForms.size > 1
 
                 LlegoButton(
-                    text = "Registrar Negocio",
+                    text = if (isMultipleBusinesses) "Registrar Negocios" else "Registrar Negocio",
                     modifier = Modifier.fillMaxWidth(),
                     size = LlegoButtonSize.LARGE,
                     onClick = {
-                        registeredBusinessName = businessName
-
-                        val business = CreateBusinessInput(
-                            name = businessName,
-                            description = businessDescription.ifBlank { null },
-                            tags = businessTagsList,
-                            avatar = businessAvatarPath
-                        )
-                        val branches = branchForms.map { branch ->
-                            RegisterBranchInput(
-                                name = branch.name,
-                                address = branch.address.ifBlank { null },
-                                phone = combinePhoneNumber(branch.countryCode, branch.phone),
-                                coordinates = CoordinatesInput(
-                                    lat = branch.latitude,
-                                    lng = branch.longitude
-                                ),
-                                schedule = branch.schedule.toBackendSchedule(),
-                                tipos = branch.selectedTipos.toList(),
-                                paymentMethodIds = branch.selectedPaymentMethodIds,
-                                avatar = (branch.avatarState as? ImageUploadState.Success)?.s3Path,
-                                coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path,
-                                deliveryRadius = branch.deliveryRadius,
-                                facilities = branch.facilities
-                            )
+                        registeredBusinessName = if (isMultipleBusinesses) {
+                            "tus negocios"
+                        } else {
+                            businessForms.firstOrNull()?.name.orEmpty()
                         }
 
-                        viewModel.registerBusiness(business, branches)
+                        val businessesInput = businessForms.map { business ->
+                            val businessInput = CreateBusinessInput(
+                                name = business.name,
+                                description = business.description.ifBlank { null },
+                                tags = business.tags,
+                                avatar = (business.avatarState as? ImageUploadState.Success)?.s3Path
+                            )
+                            val branchesInput = business.branches.map { branch ->
+                                RegisterBranchInput(
+                                    name = branch.name,
+                                    address = branch.address.ifBlank { null },
+                                    phone = combinePhoneNumber(branch.countryCode, branch.phone),
+                                    coordinates = CoordinatesInput(
+                                        lat = branch.latitude,
+                                        lng = branch.longitude
+                                    ),
+                                    schedule = branch.schedule.toBackendSchedule(),
+                                    tipos = branch.selectedTipos.toList(),
+                                    paymentMethodIds = branch.selectedPaymentMethodIds,
+                                    avatar = (branch.avatarState as? ImageUploadState.Success)?.s3Path,
+                                    coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path,
+                                    deliveryRadius = branch.deliveryRadius,
+                                    facilities = branch.facilities
+                                )
+                            }
+                            businessInput to branchesInput
+                        }
+
+                        if (isMultipleBusinesses) {
+                            viewModel.registerMultipleBusinesses(businessesInput)
+                        } else {
+                            val (businessInput, branchesInput) = businessesInput.first()
+                            viewModel.registerBusiness(businessInput, branchesInput)
+                        }
                     },
-                    enabled = !uiState.isLoading &&
-                            businessName.isNotBlank() &&
-                            branchesValid
+                    enabled = !uiState.isLoading && businessesValid
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -586,6 +632,15 @@ private fun BranchTipoChip(
     )
 }
 
+private data class BusinessFormState(
+    val id: Int,
+    val name: String = "",
+    val description: String = "",
+    val tags: List<String> = emptyList(),
+    val avatarState: ImageUploadState = ImageUploadState.Idle,
+    val branches: List<BranchFormState> = listOf(defaultBranchFormState(1))
+)
+
 private data class BranchFormState(
     val id: Int,
     val name: String = "",
@@ -602,6 +657,13 @@ private data class BranchFormState(
     val avatarState: ImageUploadState = ImageUploadState.Idle,
     val coverState: ImageUploadState = ImageUploadState.Idle
 )
+
+private fun defaultBusinessFormState(id: Int, firstBranchId: Int): BusinessFormState {
+    return BusinessFormState(
+        id = id,
+        branches = listOf(defaultBranchFormState(firstBranchId))
+    )
+}
 
 private fun defaultBranchFormState(id: Int): BranchFormState {
     return BranchFormState(id = id, schedule = defaultBranchSchedule())

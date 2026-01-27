@@ -92,12 +92,7 @@ fun GetBranchesQuery.Node.toDomain(): Branch {
 
     // Convertir tipos de GraphQL a modelo de dominio
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        when (gqlTipo) {
-            com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE -> com.llego.shared.data.model.BranchTipo.RESTAURANTE
-            com.llego.multiplatform.graphql.type.BranchTipo.TIENDA -> com.llego.shared.data.model.BranchTipo.TIENDA
-            com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA -> com.llego.shared.data.model.BranchTipo.DULCERIA
-            else -> null
-        }
+        mapBranchTipo(gqlTipo)
     } ?: emptyList()
 
     return Branch(
@@ -126,12 +121,7 @@ fun GetBranchQuery.Branch.toDomain(): Branch {
     val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        when (gqlTipo) {
-            com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE -> com.llego.shared.data.model.BranchTipo.RESTAURANTE
-            com.llego.multiplatform.graphql.type.BranchTipo.TIENDA -> com.llego.shared.data.model.BranchTipo.TIENDA
-            com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA -> com.llego.shared.data.model.BranchTipo.DULCERIA
-            else -> null
-        }
+        mapBranchTipo(gqlTipo)
     } ?: emptyList()
 
     return Branch(
@@ -160,12 +150,7 @@ fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
     val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        when (gqlTipo) {
-            com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE -> com.llego.shared.data.model.BranchTipo.RESTAURANTE
-            com.llego.multiplatform.graphql.type.BranchTipo.TIENDA -> com.llego.shared.data.model.BranchTipo.TIENDA
-            com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA -> com.llego.shared.data.model.BranchTipo.DULCERIA
-            else -> null
-        }
+        mapBranchTipo(gqlTipo)
     } ?: emptyList()
 
     return Branch(
@@ -194,12 +179,7 @@ fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
     val scheduleMap = parseSchedule(schedule)
 
     val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        when (gqlTipo) {
-            com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE -> com.llego.shared.data.model.BranchTipo.RESTAURANTE
-            com.llego.multiplatform.graphql.type.BranchTipo.TIENDA -> com.llego.shared.data.model.BranchTipo.TIENDA
-            com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA -> com.llego.shared.data.model.BranchTipo.DULCERIA
-            else -> null
-        }
+        mapBranchTipo(gqlTipo)
     } ?: emptyList()
 
     return Branch(
@@ -365,10 +345,38 @@ private fun parseStringMap(raw: Any?): Map<String, String>? {
 
 private fun List<BranchTipo>.toGraphQLList(): List<com.llego.multiplatform.graphql.type.BranchTipo> {
     return map { tipo ->
-        when (tipo) {
-            BranchTipo.RESTAURANTE -> com.llego.multiplatform.graphql.type.BranchTipo.RESTAURANTE
-            BranchTipo.TIENDA -> com.llego.multiplatform.graphql.type.BranchTipo.TIENDA
-            BranchTipo.DULCERIA -> com.llego.multiplatform.graphql.type.BranchTipo.DULCERIA
+        tipo.toGraphQL()
+    }
+}
+
+private fun mapBranchTipo(
+    gqlTipo: com.llego.multiplatform.graphql.type.BranchTipo?
+): BranchTipo? {
+    val name = gqlTipo?.name ?: return null
+    return when (name) {
+        "RESTAURANTE", "RESTAURANT" -> BranchTipo.RESTAURANTE
+        "TIENDA", "STORE" -> BranchTipo.TIENDA
+        "DULCERIA", "BAKERY" -> BranchTipo.DULCERIA
+        // Si el backend agrega nuevos tipos, se ignoran por ahora
+        else -> null
+    }
+}
+
+private fun BranchTipo.toGraphQL(): com.llego.multiplatform.graphql.type.BranchTipo {
+    val candidateNames = when (this) {
+        BranchTipo.RESTAURANTE -> listOf("RESTAURANTE", "RESTAURANT")
+        BranchTipo.TIENDA -> listOf("TIENDA", "STORE")
+        BranchTipo.DULCERIA -> listOf("DULCERIA", "BAKERY")
+    }
+
+    for (candidate in candidateNames) {
+        try {
+            return com.llego.multiplatform.graphql.type.BranchTipo.valueOf(candidate)
+        } catch (_: IllegalArgumentException) {
+            // Intentar con el siguiente nombre candidato
         }
     }
+
+    // Fallback: primer valor disponible del enum GraphQL
+    return com.llego.multiplatform.graphql.type.BranchTipo.values().first()
 }

@@ -397,6 +397,187 @@ class BusinessRepository(
         }
     }
 
+    /**
+     * Obtiene todos los negocios del usuario con sus sucursales anidadas
+     */
+    suspend fun getBusinessesWithBranches(): BusinessResult<List<BusinessWithBranches>> {
+        val token = tokenManager.getToken()
+        if (token == null) {
+            return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
+        }
+
+        return try {
+            val response = client.query(
+                GetBusinessesWithBranchesQuery(
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("getBusinessesWithBranches: GraphQL errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error desconocido del servidor",
+                    "GRAPHQL_ERROR"
+                )
+            }
+
+            response.data?.getBusinessesWithBranches?.let { businessesData ->
+                val businessesList = businessesData.map { businessData ->
+                    val branches = businessData.branches.map { branchData ->
+                        val scheduleMap = parseSchedule(branchData.schedule)
+                        val branchTipos = branchData.tipos?.mapNotNull { mapBranchTipo(it) } ?: emptyList()
+
+                        Branch(
+                            id = branchData.id,
+                            businessId = branchData.businessId,
+                            name = branchData.name,
+                            address = branchData.address,
+                            coordinates = Coordinates(
+                                type = branchData.coordinates.type,
+                                coordinates = branchData.coordinates.coordinates
+                            ),
+                            phone = branchData.phone,
+                            schedule = scheduleMap,
+                            tipos = branchTipos,
+                            paymentMethodIds = branchData.paymentMethodIds ?: emptyList(),
+                            managerIds = branchData.managerIds ?: emptyList(),
+                            status = branchData.status ?: "active",
+                            avatar = branchData.avatar,
+                            coverImage = branchData.coverImage,
+                            deliveryRadius = branchData.deliveryRadius,
+                            facilities = branchData.facilities ?: emptyList(),
+                            createdAt = branchData.createdAt.toString(),
+                            avatarUrl = branchData.avatarUrl,
+                            coverUrl = branchData.coverUrl
+                        )
+                    }
+
+                    BusinessWithBranches(
+                        id = businessData.id,
+                        name = businessData.name,
+                        ownerId = businessData.ownerId,
+                        globalRating = businessData.globalRating,
+                        avatar = businessData.avatar,
+                        description = businessData.description,
+                        socialMedia = parseStringMap(businessData.socialMedia),
+                        tags = businessData.tags,
+                        isActive = businessData.isActive,
+                        createdAt = businessData.createdAt.toString(),
+                        avatarUrl = businessData.avatarUrl,
+                        branches = branches
+                    )
+                }
+
+                _businesses.value = businessesList.map { it.toBusiness() }
+                _branches.value = businessesList.flatMap { it.branches }
+
+                if (_businesses.value.isNotEmpty()) {
+                    _currentBusiness.value = _businesses.value.first()
+                }
+
+                BusinessResult.Success(businessesList)
+            } ?: BusinessResult.Error(
+                "No se recibiÃ³ respuesta del servidor",
+                "EMPTY_RESPONSE"
+            )
+
+        } catch (e: ApolloException) {
+            BusinessResult.Error(
+                e.message ?: "Error de conexiÃ³n al obtener negocios",
+                "APOLLO_ERROR"
+            )
+        } catch (e: Exception) {
+            BusinessResult.Error(
+                e.message ?: "Error desconocido al obtener negocios",
+                "UNKNOWN_ERROR"
+            )
+        }
+    }
+
+    /**
+     * Registra mÃºltiples negocios con sus sucursales en una sola operaciÃ³n
+     */
+    suspend fun registerMultipleBusinesses(
+        businesses: List<Pair<CreateBusinessInput, List<RegisterBranchInput>>>
+    ): BusinessResult<List<Business>> {
+        val token = tokenManager.getToken()
+
+        println("RegisterMultipleBusinesses: token disponible = ${token != null}, count=${businesses.size}")
+
+        if (token == null) {
+            return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
+        }
+
+        return try {
+            val gqlBusinesses = businesses.map { (business, branches) ->
+                com.llego.multiplatform.graphql.type.RegisterBusinessWithBranchesInput(
+                    business = business.toGraphQL(),
+                    branches = branches.map { it.toGraphQL() }
+                )
+            }
+
+            val response = client.mutation(
+                RegisterMultipleBusinessesMutation(
+                    businesses = gqlBusinesses,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("RegisterMultipleBusinesses: GraphQL errors = $errors")
+                return BusinessResult.Error(
+                    errors ?: "Error desconocido del servidor",
+                    "GRAPHQL_ERROR"
+                )
+            }
+
+            response.data?.registerMultipleBusinesses?.let { businessesData ->
+                val businessesList = businessesData.map { businessData ->
+                    Business(
+                        id = businessData.id,
+                        name = businessData.name,
+                        ownerId = businessData.ownerId,
+                        globalRating = businessData.globalRating,
+                        avatar = businessData.avatar,
+                        description = businessData.description,
+                        socialMedia = parseStringMap(businessData.socialMedia),
+                        tags = businessData.tags,
+                        isActive = businessData.isActive,
+                        createdAt = businessData.createdAt.toString(),
+                        avatarUrl = businessData.avatarUrl
+                    )
+                }
+
+                _businesses.value = businessesList
+                if (businessesList.isNotEmpty()) {
+                    _currentBusiness.value = businessesList.first()
+                }
+
+                BusinessResult.Success(businessesList)
+            } ?: BusinessResult.Error(
+                "No se recibiÃ³ respuesta del servidor",
+                "EMPTY_RESPONSE"
+            )
+
+        } catch (e: ApolloException) {
+            println("RegisterMultipleBusinesses: ApolloException = ${e.message}")
+            e.printStackTrace()
+            BusinessResult.Error(
+                e.message ?: "Error de conexiÃ³n al registrar negocios",
+                "APOLLO_ERROR"
+            )
+        } catch (e: Exception) {
+            println("RegisterMultipleBusinesses: Exception = ${e.message}")
+            e.printStackTrace()
+            BusinessResult.Error(
+                e.message ?: "Error desconocido al registrar negocios",
+                "UNKNOWN_ERROR"
+            )
+        }
+    }
+
     private suspend fun fallbackGetBranchesByIds(
         token: String,
         businessId: String?
@@ -673,5 +854,40 @@ class BusinessRepository(
         _businesses.value = emptyList()
         _branches.value = emptyList()
         _currentBranch.value = null
+    }
+
+    private fun parseSchedule(raw: Any?): Map<String, List<String>> {
+        val map = raw as? Map<*, *> ?: return emptyMap()
+        return map.mapNotNull { (key, value) ->
+            val day = key as? String ?: return@mapNotNull null
+            val hours = when (value) {
+                is String -> listOf(value)
+                is List<*> -> value.filterIsInstance<String>()
+                else -> emptyList()
+            }
+            day to hours
+        }.toMap()
+    }
+
+    private fun parseStringMap(raw: Any?): Map<String, String>? {
+        val map = raw as? Map<*, *> ?: return null
+        val parsed = map.mapNotNull { (key, value) ->
+            val mapKey = key as? String ?: return@mapNotNull null
+            val mapValue = value as? String ?: value?.toString()
+            if (mapValue.isNullOrBlank()) null else mapKey to mapValue
+        }.toMap()
+        return parsed.takeIf { it.isNotEmpty() }
+    }
+
+    private fun mapBranchTipo(
+        gqlTipo: com.llego.multiplatform.graphql.type.BranchTipo?
+    ): BranchTipo? {
+        val name = gqlTipo?.name ?: return null
+        return when (name) {
+            "RESTAURANTE", "RESTAURANT" -> BranchTipo.RESTAURANTE
+            "TIENDA", "STORE" -> BranchTipo.TIENDA
+            "DULCERIA", "BAKERY" -> BranchTipo.DULCERIA
+            else -> null
+        }
     }
 }

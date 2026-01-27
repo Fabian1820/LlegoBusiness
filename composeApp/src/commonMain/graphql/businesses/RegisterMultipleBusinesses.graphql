@@ -1,0 +1,21 @@
+mutation RegisterMultipleBusinesses(
+  $businesses: [RegisterBusinessWithBranchesInput!]!
+  $jwt: String
+) {
+  registerMultipleBusinesses(
+    businessesInput: $businesses
+    jwt: $jwt
+  ) {
+    id
+    name
+    avatar
+    avatarUrl
+    description
+    tags
+    socialMedia
+    isActive
+    ownerId
+    globalRating
+    createdAt
+  }
+}
