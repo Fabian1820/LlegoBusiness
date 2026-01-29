@@ -189,7 +189,6 @@ fun InvitationDashboard(
                 viewModel.resetGenerateState()
             },
             onGenerate = { type, branchId, durationDays ->
-                println("InvitationDashboard: Generando código - tipo=$type, branchId=$branchId, días=$durationDays")
                 val input = GenerateInvitationInput(
                     invitationType = type,
                     businessId = businessId,
@@ -213,9 +212,7 @@ fun InvitationDashboard(
     
     // Reload list after successful generation
     LaunchedEffect(generateState) {
-        println("InvitationDashboard: Estado de generación cambió - $generateState")
         if (generateState is InvitationUiState.Success) {
-            println("InvitationDashboard: Recargando invitaciones después de generación exitosa")
             viewModel.loadInvitations(businessId, showActiveOnly)
         }
     }

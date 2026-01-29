@@ -33,7 +33,6 @@ class ImagePickerDelegate : NSObject(), UIImagePickerControllerDelegateProtocol,
     var onImageSelected: ((String) -> Unit)? = null
 
     override fun imagePickerController(picker: UIImagePickerController, didFinishPickingMediaWithInfo: Map<Any?, *>) {
-        println("🎯 ImagePickerDelegate: Image picker finished")
         
         val imageUrl = didFinishPickingMediaWithInfo[UIImagePickerControllerImageURL] as? NSURL
         val image = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
@@ -41,11 +40,9 @@ class ImagePickerDelegate : NSObject(), UIImagePickerControllerDelegateProtocol,
         if (imageUrl != null) {
             // Caso 1: Tenemos una URL directa al archivo (mejor opción)
             val urlString = imageUrl.absoluteString ?: ""
-            println("✅ ImagePickerDelegate: Got image URL: $urlString")
             onImageSelected?.invoke(urlString)
         } else if (image != null) {
             // Caso 2: Solo tenemos UIImage, necesitamos guardarlo temporalmente
-            println("⚠️ ImagePickerDelegate: No URL available, saving image to temp file")
             val imageData = UIImageJPEGRepresentation(image, 0.8)
             if (imageData != null) {
                 val fileManager = NSFileManager.defaultManager
@@ -56,22 +53,17 @@ class ImagePickerDelegate : NSObject(), UIImagePickerControllerDelegateProtocol,
                     val success = imageData.writeToURL(fileUrl, true)
                     if (success) {
                         val urlString = fileUrl.absoluteString ?: ""
-                        println("✅ ImagePickerDelegate: Saved to temp file: $urlString")
                         onImageSelected?.invoke(urlString)
                     } else {
-                        println("❌ ImagePickerDelegate: Failed to write image to temp file")
                         onImageSelected?.invoke("")
                     }
                 } else {
-                    println("❌ ImagePickerDelegate: Failed to create temp file URL")
                     onImageSelected?.invoke("")
                 }
             } else {
-                println("❌ ImagePickerDelegate: Failed to convert UIImage to JPEG data")
                 onImageSelected?.invoke("")
             }
         } else {
-            println("❌ ImagePickerDelegate: No image or URL available")
             onImageSelected?.invoke("")
         }
         
@@ -79,7 +71,6 @@ class ImagePickerDelegate : NSObject(), UIImagePickerControllerDelegateProtocol,
     }
 
     override fun imagePickerControllerDidCancel(picker: UIImagePickerController) {
-        println("❌ ImagePickerDelegate: Image picker cancelled")
         picker.dismissViewControllerAnimated(true, completion = null)
     }
 }

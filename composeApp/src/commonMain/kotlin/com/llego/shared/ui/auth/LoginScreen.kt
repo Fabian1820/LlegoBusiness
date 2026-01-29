@@ -224,13 +224,15 @@ fun LoginScreen(
 
                             SocialButtons(
                                 onGoogleClick = {
+                                    println("DEBUG LoginScreen: onGoogleClick ejecutado")
                                     googleSignInHelper.signIn(
                                         onSuccess = { idToken, nonce ->
+                                            println("DEBUG LoginScreen: Google sign in exitoso, llamando loginWithGoogle")
                                             viewModel.loginWithGoogle(idToken, nonce)
                                         },
                                         onError = { errorMessage ->
+                                            println("DEBUG LoginScreen: Google sign in error: $errorMessage")
                                             oauthError = errorMessage
-                                            println("Error Google Sign-In: $errorMessage")
                                         }
                                     )
                                 },
@@ -241,7 +243,6 @@ fun LoginScreen(
                                         },
                                         onError = { errorMessage ->
                                             oauthError = errorMessage
-                                            println("Error Google Sign-In: $errorMessage")
                                         }
                                     )
                                 }

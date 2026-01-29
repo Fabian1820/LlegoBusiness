@@ -1,4 +1,4 @@
-package com.llego.app
+﻿package com.llego.app
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -35,7 +35,6 @@ import com.llego.business.orders.data.notification.BranchSwitchResult
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.model.Product
 import com.llego.business.orders.data.model.OrderStatus
-import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
@@ -51,7 +50,6 @@ import kotlinx.coroutines.launch
 
 data class AppViewModels(
     val auth: AuthViewModel,
-    val chats: ChatsViewModel,
     val orders: OrdersViewModel,
     val products: ProductViewModel,
     val settings: SettingsViewModel,
@@ -83,7 +81,7 @@ fun App(viewModels: AppViewModels) {
 
         var branchCreateBusinessId by remember { mutableStateOf<String?>(null) }
         
-        // Estado para la pantalla de selección de mapa
+        // Estado para la pantalla de selecciÃ³n de mapa
         var showMapSelection by remember { mutableStateOf(false) }
         var mapSelectionTitle by remember { mutableStateOf("") }
         var mapSelectionInitialLat by remember { mutableStateOf(0.0) }
@@ -97,7 +95,7 @@ fun App(viewModels: AppViewModels) {
             showMapSelection = true
         }
 
-        // Estado para controlar la carga inicial (verificación de sesión)
+        // Estado para controlar la carga inicial (verificaciÃ³n de sesiÃ³n)
         var isCheckingSession by remember { mutableStateOf(true) }
         var isResolvingBusiness by remember { mutableStateOf(false) }
 
@@ -105,21 +103,19 @@ fun App(viewModels: AppViewModels) {
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
         var confirmationOrderNumber by remember { mutableStateOf("") }
         
-        // Estado para confirmación de cambio de sucursal - Requirements: 12.4
+        // Estado para confirmaciÃ³n de cambio de sucursal - Requirements: 12.4
         var branchSwitchConfirmation by remember { mutableStateOf<BranchSwitchConfirmationData?>(null) }
         var showBranchNotFound by remember { mutableStateOf(false) }
         
         // BranchSwitchHandler y SubscriptionManager - Requirements: 12.2, 12.5
         val branchSwitchHandler = remember { BranchSwitchHandler.getInstance() }
         val subscriptionManager = remember { SubscriptionManager.getInstance() }
-
-        val chatsViewModel = viewModels.chats
         val ordersViewModel = viewModels.orders
         val productViewModel = viewModels.products
         val settingsViewModel = viewModels.settings
         val productsState by productViewModel.productsState.collectAsState()
 
-        // Scope para operaciones asíncronas
+        // Scope para operaciones asÃ­ncronas
         val scope = rememberCoroutineScope()
 
         // Observar currentBusiness, currentBranch y branches
@@ -127,17 +123,15 @@ fun App(viewModels: AppViewModels) {
         val currentBranch by authViewModel.currentBranch.collectAsState()
         val branches by authViewModel.branches.collectAsState()
 
-        // Observar estado de autenticación
+        // Observar estado de autenticaciÃ³n
         LaunchedEffect(authViewModel) {
             authViewModel.uiState.collect { uiState ->
-                println("App: uiState actualizado - isLoading=${uiState.isLoading}, isAuthenticated=${uiState.isAuthenticated}, user=${uiState.user?.email}")
 
                 isAuthenticated = uiState.isAuthenticated
                 val user = uiState.user
 
-                // La sesión ya fue verificada (exitosa o fallida)
+                // La sesiÃ³n ya fue verificada (exitosa o fallida)
                 if (!uiState.isLoading) {
-                    println("App: isCheckingSession = false (porque uiState.isLoading=false)")
                     isCheckingSession = false
                 }
 
@@ -156,15 +150,12 @@ fun App(viewModels: AppViewModels) {
                         canCancelBusinessRegistration = false
                     }
 
-                    println("App: user.hasBusiness()=$hasBusiness, user.hasBranches()=$hasBranches, needsBusinessRegistration=$needsBusinessRegistration")
                 } else {
                     needsBusinessRegistration = false
                     canCancelBusinessRegistration = false
-                    println("App: user es null")
                 }
 
 
-                println("App: Estado final - isCheckingSession=$isCheckingSession, isAuthenticated=$isAuthenticated, needsBusinessRegistration=$needsBusinessRegistration")
             }
         }
 
@@ -187,7 +178,6 @@ fun App(viewModels: AppViewModels) {
 
         // Log cuando currentBusiness o currentBranch cambien (para debug)
         LaunchedEffect(currentBusiness, currentBranch) {
-            println("App: currentBusiness=${currentBusiness?.name}, currentBranch=${currentBranch?.name}")
         }
 
         LaunchedEffect(currentBranch) {
@@ -213,7 +203,7 @@ fun App(viewModels: AppViewModels) {
             }
         }
         
-        // Observar resultados de cambio de sucursal para mostrar confirmación - Requirements: 12.4
+        // Observar resultados de cambio de sucursal para mostrar confirmaciÃ³n - Requirements: 12.4
         LaunchedEffect(Unit) {
             branchSwitchHandler.switchResult.collect { result ->
                 when (result) {
@@ -229,19 +219,18 @@ fun App(viewModels: AppViewModels) {
                     }
                     is BranchSwitchResult.Error -> {
                         // Manejar error si es necesario
-                        println("App: Branch switch error - ${result.message}")
                     }
                 }
             }
         }
         
-        // Observar navegación a detalle de pedido desde cambio de sucursal - Requirements: 12.3
+        // Observar navegaciÃ³n a detalle de pedido desde cambio de sucursal - Requirements: 12.3
         LaunchedEffect(Unit) {
             branchSwitchHandler.navigateToOrder.collect { orderId ->
                 // Navegar al detalle del pedido
                 selectedOrderId = orderId
                 showOrderDetail = true
-                // Cambiar a la pestaña de pedidos
+                // Cambiar a la pestaÃ±a de pedidos
                 selectedHomeTabIndex = 0
             }
         }
@@ -275,7 +264,7 @@ fun App(viewModels: AppViewModels) {
                 }
             }
 
-            // Caso 0: Verificando sesión al iniciar → Loading
+            // Caso 0: Verificando sesiÃ³n al iniciar â†’ Loading
             isCheckingSession -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -291,7 +280,7 @@ fun App(viewModels: AppViewModels) {
                             modifier = Modifier.height(16.dp)
                         )
                         androidx.compose.material3.Text(
-                            text = "Verificando sesión...",
+                            text = "Verificando sesiÃ³n...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -299,7 +288,7 @@ fun App(viewModels: AppViewModels) {
                 }
             }
 
-            // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
+            // Caso 1: Usuario autenticado SIN negocio â†’ Registro de negocio
             isAuthenticated && needsBusinessRegistration -> {
                 RegisterBusinessScreen(
                     onRegisterSuccess = {
@@ -322,10 +311,10 @@ fun App(viewModels: AppViewModels) {
                 )
             }
 
-            // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada → Dashboard
+            // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada â†’ Dashboard
             isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
             Box(modifier = Modifier) {
-                // Contenido principal con navegación condicional
+                // Contenido principal con navegaciÃ³n condicional
                 when {
                     showProductSearch -> {
                         ProductSearchScreen(
@@ -340,7 +329,7 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     showOrderDetail && selectedOrderId != null -> {
-                        // Pantalla de detalle del pedido con animación
+                        // Pantalla de detalle del pedido con animaciÃ³n
                         AnimatedVisibility(
                             visible = showOrderDetail && selectedOrderId != null,
                             enter = slideInVertically(
@@ -374,7 +363,7 @@ fun App(viewModels: AppViewModels) {
                                 productToView = null
                             },
                             onEdit = {
-                                // Cambiar a modo edición
+                                // Cambiar a modo ediciÃ³n
                                 productToEdit = productToView
                                 showProductDetail = false
                                 productToView = null
@@ -467,7 +456,7 @@ fun App(viewModels: AppViewModels) {
                         )
                     }
                     else -> {
-                        // BusinessHomeScreen genérico (sin diferenciación por tipo)
+                        // BusinessHomeScreen genÃ©rico (sin diferenciaciÃ³n por tipo)
                         BusinessHomeScreen(
                             authViewModel = authViewModel,
                             onNavigateToProfile = { showProfile = true },
@@ -500,7 +489,7 @@ fun App(viewModels: AppViewModels) {
                     }
                 }
 
-                // Confirmación fullscreen sobre todo
+                // ConfirmaciÃ³n fullscreen sobre todo
                 confirmationType?.let { type ->
                     OrderConfirmationScreen(
                         type = type,
@@ -512,7 +501,7 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
                 
-                // Confirmación de cambio de sucursal - Requirements: 12.4
+                // ConfirmaciÃ³n de cambio de sucursal - Requirements: 12.4
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomCenter
@@ -564,14 +553,14 @@ fun App(viewModels: AppViewModels) {
                 }
             }
 
-            // Caso 4: Usuario NO autenticado → Login
+            // Caso 4: Usuario NO autenticado â†’ Login
             else -> {
                 LoginScreen(
                     viewModel = authViewModel,
                     onLoginSuccess = {
-                        // isAuthenticated se actualiza automáticamente via uiState
-                        // currentBranch se carga automáticamente cuando hay sucursales
-                        // No necesitamos hacer nada aquí, la reactividad se encarga
+                        // isAuthenticated se actualiza automÃ¡ticamente via uiState
+                        // currentBranch se carga automÃ¡ticamente cuando hay sucursales
+                        // No necesitamos hacer nada aquÃ­, la reactividad se encarga
                     }
                 )
             }
@@ -595,5 +584,6 @@ fun App(viewModels: AppViewModels) {
         }
     }
 }
+
 
 

@@ -38,12 +38,9 @@ class JvmNotificationService : NotificationService {
                     isImageAutoSize = true
                 }
                 tray.add(trayIcon)
-                println("✅ JvmNotificationService: SystemTray initialized")
             } catch (e: Exception) {
-                println("⚠️ JvmNotificationService: Could not initialize SystemTray - ${e.message}")
             }
         } else {
-            println("⚠️ JvmNotificationService: SystemTray not supported")
         }
     }
 
@@ -66,11 +63,6 @@ class JvmNotificationService : NotificationService {
         showNotification(title, message, TrayIcon.MessageType.INFO)
         incrementBadgeCount()
         
-        println("📱 JvmNotificationService: NEW_ORDER_NOTIFICATION")
-        println("   Title: $title")
-        println("   Message: $message")
-        println("   BranchId: ${event.branchId}")
-        println("   OrderId: ${order.id}")
     }
 
     /**
@@ -85,10 +77,6 @@ class JvmNotificationService : NotificationService {
         
         showNotification(title, message, TrayIcon.MessageType.INFO)
         
-        println("📱 JvmNotificationService: ORDER_UPDATE_NOTIFICATION")
-        println("   Title: $title")
-        println("   Message: $message")
-        println("   OrderId: $orderId")
     }
 
     /**
@@ -104,7 +92,6 @@ class JvmNotificationService : NotificationService {
         } else {
             "Ya Llego Business"
         }
-        println("📱 JvmNotificationService: Badge count updated to $pendingCount")
     }
 
     /**
@@ -115,9 +102,7 @@ class JvmNotificationService : NotificationService {
     override fun playNewOrderSound() {
         try {
             Toolkit.getDefaultToolkit().beep()
-            println("🔔 JvmNotificationService: Sound played")
         } catch (e: Exception) {
-            println("❌ JvmNotificationService: Could not play sound - ${e.message}")
         }
     }
 
@@ -144,7 +129,6 @@ class JvmNotificationService : NotificationService {
     override fun cancelAllOrderNotifications() {
         // En desktop, las notificaciones del system tray se cierran automáticamente
         resetBadgeCount()
-        println("🗑️ JvmNotificationService: All notifications cancelled")
     }
 
     /**
@@ -152,7 +136,6 @@ class JvmNotificationService : NotificationService {
      */
     override fun cancelOrderNotification(orderId: String) {
         // En desktop, no hay forma directa de cancelar notificaciones específicas
-        println("🗑️ JvmNotificationService: Cancel notification for order $orderId (no-op on desktop)")
     }
 
     /**

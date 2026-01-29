@@ -47,11 +47,11 @@ import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.extractFilename
-import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.components.molecules.CurrencySelector
 import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.upload.ImageUploadViewModel
 
 /**
  * Datos normalizados del formulario de producto.
@@ -89,7 +89,7 @@ fun AddProductScreen(
     modifier: Modifier = Modifier
 ) {
     val categories = remember { ProductCategoryProvider.getCategories() }
-    val imageUploadService = remember { ImageUploadServiceFactory.create() }
+    val imageUploadViewModel = remember { ImageUploadViewModel() }
 
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
@@ -243,9 +243,7 @@ fun AddProductScreen(
                     label = "Imagen",
                     uploadState = productImageState,
                     onStateChange = { productImageState = it },
-                    uploadFunction = { uri, token ->
-                        imageUploadService.uploadProductImage(uri, token)
-                    },
+                    uploadFunction = imageUploadViewModel::uploadProductImage,
                     size = ImageUploadSize.LARGE,
                     modifier = Modifier.fillMaxWidth()
                 )

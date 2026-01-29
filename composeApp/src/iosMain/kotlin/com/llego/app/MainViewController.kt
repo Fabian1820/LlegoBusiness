@@ -1,8 +1,7 @@
-package com.llego.app
+﻿package com.llego.app
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.window.ComposeUIViewController
-import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
@@ -22,7 +21,6 @@ fun MainViewController() = ComposeUIViewController {
         
         AppViewModels(
             auth = AuthViewModel(),
-            chats = ChatsViewModel(),
             orders = OrdersViewModel(tokenManager),
             products = ProductViewModel(tokenManager),
             settings = SettingsViewModel(tokenManager),
@@ -32,3 +30,4 @@ fun MainViewController() = ComposeUIViewController {
     }
     App(viewModels)
 }
+

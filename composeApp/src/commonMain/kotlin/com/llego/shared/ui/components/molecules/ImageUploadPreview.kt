@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.llego.business.shared.ui.components.rememberImagePickerController
-import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.extractFilename
@@ -38,13 +37,12 @@ fun ImageUploadPreview(
     label: String,
     uploadState: ImageUploadState,
     onStateChange: (ImageUploadState) -> Unit,
-    uploadFunction: suspend (filePath: String, token: String?) -> ImageUploadResult,
+    uploadFunction: suspend (filePath: String) -> ImageUploadResult,
     size: ImageUploadSize = ImageUploadSize.MEDIUM,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val imagePickerController = rememberImagePickerController()
-    val tokenManager = remember { TokenManager() }
 
     Card(
         modifier = modifier.height(size.height + 40.dp),
@@ -67,28 +65,22 @@ fun ImageUploadPreview(
                                         uploadState is ImageUploadState.Error) {
                         imagePickerController.pickImage { selectedUri ->
                             val filename = selectedUri.extractFilename()
-                            println("ImageUploadPreview: Image selected - $filename")
                             onStateChange(ImageUploadState.Selected(selectedUri, filename))
                             
                             scope.launch {
-                                println("ImageUploadPreview: Starting upload for $filename")
                                 onStateChange(ImageUploadState.Uploading(selectedUri, filename))
                                 
                                 try {
-                                    val token = tokenManager.getToken()
-                                    when (val result = uploadFunction(selectedUri, token)) {
+                                    when (val result = uploadFunction(selectedUri)) {
                                         is ImageUploadResult.Success -> {
-                                            println("ImageUploadPreview: Upload success - ${result.response.imagePath}")
                                             onStateChange(ImageUploadState.Success(selectedUri, result.response.imagePath, filename))
                                         }
                                         is ImageUploadResult.Error -> {
-                                            println("ImageUploadPreview: Upload error - ${result.message}")
                                             onStateChange(ImageUploadState.Error(selectedUri, result.message, filename))
                                         }
                                         is ImageUploadResult.Loading -> {}
                                     }
                                 } catch (e: Exception) {
-                                    println("ImageUploadPreview: Upload exception - ${e.message}")
                                     onStateChange(ImageUploadState.Error(selectedUri, e.message ?: "Error desconocido", filename))
                                 }
                             }
@@ -108,8 +100,7 @@ fun ImageUploadPreview(
                         scope.launch {
                             onStateChange(ImageUploadState.Uploading(uri, filename))
                             try {
-                                val token = tokenManager.getToken()
-                                when (val result = uploadFunction(uri, token)) {
+                                when (val result = uploadFunction(uri)) {
                                     is ImageUploadResult.Success -> {
                                         onStateChange(ImageUploadState.Success(uri, result.response.imagePath, filename))
                                     }

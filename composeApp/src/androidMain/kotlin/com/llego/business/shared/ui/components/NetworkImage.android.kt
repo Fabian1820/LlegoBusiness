@@ -33,7 +33,6 @@ actual fun NetworkImage(
                     val bitmap = BitmapFactory.decodeStream(input)
                     imageBitmap = bitmap?.asImageBitmap()
                 } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
         }

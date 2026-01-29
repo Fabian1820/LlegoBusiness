@@ -8,6 +8,7 @@ import com.llego.multiplatform.graphql.UpdateProductMutation
 import com.llego.multiplatform.graphql.DeleteProductMutation
 import com.llego.multiplatform.graphql.type.CreateProductInput
 import com.llego.multiplatform.graphql.type.UpdateProductInput
+import com.llego.shared.data.mappers.toDomain
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.network.GraphQLClient
@@ -81,52 +82,6 @@ class ProductRepository(
         } catch (e: Exception) {
             ProductsResult.Error("Unexpected error: ${e.message}")
         }
-    }
-
-    /**
-     * Mapea un ProductType de GraphQL (estructura paginada) a un modelo de dominio Product
-     * 
-     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
-     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
-     */
-    private fun GetProductsQuery.Node.toDomain(): Product {
-        return Product(
-            id = id,
-            branchId = branchId,
-            name = name,
-            description = description,
-            weight = weight,              // String! -> String (no nullable)
-            price = price,
-            currency = currency,          // String! -> String (no nullable)
-            image = image,
-            availability = availability,
-            categoryId = categoryId,
-            createdAt = createdAt.toString(),
-            imageUrl = imageUrl           // String! -> String (no nullable)
-        )
-    }
-
-    /**
-     * Mapea un ProductType de GraphQL a un modelo de dominio Product (para query de IDs)
-     * 
-     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
-     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
-     */
-    private fun GetProductsByIdsQuery.Node.toDomain(): Product {
-        return Product(
-            id = id,
-            branchId = branchId,
-            name = name,
-            description = description,
-            weight = weight,              // String! -> String (no nullable)
-            price = price,
-            currency = currency,          // String! -> String (no nullable)
-            image = image,
-            availability = availability,
-            categoryId = categoryId,
-            createdAt = createdAt.toString(),
-            imageUrl = imageUrl           // String! -> String (no nullable)
-        )
     }
 
     // ============= CRUD OPERATIONS =============
@@ -279,51 +234,4 @@ class ProductRepository(
         }
     }
 
-    // ============= MAPPERS =============
-
-    /**
-     * Mapea CreateProductMutation.CreateProduct a modelo de dominio
-     * 
-     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
-     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
-     */
-    private fun CreateProductMutation.CreateProduct.toDomain(): Product {
-        return Product(
-            id = id,
-            branchId = branchId,
-            name = name,
-            description = description,
-            weight = weight,              // String! -> String (no nullable)
-            price = price,
-            currency = currency,          // String! -> String (no nullable)
-            image = image,
-            availability = availability,
-            categoryId = categoryId,
-            createdAt = createdAt.toString(),
-            imageUrl = imageUrl           // String! -> String (no nullable)
-        )
-    }
-
-    /**
-     * Mapea UpdateProductMutation.UpdateProduct a modelo de dominio
-     * 
-     * Nota: Los campos weight, currency e imageUrl son no-nullable en el schema GraphQL
-     * y por lo tanto siempre tienen valor. El mapeo directo garantiza la consistencia de tipos.
-     */
-    private fun UpdateProductMutation.UpdateProduct.toDomain(): Product {
-        return Product(
-            id = id,
-            branchId = branchId,
-            name = name,
-            description = description,
-            weight = weight,              // String! -> String (no nullable)
-            price = price,
-            currency = currency,          // String! -> String (no nullable)
-            image = image,
-            availability = availability,
-            categoryId = categoryId,
-            createdAt = createdAt.toString(),
-            imageUrl = imageUrl           // String! -> String (no nullable)
-        )
-    }
 }

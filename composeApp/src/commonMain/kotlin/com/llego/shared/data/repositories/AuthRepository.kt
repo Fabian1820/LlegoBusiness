@@ -11,153 +11,14 @@ import com.llego.multiplatform.graphql.type.RegisterInput as GQLRegisterInput
 import com.llego.multiplatform.graphql.type.SocialLoginInput as GQLSocialLoginInput
 import com.llego.multiplatform.graphql.type.UpdateUserInput as GQLUpdateUserInput
 import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.mappers.toBasicDomain
+import com.llego.shared.data.mappers.toDomain
 import com.llego.shared.data.model.*
 import com.llego.shared.data.network.GraphQLClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-
-/**
- * Extension functions para convertir tipos GraphQL a modelos de dominio
- */
-
-// UserData (respuesta básica de login/register) a User básico
-private fun com.llego.multiplatform.graphql.LoginMutation.User.toBasicDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = "", // Login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
-        // Campos que requieren query 'me'
-        avatar = null,
-        businessIds = emptyList(),
-        branchIds = emptyList(),
-        authProvider = "local",
-        providerUserId = null,
-        applePrivateEmail = null,
-        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
-        walletStatus = "active",
-        avatarUrl = null
-    )
-}
-
-private fun com.llego.multiplatform.graphql.RegisterMutation.User.toBasicDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = "", // Register no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
-        avatar = null,
-        businessIds = emptyList(),
-        branchIds = emptyList(),
-        authProvider = "local",
-        providerUserId = null,
-        applePrivateEmail = null,
-        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
-        walletStatus = "active",
-        avatarUrl = null
-    )
-}
-
-private fun com.llego.multiplatform.graphql.LoginWithGoogleMutation.User.toBasicDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = "", // Google login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
-        avatar = null,
-        businessIds = emptyList(),
-        branchIds = emptyList(),
-        authProvider = "google",
-        providerUserId = null,
-        applePrivateEmail = null,
-        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
-        walletStatus = "active",
-        avatarUrl = null
-    )
-}
-
-private fun com.llego.multiplatform.graphql.LoginWithAppleMutation.User.toBasicDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = "", // Apple login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
-        avatar = null,
-        businessIds = emptyList(),
-        branchIds = emptyList(),
-        authProvider = "apple",
-        providerUserId = null,
-        applePrivateEmail = null,
-        wallet = WalletBalance(local = 0.0, usd = 0.0), // Placeholder, se obtiene con 'me'
-        walletStatus = "active",
-        avatarUrl = null
-    )
-}
-
-// UserType (respuesta completa de 'me') a User completo
-private fun com.llego.multiplatform.graphql.MeQuery.Me.toDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = username,
-        phone = phone,
-        role = role,
-        avatar = avatar,
-        businessIds = businessIds,
-        branchIds = branchIds,
-        createdAt = createdAt.toString(),
-        authProvider = authProvider,
-        providerUserId = providerUserId,
-        applePrivateEmail = applePrivateEmail,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
-        walletStatus = walletStatus,
-        avatarUrl = avatarUrl
-    )
-}
-
-// UpdateUser response a User (con campos limitados de la query)
-private fun com.llego.multiplatform.graphql.UpdateUserMutation.UpdateUser.toDomain(): User {
-    return User(
-        id = id,
-        name = name,
-        email = email,
-        username = username,
-        phone = phone,
-        role = role,
-        avatar = avatar,
-        businessIds = businessIds,
-        branchIds = branchIds,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
-        walletStatus = walletStatus,
-        avatarUrl = avatarUrl,
-        // Campos que no vienen en UpdateUser response
-        createdAt = "", // Se mantiene del usuario actual
-        authProvider = "local", // Se mantiene del usuario actual
-        providerUserId = null,
-        applePrivateEmail = null
-    )
-}
 
 /**
  * Repository para autenticacion de usuarios.
@@ -212,11 +73,8 @@ class AuthRepository(
      * Registro de nuevo usuario.
      */
     suspend fun register(input: RegisterInput): AuthResult<User> {
-        println("AuthRepository.register: Iniciando registro...")
-        println("AuthRepository.register: Input - name=${input.name}, email=${input.email}, phone=${input.phone}")
 
         return try {
-            println("AuthRepository.register: Ejecutando mutation RegisterMutation...")
 
             val response = client.mutation(
                 RegisterMutation(
@@ -229,21 +87,14 @@ class AuthRepository(
                 )
             ).execute()
 
-            println("AuthRepository.register: Respuesta recibida")
-            println("AuthRepository.register: hasErrors=${response.hasErrors()}")
-            println("AuthRepository.register: errors=${response.errors}")
-            println("AuthRepository.register: data=${response.data}")
-            println("AuthRepository.register: exception=${response.exception}")
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message} (path: ${it.path})" }
-                println("AuthRepository.register: GraphQL errors = $errors")
                 val message = response.errors?.firstOrNull()?.message ?: "Error en registro"
                 return AuthResult.Error(message, "GRAPHQL_ERROR")
             }
 
             response.exception?.let { ex ->
-                println("AuthRepository.register: Exception en response = ${ex.message}")
                 return AuthResult.Error(
                     ex.message ?: "Error de conexión",
                     "RESPONSE_EXCEPTION"
@@ -251,33 +102,22 @@ class AuthRepository(
             }
 
             val authResponse = response.data?.register
-            println("AuthRepository.register: authResponse = $authResponse")
 
             if (authResponse == null) {
-                println("AuthRepository.register: authResponse es null")
                 return AuthResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")
             }
 
-            println("AuthRepository.register: Guardando token (length=${authResponse.accessToken.length})")
             tokenManager.saveToken(authResponse.accessToken)
 
             val user = authResponse.user.toBasicDomain()
-            println("AuthRepository.register: Usuario creado - id=${user.id}, name=${user.name}, email=${user.email}")
 
             _currentUser.value = user
             _isAuthenticated.value = true
 
-            println("AuthRepository.register: Registro exitoso")
             AuthResult.Success(user)
         } catch (e: ApolloException) {
-            println("AuthRepository.register: ApolloException = ${e.message}")
-            println("AuthRepository.register: ApolloException cause = ${e.cause}")
-            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
         } catch (e: Exception) {
-            println("AuthRepository.register: Exception = ${e.message}")
-            println("AuthRepository.register: Exception type = ${e::class.simpleName}")
-            e.printStackTrace()
             AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
         }
     }

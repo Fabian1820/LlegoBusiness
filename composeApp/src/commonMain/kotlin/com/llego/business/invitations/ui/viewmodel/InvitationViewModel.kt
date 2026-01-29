@@ -47,17 +47,13 @@ class InvitationViewModel(
         input: GenerateInvitationInput
     ) {
         viewModelScope.launch {
-            println("InvitationViewModel: Iniciando generación de código - businessId=${input.businessId}, tipo=${input.invitationType}, branchId=${input.branchId}")
             _generateState.value = InvitationUiState.Loading
 
             repository.generateInvitationCode(input)
                 .onSuccess { invitation ->
-                    println("InvitationViewModel: Código generado exitosamente - code=${invitation.code}, id=${invitation.id}")
                     _generateState.value = InvitationUiState.Success(invitation)
                 }
                 .onFailure { error ->
-                    println("InvitationViewModel: Error al generar código - ${error.message}")
-                    error.printStackTrace()
                     _generateState.value = InvitationUiState.Error(
                         error.message ?: "Error generating invitation code"
                     )
@@ -88,22 +84,15 @@ class InvitationViewModel(
     }
     
     fun redeemInvitationCode(code: String) {
-        println("InvitationViewModel.redeemInvitationCode: Iniciando...")
-        println("InvitationViewModel.redeemInvitationCode: code=$code")
 
         viewModelScope.launch {
-            println("InvitationViewModel.redeemInvitationCode: Actualizando estado a Loading")
             _redeemState.value = RedeemState.Loading
 
-            println("InvitationViewModel.redeemInvitationCode: Llamando a repository.acceptInvitationCode...")
             repository.acceptInvitationCode(code)
                 .onSuccess { invitation ->
-                    println("InvitationViewModel.redeemInvitationCode: Success - invitation.id=${invitation.id}, code=${invitation.code}")
                     _redeemState.value = RedeemState.Success(invitation)
                 }
                 .onFailure { error ->
-                    println("InvitationViewModel.redeemInvitationCode: Error - ${error.message}")
-                    error.printStackTrace()
                     _redeemState.value = RedeemState.Error(
                         error.message ?: "Error redeeming invitation code"
                     )

@@ -1,4 +1,4 @@
-package com.llego.app
+﻿package com.llego.app
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,7 +10,6 @@ import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.llego.app.AppViewModels
-import com.llego.business.chats.ui.viewmodel.ChatsViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
@@ -28,7 +27,6 @@ class MainActivity : ComponentActivity() {
     private val tokenManager by lazy { TokenManager() }
 
     private val authViewModel: AuthViewModel by viewModels()
-    private val chatsViewModel: ChatsViewModel by viewModels()
     private val ordersViewModel: OrdersViewModel by viewModels {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -91,7 +89,6 @@ class MainActivity : ComponentActivity() {
             App(
                 AppViewModels(
                     auth = authViewModel,
-                    chats = chatsViewModel,
                     orders = ordersViewModel,
                     products = productViewModel,
                     settings = settingsViewModel,
@@ -105,7 +102,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Log.d(TAG, "onNewIntent: recibido nuevo intent")
-        // Manejar deep link cuando la app ya está abierta
+        // Manejar deep link cuando la app ya estÃ¡ abierta
         handleAppleAuthDeepLink(intent)
     }
     
@@ -139,7 +136,7 @@ class MainActivity : ComponentActivity() {
                 Log.d(TAG, "handleAppleAuthDeepLink: token recibido, autenticando...")
                 // El token es el JWT del backend, usamos authenticateWithToken
                 authViewModel.authenticateWithToken(token)
-                // Notificar al AppleSignInHelper que el flujo terminó exitosamente
+                // Notificar al AppleSignInHelper que el flujo terminÃ³ exitosamente
                 AppleSignInHelper.notifySuccess()
             }
             !error.isNullOrEmpty() -> {
@@ -150,9 +147,10 @@ class MainActivity : ComponentActivity() {
             }
             else -> {
                 Log.e(TAG, "handleAppleAuthDeepLink: deep link sin token ni error")
-                AppleSignInHelper.notifyError("Respuesta inválida de Apple Sign-In")
+                AppleSignInHelper.notifyError("Respuesta invÃ¡lida de Apple Sign-In")
             }
         }
     }
 }
+
 

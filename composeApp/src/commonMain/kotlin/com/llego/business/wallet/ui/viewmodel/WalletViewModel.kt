@@ -77,12 +77,10 @@ class WalletViewModel(initialBranchId: String? = null) : ViewModel() {
         viewModelScope.launch {
             val branchId = _activeBranchId.value
             if (branchId.isNullOrBlank()) {
-                println("WalletViewModel.loadWalletData: sin sucursal activa")
                 _uiState.value = WalletUiState.Error("No hay sucursal activa")
                 return@launch
             }
 
-            println("WalletViewModel.loadWalletData: cargando wallet sucursal=$branchId")
             _uiState.value = WalletUiState.Loading
             try {
                 val walletResult = repository.getBranchWallet(branchId)
@@ -90,25 +88,20 @@ class WalletViewModel(initialBranchId: String? = null) : ViewModel() {
 
                 walletResult.fold(
                     onSuccess = { wallet ->
-                        println("WalletViewModel.loadWalletData: wallet OK balance=${wallet.balances}")
                         _uiState.value = WalletUiState.Success(wallet)
                     },
                     onFailure = { error ->
-                        println("WalletViewModel.loadWalletData: wallet ERROR=${error.message}")
                         _uiState.value = WalletUiState.Error(error.message ?: "Error al cargar la wallet")
                     }
                 )
 
                 transactionsResult.fold(
                     onSuccess = { list ->
-                        println("WalletViewModel.loadWalletData: transacciones OK count=${list.size}")
                     },
                     onFailure = { error ->
-                        println("WalletViewModel.loadWalletData: transacciones ERROR=${error.message}")
                     }
                 )
             } catch (e: Exception) {
-                println("WalletViewModel.loadWalletData: exception=${e.message}")
                 _uiState.value = WalletUiState.Error(e.message ?: "Error al cargar la wallet")
             }
         }

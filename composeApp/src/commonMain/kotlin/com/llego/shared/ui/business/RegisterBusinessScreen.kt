@@ -12,12 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.*
-import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.components.atoms.LlegoButton
 import com.llego.shared.ui.components.atoms.LlegoButtonSize
 import com.llego.shared.ui.components.atoms.LlegoTextField
-import com.llego.shared.ui.components.molecules.DaySchedule
-import com.llego.shared.ui.components.molecules.TimeRange
 import com.llego.shared.ui.components.molecules.DeliveryRadiusPicker
 import com.llego.shared.ui.components.molecules.FacilitiesSelector
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
@@ -32,9 +29,14 @@ import com.llego.shared.ui.components.molecules.SchedulePicker
 import com.llego.shared.ui.components.molecules.TagsSelector
 import com.llego.shared.ui.components.molecules.combinePhoneNumber
 import com.llego.shared.ui.components.molecules.toBackendSchedule
-import com.llego.shared.data.repositories.PaymentMethodsRepository
-import com.llego.shared.data.model.PaymentMethod
 import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.business.components.BranchTipoChip
+import com.llego.shared.ui.business.state.BranchFormState
+import com.llego.shared.ui.business.state.BusinessFormState
+import com.llego.shared.ui.business.state.defaultBranchFormState
+import com.llego.shared.ui.business.state.defaultBusinessFormState
+import com.llego.shared.ui.payment.PaymentMethodsViewModel
+import com.llego.shared.ui.upload.ImageUploadViewModel
 
 /**
  * Pantalla COMPLETA para registrar negocio con TODAS las integraciones:
@@ -59,26 +61,17 @@ fun RegisterBusinessScreen(
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val imageUploadService = remember { ImageUploadServiceFactory.create() }
-    val paymentMethodsRepository = remember { PaymentMethodsRepository() }
+    val imageUploadViewModel = remember { ImageUploadViewModel() }
+    val paymentMethodsViewModel = remember { PaymentMethodsViewModel() }
+    val paymentMethodsUiState by paymentMethodsViewModel.uiState.collectAsState()
 
     // Estados de confirmación
     var showSuccessConfirmation by remember { mutableStateOf(false) }
     var registeredBusinessName by remember { mutableStateOf("") }
 
-    // Estados de métodos de pago
-    var availablePaymentMethods by remember { mutableStateOf<List<PaymentMethod>>(emptyList()) }
-    var isLoadingPaymentMethods by remember { mutableStateOf(false) }
-
     // Cargar métodos de pago al iniciar
     LaunchedEffect(Unit) {
-        isLoadingPaymentMethods = true
-        paymentMethodsRepository.getPaymentMethods().onSuccess { methods ->
-            availablePaymentMethods = methods
-        }.onFailure {
-            // Handle error silently or show a message
-        }
-        isLoadingPaymentMethods = false
+        paymentMethodsViewModel.loadPaymentMethods()
     }
 
     // Estados del formulario - Múltiples Negocios
@@ -194,9 +187,7 @@ fun RegisterBusinessScreen(
                             onStateChange = { state ->
                                 updateBusiness(businessIndex) { current -> current.copy(avatarState = state) }
                             },
-                            uploadFunction = { uri, token ->
-                                imageUploadService.uploadBusinessAvatar(uri, token)
-                            },
+                            uploadFunction = imageUploadViewModel::uploadBusinessAvatar,
                             size = ImageUploadSize.MEDIUM,
                             modifier = Modifier.weight(1f)
                         )
@@ -349,14 +340,14 @@ fun RegisterBusinessScreen(
                                 )
 
                                 PaymentMethodSelector(
-                                    availablePaymentMethods = availablePaymentMethods,
+                                    availablePaymentMethods = paymentMethodsUiState.methods,
                                     selectedPaymentMethodIds = branch.selectedPaymentMethodIds,
                                     onSelectionChange = { selection ->
                                         updateBranch(businessIndex, branchIndex) { current ->
                                             current.copy(selectedPaymentMethodIds = selection)
                                         }
                                     },
-                                    isLoading = isLoadingPaymentMethods,
+                                    isLoading = paymentMethodsUiState.isLoading,
                                     layout = PaymentMethodSelectorLayout.FLOW
                                 )
 
@@ -378,9 +369,7 @@ fun RegisterBusinessScreen(
                                         onStateChange = { state ->
                                             updateBranch(businessIndex, branchIndex) { current -> current.copy(avatarState = state) }
                                         },
-                                        uploadFunction = { uri, token ->
-                                            imageUploadService.uploadBranchAvatar(uri, token)
-                                        },
+                                        uploadFunction = imageUploadViewModel::uploadBranchAvatar,
                                         size = ImageUploadSize.MEDIUM,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -391,9 +380,7 @@ fun RegisterBusinessScreen(
                                         onStateChange = { state ->
                                             updateBranch(businessIndex, branchIndex) { current -> current.copy(coverState = state) }
                                         },
-                                        uploadFunction = { uri, token ->
-                                            imageUploadService.uploadBranchCover(uri, token)
-                                        },
+                                        uploadFunction = imageUploadViewModel::uploadBranchCover,
                                         size = ImageUploadSize.MEDIUM,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -472,7 +459,6 @@ fun RegisterBusinessScreen(
                 // Handle invitation redemption success
                 LaunchedEffect(redeemState) {
                     if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-                        println("RegisterBusinessScreen: Invitación redimida exitosamente, recargando datos del usuario...")
 
                         // Reload user data to get updated businessIds and branchIds
                         authViewModel.reloadUserData()
@@ -587,96 +573,3 @@ fun RegisterBusinessScreen(
     }
 }
 
-/**
- * Chip para seleccionar tipo de sucursal (BranchTipo)
- * Soporta selección múltiple
- */
-@Composable
-private fun BranchTipoChip(
-    tipo: BranchTipo,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val label = when (tipo) {
-        BranchTipo.RESTAURANTE -> "Restaurante"
-        BranchTipo.TIENDA -> "Tienda"
-        BranchTipo.DULCERIA -> "Dulcería"
-    }
-
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = primaryColor.copy(alpha = 0.12f),
-            selectedLabelColor = primaryColor,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-            selectedBorderColor = primaryColor.copy(alpha = 0.5f),
-            selectedBorderWidth = 1.dp
-        ),
-        shape = LlegoCustomShapes.secondaryButton,
-        modifier = modifier
-    )
-}
-
-private data class BusinessFormState(
-    val id: Int,
-    val name: String = "",
-    val description: String = "",
-    val tags: List<String> = emptyList(),
-    val avatarState: ImageUploadState = ImageUploadState.Idle,
-    val branches: List<BranchFormState> = listOf(defaultBranchFormState(1))
-)
-
-private data class BranchFormState(
-    val id: Int,
-    val name: String = "",
-    val address: String = "",
-    val phone: String = "",
-    val countryCode: String = "+51",
-    val latitude: Double = 23.1136,
-    val longitude: Double = -82.3666,
-    val schedule: Map<String, DaySchedule> = defaultBranchSchedule(),
-    val deliveryRadius: Double = 5.0,
-    val facilities: List<String> = emptyList(),
-    val selectedTipos: Set<BranchTipo> = emptySet(),
-    val selectedPaymentMethodIds: List<String> = emptyList(),
-    val avatarState: ImageUploadState = ImageUploadState.Idle,
-    val coverState: ImageUploadState = ImageUploadState.Idle
-)
-
-private fun defaultBusinessFormState(id: Int, firstBranchId: Int): BusinessFormState {
-    return BusinessFormState(
-        id = id,
-        branches = listOf(defaultBranchFormState(firstBranchId))
-    )
-}
-
-private fun defaultBranchFormState(id: Int): BranchFormState {
-    return BranchFormState(id = id, schedule = defaultBranchSchedule())
-}
-
-private fun defaultBranchSchedule(): Map<String, DaySchedule> {
-    return mapOf(
-        "mon" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-        "tue" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-        "wed" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-        "thu" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-        "fri" to DaySchedule(true, listOf(TimeRange("09:00", "18:00"))),
-        "sat" to DaySchedule(false, emptyList()),
-        "sun" to DaySchedule(false, emptyList())
-    )
-}

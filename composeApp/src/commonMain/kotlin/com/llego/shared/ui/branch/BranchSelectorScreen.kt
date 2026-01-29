@@ -17,10 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BranchTipo
-import com.llego.shared.data.repositories.BusinessRepository
-import com.llego.shared.data.model.BusinessResult
-import com.llego.shared.data.model.BusinessWithBranches
-import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
 /**
@@ -41,38 +37,22 @@ fun BranchSelectorScreen(
     invitationViewModel: com.llego.business.invitations.ui.viewmodel.InvitationViewModel,
     authViewModel: com.llego.shared.ui.auth.AuthViewModel
 ) {
-    val businessRepository = remember { BusinessRepository(tokenManager = TokenManager()) }
-
-    // Estados
-    var businessesWithBranches by remember { mutableStateOf<List<BusinessWithBranches>>(emptyList()) }
-    var isLoadingBusinesses by remember { mutableStateOf(false) }
-    var errorLoadingBusinesses by remember { mutableStateOf<String?>(null) }
+    val branchSelectorViewModel = remember { BranchSelectorViewModel() }
+    val branchSelectorState by branchSelectorViewModel.uiState.collectAsState()
 
     // Cargar negocios del usuario
     LaunchedEffect(Unit) {
-        isLoadingBusinesses = true
-        when (val result = businessRepository.getBusinessesWithBranches()) {
-            is BusinessResult.Success -> {
-                businessesWithBranches = result.data
-                println("BranchSelectorScreen: ${businessesWithBranches.size} negocios cargados con sucursales")
-            }
-            is BusinessResult.Error -> {
-                errorLoadingBusinesses = result.message
-                println("BranchSelectorScreen: Error al cargar negocios - ${result.message}")
-            }
-            else -> {}
-        }
-        isLoadingBusinesses = false
+        branchSelectorViewModel.loadBusinesses()
     }
 
     // Agrupar sucursales por negocio
-    val branchesByBusiness = remember(businessesWithBranches) {
-        val grouped = businessesWithBranches.map { it.toBusiness() to it.branches }
+    val branchesByBusiness = remember(branchSelectorState.businessesWithBranches) {
+        val grouped = branchSelectorState.businessesWithBranches.map { it.toBusiness() to it.branches }
         grouped
     }
 
-    val orphanBranches = remember(branches, businessesWithBranches) {
-        val knownBranchIds = businessesWithBranches.flatMap { it.branches }.map { it.id }.toSet()
+    val orphanBranches = remember(branches, branchSelectorState.businessesWithBranches) {
+        val knownBranchIds = branchSelectorState.businessesWithBranches.flatMap { it.branches }.map { it.id }.toSet()
         branches.filter { it.id !in knownBranchIds }
     }
 
@@ -110,7 +90,7 @@ fun BranchSelectorScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Contenido principal
-            if (isLoadingBusinesses) {
+            if (branchSelectorState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -218,20 +198,12 @@ fun BranchSelectorScreen(
                         // Handle invitation redemption success
                         LaunchedEffect(redeemState) {
                             if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-                                println("BranchSelectorScreen: Invitación redimida exitosamente, recargando datos...")
 
                                 // Reload user data to get updated businessIds and branchIds
                                 authViewModel.reloadUserData()
 
                                 // Recargar negocios
-                                isLoadingBusinesses = true
-                                when (val result = businessRepository.getBusinessesWithBranches()) {
-                                    is BusinessResult.Success -> {
-                                        businessesWithBranches = result.data
-                                    }
-                                    else -> {}
-                                }
-                                isLoadingBusinesses = false
+                                branchSelectorViewModel.loadBusinesses()
 
                                 // Reset invitation state
                                 invitationViewModel.resetRedeemState()

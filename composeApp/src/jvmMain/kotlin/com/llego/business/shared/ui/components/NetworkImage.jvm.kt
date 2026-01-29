@@ -28,7 +28,6 @@ actual fun NetworkImage(
                     val bufferedImage: BufferedImage? = ImageIO.read(URL(url))
                     imageBitmap = bufferedImage?.toComposeImageBitmap()
                 } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
         }

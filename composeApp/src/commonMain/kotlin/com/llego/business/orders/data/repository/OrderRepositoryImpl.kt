@@ -1,11 +1,11 @@
-package com.llego.business.orders.data.repository
+﻿package com.llego.business.orders.data.repository
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
 import com.apollographql.apollo.exception.ApolloException
-import com.llego.business.orders.data.mappers.OrderMappers.toDomain
-import com.llego.business.orders.data.mappers.OrderMappers.toGraphQL
-import com.llego.business.orders.data.mappers.OrderMappers.toPartialDomain
+import com.llego.business.orders.data.mappers.toDomain
+import com.llego.business.orders.data.mappers.toGraphQL
+import com.llego.business.orders.data.mappers.toPartialDomain
 import com.llego.business.orders.data.model.*
 import com.llego.multiplatform.graphql.BranchOrdersQuery
 import com.llego.multiplatform.graphql.PendingBranchOrdersQuery
@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
 
 /**
- * Implementación del repositorio de pedidos usando Apollo GraphQL Client
+ * ImplementaciÃ³n del repositorio de pedidos usando Apollo GraphQL Client
  * 
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 11.1
  */
@@ -54,20 +54,12 @@ class OrderRepositoryImpl(
         limit: Int,
         offset: Int
     ): OrdersResult {
-        println("🔄 OrderRepository.getBranchOrders()")
-        println("   branchId: $branchId")
-        println("   status: $status")
-        println("   fromDate: $fromDate")
-        println("   toDate: $toDate")
-        println("   limit: $limit, offset: $offset")
 
         return try {
             val token = tokenManager.getToken()
             if (token == null) {
-                println("❌ OrderRepository: No authentication token")
                 return OrdersResult.Error("No authentication token")
             }
-            println("   token: ${token.take(20)}...")
 
             val response = apolloClient.query(
                 BranchOrdersQuery(
@@ -81,32 +73,24 @@ class OrderRepositoryImpl(
                 )
             ).execute()
 
-            println("   response.hasErrors: ${response.hasErrors()}")
             if (response.hasErrors()) {
                 val errorMsg = response.errors?.firstOrNull()?.message ?: "Error al obtener pedidos"
-                println("❌ OrderRepository GraphQL errors: ${response.errors}")
                 OrdersResult.Error(errorMsg)
             } else {
                 val data = response.data?.branchOrders
                 if (data != null) {
-                    println("✅ OrderRepository: ${data.orders.size} orders, totalCount=${data.totalCount}, hasMore=${data.hasMore}")
                     OrdersResult.Success(
                         orders = data.orders.map { it.toDomain() },
                         totalCount = data.totalCount,
                         hasMore = data.hasMore
                     )
                 } else {
-                    println("❌ OrderRepository: data is null")
                     OrdersResult.Error("No se recibieron datos del servidor")
                 }
             }
         } catch (e: ApolloException) {
-            println("❌ OrderRepository ApolloException: ${e.message}")
-            e.printStackTrace()
             OrdersResult.Error("Error de red: ${e.message}")
         } catch (e: Exception) {
-            println("❌ OrderRepository Exception: ${e.message}")
-            e.printStackTrace()
             OrdersResult.Error("Error inesperado: ${e.message}")
         }
     }
@@ -140,7 +124,7 @@ class OrderRepositoryImpl(
     }
 
     /**
-     * Obtiene un pedido específico por ID
+     * Obtiene un pedido especÃ­fico por ID
      * Requirements: 2.6
      */
     override suspend fun getOrder(orderId: String): Result<Order?> {
@@ -168,7 +152,7 @@ class OrderRepositoryImpl(
     }
 
     /**
-     * Obtiene estadísticas de pedidos
+     * Obtiene estadÃ­sticas de pedidos
      * Requirements: 11.1
      */
     override suspend fun getOrderStats(
@@ -189,7 +173,7 @@ class OrderRepositoryImpl(
             ).execute()
 
             if (response.hasErrors()) {
-                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener estadísticas"))
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener estadÃ­sticas"))
             } else {
                 val stats = response.data?.orderStats?.toDomain()
                 Result.success(stats)
@@ -227,7 +211,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -260,7 +244,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -300,7 +284,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -332,7 +316,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -379,7 +363,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -414,7 +398,7 @@ class OrderRepositoryImpl(
                 if (order != null) {
                     Result.success(order)
                 } else {
-                    Result.failure(Exception("No se recibió respuesta del servidor"))
+                    Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
@@ -428,7 +412,7 @@ class OrderRepositoryImpl(
     // ==================== SUBSCRIPTIONS ====================
 
     /**
-     * Suscripción a nuevos pedidos de una sucursal
+     * SuscripciÃ³n a nuevos pedidos de una sucursal
      * Requirements: 3.1
      */
     override fun subscribeToNewOrders(branchId: String): Flow<Order> = flow {
@@ -441,11 +425,10 @@ class OrderRepositoryImpl(
         }
     }.catch { e ->
         // Log error but don't crash the flow
-        println("Error en suscripción de nuevos pedidos: ${e.message}")
     }
 
     /**
-     * Suscripción a actualizaciones de pedidos de una sucursal
+     * SuscripciÃ³n a actualizaciones de pedidos de una sucursal
      * Requirements: 3.2
      */
     override fun subscribeToOrderUpdates(branchId: String): Flow<Order> = flow {
@@ -458,7 +441,6 @@ class OrderRepositoryImpl(
         }
     }.catch { e ->
         // Log error but don't crash the flow
-        println("Error en suscripción de actualizaciones: ${e.message}")
     }
 
     companion object {
@@ -472,5 +454,6 @@ class OrderRepositoryImpl(
         }
     }
 }
+
 
 

@@ -34,7 +34,6 @@ actual class AppleSignInHelper {
         onSuccess: (identityToken: String, nonce: String?) -> Unit,
         onError: (message: String) -> Unit
     ) {
-        println("[AppleSignIn] signIn() iniciado")
 
         // Guardar callbacks
         onSuccessCallback = onSuccess
@@ -44,11 +43,9 @@ actual class AppleSignInHelper {
         // NOTA IMPORTANTE: El backend actual acepta nonce=nil para Apple Sign-In
         // Si se habilita el nonce, descomentar las siguientes líneas:
         // currentNonce = generateNonce()
-        // println("[AppleSignIn] Nonce generado: ${currentNonce?.take(10)}...")
 
         // Por ahora usamos nonce=nil (compatible con LlegoiOS)
         currentNonce = null
-        println("[AppleSignIn] Nonce deshabilitado (nil)")
 
         // Crear request de Apple Sign-In
         val appleIDProvider = ASAuthorizationAppleIDProvider()
@@ -64,7 +61,6 @@ actual class AppleSignInHelper {
         // Si se habilita el nonce, descomentar:
         // currentNonce?.let { originalNonce ->
         //     val hashedNonce = sha256(originalNonce)
-        //     println("[AppleSignIn] Nonce hasheado (base64): ${hashedNonce.take(20)}...")
         //     request.nonce = hashedNonce
         // }
 
@@ -94,9 +90,7 @@ actual class AppleSignInHelper {
         authorizationController.presentationContextProvider = currentPresentationDelegate
 
         // Iniciar flujo de autorización
-        println("[AppleSignIn] Iniciando performRequests()")
         authorizationController.performRequests()
-        println("[AppleSignIn] performRequests() llamado")
     }
 
 
@@ -137,33 +131,25 @@ actual class AppleSignInHelper {
             controller: ASAuthorizationController,
             didCompleteWithAuthorization: ASAuthorization
         ) {
-            println("[AppleSignIn] authorizationController:didCompleteWithAuthorization llamado")
             val credential = didCompleteWithAuthorization.credential
 
             if (credential is ASAuthorizationAppleIDCredential) {
-                println("[AppleSignIn] Credencial es ASAuthorizationAppleIDCredential")
                 // Extraer identity token
                 val identityTokenData = credential.identityToken
-                println("[AppleSignIn] identityTokenData = $identityTokenData")
 
                 if (identityTokenData != null) {
                     // Convertir NSData a String
                     val identityToken = identityTokenData.toKString()
-                    println("[AppleSignIn] identityToken length = ${identityToken.length}")
 
                     if (identityToken.isNotEmpty()) {
-                        println("[AppleSignIn] Llamando onSuccess con token")
                         onSuccess(identityToken)
                     } else {
-                        println("[AppleSignIn] Token vacío")
                         onError("Identity token está vacío")
                     }
                 } else {
-                    println("[AppleSignIn] identityTokenData es null")
                     onError("No se pudo obtener identity token de Apple")
                 }
             } else {
-                println("[AppleSignIn] Credencial no es ASAuthorizationAppleIDCredential")
                 onError("Credencial inválida recibida de Apple")
             }
         }
@@ -172,7 +158,6 @@ actual class AppleSignInHelper {
             controller: ASAuthorizationController,
             didCompleteWithError: NSError
         ) {
-            println("[AppleSignIn] authorizationController:didCompleteWithError llamado - code: ${didCompleteWithError.code}")
             val errorMessage = when (didCompleteWithError.code) {
                 ASAuthorizationErrorCanceled -> "Login cancelado por el usuario"
                 ASAuthorizationErrorFailed -> "Autenticación falló. Intenta de nuevo"

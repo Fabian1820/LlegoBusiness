@@ -53,12 +53,6 @@ class IosNotificationService : NotificationService {
         }
 
         // Log para debugging y para que el bridge Swift pueda interceptar
-        println("📱 IosNotificationService: NEW_ORDER_NOTIFICATION")
-        println("   Title: $notificationTitle")
-        println("   Body: $notificationBody")
-        println("   BranchId: ${event.branchId}")
-        println("   OrderId: ${order.id}")
-        println("   IsActiveBranch: ${event.isActiveBranch}")
 
         // Incrementar badge count
         incrementBadgeCount()
@@ -89,11 +83,6 @@ class IosNotificationService : NotificationService {
         val notificationTitle = "📦 Pedido Actualizado"
         val notificationBody = "Estado: $statusText"
 
-        println("📱 IosNotificationService: ORDER_UPDATE_NOTIFICATION")
-        println("   Title: $notificationTitle")
-        println("   Body: $notificationBody")
-        println("   OrderId: $orderId")
-        println("   Status: $statusText")
 
         NotificationBridge.onOrderUpdateNotification?.invoke(
             NotificationData(
@@ -113,7 +102,6 @@ class IosNotificationService : NotificationService {
      */
     override fun updateBadgeCount(pendingCount: Int) {
         currentBadgeCount = pendingCount
-        println("📱 IosNotificationService: Badge count updated to $pendingCount")
 
         // Notificar al bridge Swift para actualizar el badge real
         NotificationBridge.onBadgeUpdate?.invoke(pendingCount)
@@ -125,7 +113,6 @@ class IosNotificationService : NotificationService {
      * Requirements: 4.4
      */
     override fun playNewOrderSound() {
-        println("🔔 IosNotificationService: Play sound requested")
         NotificationBridge.onPlaySound?.invoke()
     }
 
@@ -133,7 +120,6 @@ class IosNotificationService : NotificationService {
      * Solicita permisos de notificación
      */
     override fun requestNotificationPermission(onResult: (Boolean) -> Unit) {
-        println("📱 IosNotificationService: Requesting notification permission")
 
         // Delegar al bridge Swift que tiene acceso a UNUserNotificationCenter
         NotificationBridge.requestPermission { granted ->
@@ -153,7 +139,6 @@ class IosNotificationService : NotificationService {
      * Cancela todas las notificaciones de pedidos
      */
     override fun cancelAllOrderNotifications() {
-        println("🗑️ IosNotificationService: Cancel all notifications requested")
         resetBadgeCount()
         NotificationBridge.onCancelAllNotifications?.invoke()
     }
@@ -162,7 +147,6 @@ class IosNotificationService : NotificationService {
      * Cancela notificación de un pedido específico
      */
     override fun cancelOrderNotification(orderId: String) {
-        println("🗑️ IosNotificationService: Cancel notification for order $orderId")
         NotificationBridge.onCancelNotification?.invoke(orderId)
     }
 
@@ -241,10 +225,6 @@ object NotificationBridge {
      * Requirements: 12.1, 12.2
      */
     fun handleBranchSwitchAction(branchId: String, orderId: String, branchName: String? = null) {
-        println("📱 NotificationBridge: Branch switch action received")
-        println("   BranchId: $branchId")
-        println("   OrderId: $orderId")
-        println("   BranchName: $branchName")
 
         BranchSwitchHandler.getInstance().handleBranchSwitchFromNotification(
             branchId = branchId,

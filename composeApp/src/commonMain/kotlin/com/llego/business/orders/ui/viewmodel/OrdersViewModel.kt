@@ -104,7 +104,6 @@ class OrdersViewModel(
     fun loadOrders() {
         val branchId = _currentBranchId.value
         if (branchId == null) {
-            println("📦 OrdersViewModel.loadOrders(): branchId is null, skipping")
             return
         }
 
@@ -113,10 +112,6 @@ class OrdersViewModel(
 
             val dateRange = _selectedDateRange.value.getDateRange()
 
-            println("📦 OrdersViewModel.loadOrders()")
-            println("   branchId: $branchId")
-            println("   filter: ${_selectedDateRange.value} -> $dateRange")
-            println("   statusFilter: ${_selectedFilter.value}")
 
             when (val result = repository.getBranchOrders(
                 branchId = branchId,
@@ -127,13 +122,11 @@ class OrdersViewModel(
                 offset = currentOffset
             )) {
                 is OrdersResult.Success -> {
-                    println("📦 OrdersViewModel: ✅ Success - ${result.orders.size} orders, hasMore=${result.hasMore}")
                     _orders.value = result.orders
                     hasMore = result.hasMore
                     _uiState.value = OrdersUiState.Success
                 }
                 is OrdersResult.Error -> {
-                    println("📦 OrdersViewModel: ❌ Error - ${result.message}")
                     _uiState.value = OrdersUiState.Error(result.message)
                 }
             }
@@ -194,7 +187,7 @@ class OrdersViewModel(
             subscriptionManager.newOrders.collect { event ->
                 if (event.branchId == _currentBranchId.value) {
                     // Agregar nuevo pedido al inicio de la lista
-                    _orders.update { currentOrders ->
+                    _orders.update { currentOrders: List<Order> ->
                         listOf(event.order) + currentOrders
                     }
                 }

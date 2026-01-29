@@ -3,6 +3,9 @@ package com.llego.business.wallet.data.repository
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
 import com.apollographql.apollo.exception.ApolloException
+import com.llego.business.wallet.data.mappers.toBalanceMap
+import com.llego.business.wallet.data.mappers.toDomain
+import com.llego.business.wallet.data.mappers.toWalletTransaction
 import com.llego.business.wallet.data.model.*
 import com.llego.multiplatform.graphql.*
 import com.llego.multiplatform.graphql.type.DepositInput as GQLDepositInput
@@ -13,100 +16,6 @@ import com.llego.shared.data.network.GraphQLClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-/**
- * Extension functions para convertir tipos GraphQL a modelos de dominio
- */
-
-// WalletBalanceType a Map<WalletCurrency, Double>
-private fun MyWalletQuery.Balance.toBalanceMap(): Map<WalletCurrency, Double> {
-    return mapOf(
-        WalletCurrency.CUP to local,
-        WalletCurrency.USD to usd
-    )
-}
-
-private fun BranchWalletQuery.Balance.toBalanceMap(): Map<WalletCurrency, Double> {
-    return mapOf(
-        WalletCurrency.CUP to local,
-        WalletCurrency.USD to usd
-    )
-}
-
-// WalletTransactionType a WalletTransaction
-private fun MyWalletTransactionsQuery.MyWalletTransaction.toDomain(): WalletTransaction {
-    val transactionType = when (type) {
-        "transfer" -> TransactionType.TRANSFER
-        "deposit" -> TransactionType.INCOME
-        "withdrawal" -> TransactionType.WITHDRAWAL
-        else -> TransactionType.ADJUSTMENT
-    }
-
-    val transactionStatus = when (status) {
-        "pending" -> TransactionStatus.PENDING
-        "processing" -> TransactionStatus.PROCESSING
-        "completed" -> TransactionStatus.COMPLETED
-        "failed" -> TransactionStatus.FAILED
-        "cancelled" -> TransactionStatus.CANCELLED
-        else -> TransactionStatus.PENDING
-    }
-
-    val walletCurrency = when (currency.uppercase()) {
-        "USD" -> WalletCurrency.USD
-        "LOCAL", "CUP" -> WalletCurrency.CUP
-        else -> WalletCurrency.CUP
-    }
-
-    return WalletTransaction(
-        id = id,
-        businessId = toOwnerId ?: fromOwnerId ?: "",
-        type = transactionType,
-        currency = walletCurrency,
-        amount = amount,
-        description = description ?: "",
-        relatedOrderId = null,
-        status = transactionStatus,
-        createdAt = createdAt.toString(),
-        completedAt = completedAt?.toString()
-    )
-}
-
-private fun BranchWalletTransactionsQuery.BranchWalletTransaction.toDomain(): WalletTransaction {
-    val transactionType = when (type) {
-        "transfer" -> TransactionType.TRANSFER
-        "deposit" -> TransactionType.INCOME
-        "withdrawal" -> TransactionType.WITHDRAWAL
-        else -> TransactionType.ADJUSTMENT
-    }
-
-    val transactionStatus = when (status) {
-        "pending" -> TransactionStatus.PENDING
-        "processing" -> TransactionStatus.PROCESSING
-        "completed" -> TransactionStatus.COMPLETED
-        "failed" -> TransactionStatus.FAILED
-        "cancelled" -> TransactionStatus.CANCELLED
-        else -> TransactionStatus.PENDING
-    }
-
-    val walletCurrency = when (currency.uppercase()) {
-        "USD" -> WalletCurrency.USD
-        "LOCAL", "CUP" -> WalletCurrency.CUP
-        else -> WalletCurrency.CUP
-    }
-
-    return WalletTransaction(
-        id = id,
-        businessId = toOwnerId ?: fromOwnerId ?: "",
-        type = transactionType,
-        currency = walletCurrency,
-        amount = amount,
-        description = description ?: "",
-        relatedOrderId = null,
-        status = transactionStatus,
-        createdAt = createdAt.toString(),
-        completedAt = completedAt?.toString()
-    )
-}
 
 /**
  * Repository para gestión de Wallet con GraphQL
@@ -167,14 +76,12 @@ class WalletRepository private constructor() {
      */
     suspend fun getBranchWallet(branchId: String): Result<BusinessWallet> {
         return try {
-            println("WalletRepository.getBranchWallet: branchId=$branchId")
             val token = tokenManager.getToken()
                 ?: return Result.failure(Exception("No hay token de autenticación"))
 
             val response = apolloClient.query(BranchWalletQuery(branchId, token)).execute()
 
             if (response.hasErrors()) {
-                println("WalletRepository.getBranchWallet: errors=${response.errors}")
                 return Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error desconocido"))
             }
 
@@ -191,13 +98,10 @@ class WalletRepository private constructor() {
             )
 
             _wallet.value = wallet
-            println("WalletRepository.getBranchWallet: ok balances=${wallet.balances}")
             Result.success(wallet)
         } catch (e: ApolloException) {
-            println("WalletRepository.getBranchWallet: ApolloException=${e.message}")
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
-            println("WalletRepository.getBranchWallet: Exception=${e.message}")
             Result.failure(e)
         }
     }
@@ -250,7 +154,6 @@ class WalletRepository private constructor() {
         currency: String? = null
     ): Result<List<WalletTransaction>> {
         return try {
-            println("WalletRepository.getBranchTransactions: branchId=$branchId limit=$limit skip=$skip")
             val token = tokenManager.getToken()
                 ?: return Result.failure(Exception("No hay token de autenticación"))
 
@@ -265,7 +168,6 @@ class WalletRepository private constructor() {
             ).execute()
 
             if (response.hasErrors()) {
-                println("WalletRepository.getBranchTransactions: errors=${response.errors}")
                 return Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error desconocido"))
             }
 
@@ -274,13 +176,10 @@ class WalletRepository private constructor() {
                 ?: emptyList()
 
             _transactions.value = transactions
-            println("WalletRepository.getBranchTransactions: ok count=${transactions.size}")
             Result.success(transactions)
         } catch (e: ApolloException) {
-            println("WalletRepository.getBranchTransactions: ApolloException=${e.message}")
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
-            println("WalletRepository.getBranchTransactions: Exception=${e.message}")
             Result.failure(e)
         }
     }
@@ -324,7 +223,7 @@ class WalletRepository private constructor() {
             getMyWallet()
             getMyTransactions()
 
-            Result.success(mapTransferToWalletTransaction(transaction))
+            Result.success(transaction.toWalletTransaction())
         } catch (e: ApolloException) {
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
@@ -365,7 +264,7 @@ class WalletRepository private constructor() {
             getMyWallet()
             getMyTransactions()
 
-            Result.success(mapDepositToWalletTransaction(transaction))
+            Result.success(transaction.toWalletTransaction())
         } catch (e: ApolloException) {
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
@@ -406,7 +305,7 @@ class WalletRepository private constructor() {
             getMyWallet()
             getMyTransactions()
 
-            Result.success(mapWithdrawToWalletTransaction(transaction))
+            Result.success(transaction.toWalletTransaction())
         } catch (e: ApolloException) {
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
@@ -456,7 +355,7 @@ class WalletRepository private constructor() {
             getBranchWallet(branchId)
             getBranchTransactions(branchId)
 
-            Result.success(mapBranchTransferToWalletTransaction(transaction))
+            Result.success(transaction.toWalletTransaction())
         } catch (e: ApolloException) {
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
@@ -500,7 +399,7 @@ class WalletRepository private constructor() {
             getBranchWallet(branchId)
             getBranchTransactions(branchId)
 
-            Result.success(mapBranchWithdrawToWalletTransaction(transaction))
+            Result.success(transaction.toWalletTransaction())
         } catch (e: ApolloException) {
             Result.failure(Exception("Error de red: ${e.message}"))
         } catch (e: Exception) {
@@ -589,145 +488,6 @@ class WalletRepository private constructor() {
      */
     fun getBalance(currency: WalletCurrency): Double {
         return _wallet.value?.balances?.get(currency) ?: 0.0
-    }
-
-    // Helper functions para mapear transacciones GraphQL a WalletTransaction
-
-    private fun mapTransferToWalletTransaction(transfer: TransferMoneyMutation.TransferMoney): WalletTransaction {
-        val walletCurrency = when (transfer.currency.uppercase()) {
-            "USD" -> WalletCurrency.USD
-            "LOCAL", "CUP" -> WalletCurrency.CUP
-            else -> WalletCurrency.CUP
-        }
-
-        val transactionStatus = when (transfer.status) {
-            "pending" -> TransactionStatus.PENDING
-            "completed" -> TransactionStatus.COMPLETED
-            "failed" -> TransactionStatus.FAILED
-            else -> TransactionStatus.COMPLETED
-        }
-
-        return WalletTransaction(
-            id = transfer.id,
-            businessId = transfer.fromOwnerId ?: "",
-            type = TransactionType.TRANSFER,
-            currency = walletCurrency,
-            amount = -transfer.amount, // Negativo porque es salida
-            description = transfer.description ?: "Transferencia",
-            status = transactionStatus,
-            createdAt = transfer.createdAt.toString(),
-            completedAt = transfer.completedAt?.toString()
-        )
-    }
-
-    private fun mapDepositToWalletTransaction(deposit: DepositMoneyMutation.DepositMoney): WalletTransaction {
-        val walletCurrency = when (deposit.currency.uppercase()) {
-            "USD" -> WalletCurrency.USD
-            "LOCAL", "CUP" -> WalletCurrency.CUP
-            else -> WalletCurrency.CUP
-        }
-
-        val transactionStatus = when (deposit.status) {
-            "pending" -> TransactionStatus.PENDING
-            "completed" -> TransactionStatus.COMPLETED
-            "failed" -> TransactionStatus.FAILED
-            else -> TransactionStatus.COMPLETED
-        }
-
-        return WalletTransaction(
-            id = deposit.id,
-            businessId = deposit.toOwnerId ?: "",
-            type = TransactionType.INCOME,
-            currency = walletCurrency,
-            amount = deposit.amount,
-            description = deposit.description ?: "Depósito",
-            status = transactionStatus,
-            createdAt = deposit.createdAt.toString(),
-            completedAt = deposit.completedAt?.toString()
-        )
-    }
-
-    private fun mapWithdrawToWalletTransaction(withdraw: WithdrawMoneyMutation.WithdrawMoney): WalletTransaction {
-        val walletCurrency = when (withdraw.currency.uppercase()) {
-            "USD" -> WalletCurrency.USD
-            "LOCAL", "CUP" -> WalletCurrency.CUP
-            else -> WalletCurrency.CUP
-        }
-
-        val transactionStatus = when (withdraw.status) {
-            "pending" -> TransactionStatus.PENDING
-            "processing" -> TransactionStatus.PROCESSING
-            "completed" -> TransactionStatus.COMPLETED
-            "failed" -> TransactionStatus.FAILED
-            else -> TransactionStatus.PENDING
-        }
-
-        return WalletTransaction(
-            id = withdraw.id,
-            businessId = withdraw.fromOwnerId ?: "",
-            type = TransactionType.WITHDRAWAL,
-            currency = walletCurrency,
-            amount = -withdraw.amount,
-            description = withdraw.description ?: "Retiro",
-            status = transactionStatus,
-            createdAt = withdraw.createdAt.toString(),
-            completedAt = withdraw.completedAt?.toString()
-        )
-    }
-
-    private fun mapBranchTransferToWalletTransaction(transfer: BranchTransferMoneyMutation.BranchTransferMoney): WalletTransaction {
-        val walletCurrency = when (transfer.currency.uppercase()) {
-            "USD" -> WalletCurrency.USD
-            "LOCAL", "CUP" -> WalletCurrency.CUP
-            else -> WalletCurrency.CUP
-        }
-
-        val transactionStatus = when (transfer.status) {
-            "pending" -> TransactionStatus.PENDING
-            "completed" -> TransactionStatus.COMPLETED
-            "failed" -> TransactionStatus.FAILED
-            else -> TransactionStatus.COMPLETED
-        }
-
-        return WalletTransaction(
-            id = transfer.id,
-            businessId = transfer.fromOwnerId ?: "",
-            type = TransactionType.TRANSFER,
-            currency = walletCurrency,
-            amount = -transfer.amount,
-            description = transfer.description ?: "Transferencia",
-            status = transactionStatus,
-            createdAt = transfer.createdAt.toString(),
-            completedAt = transfer.completedAt?.toString()
-        )
-    }
-
-    private fun mapBranchWithdrawToWalletTransaction(withdraw: BranchWithdrawMoneyMutation.BranchWithdrawMoney): WalletTransaction {
-        val walletCurrency = when (withdraw.currency.uppercase()) {
-            "USD" -> WalletCurrency.USD
-            "LOCAL", "CUP" -> WalletCurrency.CUP
-            else -> WalletCurrency.CUP
-        }
-
-        val transactionStatus = when (withdraw.status) {
-            "pending" -> TransactionStatus.PENDING
-            "processing" -> TransactionStatus.PROCESSING
-            "completed" -> TransactionStatus.COMPLETED
-            "failed" -> TransactionStatus.FAILED
-            else -> TransactionStatus.PENDING
-        }
-
-        return WalletTransaction(
-            id = withdraw.id,
-            businessId = withdraw.fromOwnerId ?: "",
-            type = TransactionType.WITHDRAWAL,
-            currency = walletCurrency,
-            amount = -withdraw.amount,
-            description = withdraw.description ?: "Retiro",
-            status = transactionStatus,
-            createdAt = withdraw.createdAt.toString(),
-            completedAt = withdraw.completedAt?.toString()
-        )
     }
 
     /**

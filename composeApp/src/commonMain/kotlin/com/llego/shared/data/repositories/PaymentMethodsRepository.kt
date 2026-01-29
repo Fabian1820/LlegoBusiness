@@ -18,27 +18,18 @@ class PaymentMethodsRepository(
      * Fetches all available payment methods
      */
     suspend fun getPaymentMethods(): Result<List<PaymentMethod>> {
-        println("PaymentMethodsRepository.getPaymentMethods: iniciando...")
         val token = tokenManager.getToken()
         if (token == null) {
-            println("PaymentMethodsRepository.getPaymentMethods: NO_TOKEN")
         } else {
-            println("PaymentMethodsRepository.getPaymentMethods: token encontrado (length: ${token.length})")
         }
         return try {
-            println("PaymentMethodsRepository.getPaymentMethods: ejecutando query GetPaymentMethods...")
             val response = client.query(
                 GetPaymentMethodsQuery(jwt = Optional.presentIfNotNull(token))
             ).execute()
 
-            println("PaymentMethodsRepository.getPaymentMethods: respuesta recibida")
-            println("PaymentMethodsRepository.getPaymentMethods: data=${response.data != null}")
-            println("PaymentMethodsRepository.getPaymentMethods: errors=${response.errors}")
-            println("PaymentMethodsRepository.getPaymentMethods: hasErrors=${response.hasErrors()}")
 
             if (response.hasErrors()) {
                 val errorMessage = response.errors?.joinToString(", ") { it.message }
-                println("PaymentMethodsRepository.getPaymentMethods: GraphQL errors=$errorMessage")
                 Result.failure(Exception(errorMessage ?: "Unknown error"))
             } else {
                 val paymentMethods = response.data?.paymentMethods?.mapNotNull { method ->
@@ -49,12 +40,10 @@ class PaymentMethodsRepository(
                     )
                 } ?: emptyList()
 
-                println("PaymentMethodsRepository.getPaymentMethods: paymentMethods count=${paymentMethods.size}")
 
                 Result.success(paymentMethods)
             }
         } catch (e: Exception) {
-            println("PaymentMethodsRepository.getPaymentMethods: Exception=${e.message}")
             Result.failure(e)
         }
     }

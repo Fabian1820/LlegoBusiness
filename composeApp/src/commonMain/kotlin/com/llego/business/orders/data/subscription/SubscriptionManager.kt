@@ -1,7 +1,7 @@
-package com.llego.business.orders.data.subscription
+﻿package com.llego.business.orders.data.subscription
 
 import com.apollographql.apollo.ApolloClient
-import com.llego.business.orders.data.mappers.OrderMappers.toDomain
+import com.llego.business.orders.data.mappers.toDomain
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.multiplatform.graphql.NewBranchOrderSubscription
@@ -21,10 +21,10 @@ import kotlin.math.min
 import kotlin.math.pow
 
 /**
- * Evento de nuevo pedido recibido via suscripción
+ * Evento de nuevo pedido recibido via suscripciÃ³n
  * 
  * @param order El pedido recibido
- * @param branchId ID de la sucursal donde llegó el pedido
+ * @param branchId ID de la sucursal donde llegÃ³ el pedido
  * @param isActiveBranch Si es la sucursal actualmente activa
  * 
  * Requirements: 3.1, 4.1, 4.2
@@ -36,12 +36,12 @@ data class NewOrderEvent(
 )
 
 /**
- * Evento de actualización de pedido recibido via suscripción
+ * Evento de actualizaciÃ³n de pedido recibido via suscripciÃ³n
  * 
  * @param orderId ID del pedido actualizado
  * @param branchId ID de la sucursal del pedido
  * @param newStatus Nuevo estado del pedido
- * @param updatedAt Timestamp de la actualización
+ * @param updatedAt Timestamp de la actualizaciÃ³n
  * @param order Pedido completo actualizado (opcional)
  * 
  * Requirements: 3.2, 3.4
@@ -55,7 +55,7 @@ data class OrderUpdateEvent(
 )
 
 /**
- * Estado de conexión de las suscripciones
+ * Estado de conexiÃ³n de las suscripciones
  */
 enum class SubscriptionConnectionState {
     DISCONNECTED,
@@ -76,7 +76,7 @@ enum class SubscriptionConnectionState {
 class SubscriptionManager(
     private val apolloClient: ApolloClient = GraphQLClient.apolloClient
 ) {
-    // Scope para las coroutines de suscripción
+    // Scope para las coroutines de suscripciÃ³n
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     
     // Mapa de suscripciones activas por branchId
@@ -103,14 +103,14 @@ class SubscriptionManager(
     )
     val orderUpdates: SharedFlow<OrderUpdateEvent> = _orderUpdates.asSharedFlow()
     
-    // Estado de conexión
+    // Estado de conexiÃ³n
     private val _connectionState = MutableSharedFlow<SubscriptionConnectionState>(
         replay = 1,
         extraBufferCapacity = 1
     )
     val connectionState: SharedFlow<SubscriptionConnectionState> = _connectionState.asSharedFlow()
     
-    // Configuración de reconexión
+    // ConfiguraciÃ³n de reconexiÃ³n
     private val initialRetryDelayMs = 1000L
     private val maxRetryDelayMs = 30000L
     private val maxRetries = 10
@@ -160,7 +160,7 @@ class SubscriptionManager(
      * Actualiza la sucursal activa
      * 
      * Cambia el flag de sucursal activa para que las notificaciones
-     * se muestren correctamente según si el pedido es de la sucursal
+     * se muestren correctamente segÃºn si el pedido es de la sucursal
      * activa o no.
      * 
      * @param newActiveBranchId ID de la nueva sucursal activa
@@ -172,7 +172,7 @@ class SubscriptionManager(
     }
 
     /**
-     * Suscribe a nuevos pedidos de una sucursal específica
+     * Suscribe a nuevos pedidos de una sucursal especÃ­fica
      * 
      * @param branchId ID de la sucursal
      * 
@@ -182,7 +182,7 @@ class SubscriptionManager(
     private fun subscribeToNewOrders(branchId: String, isActiveBranch: Boolean) {
         val subscriptionKey = "new_$branchId"
         
-        // Cancelar suscripción existente si hay
+        // Cancelar suscripciÃ³n existente si hay
         activeSubscriptions[subscriptionKey]?.cancel()
         
         val job = scope.launch {
@@ -194,11 +194,10 @@ class SubscriptionManager(
                         NewBranchOrderSubscription(branchId = branchId)
                     ).toFlow()
                         .catch { e ->
-                            println("Error en suscripción de nuevos pedidos para $branchId: ${e.message}")
                             throw e
                         }
                         .collect { response ->
-                            // Conexión exitosa, resetear contador de reintentos
+                            // ConexiÃ³n exitosa, resetear contador de reintentos
                             retryCount = 0
                             _connectionState.emit(SubscriptionConnectionState.CONNECTED)
                             
@@ -213,16 +212,14 @@ class SubscriptionManager(
                             }
                         }
                 } catch (e: Exception) {
-                    // Manejar reconexión con backoff exponencial
+                    // Manejar reconexiÃ³n con backoff exponencial
                     retryCount++
                     if (retryCount > maxRetries) {
-                        println("Máximo de reintentos alcanzado para suscripción de nuevos pedidos: $branchId")
                         break
                     }
                     
                     _connectionState.emit(SubscriptionConnectionState.RECONNECTING)
                     val delayMs = calculateBackoffDelay(retryCount)
-                    println("Reintentando suscripción de nuevos pedidos para $branchId en ${delayMs}ms (intento $retryCount)")
                     delay(delayMs)
                 }
             }
@@ -232,7 +229,7 @@ class SubscriptionManager(
     }
 
     /**
-     * Suscribe a actualizaciones de pedidos de una sucursal específica
+     * Suscribe a actualizaciones de pedidos de una sucursal especÃ­fica
      * 
      * @param branchId ID de la sucursal
      * 
@@ -241,7 +238,7 @@ class SubscriptionManager(
     private fun subscribeToOrderUpdates(branchId: String) {
         val subscriptionKey = "update_$branchId"
         
-        // Cancelar suscripción existente si hay
+        // Cancelar suscripciÃ³n existente si hay
         activeSubscriptions[subscriptionKey]?.cancel()
         
         val job = scope.launch {
@@ -253,11 +250,10 @@ class SubscriptionManager(
                         BranchOrderUpdatedSubscription(branchId = branchId)
                     ).toFlow()
                         .catch { e ->
-                            println("Error en suscripción de actualizaciones para $branchId: ${e.message}")
                             throw e
                         }
                         .collect { response ->
-                            // Conexión exitosa, resetear contador de reintentos
+                            // ConexiÃ³n exitosa, resetear contador de reintentos
                             retryCount = 0
                             _connectionState.emit(SubscriptionConnectionState.CONNECTED)
                             
@@ -274,16 +270,14 @@ class SubscriptionManager(
                             }
                         }
                 } catch (e: Exception) {
-                    // Manejar reconexión con backoff exponencial
+                    // Manejar reconexiÃ³n con backoff exponencial
                     retryCount++
                     if (retryCount > maxRetries) {
-                        println("Máximo de reintentos alcanzado para suscripción de actualizaciones: $branchId")
                         break
                     }
                     
                     _connectionState.emit(SubscriptionConnectionState.RECONNECTING)
                     val delayMs = calculateBackoffDelay(retryCount)
-                    println("Reintentando suscripción de actualizaciones para $branchId en ${delayMs}ms (intento $retryCount)")
                     delay(delayMs)
                 }
             }
@@ -294,9 +288,9 @@ class SubscriptionManager(
 
 
     /**
-     * Calcula el delay de backoff exponencial para reconexión
+     * Calcula el delay de backoff exponencial para reconexiÃ³n
      * 
-     * @param retryCount Número de intento actual
+     * @param retryCount NÃºmero de intento actual
      * @return Delay en milisegundos
      * 
      * Requirements: 3.6
@@ -322,7 +316,7 @@ class SubscriptionManager(
     }
 
     /**
-     * Cancela suscripciones de una sucursal específica
+     * Cancela suscripciones de una sucursal especÃ­fica
      * 
      * @param branchId ID de la sucursal
      */
@@ -340,9 +334,9 @@ class SubscriptionManager(
     }
 
     /**
-     * Obtiene el número de suscripciones activas
+     * Obtiene el nÃºmero de suscripciones activas
      * 
-     * @return Número de suscripciones activas
+     * @return NÃºmero de suscripciones activas
      */
     fun getActiveSubscriptionCount(): Int = activeSubscriptions.size
 
@@ -369,7 +363,7 @@ class SubscriptionManager(
     /**
      * Reconecta todas las suscripciones
      * 
-     * Útil cuando se detecta pérdida de conexión a nivel de aplicación
+     * Ãštil cuando se detecta pÃ©rdida de conexiÃ³n a nivel de aplicaciÃ³n
      * 
      * Requirements: 3.6
      */
@@ -396,4 +390,5 @@ class SubscriptionManager(
         }
     }
 }
+
 

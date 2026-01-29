@@ -243,14 +243,19 @@ actual class AuthViewModel : ViewModel {
     actual fun loginWithGoogle(idToken: String, nonce: String?) {
         ensureInitialized()
 
+        Log.d(TAG, "loginWithGoogle: iniciando con idToken length=${idToken.length}")
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             _loginError.value = null
 
+            Log.d(TAG, "loginWithGoogle: llamando authManager.loginWithGoogle...")
             val result = authManager.loginWithGoogle(idToken, nonce)
+            Log.d(TAG, "loginWithGoogle: resultado = ${result::class.simpleName}")
 
             when (result) {
                 is AuthResult.Success -> {
+                    Log.d(TAG, "loginWithGoogle: éxito - usuario=${result.data.email}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isAuthenticated = true,
@@ -264,13 +269,16 @@ actual class AuthViewModel : ViewModel {
                     clearLoginForm()
                 }
                 is AuthResult.Error -> {
+                    Log.e(TAG, "loginWithGoogle: ERROR - ${result.message}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
                     _loginError.value = result.message
                 }
-                else -> {}
+                else -> {
+                    Log.w(TAG, "loginWithGoogle: resultado inesperado")
+                }
             }
         }
     }

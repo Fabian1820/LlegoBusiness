@@ -112,10 +112,6 @@ class AndroidNotificationService(
                     val orderId = intent.getStringExtra(EXTRA_ORDER_ID) ?: return
                     val branchName = intent.getStringExtra(EXTRA_BRANCH_NAME)
                     
-                    println("📱 AndroidNotificationService: Branch switch action received")
-                    println("   BranchId: $branchId")
-                    println("   OrderId: $orderId")
-                    println("   BranchName: $branchName")
                     
                     // Delegar al BranchSwitchHandler
                     branchSwitchHandler.handleBranchSwitchFromNotification(
@@ -162,7 +158,6 @@ class AndroidNotificationService(
      */
     override fun showNewOrderNotification(event: NewOrderEvent) {
         if (!hasNotificationPermission()) {
-            println("⚠️ AndroidNotificationService: No notification permission")
             return
         }
 
@@ -209,9 +204,7 @@ class AndroidNotificationService(
         
         try {
             notificationManager.notify(notificationId, builder.build())
-            println("✅ AndroidNotificationService: Notification shown for order ${order.orderNumber}")
         } catch (e: SecurityException) {
-            println("❌ AndroidNotificationService: SecurityException - ${e.message}")
         }
     }
 
@@ -222,7 +215,6 @@ class AndroidNotificationService(
      */
     override fun showOrderUpdateNotification(orderId: String, status: OrderStatus) {
         if (!hasNotificationPermission()) {
-            println("⚠️ AndroidNotificationService: No notification permission")
             return
         }
 
@@ -239,9 +231,7 @@ class AndroidNotificationService(
         
         try {
             notificationManager.notify(notificationId, builder.build())
-            println("✅ AndroidNotificationService: Update notification shown for order $orderId")
         } catch (e: SecurityException) {
-            println("❌ AndroidNotificationService: SecurityException - ${e.message}")
         }
     }
 
@@ -254,7 +244,6 @@ class AndroidNotificationService(
         // En Android, el badge se maneja automáticamente por el sistema
         // basado en las notificaciones activas. Algunos launchers soportan
         // ShortcutBadger pero no es universal.
-        println("📱 AndroidNotificationService: Badge count updated to $pendingCount")
         
         // Para launchers que soporten badges, podemos usar la API de shortcuts
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -262,7 +251,6 @@ class AndroidNotificationService(
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 // El badge se actualiza automáticamente basado en notificaciones
             } catch (e: Exception) {
-                println("⚠️ AndroidNotificationService: Could not update badge - ${e.message}")
             }
         }
     }
@@ -277,9 +265,7 @@ class AndroidNotificationService(
             val notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val ringtone = RingtoneManager.getRingtone(context, notification)
             ringtone?.play()
-            println("🔔 AndroidNotificationService: Sound played")
         } catch (e: Exception) {
-            println("❌ AndroidNotificationService: Could not play sound - ${e.message}")
         }
     }
 
@@ -320,7 +306,6 @@ class AndroidNotificationService(
      */
     override fun cancelAllOrderNotifications() {
         notificationManager.cancelAll()
-        println("🗑️ AndroidNotificationService: All notifications cancelled")
     }
 
     /**
@@ -332,7 +317,6 @@ class AndroidNotificationService(
         
         notificationManager.cancel(newOrderNotificationId)
         notificationManager.cancel(updateNotificationId)
-        println("🗑️ AndroidNotificationService: Notification cancelled for order $orderId")
     }
 
     /**

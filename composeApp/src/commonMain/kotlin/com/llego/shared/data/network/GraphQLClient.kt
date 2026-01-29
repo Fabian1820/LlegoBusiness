@@ -31,7 +31,7 @@ object GraphQLClient {
      */
     val apolloClient: ApolloClient by lazy {
         ApolloClient.Builder()
-            .serverUrl("https://llegobackend-production.up.railway.app/graphql")
+            .serverUrl(BackendConfig.GRAPHQL_URL)
             .addHttpHeader("Content-Type", "application/json")
             .addHttpInterceptor(AuthInterceptor())
             .build()

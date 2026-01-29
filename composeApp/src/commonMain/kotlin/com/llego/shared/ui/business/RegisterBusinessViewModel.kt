@@ -40,21 +40,15 @@ class RegisterBusinessViewModel(
         business: CreateBusinessInput,
         branches: List<RegisterBranchInput>
     ) {
-        println("RegisterBusinessViewModel.registerBusiness: Iniciando...")
-        println("RegisterBusinessViewModel.registerBusiness: business=${business}")
-        println("RegisterBusinessViewModel.registerBusiness: branches count=${branches.size}")
 
         viewModelScope.launch {
-            println("RegisterBusinessViewModel.registerBusiness: Actualizando estado a loading")
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null
             )
 
-            println("RegisterBusinessViewModel.registerBusiness: Llamando a businessRepository.registerBusiness...")
             when (val result = businessRepository.registerBusiness(business, branches)) {
                 is BusinessResult.Success -> {
-                    println("RegisterBusinessViewModel.registerBusiness: Success - businessId=${result.data.id}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isRegistered = true,
@@ -62,7 +56,6 @@ class RegisterBusinessViewModel(
                     )
                 }
                 is BusinessResult.Error -> {
-                    println("RegisterBusinessViewModel.registerBusiness: Error - message=${result.message}, code=${result.code}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isRegistered = false,
@@ -70,7 +63,6 @@ class RegisterBusinessViewModel(
                     )
                 }
                 else -> {
-                    println("RegisterBusinessViewModel.registerBusiness: Estado desconocido (loading?)")
                     // Loading state - no hacer nada
                 }
             }

@@ -1,38 +1,21 @@
-package com.llego.business.profile.ui.screens
+﻿package com.llego.business.profile.ui.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,29 +24,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.profile.ui.components.BannerWithLogoSection
+import com.llego.business.profile.ui.components.BranchesManagementCard
 import com.llego.business.profile.ui.components.BusinessInfoSection
 import com.llego.business.profile.ui.components.BusinessTagsSection
+import com.llego.business.profile.ui.components.ImageUploadDialog
+import com.llego.business.profile.ui.components.InvitationsCard
+import com.llego.business.profile.ui.components.LogoutActionButton
 import com.llego.business.profile.ui.components.LogoutDialog
+import com.llego.business.profile.ui.components.ProfileSaveMessageCard
 import com.llego.business.profile.ui.components.ShareDialog
 import com.llego.business.profile.ui.components.SocialLinksSection
 import com.llego.business.profile.ui.components.UserInfoSection
 import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.BusinessResult
-import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.data.model.UpdateUserInput
-import com.llego.shared.data.upload.ImageUploadServiceFactory
-import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.auth.AuthViewModel
-import com.llego.shared.ui.theme.LlegoCustomShapes
+import com.llego.shared.ui.upload.ImageUploadViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -84,7 +68,7 @@ fun BusinessProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
-    val imageUploadService = remember { ImageUploadServiceFactory.create() }
+    val imageUploadViewModel = remember { ImageUploadViewModel() }
 
     var showBranchAvatarDialog by remember { mutableStateOf(false) }
     var showBranchCoverDialog by remember { mutableStateOf(false) }
@@ -179,22 +163,10 @@ fun BusinessProfileScreen(
             // Mensaje de guardado
             if (saveMessage != null) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        shape = LlegoCustomShapes.infoCard
-                    ) {
-                        Text(
-                            text = saveMessage ?: "",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    ProfileSaveMessageCard(
+                        message = saveMessage ?: "",
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
                 }
             }
 
@@ -332,145 +304,27 @@ fun BusinessProfileScreen(
             // Gestion de sucursales (solo si tiene multiples)
             if (branches.size > 1) {
                 item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .clickable { onNavigateToBranches() },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = LlegoCustomShapes.infoCard,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Store,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = "Gestionar Negocios",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.SemiBold
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Administra tus negocios y sucursales",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    BranchesManagementCard(
+                        onClick = onNavigateToBranches,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
                 }
             }
 
             // Codigos de invitacion
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .clickable { onNavigateToInvitations() },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    shape = LlegoCustomShapes.infoCard,
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CardGiftcard,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = "Códigos de invitación",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Invita a otros a administrar",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                InvitationsCard(
+                    onClick = onNavigateToInvitations,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
 
             // Cerrar sesion
             item {
-                OutlinedButton(
+                LogoutActionButton(
                     onClick = { showLogoutDialog = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
-                    ),
-                    shape = LlegoCustomShapes.secondaryButton
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Cerrar sesion"
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = "Cerrar sesion",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                }
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
         }
 
@@ -507,7 +361,7 @@ fun BusinessProfileScreen(
                         }
                     }
                 },
-                uploadFunction = { uri, token -> imageUploadService.uploadBranchAvatar(uri, token) },
+                uploadFunction = imageUploadViewModel::uploadBranchAvatar,
                 onDismiss = {
                     showBranchAvatarDialog = false
                     branchAvatarState = ImageUploadState.Idle
@@ -549,7 +403,7 @@ fun BusinessProfileScreen(
                         }
                     }
                 },
-                uploadFunction = { uri, token -> imageUploadService.uploadBranchCover(uri, token) },
+                uploadFunction = imageUploadViewModel::uploadBranchCover,
                 onDismiss = {
                     showBranchCoverDialog = false
                     branchCoverState = ImageUploadState.Idle
@@ -572,35 +426,4 @@ fun BusinessProfileScreen(
             )
         }
     }
-}
-
-@Composable
-private fun ImageUploadDialog(
-    title: String,
-    label: String,
-    uploadState: ImageUploadState,
-    onStateChange: (ImageUploadState) -> Unit,
-    uploadFunction: suspend (filePath: String, token: String?) -> ImageUploadResult,
-    onDismiss: () -> Unit,
-    size: ImageUploadSize = ImageUploadSize.MEDIUM
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
-        text = {
-            ImageUploadPreview(
-                label = label,
-                uploadState = uploadState,
-                onStateChange = onStateChange,
-                uploadFunction = uploadFunction,
-                size = size,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cerrar")
-            }
-        }
-    )
 }
