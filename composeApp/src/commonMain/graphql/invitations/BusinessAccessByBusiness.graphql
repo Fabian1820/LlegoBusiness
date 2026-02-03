@@ -1,0 +1,19 @@
+query BusinessAccessByBusiness($businessId: String!, $jwt: String!) {
+    businessAccessByBusiness(businessId: $businessId, jwt: $jwt) {
+        id
+        isActive
+        isExpired
+        expiresAt
+        daysUntilExpiration
+        createdAt
+        user {
+            id
+            name
+            email
+        }
+        business {
+            id
+            name
+        }
+    }
+}

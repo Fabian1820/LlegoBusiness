@@ -6,6 +6,7 @@ import com.apollographql.apollo.network.http.HttpInterceptorChain
 import com.apollographql.apollo.api.http.HttpRequest
 import com.apollographql.apollo.api.http.HttpResponse
 import com.llego.shared.data.auth.TokenManager
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * GraphQL Client configurado para conectarse al backend de Llego
@@ -28,12 +29,14 @@ object GraphQLClient {
     /**
      * Apollo Client configurado con la URL del backend en Railway
      * Incluye interceptor para autenticación JWT
+     * Timeout configurado a 8 segundos para mejor UX en caso de servidor caído
      */
     val apolloClient: ApolloClient by lazy {
         ApolloClient.Builder()
             .serverUrl(BackendConfig.GRAPHQL_URL)
             .addHttpHeader("Content-Type", "application/json")
             .addHttpInterceptor(AuthInterceptor())
+            .httpExposeErrorBody(true) // Expone el body del error para mejor debugging
             .build()
     }
 

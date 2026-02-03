@@ -30,13 +30,16 @@ data class Business(
 )
 
 /**
- * Modelo de negocio con sucursales anidadas (getBusinessesWithBranches)
+ * Modelo de negocio con sucursales anidadas (getMyBusinessesWithBranches)
+ * Incluye metadata de permisos del usuario actual
  */
 @Serializable
 data class BusinessWithBranches(
     val id: String,
     val name: String,
     val ownerId: String,
+    val isOwner: Boolean = false,              // ✨ NUEVO: true si el usuario es owner del negocio
+    val role: String = "employee",              // ✨ NUEVO: "owner" | "manager" | "employee"
     val globalRating: Double = 0.0,
     val avatar: String? = null,
     val description: String? = null,
@@ -87,7 +90,9 @@ data class Branch(
     val facilities: List<String> = emptyList(),
     val createdAt: String,
     val avatarUrl: String? = null,
-    val coverUrl: String? = null
+    val coverUrl: String? = null,
+    val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
+    val walletStatus: String = "active"  // Estado de la billetera: "active", "suspended", etc.
 )
 
 /**

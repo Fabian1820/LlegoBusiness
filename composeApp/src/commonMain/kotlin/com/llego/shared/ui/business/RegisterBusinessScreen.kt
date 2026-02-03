@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +37,9 @@ import com.llego.shared.ui.business.state.defaultBranchFormState
 import com.llego.shared.ui.business.state.defaultBusinessFormState
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.shared.ui.upload.ImageUploadViewModel
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 
 /**
  * Pantalla COMPLETA para registrar negocio con TODAS las integraciones:
@@ -103,7 +106,7 @@ fun RegisterBusinessScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -444,7 +447,7 @@ fun RegisterBusinessScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Codigo de invitacion
-                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                 
                 val redeemState by invitationViewModel.redeemState.collectAsState()
                 
@@ -459,10 +462,26 @@ fun RegisterBusinessScreen(
                 // Handle invitation redemption success
                 LaunchedEffect(redeemState) {
                     if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-
+                        println("DEBUG RegisterBusinessScreen: Invitación aceptada, recargando datos...")
+                        
                         // Reload user data to get updated businessIds and branchIds
                         authViewModel.reloadUserData()
-
+                        
+                        // Esperar a que se cargue al menos un negocio (máximo 10 segundos)
+                        try {
+                            withTimeout(10000) {
+                                println("DEBUG RegisterBusinessScreen: Esperando a que se cargue un negocio...")
+                                authViewModel.currentBusiness
+                                    .filterNotNull()
+                                    .first()
+                                
+                                println("DEBUG RegisterBusinessScreen: Negocio cargado, navegando...")
+                            }
+                        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                            println("DEBUG RegisterBusinessScreen: Timeout esperando negocios")
+                            // Continuar de todas formas, el usuario verá el selector de negocios
+                        }
+                        
                         // Navigate to success (will handle branch selection if needed)
                         onRegisterSuccess()
 

@@ -25,9 +25,23 @@ type Query {
   businesses(ownerId: String = null, jwt: String = null): [BusinessType!]!
 
   """
-  Obtener negocios con sucursales anidadas
+  Obtener MIS negocios (propios + compartidos activos)
+  Filtra automáticamente accesos expirados
+  """
+  getMyBusinesses(jwt: String!): [BusinessType!]!
+
+  """
+  Obtener negocios con sucursales anidadas (DEPRECATED)
+  Usar getMyBusinessesWithBranches que incluye negocios compartidos
   """
   getBusinessesWithBranches(jwt: String!): [BusinessType!]!
+
+  """
+  Obtener MIS negocios con sucursales anidadas (propios + compartidos)
+  Incluye metadata de permisos: isOwner, role
+  Optimizado: 1 query en lugar de 1+N
+  """
+  getMyBusinessesWithBranches(jwt: String!): [BusinessType!]!
 
   """
   Obtener negocio por ID
@@ -299,6 +313,16 @@ type BusinessType {
   name: String!
 
   ownerId: String!
+
+  """
+  Indica si el usuario actual es owner del negocio
+  """
+  isOwner: Boolean!
+
+  """
+  Rol del usuario actual en el negocio: owner, manager, employee
+  """
+  role: String!
 
   globalRating: Float!
 

@@ -23,6 +23,11 @@ query GetBranches($businessId: String, $jwt: String) {
         createdAt
         avatarUrl
         coverUrl
+        wallet {
+          local
+          usd
+        }
+        walletStatus
       }
     }
     pageInfo {

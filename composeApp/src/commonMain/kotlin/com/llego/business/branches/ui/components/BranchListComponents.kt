@@ -58,7 +58,9 @@ fun BranchCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onLocationUpdate: (Double, Double) -> Unit = { _, _ -> },
-    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> },
+    canEdit: Boolean = true,
+    canDelete: Boolean = true
 ) {
     val statusColor = when (branch.status) {
         "active" -> MaterialTheme.colorScheme.tertiary
@@ -215,34 +217,38 @@ fun BranchCard(
                         Text("Activar")
                     }
                 }
-                IconButton(onClick = {
-                    onOpenMapSelection(
-                        branch.name,
-                        branch.coordinates.latitude,
-                        branch.coordinates.longitude
-                    ) { lat, lng ->
-                        onLocationUpdate(lat, lng)
+                if (canEdit) {
+                    IconButton(onClick = {
+                        onOpenMapSelection(
+                            branch.name,
+                            branch.coordinates.latitude,
+                            branch.coordinates.longitude
+                        ) { lat, lng ->
+                            onLocationUpdate(lat, lng)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Editar ubicacion",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
                     }
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Editar ubicacion",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                if (canDelete) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }
@@ -261,7 +267,10 @@ fun BusinessBranchesGroupCard(
     onLocationUpdate: (Branch, Double, Double) -> Unit,
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit,
     onAddBranch: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    canAddBranch: Boolean = true,
+    canEditBranch: Boolean = true,
+    canDeleteBranch: Boolean = true
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -335,24 +344,28 @@ fun BusinessBranchesGroupCard(
                             onEdit = { onEdit(branch) },
                             onDelete = { onDelete(branch) },
                             onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
-                            onOpenMapSelection = onOpenMapSelection
+                            onOpenMapSelection = onOpenMapSelection,
+                            canEdit = canEditBranch,
+                            canDelete = canDeleteBranch
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
-                OutlinedButton(
-                    onClick = onAddBranch,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = LlegoCustomShapes.secondaryButton
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Agregar sucursal")
+                if (canAddBranch) {
+                    OutlinedButton(
+                        onClick = onAddBranch,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LlegoCustomShapes.secondaryButton
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Agregar sucursal")
+                    }
                 }
             }
         }

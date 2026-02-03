@@ -7,6 +7,7 @@ import com.llego.multiplatform.graphql.GenerateInvitationCodeMutation
 import com.llego.multiplatform.graphql.InvitationByCodeQuery
 import com.llego.multiplatform.graphql.InvitationsByBusinessQuery
 import com.llego.multiplatform.graphql.ActiveInvitationsByBusinessQuery
+import com.llego.multiplatform.graphql.BusinessAccessByBusinessQuery
 import com.llego.multiplatform.graphql.type.InvitationType as GraphQLInvitationType
 import kotlinx.datetime.Instant
 import kotlin.time.ExperimentalTime
@@ -228,6 +229,28 @@ private fun String.toAccessStatus(): AccessStatus {
         "EXPIRED" -> AccessStatus.EXPIRED
         else -> AccessStatus.PENDING
     }
+}
+
+// BusinessAccess mappers
+@OptIn(ExperimentalTime::class)
+fun BusinessAccessByBusinessQuery.BusinessAccessByBusiness.toBusinessAccess(): BusinessAccess {
+    return BusinessAccess(
+        id = id,
+        user = InvitationUser(
+            id = user.id,
+            name = user.name,
+            email = user.email
+        ),
+        business = InvitationBusiness(
+            id = business.id,
+            name = business.name
+        ),
+        expiresAt = expiresAt?.toString()?.let { parseBackendDateTime(it) },
+        isActive = isActive,
+        isExpired = isExpired,
+        daysUntilExpiration = daysUntilExpiration,
+        grantedAt = parseBackendDateTime(createdAt.toString())
+    )
 }
 
 // Helper para parsear fechas del backend que no incluyen zona horaria

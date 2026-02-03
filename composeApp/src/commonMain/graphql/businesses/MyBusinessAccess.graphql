@@ -1,0 +1,14 @@
+query MyBusinessAccess($jwt: String!) {
+    myBusinessAccess(jwt: $jwt) {
+        isActive
+        isExpired
+        expiresAt
+        daysUntilExpiration
+        business {
+            id
+            name
+            ownerId
+            avatar
+        }
+    }
+}

@@ -7,6 +7,7 @@ mutation CreateBranch($input: CreateBranchInput!, $jwt: String) {
     phone
     tipos
     paymentMethodIds
+    managerIds
     avatar
     coverImage
     avatarUrl
@@ -20,5 +21,10 @@ mutation CreateBranch($input: CreateBranchInput!, $jwt: String) {
     schedule
     facilities
     createdAt
+    wallet {
+      local
+      usd
+    }
+    walletStatus
   }
 }

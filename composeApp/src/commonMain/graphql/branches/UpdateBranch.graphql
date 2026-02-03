@@ -12,6 +12,7 @@ mutation UpdateBranch(
     address
     tipos
     paymentMethodIds
+    managerIds
     avatar
     coverImage
     avatarUrl
@@ -23,5 +24,10 @@ mutation UpdateBranch(
     }
     schedule
     facilities
+    wallet {
+      local
+      usd
+    }
+    walletStatus
   }
 }

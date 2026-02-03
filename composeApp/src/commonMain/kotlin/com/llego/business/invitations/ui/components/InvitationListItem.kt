@@ -20,7 +20,7 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun InvitationListItem(
     invitation: Invitation,
-    onRevoke: (String) -> Unit,
+    onRevoke: ((String) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     var showRevokeDialog by remember { mutableStateOf(false) }
@@ -101,8 +101,8 @@ fun InvitationListItem(
                 )
             }
             
-            // Revoke button (only for pending invitations)
-            if (invitation.status == InvitationStatus.PENDING) {
+            // Revoke button (only for pending invitations and if user has permission)
+            if (invitation.status == InvitationStatus.PENDING && onRevoke != null) {
                 IconButton(
                     onClick = { showRevokeDialog = true }
                 ) {
@@ -126,7 +126,7 @@ fun InvitationListItem(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onRevoke(invitation.id)
+                        onRevoke?.invoke(invitation.id)
                         showRevokeDialog = false
                     }
                 ) {

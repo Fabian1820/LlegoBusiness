@@ -1,4 +1,4 @@
-﻿package com.llego.shared.data.repositories
+package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
@@ -107,59 +107,82 @@ class BusinessRepository(
 
     /**
      * Obtiene todos los negocios del usuario actual
+     * Incluye negocios propios Y negocios compartidos por invitación
+     * Filtra automáticamente accesos expirados
      */
     suspend fun getBusinesses(): BusinessResult<List<Business>> {
-
+        println("DEBUG BusinessRepository: getBusinesses() iniciado")
+        
         val token = tokenManager.getToken()
         if (token == null) {
-            return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
+            println("DEBUG BusinessRepository: No hay token")
+            return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
         }
 
+        println("DEBUG BusinessRepository: Token presente, llamando GetMyBusinessesWithBranches")
 
         return try {
-
+            // Usar getMyBusinessesWithBranches que retorna negocios propios + compartidos con sucursales
             val response = client.query(
-                GetBusinessesQuery(
-                    jwt = Optional.presentIfNotNull(token)
+                GetMyBusinessesWithBranchesQuery(
+                    jwt = token
                 )
             ).execute()
 
+            println("DEBUG BusinessRepository: Respuesta recibida")
+            println("  - hasErrors: ${response.hasErrors()}")
+            println("  - data presente: ${response.data != null}")
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("DEBUG BusinessRepository: Errores: $errors")
                 return BusinessResult.Error(
                     errors ?: "Error desconocido del servidor",
                     "GRAPHQL_ERROR"
                 )
             }
 
-            response.data?.businesses?.let { businessesData ->
-
+            response.data?.getMyBusinessesWithBranches?.let { businessesData ->
+                println("DEBUG BusinessRepository: ${businessesData.size} negocios recibidos")
+                
                 val businessesList = businessesData.map { it.toDomain() }
                 _businesses.value = businessesList
+
+                businessesList.forEachIndexed { index, business ->
+                    println("  [$index] ${business.name} (id: ${business.id}, owner: ${business.ownerId})")
+                }
 
                 // Si solo hay un negocio, establecerlo como actual
                 if (businessesList.size == 1) {
                     _currentBusiness.value = businessesList.first()
+                    println("DEBUG BusinessRepository: Un solo negocio, establecido como actual")
                 } else if (businessesList.isNotEmpty()) {
-                    // Si hay mÃºltiples negocios, establecer el primero como actual
+                    // Si hay múltiples negocios, establecer el primero como actual
                     _currentBusiness.value = businessesList.first()
+                    println("DEBUG BusinessRepository: Múltiples negocios, primero establecido como actual")
+                } else {
+                    println("DEBUG BusinessRepository: Lista vacía")
                 }
 
                 BusinessResult.Success(businessesList)
             } ?: run {
+                println("DEBUG BusinessRepository: data.getMyBusinessesWithBranches es null")
                 BusinessResult.Error(
-                    "No se recibiÃ³ respuesta del servidor",
+                    "No se recibió respuesta del servidor",
                     "EMPTY_RESPONSE"
                 )
             }
 
         } catch (e: ApolloException) {
+            println("DEBUG BusinessRepository: ApolloException - ${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al obtener negocios",
+                e.message ?: "Error de conexión al obtener negocios",
                 "APOLLO_ERROR"
             )
         } catch (e: Exception) {
+            println("DEBUG BusinessRepository: Exception - ${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al obtener negocios",
                 "UNKNOWN_ERROR"
@@ -262,12 +285,15 @@ class BusinessRepository(
      * Si businessId es null, obtiene todas las sucursales del usuario
      */
     suspend fun getBranches(businessId: String? = null): BusinessResult<List<Branch>> {
+        println("DEBUG BusinessRepository: getBranches() iniciado con businessId=$businessId")
 
         val token = tokenManager.getToken()
         if (token == null) {
+            println("DEBUG BusinessRepository: No hay token en getBranches")
             return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
         }
 
+        println("DEBUG BusinessRepository: Token presente en getBranches, llamando GetBranchesQuery")
 
         return try {
 
@@ -278,10 +304,16 @@ class BusinessRepository(
                 )
             ).execute()
 
+            println("DEBUG BusinessRepository: GetBranchesQuery ejecutado")
+            println("  - hasErrors: ${response.hasErrors()}")
+            println("  - data presente: ${response.data != null}")
+
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }
+                println("DEBUG BusinessRepository: Errores en GetBranchesQuery: $errors")
                 if (errors?.contains("_wallet") == true) {
+                    println("DEBUG BusinessRepository: Error de _wallet detectado, usando fallback")
                     return fallbackGetBranchesByIds(token, businessId)
                 }
                 return BusinessResult.Error(
@@ -290,12 +322,15 @@ class BusinessRepository(
                 )
             }
 
+            println("DEBUG BusinessRepository: Verificando response.data?.branches...")
             response.data?.branches?.let { branchesConnection ->
+                println("DEBUG BusinessRepository: branchesConnection recibido, edges count: ${branchesConnection.edges.size}")
                 // Extraer los nodos de la estructura paginada edges[].node
                 val branchesData = branchesConnection.edges.map { it.node }
 
                 val branchesList = branchesData.map { it.toDomain() }
                 _branches.value = branchesList
+                println("DEBUG BusinessRepository: ${branchesList.size} sucursales procesadas correctamente")
 
 
                 // Si solo hay una sucursal, establecerla como actual automÃ¡ticamente
@@ -312,15 +347,20 @@ class BusinessRepository(
 
                 BusinessResult.Success(branchesList)
             } ?: run {
+                println("DEBUG BusinessRepository: response.data?.branches es null, usando fallback")
                 fallbackGetBranchesByIds(token, businessId)
             }
 
         } catch (e: ApolloException) {
+            println("DEBUG BusinessRepository: ApolloException en getBranches - ${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error de conexiÃ³n al obtener sucursales",
                 "APOLLO_ERROR"
             )
         } catch (e: Exception) {
+            println("DEBUG BusinessRepository: Exception en getBranches - ${e.message}")
+            e.printStackTrace()
             BusinessResult.Error(
                 e.message ?: "Error desconocido al obtener sucursales",
                 "UNKNOWN_ERROR"
@@ -330,6 +370,8 @@ class BusinessRepository(
 
     /**
      * Obtiene todos los negocios del usuario con sus sucursales anidadas
+     * OPTIMIZADO: Usa getMyBusinessesWithBranches (incluye negocios propios + compartidos)
+     * Reduce queries de 1+N a 1 sola llamada
      */
     suspend fun getBusinessesWithBranches(): BusinessResult<List<BusinessWithBranches>> {
         val token = tokenManager.getToken()
@@ -339,7 +381,7 @@ class BusinessRepository(
 
         return try {
             val response = client.query(
-                GetBusinessesWithBranchesQuery(
+                GetMyBusinessesWithBranchesQuery(
                     jwt = token
                 )
             ).execute()
@@ -352,7 +394,7 @@ class BusinessRepository(
                 )
             }
 
-            response.data?.getBusinessesWithBranches?.let { businessesData ->
+            response.data?.getMyBusinessesWithBranches?.let { businessesData ->
                 val businessesList = businessesData.map { businessData ->
                     val branches = businessData.branches.map { branchData ->
                         val scheduleMap = parseSchedule(branchData.schedule)
@@ -379,7 +421,12 @@ class BusinessRepository(
                             facilities = branchData.facilities ?: emptyList(),
                             createdAt = branchData.createdAt.toString(),
                             avatarUrl = branchData.avatarUrl,
-                            coverUrl = branchData.coverUrl
+                            coverUrl = branchData.coverUrl,
+                            wallet = WalletBalance(
+                                local = branchData.wallet.local,
+                                usd = branchData.wallet.usd
+                            ),
+                            walletStatus = branchData.walletStatus
                         )
                     }
 
@@ -387,6 +434,8 @@ class BusinessRepository(
                         id = businessData.id,
                         name = businessData.name,
                         ownerId = businessData.ownerId,
+                        isOwner = businessData.isOwner,           // ✨ NUEVO
+                        role = businessData.role,                 // ✨ NUEVO
                         globalRating = businessData.globalRating,
                         avatar = businessData.avatar,
                         description = businessData.description,

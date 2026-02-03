@@ -1,5 +1,5 @@
-query GetBusinessesWithBranches($jwt: String!) {
-  getBusinessesWithBranches(jwt: $jwt) {
+query GetMyBusinessesWithBranches($jwt: String!) {
+  getMyBusinessesWithBranches(jwt: $jwt) {
     id
     name
     avatar
@@ -9,6 +9,8 @@ query GetBusinessesWithBranches($jwt: String!) {
     socialMedia
     isActive
     ownerId
+    isOwner
+    role
     globalRating
     createdAt
     branches {

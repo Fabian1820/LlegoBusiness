@@ -48,7 +48,19 @@ data class InvitationBranch(
 
 data class InvitationUser(
     val id: String,
-    val name: String
+    val name: String,
+    val email: String? = null
+)
+
+data class BusinessAccess(
+    val id: String,
+    val user: InvitationUser,
+    val business: InvitationBusiness,
+    val expiresAt: Instant?,
+    val isActive: Boolean,
+    val isExpired: Boolean,
+    val daysUntilExpiration: Int?,
+    val grantedAt: Instant
 )
 
 data class GenerateInvitationInput(

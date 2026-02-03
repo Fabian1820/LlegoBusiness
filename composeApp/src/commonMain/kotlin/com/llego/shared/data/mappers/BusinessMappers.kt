@@ -33,6 +33,38 @@ fun GetBusinessesQuery.Business.toDomain(): Business {
     )
 }
 
+fun GetMyBusinessesQuery.GetMyBusiness.toDomain(): Business {
+    return Business(
+        id = id,
+        name = name,
+        ownerId = ownerId, // Esta query SÍ incluye ownerId
+        globalRating = globalRating,
+        avatar = avatar,
+        description = description,
+        socialMedia = parseStringMap(socialMedia),
+        tags = tags,
+        isActive = isActive,
+        createdAt = createdAt.toString(),
+        avatarUrl = avatarUrl
+    )
+}
+
+fun GetMyBusinessesWithBranchesQuery.GetMyBusinessesWithBranch.toDomain(): Business {
+    return Business(
+        id = id,
+        name = name,
+        ownerId = ownerId,
+        globalRating = globalRating,
+        avatar = avatar,
+        description = description,
+        socialMedia = parseStringMap(socialMedia),
+        tags = tags,
+        isActive = isActive,
+        createdAt = createdAt.toString(),
+        avatarUrl = avatarUrl
+    )
+}
+
 fun GetBusinessQuery.Business.toDomain(): Business {
     return Business(
         id = id,
@@ -113,7 +145,12 @@ fun GetBranchesQuery.Node.toDomain(): Branch {
         facilities = facilities ?: emptyList(),
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
-        coverUrl = coverUrl
+        coverUrl = coverUrl,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus
     )
 }
 
@@ -142,7 +179,12 @@ fun GetBranchQuery.Branch.toDomain(): Branch {
         facilities = facilities ?: emptyList(),
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
-        coverUrl = coverUrl
+        coverUrl = coverUrl,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus
     )
 }
 
@@ -163,15 +205,20 @@ fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
         schedule = scheduleMap,
         tipos = branchTipos,
         paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = emptyList(),
-        status = status,
+        managerIds = managerIds ?: emptyList(),
+        status = status ?: "active",
         avatar = avatar,
         coverImage = coverImage,
         deliveryRadius = deliveryRadius,
-        facilities = facilities,
+        facilities = facilities ?: emptyList(),
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
-        coverUrl = coverUrl
+        coverUrl = coverUrl,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus
     )
 }
 
@@ -192,7 +239,7 @@ fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
         schedule = scheduleMap,
         tipos = branchTipos,
         paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = emptyList(),
+        managerIds = managerIds ?: emptyList(),
         status = status,
         avatar = avatar,
         coverImage = coverImage,
@@ -200,7 +247,12 @@ fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
         facilities = facilities,
         createdAt = "", // No viene en update
         avatarUrl = avatarUrl,
-        coverUrl = coverUrl
+        coverUrl = coverUrl,
+        wallet = WalletBalance(
+            local = wallet.local,
+            usd = wallet.usd
+        ),
+        walletStatus = walletStatus
     )
 }
 

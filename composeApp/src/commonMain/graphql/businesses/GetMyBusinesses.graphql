@@ -1,0 +1,15 @@
+query GetMyBusinesses($jwt: String!) {
+    getMyBusinesses(jwt: $jwt) {
+        id
+        name
+        ownerId
+        globalRating
+        avatar
+        description
+        socialMedia
+        tags
+        isActive
+        createdAt
+        avatarUrl
+    }
+}

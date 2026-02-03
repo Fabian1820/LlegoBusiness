@@ -3,11 +3,13 @@ package com.llego.business.invitations.data.repository
 import com.apollographql.apollo.ApolloClient
 import com.llego.multiplatform.graphql.AcceptInvitationCodeMutation
 import com.llego.multiplatform.graphql.ActiveInvitationsByBusinessQuery
+import com.llego.multiplatform.graphql.BusinessAccessByBusinessQuery
 import com.llego.multiplatform.graphql.GenerateInvitationCodeMutation
 import com.llego.multiplatform.graphql.InvitationByCodeQuery
 import com.llego.multiplatform.graphql.InvitationsByBusinessQuery
 import com.llego.multiplatform.graphql.RevokeInvitationCodeMutation
 import com.llego.business.invitations.data.mappers.*
+import com.llego.business.invitations.data.model.BusinessAccess
 import com.llego.business.invitations.data.model.GenerateInvitationInput
 import com.llego.business.invitations.data.model.Invitation
 import com.llego.shared.data.network.GraphQLClient
@@ -197,6 +199,37 @@ class InvitationRepository(
             } else {
                 Result.failure(e)
             }
+        }
+    }
+
+    suspend fun getBusinessAccessByBusiness(
+        businessId: String
+    ): Result<List<BusinessAccess>> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token found"))
+
+            val response = apolloClient.query(
+                BusinessAccessByBusinessQuery(
+                    businessId = businessId,
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errorMessage = response.errors?.firstOrNull()?.message ?: "Error fetching business access"
+                Result.failure(Exception(errorMessage))
+            } else {
+                val businessAccesses = response.data?.businessAccessByBusiness?.mapNotNull {
+                    try {
+                        it.toBusinessAccess()
+                    } catch (e: Exception) {
+                        null // Ignorar accesos que no se puedan parsear
+                    }
+                } ?: emptyList()
+                Result.success(businessAccesses)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

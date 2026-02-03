@@ -98,6 +98,7 @@ fun App(viewModels: AppViewModels) {
         // Estado para controlar la carga inicial (verificaciÃ³n de sesiÃ³n)
         var isCheckingSession by remember { mutableStateOf(true) }
         var isResolvingBusiness by remember { mutableStateOf(false) }
+        var initialLoadComplete by remember { mutableStateOf(false) }
 
         // Estado para confirmaciones fullscreen
         var confirmationType by remember { mutableStateOf<ConfirmationType?>(null) }
@@ -133,6 +134,7 @@ fun App(viewModels: AppViewModels) {
                 // La sesiÃ³n ya fue verificada (exitosa o fallida)
                 if (!uiState.isLoading) {
                     isCheckingSession = false
+                    initialLoadComplete = true
                 }
 
                 if (user != null) {
@@ -159,19 +161,19 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
-        LaunchedEffect(isAuthenticated) {
+        // OPTIMIZADO: Eliminar delay artificial y resolver basado en datos reales
+        LaunchedEffect(isAuthenticated, currentBusiness, branches) {
             if (!isAuthenticated) {
                 isResolvingBusiness = false
+                initialLoadComplete = true
                 return@LaunchedEffect
             }
 
-            isResolvingBusiness = true
-            delay(600)
-            isResolvingBusiness = false
-        }
-
-        LaunchedEffect(currentBusiness, branches, isAuthenticated) {
-            if (isAuthenticated && (currentBusiness != null || branches.isNotEmpty())) {
+            // Mostrar loading solo si estamos autenticados pero aún no tenemos datos
+            if (initialLoadComplete && currentBusiness == null && branches.isEmpty()) {
+                isResolvingBusiness = true
+            } else if (currentBusiness != null || branches.isNotEmpty()) {
+                // Tenemos datos, ocultar loading
                 isResolvingBusiness = false
             }
         }
@@ -264,8 +266,8 @@ fun App(viewModels: AppViewModels) {
                 }
             }
 
-            // Caso 0: Verificando sesiÃ³n al iniciar â†’ Loading
-            isCheckingSession -> {
+            // Caso 0: Carga inicial - Mostrar splash screen unificada
+            isCheckingSession || (!initialLoadComplete && isAuthenticated) -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -280,7 +282,7 @@ fun App(viewModels: AppViewModels) {
                             modifier = Modifier.height(16.dp)
                         )
                         androidx.compose.material3.Text(
-                            text = "Verificando sesiÃ³n...",
+                            text = "Cargando...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -546,6 +548,9 @@ fun App(viewModels: AppViewModels) {
                         },
                         onAddBranch = { businessId ->
                             branchCreateBusinessId = businessId
+                        },
+                        onNavigateBack = {
+                            authViewModel.logout()
                         },
                         invitationViewModel = viewModels.invitations,
                         authViewModel = authViewModel

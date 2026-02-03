@@ -63,7 +63,17 @@ class AuthRepository(
             _isAuthenticated.value = true
             AuthResult.Success(user)
         } catch (e: ApolloException) {
-            AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+            // Mensajes más descriptivos para errores de conexión
+            val errorMessage = when {
+                e.message?.contains("timeout", ignoreCase = true) == true ->
+                    "El servidor no responde. Verifica tu conexión e intenta nuevamente."
+                e.message?.contains("502", ignoreCase = true) == true ->
+                    "El servidor no está disponible. Intenta más tarde."
+                e.message?.contains("Failed to connect", ignoreCase = true) == true ->
+                    "No se pudo conectar al servidor. Verifica tu conexión."
+                else -> "Error de conexión. Verifica tu internet e intenta nuevamente."
+            }
+            AuthResult.Error(errorMessage, "APOLLO_ERROR")
         } catch (e: Exception) {
             AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
         }
@@ -151,7 +161,17 @@ class AuthRepository(
             _isAuthenticated.value = true
             AuthResult.Success(user)
         } catch (e: ApolloException) {
-            AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+            // Mensajes más descriptivos para errores de conexión
+            val errorMessage = when {
+                e.message?.contains("timeout", ignoreCase = true) == true ->
+                    "El servidor no responde. Verifica tu conexión e intenta nuevamente."
+                e.message?.contains("502", ignoreCase = true) == true ->
+                    "El servidor no está disponible. Intenta más tarde."
+                e.message?.contains("Failed to connect", ignoreCase = true) == true ->
+                    "No se pudo conectar al servidor. Verifica tu conexión."
+                else -> "Error de conexión. Verifica tu internet e intenta nuevamente."
+            }
+            AuthResult.Error(errorMessage, "APOLLO_ERROR")
         } catch (e: Exception) {
             AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
         }
@@ -223,7 +243,17 @@ class AuthRepository(
             _isAuthenticated.value = true
             AuthResult.Success(user)
         } catch (e: ApolloException) {
-            AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+            // Mensajes más descriptivos para errores de conexión
+            val errorMessage = when {
+                e.message?.contains("timeout", ignoreCase = true) == true ->
+                    "El servidor no responde. Verifica tu conexión e intenta nuevamente."
+                e.message?.contains("502", ignoreCase = true) == true ->
+                    "El servidor no está disponible. Intenta más tarde."
+                e.message?.contains("Failed to connect", ignoreCase = true) == true ->
+                    "No se pudo conectar al servidor. Verifica tu conexión."
+                else -> "Error de conexión. Verifica tu internet e intenta nuevamente."
+            }
+            AuthResult.Error(errorMessage, "APOLLO_ERROR")
         } catch (e: Exception) {
             AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
         }

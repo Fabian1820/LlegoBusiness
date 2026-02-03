@@ -5,7 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +25,9 @@ import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.ui.theme.LlegoCustomShapes
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 
 /**
  * Pantalla mejorada de selección de sucursal
@@ -27,12 +37,14 @@ import com.llego.shared.ui.theme.LlegoCustomShapes
  * - Permite agregar sucursal a negocio existente
  * - Código de invitación integrado
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BranchSelectorScreen(
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
     onAddBusiness: () -> Unit,
     onAddBranch: (String) -> Unit,
+    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     invitationViewModel: com.llego.business.invitations.ui.viewmodel.InvitationViewModel,
     authViewModel: com.llego.shared.ui.auth.AuthViewModel
@@ -45,10 +57,28 @@ fun BranchSelectorScreen(
         branchSelectorViewModel.loadBusinesses()
     }
 
+    // Obtener usuario actual para verificar permisos
+    val authUiState by authViewModel.uiState.collectAsState()
+    val currentUserId = authUiState.user?.id
+
     // Agrupar sucursales por negocio
     val branchesByBusiness = remember(branchSelectorState.businessesWithBranches) {
         val grouped = branchSelectorState.businessesWithBranches.map { it.toBusiness() to it.branches }
         grouped
+    }
+
+    // Verificar si el usuario es propietario de al menos un negocio
+    // Solo propietarios y nuevos usuarios pueden crear negocios
+    val canCreateBusiness = remember(currentUserId, branchSelectorState.businessesWithBranches) {
+        val userId = currentUserId
+        if (userId == null) {
+            false // Usuario no autenticado
+        } else {
+            // Puede crear si no tiene negocios (nuevo usuario) o si es propietario de al menos uno
+            val isOwnerOfAnyBusiness = branchSelectorState.businessesWithBranches.any { it.ownerId == userId }
+            val hasNoBusinesses = branchSelectorState.businessesWithBranches.isEmpty()
+            isOwnerOfAnyBusiness || hasNoBusinesses
+        }
     }
 
     val orphanBranches = remember(branches, branchSelectorState.businessesWithBranches) {
@@ -56,161 +86,193 @@ fun BranchSelectorScreen(
         branches.filter { it.id !in knownBranchIds }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(
-            modifier = Modifier
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Gestiona tus Negocios",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Subtítulo
+                Text(
+                    text = "Selecciona la sucursal que deseas administrar",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
 
-            // Título
-            Text(
-                text = "Gestiona tus Negocios",
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Subtítulo
-            Text(
-                text = "Selecciona la sucursal que deseas administrar",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Contenido principal
-            if (branchSelectorState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Mostrar negocios con sus sucursales agrupadas
-                    branchesByBusiness.forEach { (business, businessBranches) ->
-                        item(key = "business_${business.id}") {
-                            BusinessGroupCard(
-                                business = business,
-                                branches = businessBranches,
-                                onBranchSelected = onBranchSelected,
-                                onAddBranch = { onAddBranch(business.id) }
-                            )
-                        }
+                // Contenido principal
+                if (branchSelectorState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Mostrar negocios con sus sucursales agrupadas
+                        branchesByBusiness.forEach { (business, businessBranches) ->
+                            item(key = "business_${business.id}") {
+                                val isOwner = currentUserId != null && currentUserId == business.ownerId
 
-                    // Mostrar sucursales huérfanas (sin negocio identificado)
-                    orphanBranches.forEach { branch ->
-                        item(key = "orphan_branch_${branch.id}") {
-                            BranchCard(
-                                branch = branch,
-                                onClick = { onBranchSelected(branch) }
-                            )
-                        }
-                    }
-
-                    // Botón para agregar nuevo negocio
-                    item(key = "add_business_button") {
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedCard(
-                            onClick = onAddBusiness,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = LlegoCustomShapes.productCard,
-                            border = CardDefaults.outlinedCardBorder().copy(
-                                width = 2.dp
-                            ),
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
+                                BusinessGroupCard(
+                                    business = business,
+                                    branches = businessBranches,
+                                    onBranchSelected = onBranchSelected,
+                                    onAddBranch = { onAddBranch(business.id) },
+                                    canAddBranch = isOwner
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Crear Nuevo Negocio",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
+                            }
+                        }
+
+                        // Mostrar sucursales huérfanas (sin negocio identificado)
+                        orphanBranches.forEach { branch ->
+                            item(key = "orphan_branch_${branch.id}") {
+                                BranchCard(
+                                    branch = branch,
+                                    onClick = { onBranchSelected(branch) }
+                                )
+                            }
+                        }
+
+                        // Botón para agregar nuevo negocio (solo propietarios o nuevos usuarios)
+                        if (canCreateBusiness) {
+                            item(key = "add_business_button") {
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedCard(
+                                    onClick = onAddBusiness,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = LlegoCustomShapes.productCard,
+                                    border = CardDefaults.outlinedCardBorder().copy(
+                                        width = 2.dp
                                     ),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-
-                    // Código de invitación
-                    item(key = "invitation_code") {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        HorizontalDivider(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "¿Tienes un código de invitación?",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val redeemState by invitationViewModel.redeemState.collectAsState()
-
-                        com.llego.business.invitations.ui.components.InvitationCodeInput(
-                            isLoading = redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Loading,
-                            errorMessage = (redeemState as? com.llego.business.invitations.ui.viewmodel.RedeemState.Error)?.message,
-                            onRedeemCode = { code ->
-                                invitationViewModel.redeemInvitationCode(code)
-                            }
-                        )
-
-                        // Handle invitation redemption success
-                        LaunchedEffect(redeemState) {
-                            if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-
-                                // Reload user data to get updated businessIds and branchIds
-                                authViewModel.reloadUserData()
-
-                                // Recargar negocios
-                                branchSelectorViewModel.loadBusinesses()
-
-                                // Reset invitation state
-                                invitationViewModel.resetRedeemState()
+                                    colors = CardDefaults.outlinedCardColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(20.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "Crear Nuevo Negocio",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        // Código de invitación
+                        item(key = "invitation_code") {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            HorizontalDivider(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "¿Tienes un código de invitación?",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val redeemState by invitationViewModel.redeemState.collectAsState()
+
+                            com.llego.business.invitations.ui.components.InvitationCodeInput(
+                                isLoading = redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Loading,
+                                errorMessage = (redeemState as? com.llego.business.invitations.ui.viewmodel.RedeemState.Error)?.message,
+                                onRedeemCode = { code ->
+                                    invitationViewModel.redeemInvitationCode(code)
+                                }
+                            )
+
+                            // Handle invitation redemption success
+                            LaunchedEffect(redeemState) {
+                                if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
+                                    println("DEBUG BranchSelectorScreen: Invitación aceptada, recargando datos...")
+                                    
+                                    // Reload user data to get updated businessIds and branchIds
+                                    authViewModel.reloadUserData()
+                                    
+                                    // Esperar a que se cargue al menos un negocio (máximo 10 segundos)
+                                    try {
+                                        withTimeout(10000) {
+                                            println("DEBUG BranchSelectorScreen: Esperando a que se cargue un negocio...")
+                                            authViewModel.currentBusiness
+                                                .filterNotNull()
+                                                .first()
+                                            
+                                            println("DEBUG BranchSelectorScreen: Negocio cargado")
+                                        }
+                                    } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                                        println("DEBUG BranchSelectorScreen: Timeout esperando negocios")
+                                    }
+
+                                    // Recargar negocios en el selector
+                                    branchSelectorViewModel.loadBusinesses()
+
+                                    // Reset invitation state
+                                    invitationViewModel.resetRedeemState()
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
                     }
                 }
             }
@@ -227,7 +289,8 @@ private fun BusinessGroupCard(
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
     onAddBranch: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    canAddBranch: Boolean = true
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -254,22 +317,12 @@ private fun BusinessGroupCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Avatar del negocio
-                if (business.avatarUrl != null) {
-                    // TODO: Implementar imagen del negocio
-                    Icon(
-                        imageVector = Icons.Default.Business,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Business,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Business,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -318,19 +371,21 @@ private fun BusinessGroupCard(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Botón para agregar sucursal a este negocio
-                OutlinedButton(
-                    onClick = onAddBranch,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = LlegoCustomShapes.secondaryButton
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Agregar sucursal")
+                // Botón para agregar sucursal a este negocio (solo propietarios)
+                if (canAddBranch) {
+                    OutlinedButton(
+                        onClick = onAddBranch,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LlegoCustomShapes.secondaryButton
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Agregar sucursal")
+                    }
                 }
             }
         }

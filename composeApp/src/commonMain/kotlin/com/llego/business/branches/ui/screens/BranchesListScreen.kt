@@ -48,7 +48,8 @@ fun BranchesListScreen(
     onEdit: (Branch) -> Unit,
     onDelete: (Branch) -> Unit,
     onLocationUpdate: (Branch, Double, Double) -> Unit = { _, _, _ -> },
-    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> },
+    currentUserId: String? = null
 ) {
     Scaffold(
         topBar = {
@@ -142,6 +143,8 @@ fun BranchesListScreen(
 
             businessesWithBranches.forEach { business ->
                 item(key = "business_${business.id}") {
+                    val isOwner = currentUserId != null && currentUserId == business.ownerId
+
                     BusinessBranchesGroupCard(
                         business = business,
                         branches = business.branches,
@@ -152,7 +155,10 @@ fun BranchesListScreen(
                         onDelete = onDelete,
                         onLocationUpdate = onLocationUpdate,
                         onOpenMapSelection = onOpenMapSelection,
-                        onAddBranch = { onAddBranch(business.id) }
+                        onAddBranch = { onAddBranch(business.id) },
+                        canAddBranch = isOwner,
+                        canEditBranch = true, // Owners and managers can edit
+                        canDeleteBranch = isOwner
                     )
                 }
             }
@@ -175,7 +181,9 @@ fun BranchesListScreen(
                         onEdit = { onEdit(branch) },
                         onDelete = { onDelete(branch) },
                         onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
-                        onOpenMapSelection = onOpenMapSelection
+                        onOpenMapSelection = onOpenMapSelection,
+                        canEdit = true, // Allow editing for orphan branches
+                        canDelete = false // Don't allow deletion without business context
                     )
                 }
             }

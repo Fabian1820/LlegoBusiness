@@ -131,6 +131,8 @@ fun BranchesManagementScreen(
     val branches by authViewModel.branches.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
+    val authUiState by authViewModel.uiState.collectAsState()
+    val currentUserId = authUiState.user?.id
 
     var createBranchBusinessId by remember { mutableStateOf<String?>(null) }
     var selectedBranchId by remember { mutableStateOf<String?>(null) }
@@ -279,7 +281,8 @@ fun BranchesManagementScreen(
                         }
                     }
                 },
-                onOpenMapSelection = onOpenMapSelection
+                onOpenMapSelection = onOpenMapSelection,
+                currentUserId = currentUserId
             )
         }
     }

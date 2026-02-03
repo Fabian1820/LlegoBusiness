@@ -143,7 +143,7 @@ fun InvitationsCard(
                 )
                 Column {
                     Text(
-                        text = "CÃ³digos de invitaciÃ³n",
+                        text = "Códigos de invitación",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),

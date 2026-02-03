@@ -82,6 +82,13 @@ fun BusinessProfileScreen(
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val branches by authViewModel.branches.collectAsState()
 
+    // Verificar si el usuario actual es el propietario del negocio
+    val isOwner = remember(currentUser?.id, currentBusiness?.ownerId) {
+        val userId = currentUser?.id
+        val ownerId = currentBusiness?.ownerId
+        userId != null && ownerId != null && userId == ownerId
+    }
+
     // Mostrar mensaje de guardado
     LaunchedEffect(saveMessage) {
         saveMessage?.let {
@@ -301,8 +308,8 @@ fun BusinessProfileScreen(
                 )
             }
 
-            // Gestion de sucursales (solo si tiene multiples)
-            if (branches.size > 1) {
+            // Gestion de sucursales (solo si tiene multiples y es propietario)
+            if (branches.size > 1 && isOwner) {
                 item {
                     BranchesManagementCard(
                         onClick = onNavigateToBranches,
@@ -311,12 +318,14 @@ fun BusinessProfileScreen(
                 }
             }
 
-            // Codigos de invitacion
-            item {
-                InvitationsCard(
-                    onClick = onNavigateToInvitations,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
+            // Codigos de invitacion (solo propietarios)
+            if (isOwner) {
+                item {
+                    InvitationsCard(
+                        onClick = onNavigateToInvitations,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                }
             }
 
             // Cerrar sesion
