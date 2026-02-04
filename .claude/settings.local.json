@@ -6,7 +6,8 @@
       "Bash(./gradlew:*)",
       "Bash(.gradlew.bat composeApp:compileCommonMainKotlinMetadata:*)",
       "Bash(mkdir:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
