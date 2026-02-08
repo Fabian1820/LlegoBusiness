@@ -133,10 +133,15 @@ fun App(viewModels: AppViewModels) {
         }
 
         // OPTIMIZADO: Eliminar delay artificial y resolver basado en datos reales
-        LaunchedEffect(isAuthenticated, currentBusiness, branches, authError) {
+        LaunchedEffect(isAuthenticated, currentBusiness, branches, authError, needsBusinessRegistration) {
             if (!isAuthenticated) {
                 isResolvingBusiness = false
                 initialLoadComplete = true
+                return@LaunchedEffect
+            }
+
+            if (needsBusinessRegistration) {
+                isResolvingBusiness = false
                 return@LaunchedEffect
             }
 
@@ -213,7 +218,7 @@ fun App(viewModels: AppViewModels) {
 
         Box(modifier = Modifier.fillMaxSize()) {
             when {
-                isAuthenticated && isResolvingBusiness -> {
+                isAuthenticated && isResolvingBusiness && !needsBusinessRegistration -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -616,6 +621,5 @@ private fun MainBusinessFlow(
         }
     }
 }
-
 
 
