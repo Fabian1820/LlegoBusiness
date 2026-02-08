@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -242,6 +243,8 @@ internal fun SocialButton(
     )
     val overlayColor = if (isPressed) contentColor.copy(alpha = 0.12f) else Color.Transparent
 
+    val buttonShape = RoundedCornerShape(12.dp)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -250,11 +253,13 @@ internal fun SocialButton(
                 scaleX = scale.value
                 scaleY = scale.value
             }
+            .clip(buttonShape)
             .clickable(
                 onClick = onClick,
-                interactionSource = interactionSource
+                interactionSource = interactionSource,
+                indication = androidx.compose.material3.ripple()
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = buttonShape,
         color = containerColor,
         border = borderColor?.let { androidx.compose.foundation.BorderStroke(1.dp, it) },
         shadowElevation = if (containerColor == MaterialTheme.colorScheme.surface) 1.dp else 0.dp

@@ -30,6 +30,8 @@ fun PaymentMethodSelector(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
     layout: PaymentMethodSelectorLayout = PaymentMethodSelectorLayout.HORIZONTAL
 ) {
     Column(
@@ -69,6 +71,26 @@ fun PaymentMethodSelector(
                             .size(24.dp)
                             .padding(16.dp)
                     )
+                }
+            }
+            !errorMessage.isNullOrBlank() -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    if (onRetry != null) {
+                        OutlinedButton(
+                            onClick = onRetry,
+                            enabled = enabled
+                        ) {
+                            Text("Reintentar carga")
+                        }
+                    }
                 }
             }
             availablePaymentMethods.isEmpty() -> {
@@ -129,7 +151,12 @@ fun PaymentMethodSelector(
             }
         }
 
-        if (selectedPaymentMethodIds.isEmpty() && !isLoading) {
+        if (
+            selectedPaymentMethodIds.isEmpty() &&
+            !isLoading &&
+            errorMessage.isNullOrBlank() &&
+            availablePaymentMethods.isNotEmpty()
+        ) {
             Text(
                 text = "Debes seleccionar al menos un método de pago",
                 style = MaterialTheme.typography.bodySmall,

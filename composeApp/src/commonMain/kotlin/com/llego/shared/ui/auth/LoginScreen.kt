@@ -322,8 +322,8 @@ fun LoginScreen(
                                 Spacer(modifier = Modifier.height(30.dp))
                                 ClickableText(
                                     text = termsText,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                         textAlign = TextAlign.Center
                                     ),
                                     modifier = Modifier.fillMaxWidth(),
@@ -345,7 +345,7 @@ fun LoginScreen(
                                         }
                                     }
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
                     }
@@ -450,5 +450,3 @@ private fun LoginHeader() {
         }
     }
 }
-
-

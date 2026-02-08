@@ -37,7 +37,7 @@ import com.llego.shared.ui.business.state.defaultBranchFormState
 import com.llego.shared.ui.business.state.defaultBusinessFormState
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.shared.ui.upload.ImageUploadViewModel
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 
@@ -351,6 +351,8 @@ fun RegisterBusinessScreen(
                                         }
                                     },
                                     isLoading = paymentMethodsUiState.isLoading,
+                                    errorMessage = paymentMethodsUiState.error,
+                                    onRetry = paymentMethodsViewModel::loadPaymentMethods,
                                     layout = PaymentMethodSelectorLayout.FLOW
                                 )
 
@@ -466,16 +468,15 @@ fun RegisterBusinessScreen(
                         // Reload user data to get updated businessIds and branchIds
                         authViewModel.reloadUserData()
                         
-                        // Esperar a que se cargue al menos un negocio (mÃ¡ximo 10 segundos)
+                        // Esperar a que se reflejen datos de negocio/sucursal (máximo 3 segundos)
                         try {
-                            withTimeout(10000) {
-                                authViewModel.currentBusiness
-                                    .filterNotNull()
-                                    .first()
-                                
+                            withTimeout(3_000L) {
+                                combine(authViewModel.currentBusiness, authViewModel.branches) { business, branches ->
+                                    business != null || branches.isNotEmpty()
+                                }.first { ready -> ready }
                             }
                         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                            // Continuar de todas formas, el usuario verÃ¡ el selector de negocios
+                            // Continuar de todas formas, la navegación decidirá la pantalla adecuada
                         }
                         
                         // Navigate to success (will handle branch selection if needed)
@@ -500,7 +501,22 @@ fun RegisterBusinessScreen(
                                 branch.longitude != 0.0
                         }
                 }
+                val paymentMethodsReady = paymentMethodsUiState.error.isNullOrBlank() &&
+                    !paymentMethodsUiState.isLoading &&
+                    paymentMethodsUiState.methods.isNotEmpty()
                 val isMultipleBusinesses = businessForms.size > 1
+
+                if (!paymentMethodsReady) {
+                    Text(
+                        text = if (paymentMethodsUiState.isLoading) {
+                            "Cargando metodos de pago..."
+                        } else {
+                            "No se pudieron cargar los metodos de pago. Reintenta para continuar."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
 
                 LlegoButton(
                     text = if (isMultipleBusinesses) "Registrar Negocios" else "Registrar Negocio",
@@ -548,7 +564,7 @@ fun RegisterBusinessScreen(
                             viewModel.registerBusiness(businessInput, branchesInput)
                         }
                     },
-                    enabled = !uiState.isLoading && businessesValid
+                    enabled = !uiState.isLoading && businessesValid && paymentMethodsReady
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

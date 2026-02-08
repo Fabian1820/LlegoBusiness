@@ -7,10 +7,12 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CreateBusinessInput
 import com.llego.shared.data.model.RegisterBranchInput
 import com.llego.shared.data.repositories.BusinessRepository
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /**
  * UI State para RegisterBusinessScreen
@@ -29,6 +31,7 @@ class RegisterBusinessViewModel(
 ) : ViewModel() {
 
     private val businessRepository = BusinessRepository(tokenManager = tokenManager)
+    private val registerTimeoutMs = 20_000L
 
     private val _uiState = MutableStateFlow(RegisterBusinessUiState())
     val uiState: StateFlow<RegisterBusinessUiState> = _uiState.asStateFlow()
@@ -47,24 +50,44 @@ class RegisterBusinessViewModel(
                 error = null
             )
 
-            when (val result = businessRepository.registerBusiness(business, branches)) {
-                is BusinessResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRegistered = true,
-                        error = null
-                    )
+            try {
+                when (val result = withTimeout(registerTimeoutMs) {
+                    businessRepository.registerBusiness(business, branches)
+                }) {
+                    is BusinessResult.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = true,
+                            error = null
+                        )
+                    }
+                    is BusinessResult.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = false,
+                            error = result.message
+                        )
+                    }
+                    else -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = false,
+                            error = "Estado de registro no esperado. Intenta nuevamente."
+                        )
+                    }
                 }
-                is BusinessResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRegistered = false,
-                        error = result.message
-                    )
-                }
-                else -> {
-                    // Loading state - no hacer nada
-                }
+            } catch (_: TimeoutCancellationException) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRegistered = false,
+                    error = "El registro esta tardando demasiado. Revisa tu conexion e intenta nuevamente."
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRegistered = false,
+                    error = e.message ?: "Error inesperado durante el registro."
+                )
             }
         }
     }
@@ -81,22 +104,44 @@ class RegisterBusinessViewModel(
                 error = null
             )
 
-            when (val result = businessRepository.registerMultipleBusinesses(businesses)) {
-                is BusinessResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRegistered = true,
-                        error = null
-                    )
+            try {
+                when (val result = withTimeout(registerTimeoutMs) {
+                    businessRepository.registerMultipleBusinesses(businesses)
+                }) {
+                    is BusinessResult.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = true,
+                            error = null
+                        )
+                    }
+                    is BusinessResult.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = false,
+                            error = result.message
+                        )
+                    }
+                    else -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRegistered = false,
+                            error = "Estado de registro no esperado. Intenta nuevamente."
+                        )
+                    }
                 }
-                is BusinessResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isRegistered = false,
-                        error = result.message
-                    )
-                }
-                else -> {}
+            } catch (_: TimeoutCancellationException) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRegistered = false,
+                    error = "El registro esta tardando demasiado. Revisa tu conexion e intenta nuevamente."
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isRegistered = false,
+                    error = e.message ?: "Error inesperado durante el registro."
+                )
             }
         }
     }

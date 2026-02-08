@@ -6,6 +6,7 @@ import com.llego.multiplatform.graphql.GetPaymentMethodsQuery
 import com.llego.shared.data.network.GraphQLClient
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.PaymentMethod
+import kotlinx.coroutines.withTimeout
 
 /**
  * Repository for payment methods operations
@@ -19,13 +20,12 @@ class PaymentMethodsRepository(
      */
     suspend fun getPaymentMethods(): Result<List<PaymentMethod>> {
         val token = tokenManager.getToken()
-        if (token == null) {
-        } else {
-        }
         return try {
-            val response = client.query(
-                GetPaymentMethodsQuery(jwt = Optional.presentIfNotNull(token))
-            ).execute()
+            val response = withTimeout(15_000L) {
+                client.query(
+                    GetPaymentMethodsQuery(jwt = Optional.presentIfNotNull(token))
+                ).execute()
+            }
 
 
             if (response.hasErrors()) {
