@@ -143,8 +143,6 @@ fun BranchesListScreen(
 
             businessesWithBranches.forEach { business ->
                 item(key = "business_${business.id}") {
-                    val isOwner = currentUserId != null && currentUserId == business.ownerId
-
                     BusinessBranchesGroupCard(
                         business = business,
                         branches = business.branches,
@@ -156,9 +154,9 @@ fun BranchesListScreen(
                         onLocationUpdate = onLocationUpdate,
                         onOpenMapSelection = onOpenMapSelection,
                         onAddBranch = { onAddBranch(business.id) },
-                        canAddBranch = isOwner,
-                        canEditBranch = true, // Owners and managers can edit
-                        canDeleteBranch = isOwner
+                        canAddBranch = true, // Todos pueden agregar sucursales
+                        canEditBranch = true, // Todos pueden editar
+                        canDeleteBranch = true // Todos pueden eliminar
                     )
                 }
             }

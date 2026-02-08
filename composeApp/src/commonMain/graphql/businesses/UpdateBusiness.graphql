@@ -4,14 +4,6 @@ mutation UpdateBusiness(
   $jwt: String
 ) {
   updateBusiness(businessId: $businessId, input: $input, jwt: $jwt) {
-    id
-    name
-    description
-    avatar
-    tags
-    socialMedia
-    isActive
-    globalRating
-    avatarUrl
+    ...BusinessUpdateFields
   }
 }

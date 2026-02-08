@@ -10,63 +10,55 @@ import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.llego.app.AppViewModels
-import com.llego.business.products.ui.viewmodel.ProductViewModel
-import com.llego.business.orders.ui.viewmodel.OrdersViewModel
-import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
+import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
+import com.llego.business.orders.ui.viewmodel.OrdersViewModel
+import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
-import com.llego.shared.data.network.GraphQLClient
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 
 private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
-    private val tokenManager by lazy { TokenManager() }
+    private lateinit var appContainer: AppContainer
 
-    private val authViewModel: AuthViewModel by viewModels()
-    private val ordersViewModel: OrdersViewModel by viewModels {
-        object : ViewModelProvider.Factory {
+    private fun <VM : ViewModel> appViewModelFactory(create: () -> VM): ViewModelProvider.Factory {
+        return object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return OrdersViewModel(tokenManager) as T
+                return create() as T
             }
         }
+    }
+
+    private val authViewModel: AuthViewModel by viewModels {
+        appViewModelFactory { appContainer.createAuthViewModel() }
+    }
+    private val ordersViewModel: OrdersViewModel by viewModels {
+        appViewModelFactory { appContainer.createOrdersViewModel() }
     }
     private val productViewModel: ProductViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return ProductViewModel(tokenManager) as T
-            }
-        }
+        appViewModelFactory { appContainer.createProductViewModel() }
     }
     private val settingsViewModel: SettingsViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return SettingsViewModel(tokenManager) as T
-            }
-        }
+        appViewModelFactory { appContainer.createSettingsViewModel() }
     }
     private val registerBusinessViewModel: RegisterBusinessViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return RegisterBusinessViewModel(tokenManager) as T
-            }
-        }
+        appViewModelFactory { appContainer.createRegisterBusinessViewModel() }
     }
     private val invitationViewModel: InvitationViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                val repository = com.llego.business.invitations.data.repository.InvitationRepository(GraphQLClient.apolloClient)
-                return InvitationViewModel(repository) as T
-            }
-        }
+        appViewModelFactory { appContainer.createInvitationViewModel() }
+    }
+    private val branchSelectorViewModel: BranchSelectorViewModel by viewModels {
+        appViewModelFactory { appContainer.createBranchSelectorViewModel() }
+    }
+    private val branchesManagementViewModel: BranchesManagementViewModel by viewModels {
+        appViewModelFactory { appContainer.createBranchesManagementViewModel() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,9 +70,9 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
         ImageUploadServiceFactory.initialize(applicationContext)
-        
-        // Inicializar GraphQLClient
-        GraphQLClient.initialize(tokenManager)
+
+        // Inicializar composition root
+        appContainer = AppContainer()
         
         // Manejar deep link inicial (si la app fue abierta desde un deep link)
         handleAppleAuthDeepLink(intent)
@@ -93,7 +85,9 @@ class MainActivity : ComponentActivity() {
                     products = productViewModel,
                     settings = settingsViewModel,
                     registerBusiness = registerBusinessViewModel,
-                    invitations = invitationViewModel
+                    invitations = invitationViewModel,
+                    branchSelector = branchSelectorViewModel,
+                    branchesManagement = branchesManagementViewModel
                 )
             )
         }
@@ -101,7 +95,6 @@ class MainActivity : ComponentActivity() {
     
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d(TAG, "onNewIntent: recibido nuevo intent")
         // Manejar deep link cuando la app ya estÃ¡ abierta
         handleAppleAuthDeepLink(intent)
     }
@@ -115,13 +108,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleAppleAuthDeepLink(intent: Intent?) {
         val uri = intent?.data
-        Log.d(TAG, "handleAppleAuthDeepLink: uri = $uri")
         
         if (uri == null) return
         
         // Verificar que es nuestro deep link
         if (uri.scheme != "llegobusiness" || uri.host != "auth") {
-            Log.d(TAG, "handleAppleAuthDeepLink: no es un deep link de Apple Auth")
             return
         }
         
@@ -129,11 +120,9 @@ class MainActivity : ComponentActivity() {
         val error = uri.getQueryParameter("error")
         val message = uri.getQueryParameter("message")
         
-        Log.d(TAG, "handleAppleAuthDeepLink: token = ${token?.take(20)}..., error = $error")
         
         when {
             !token.isNullOrEmpty() -> {
-                Log.d(TAG, "handleAppleAuthDeepLink: token recibido, autenticando...")
                 // El token es el JWT del backend, usamos authenticateWithToken
                 authViewModel.authenticateWithToken(token)
                 // Notificar al AppleSignInHelper que el flujo terminÃ³ exitosamente

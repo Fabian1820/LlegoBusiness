@@ -1,4 +1,4 @@
-package com.llego.shared.data.auth
+﻿package com.llego.shared.data.auth
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -12,7 +12,7 @@ private const val KEY_ACCESS_TOKEN = "access_token"
 private const val KEY_REFRESH_TOKEN = "refresh_token"
 
 /**
- * TokenManager - Implementación Android usando EncryptedSharedPreferences
+ * TokenManager - ImplementaciÃ³n Android usando EncryptedSharedPreferences
  * Los tokens persisten entre reinicios de la app
  */
 actual class TokenManager actual constructor() {
@@ -37,7 +37,6 @@ actual class TokenManager actual constructor() {
                         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                     )
-                    Log.d(TAG, "initialize: EncryptedSharedPreferences inicializado correctamente")
                 } catch (e: Exception) {
                     Log.e(TAG, "initialize: Error creando EncryptedSharedPreferences, usando fallback", e)
                     // Fallback a SharedPreferences normal si falla el encriptado
@@ -47,7 +46,7 @@ actual class TokenManager actual constructor() {
         }
         
         /**
-         * Verifica si hay un token guardado (útil para verificar sesión sin crear instancia)
+         * Verifica si hay un token guardado (Ãºtil para verificar sesiÃ³n sin crear instancia)
          */
         fun hasStoredToken(): Boolean {
             return sharedPrefs?.getString(KEY_ACCESS_TOKEN, null) != null
@@ -55,24 +54,20 @@ actual class TokenManager actual constructor() {
     }
 
     actual fun saveToken(token: String) {
-        Log.d(TAG, "saveToken: guardando token (length: ${token.length})")
         sharedPrefs?.edit()?.putString(KEY_ACCESS_TOKEN, token)?.apply()
             ?: Log.e(TAG, "saveToken: SharedPreferences no inicializado!")
     }
 
     actual fun getToken(): String? {
         val token = sharedPrefs?.getString(KEY_ACCESS_TOKEN, null)
-        Log.d(TAG, "getToken: token ${if (token != null) "encontrado (length: ${token.length})" else "NO encontrado"}")
         return token
     }
 
     actual fun clearToken() {
-        Log.d(TAG, "clearToken: limpiando token")
         sharedPrefs?.edit()?.remove(KEY_ACCESS_TOKEN)?.apply()
     }
 
     actual fun saveRefreshToken(refreshToken: String) {
-        Log.d(TAG, "saveRefreshToken: guardando refresh token")
         sharedPrefs?.edit()?.putString(KEY_REFRESH_TOKEN, refreshToken)?.apply()
     }
 
@@ -85,7 +80,6 @@ actual class TokenManager actual constructor() {
     }
 
     actual fun clearAll() {
-        Log.d(TAG, "clearAll: limpiando todos los tokens")
         sharedPrefs?.edit()?.clear()?.apply()
     }
 }

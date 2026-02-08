@@ -1,79 +1,16 @@
 query GetUserWithBusinessesAndBranches($jwt: String!) {
   me(jwt: $jwt) {
-    id
-    name
-    email
-    username
-    phone
-    role
-    avatar
-    businessIds
-    branchIds
-    createdAt
-    authProvider
-    providerUserId
-    applePrivateEmail
-    wallet {
-      local
-      usd
-    }
-    walletStatus
-    avatarUrl
+    ...UserCoreFields
   }
 
   getMyBusinesses(jwt: $jwt) {
-    id
-    name
-    avatar
-    avatarUrl
-    description
-    tags
-    socialMedia
-    isActive
-    ownerId
-    globalRating
-    createdAt
+    ...BusinessOwnedFields
   }
 
   getBusinessesWithBranches(jwt: $jwt) {
-    id
-    name
-    avatar
-    avatarUrl
-    description
-    tags
-    socialMedia
-    isActive
-    ownerId
-    globalRating
-    createdAt
+    ...BusinessOwnedFields
     branches {
-      id
-      name
-      businessId
-      address
-      phone
-      tipos
-      coordinates {
-        type
-        coordinates
-      }
-      avatar
-      avatarUrl
-      coverImage
-      coverUrl
-      status
-      wallet {
-        local
-        usd
-      }
-      walletStatus
-      managerIds
-      schedule
-      deliveryRadius
-      facilities
-      paymentMethodIds
-      createdAt
+      ...BranchCoreFields
     }
   }
 }

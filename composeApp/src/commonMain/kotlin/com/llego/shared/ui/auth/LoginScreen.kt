@@ -3,10 +3,14 @@ package com.llego.shared.ui.auth
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +22,13 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,9 +74,11 @@ fun LoginScreen(
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val loginError by viewModel.loginError.collectAsState()
 
     var headerVisible by remember { mutableStateOf(false) }
     var cardVisible by remember { mutableStateOf(false) }
+    var oauthError by remember { mutableStateOf<String?>(null) }
 
     val headerOffsetY by animateFloatAsState(
         targetValue = if (headerVisible) 0f else -300f,
@@ -106,6 +119,11 @@ fun LoginScreen(
     BoxWithConstraints(
         modifier = modifier.fillMaxSize()
     ) {
+        val authError = remember(oauthError, loginError, uiState.error) {
+            val rawError = oauthError ?: loginError ?: uiState.error
+            rawError?.toFriendlyAuthErrorMessage()
+        }
+
         val cardHeight = maxHeight * 0.72f
 
         Box(
@@ -193,99 +211,181 @@ fun LoginScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
                                 .padding(horizontal = 24.dp)
-                                .padding(top = 48.dp, bottom = 24.dp)
+                                .padding(top = 32.dp, bottom = 12.dp)
                                 .imePadding(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Botones de OAuth - Google y Apple Sign-In
                             val googleSignInHelper = rememberGoogleSignInHelper()
                             val appleSignInHelper = rememberAppleSignInHelper()
 
-                            // Estado para mostrar errores de OAuth
-                            var oauthError by remember { mutableStateOf<String?>(null) }
-
-                            // Mostrar error de OAuth si existe
-                            oauthError?.let { error ->
-                                androidx.compose.material3.AlertDialog(
-                                    onDismissRequest = { oauthError = null },
-                                    title = { Text("Error de autenticacion") },
-                                    text = { Text(error) },
-                                    confirmButton = {
-                                        androidx.compose.material3.TextButton(
-                                            onClick = { oauthError = null }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState()),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Top
+                            ) {
+                                AnimatedVisibility(
+                                    visible = authError != null,
+                                    enter = fadeIn(),
+                                    exit = fadeOut()
+                                ) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 16.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer
+                                        ),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.Top
                                         ) {
-                                            Text("Aceptar")
+                                            Icon(
+                                                imageVector = Icons.Default.ErrorOutline,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "No pudimos iniciar sesion",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                                )
+                                                Text(
+                                                    text = authError.orEmpty(),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    oauthError = null
+                                                    viewModel.clearLoginError()
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Cerrar",
+                                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                SocialButtons(
+                                    onGoogleClick = {
+                                        googleSignInHelper.signIn(
+                                            onSuccess = { idToken, nonce ->
+                                                oauthError = null
+                                                viewModel.loginWithGoogle(idToken, nonce)
+                                            },
+                                            onError = { errorMessage ->
+                                                if (errorMessage.isUserAuthCancellation()) {
+                                                    oauthError = null
+                                                    viewModel.clearLoginError()
+                                                } else {
+                                                    oauthError = errorMessage
+                                                }
+                                            }
+                                        )
+                                    },
+                                    onAppleClick = {
+                                        appleSignInHelper.signIn(
+                                            onSuccess = { identityToken, nonce ->
+                                                oauthError = null
+                                                viewModel.loginWithApple(identityToken, nonce)
+                                            },
+                                            onError = { errorMessage ->
+                                                if (errorMessage.isUserAuthCancellation()) {
+                                                    oauthError = null
+                                                    viewModel.clearLoginError()
+                                                } else {
+                                                    oauthError = errorMessage
+                                                }
+                                            }
+                                        )
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(56.dp))
+                                AppTipsSection()
+                                Spacer(modifier = Modifier.height(30.dp))
+                                ClickableText(
+                                    text = termsText,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = { offset ->
+                                        termsText.getStringAnnotations(
+                                            tag = "terms",
+                                            start = offset,
+                                            end = offset
+                                        ).firstOrNull()?.let {
+                                            // TODO: Mostrar Terminos y Condiciones
+                                        }
+
+                                        termsText.getStringAnnotations(
+                                            tag = "privacy",
+                                            start = offset,
+                                            end = offset
+                                        ).firstOrNull()?.let {
+                                            // TODO: Mostrar Politica de Privacidad
                                         }
                                     }
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
                             }
-
-                            SocialButtons(
-                                onGoogleClick = {
-                                    println("DEBUG LoginScreen: onGoogleClick ejecutado")
-                                    googleSignInHelper.signIn(
-                                        onSuccess = { idToken, nonce ->
-                                            println("DEBUG LoginScreen: Google sign in exitoso, llamando loginWithGoogle")
-                                            viewModel.loginWithGoogle(idToken, nonce)
-                                        },
-                                        onError = { errorMessage ->
-                                            println("DEBUG LoginScreen: Google sign in error: $errorMessage")
-                                            oauthError = errorMessage
-                                        }
-                                    )
-                                },
-                                onAppleClick = {
-                                    appleSignInHelper.signIn(
-                                        onSuccess = { identityToken, nonce ->
-                                            viewModel.loginWithApple(identityToken, nonce)
-                                        },
-                                        onError = { errorMessage ->
-                                            oauthError = errorMessage
-                                        }
-                                    )
-                                }
-                            )
-
-                            Spacer(modifier = Modifier.height(56.dp))
-
-                            // Tips de la app
-                            AppTipsSection()
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Texto de términos y condiciones (ahora dentro del scroll)
-                            ClickableText(
-                                text = termsText,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { offset ->
-                                    termsText.getStringAnnotations(
-                                        tag = "terms",
-                                        start = offset,
-                                        end = offset
-                                    ).firstOrNull()?.let {
-                                        // TODO: Mostrar Terminos y Condiciones
-                                    }
-
-                                    termsText.getStringAnnotations(
-                                        tag = "privacy",
-                                        start = offset,
-                                        end = offset
-                                    ).firstOrNull()?.let {
-                                        // TODO: Mostrar Politica de Privacidad
-                                    }
-                                }
-                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun String.isUserAuthCancellation(): Boolean {
+    val lower = lowercase()
+    return lower.contains("cancel") ||
+        lower.contains("canceled") ||
+        lower.contains("12501")
+}
+
+private fun String.toFriendlyAuthErrorMessage(): String {
+    val normalized = this
+        .replace("Ã¡", "a")
+        .replace("Ã©", "e")
+        .replace("Ã­", "i")
+        .replace("Ã³", "o")
+        .replace("Ãº", "u")
+        .replace("Ã±", "n")
+        .replace("Â¿", "")
+        .replace("Â¡", "")
+
+    val lower = normalized.lowercase()
+    return when {
+        lower.contains("cancel") -> "El inicio de sesion fue cancelado. Puedes intentarlo otra vez."
+        lower.contains("timeout") || lower.contains("conexion") || lower.contains("network") -> {
+            "No hay conexion con el servidor en este momento. Revisa tu internet e intentalo nuevamente."
+        }
+        lower.contains("token") || lower.contains("unauthorized") || lower.contains("401") -> {
+            "Tu sesion no pudo validarse. Intenta iniciar sesion nuevamente."
+        }
+        lower.contains("credencial") || lower.contains("password") || lower.contains("contras") -> {
+            "Tus datos de acceso no fueron aceptados. Verifica la cuenta e intenta otra vez."
+        }
+        else -> "Ocurrio un problema al autenticar tu cuenta. Intenta nuevamente en unos segundos."
     }
 }
 
@@ -350,4 +450,5 @@ private fun LoginHeader() {
         }
     }
 }
+
 

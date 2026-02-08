@@ -1,4 +1,4 @@
-package com.llego.business.invitations.ui.viewmodel
+﻿package com.llego.business.invitations.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -94,77 +94,66 @@ class InvitationViewModel(
     }
     
     fun redeemInvitationCode(code: String) {
-        println("DEBUG InvitationViewModel: Iniciando canje de código: $code")
         
         viewModelScope.launch {
             _redeemState.value = RedeemState.Loading
 
             repository.acceptInvitationCode(code)
                 .onSuccess { invitation ->
-                    println("DEBUG InvitationViewModel: Respuesta recibida")
-                    println("  - accessStatus: ${invitation.accessStatus}")
-                    println("  - isUsable: ${invitation.isUsable}")
-                    println("  - status: ${invitation.status}")
-                    println("  - accessExpiresAt: ${invitation.accessExpiresAt}")
                     
-                    // CORRECCIÓN: Cuando el backend acepta un código exitosamente,
+                    // CORRECCIÃ“N: Cuando el backend acepta un cÃ³digo exitosamente,
                     // retorna status=USED e isUsable=false (porque ya no se puede reusar)
-                    // pero accessStatus=ACTIVE indica que el acceso está activo.
+                    // pero accessStatus=ACTIVE indica que el acceso estÃ¡ activo.
                     // Solo debemos rechazar si accessStatus=EXPIRED
                     when {
                         invitation.accessStatus == AccessStatus.EXPIRED -> {
-                            println("DEBUG InvitationViewModel: Acceso expirado")
                             _redeemState.value = RedeemState.Error(
-                                "Tu acceso a este negocio ha expirado. Solicita un nuevo código al administrador."
+                                "Tu acceso a este negocio ha expirado. Solicita un nuevo cÃ³digo al administrador."
                             )
                         }
                         invitation.accessStatus == AccessStatus.ACTIVE -> {
-                            // Código aceptado exitosamente
-                            // El backend marca status=USED e isUsable=false después de aceptar
-                            println("DEBUG InvitationViewModel: Código aceptado exitosamente (accessStatus=ACTIVE)")
+                            // CÃ³digo aceptado exitosamente
+                            // El backend marca status=USED e isUsable=false despuÃ©s de aceptar
                             _redeemState.value = RedeemState.Success(invitation)
                         }
                         invitation.accessStatus == AccessStatus.PENDING -> {
-                            // Código aceptado pero acceso pendiente
-                            println("DEBUG InvitationViewModel: Código aceptado, acceso pendiente")
+                            // CÃ³digo aceptado pero acceso pendiente
                             _redeemState.value = RedeemState.Success(invitation)
                         }
                         else -> {
-                            println("DEBUG InvitationViewModel: Estado inesperado: ${invitation.accessStatus}")
                             _redeemState.value = RedeemState.Error(
-                                "Estado de invitación inesperado. Contacta al administrador."
+                                "Estado de invitaciÃ³n inesperado. Contacta al administrador."
                             )
                         }
                     }
                 }
                 .onFailure { error ->
-                    println("DEBUG InvitationViewModel: Error - ${error.message}")
                     
-                    // Mejorar mensajes según el error del backend
+                    // Mejorar mensajes segÃºn el error del backend
                     val message = when {
                         error.message?.contains("ya tienes acceso", ignoreCase = true) == true -> {
-                            "Ya tienes acceso a este negocio. Recarga la aplicación si no ves los negocios."
+                            "Ya tienes acceso a este negocio. Recarga la aplicaciÃ³n si no ves los negocios."
                         }
                         error.message?.contains("already has access", ignoreCase = true) == true -> {
-                            "Ya tienes acceso a este negocio. Recarga la aplicación si no ves los negocios."
+                            "Ya tienes acceso a este negocio. Recarga la aplicaciÃ³n si no ves los negocios."
                         }
                         error.message?.contains("ya eres manager", ignoreCase = true) == true -> {
                             "Ya eres manager de esta sucursal."
                         }
                         error.message?.contains("ya fue usado", ignoreCase = true) == true -> {
-                            "Este código ya fue utilizado."
+                            "Este cÃ³digo ya fue utilizado."
                         }
                         error.message?.contains("revocado", ignoreCase = true) == true -> {
-                            "Este código ha sido revocado."
+                            "Este cÃ³digo ha sido revocado."
                         }
                         error.message?.contains("no es valido", ignoreCase = true) == true -> {
-                            "Código no válido. Verifica que lo hayas escrito correctamente."
+                            "CÃ³digo no vÃ¡lido. Verifica que lo hayas escrito correctamente."
                         }
                         error.message?.contains("not found", ignoreCase = true) == true -> {
-                            "Código no encontrado. Verifica que lo hayas escrito correctamente."
+                            "CÃ³digo no encontrado. Verifica que lo hayas escrito correctamente."
                         }
                         else -> {
-                            error.message ?: "Error al canjear el código"
+                            error.message ?: "Error al canjear el cÃ³digo"
                         }
                     }
                     

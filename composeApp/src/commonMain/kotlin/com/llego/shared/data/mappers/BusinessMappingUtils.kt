@@ -1,6 +1,7 @@
 package com.llego.shared.data.mappers
 
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.BranchVehicle
 
 internal fun parseSchedule(raw: Any?): Map<String, List<String>> {
     val map = raw as? Map<*, *> ?: return emptyMap()
@@ -33,6 +34,20 @@ internal fun mapBranchTipo(
         "RESTAURANTE", "RESTAURANT" -> BranchTipo.RESTAURANTE
         "TIENDA", "STORE" -> BranchTipo.TIENDA
         "DULCERIA", "BAKERY" -> BranchTipo.DULCERIA
+        else -> null
+    }
+}
+
+internal fun mapBranchVehicle(
+    gqlVehicle: com.llego.multiplatform.graphql.type.BranchVehicle?
+): BranchVehicle? {
+    val name = gqlVehicle?.name ?: return null
+    return when (name) {
+        "MOTO" -> BranchVehicle.MOTO
+        "BICICLETA" -> BranchVehicle.BICICLETA
+        "CARRO" -> BranchVehicle.CARRO
+        "CAMIONETA" -> BranchVehicle.CAMIONETA
+        "CAMINANDO" -> BranchVehicle.CAMINANDO
         else -> null
     }
 }

@@ -8,15 +8,6 @@ mutation RegisterBusiness(
     branchesInput: $branches
     jwt: $jwt
   ) {
-    id
-    name
-    avatar
-    description
-    tags
-    socialMedia
-    isActive
-    globalRating
-    createdAt
-    avatarUrl
+    ...BusinessCoreFields
   }
 }

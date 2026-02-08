@@ -1,0 +1,108 @@
+fragment CoordinatesFields on CoordinatesType {
+  type
+  coordinates
+}
+
+fragment WalletBalanceFields on WalletBalanceType {
+  local
+  usd
+}
+
+fragment BranchCoreFields on BranchType {
+  id
+  businessId
+  name
+  address
+  phone
+  tipos
+  useAppMessaging
+  vehicles
+  paymentMethodIds
+  managerIds
+  avatar
+  coverImage
+  avatarUrl
+  coverUrl
+  status
+  deliveryRadius
+  coordinates {
+    ...CoordinatesFields
+  }
+  schedule
+  facilities
+  createdAt
+  wallet {
+    ...WalletBalanceFields
+  }
+  walletStatus
+}
+
+fragment BranchUpdateFields on BranchType {
+  id
+  businessId
+  name
+  status
+  phone
+  address
+  tipos
+  useAppMessaging
+  vehicles
+  paymentMethodIds
+  managerIds
+  avatar
+  coverImage
+  avatarUrl
+  coverUrl
+  deliveryRadius
+  coordinates {
+    ...CoordinatesFields
+  }
+  schedule
+  facilities
+  wallet {
+    ...WalletBalanceFields
+  }
+  walletStatus
+}
+
+fragment ScoredBranchCoreFields on ScoredBranchType {
+  id
+  businessId
+  name
+  address
+  phone
+  status
+  tipos
+  useAppMessaging
+  vehicles
+  paymentMethodIds
+  avatar
+  coverImage
+  deliveryRadius
+  facilities
+  coordinates {
+    ...CoordinatesFields
+  }
+  schedule
+  managerIds
+  createdAt
+  avatarUrl
+  coverUrl
+  wallet {
+    ...WalletBalanceFields
+  }
+  walletStatus
+}
+
+fragment BranchReferenceFields on BranchType {
+  id
+  name
+}
+
+fragment BranchOrderInfoFields on BranchType {
+  id
+  name
+  address
+  phone
+  avatarUrl
+}

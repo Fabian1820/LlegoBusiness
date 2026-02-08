@@ -1,4 +1,4 @@
-package com.llego.shared.ui.business
+﻿package com.llego.shared.ui.business
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -43,14 +43,14 @@ import kotlinx.coroutines.withTimeout
 
 /**
  * Pantalla COMPLETA para registrar negocio con TODAS las integraciones:
- * ✅ Google Maps real
- * ✅ Upload de imágenes a S3
- * ✅ PhoneInput con código de país
- * ✅ SchedulePicker interactivo
- * ✅ DeliveryRadiusPicker
- * ✅ FacilitiesSelector
- * ✅ TagsSelector mejorado
- * ✅ Pantalla de confirmación animada
+ * âœ… Google Maps real
+ * âœ… Upload de imÃ¡genes a S3
+ * âœ… PhoneInput con cÃ³digo de paÃ­s
+ * âœ… SchedulePicker interactivo
+ * âœ… DeliveryRadiusPicker
+ * âœ… FacilitiesSelector
+ * âœ… TagsSelector mejorado
+ * âœ… Pantalla de confirmaciÃ³n animada
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,16 +68,16 @@ fun RegisterBusinessScreen(
     val paymentMethodsViewModel = remember { PaymentMethodsViewModel() }
     val paymentMethodsUiState by paymentMethodsViewModel.uiState.collectAsState()
 
-    // Estados de confirmación
+    // Estados de confirmaciÃ³n
     var showSuccessConfirmation by remember { mutableStateOf(false) }
     var registeredBusinessName by remember { mutableStateOf("") }
 
-    // Cargar métodos de pago al iniciar
+    // Cargar mÃ©todos de pago al iniciar
     LaunchedEffect(Unit) {
         paymentMethodsViewModel.loadPaymentMethods()
     }
 
-    // Estados del formulario - Múltiples Negocios
+    // Estados del formulario - MÃºltiples Negocios
     var nextBusinessId by remember { mutableStateOf(2) }
     var nextBranchId by remember { mutableStateOf(2) }
     val businessForms = remember {
@@ -462,24 +462,20 @@ fun RegisterBusinessScreen(
                 // Handle invitation redemption success
                 LaunchedEffect(redeemState) {
                     if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-                        println("DEBUG RegisterBusinessScreen: Invitación aceptada, recargando datos...")
                         
                         // Reload user data to get updated businessIds and branchIds
                         authViewModel.reloadUserData()
                         
-                        // Esperar a que se cargue al menos un negocio (máximo 10 segundos)
+                        // Esperar a que se cargue al menos un negocio (mÃ¡ximo 10 segundos)
                         try {
                             withTimeout(10000) {
-                                println("DEBUG RegisterBusinessScreen: Esperando a que se cargue un negocio...")
                                 authViewModel.currentBusiness
                                     .filterNotNull()
                                     .first()
                                 
-                                println("DEBUG RegisterBusinessScreen: Negocio cargado, navegando...")
                             }
                         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                            println("DEBUG RegisterBusinessScreen: Timeout esperando negocios")
-                            // Continuar de todas formas, el usuario verá el selector de negocios
+                            // Continuar de todas formas, el usuario verÃ¡ el selector de negocios
                         }
                         
                         // Navigate to success (will handle branch selection if needed)
@@ -572,14 +568,14 @@ fun RegisterBusinessScreen(
         }
     }
 
-    // Observar éxito de registro
+    // Observar Ã©xito de registro
     LaunchedEffect(uiState.isRegistered) {
         if (uiState.isRegistered) {
             showSuccessConfirmation = true
         }
     }
 
-    // Mostrar pantalla de confirmación
+    // Mostrar pantalla de confirmaciÃ³n
     if (showSuccessConfirmation) {
         LlegoConfirmationScreen(
             config = LlegoConfirmationDefaults.businessCreated(registeredBusinessName),

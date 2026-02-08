@@ -4,30 +4,6 @@ mutation UpdateBranch(
   $jwt: String
 ) {
   updateBranch(branchId: $branchId, input: $input, jwt: $jwt) {
-    id
-    businessId
-    name
-    status
-    phone
-    address
-    tipos
-    paymentMethodIds
-    managerIds
-    avatar
-    coverImage
-    avatarUrl
-    coverUrl
-    deliveryRadius
-    coordinates {
-      type
-      coordinates
-    }
-    schedule
-    facilities
-    wallet {
-      local
-      usd
-    }
-    walletStatus
+    ...BranchUpdateFields
   }
 }

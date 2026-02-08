@@ -1,12 +1,5 @@
 mutation AddOrderComment($input: AddOrderCommentInput!, $jwt: String!) {
   addOrderComment(input: $input, jwt: $jwt) {
-    id
-    orderNumber
-    comments {
-      id
-      author
-      message
-      timestamp
-    }
+    ...OrderCommentsUpdateFields
   }
 }

@@ -1,23 +1,5 @@
 query Me($jwt: String!) {
   me(jwt: $jwt) {
-    id
-    name
-    email
-    username
-    phone
-    role
-    avatar
-    businessIds
-    branchIds
-    createdAt
-    authProvider
-    providerUserId
-    applePrivateEmail
-    wallet {
-      local
-      usd
-    }
-    walletStatus
-    avatarUrl
+    ...UserCoreFields
   }
 }

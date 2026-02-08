@@ -120,11 +120,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun BranchesManagementScreen(
     authViewModel: AuthViewModel,
+    branchesManagementViewModel: BranchesManagementViewModel,
     onNavigateBack: () -> Unit = {},
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val branchesManagementViewModel = remember { BranchesManagementViewModel() }
     val branchesManagementState by branchesManagementViewModel.uiState.collectAsState()
 
     // Estado

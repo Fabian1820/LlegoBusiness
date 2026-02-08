@@ -67,18 +67,20 @@ actual class AuthViewModel : ViewModel {
     actual constructor() : super() {
         // Constructor sin par?metros requerido por expect/actual
         // Inicializaci?n lazy con TokenManager mock
-        Log.d(TAG, "constructor: AuthViewModel creado")
     }
 
     private fun ensureInitialized() {
         if (!isInitialized) {
-            Log.d(TAG, "ensureInitialized: inicializando AuthViewModel")
 
             // Crear TokenManager
             val tokenManager = TokenManager()
 
             authManager = AuthManager(tokenManager = tokenManager)
             isInitialized = true
+
+            if (TokenManager.hasStoredToken()) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+            }
 
             // Observar cambios en el estado de autenticaci?n y business data
             viewModelScope.launch {
@@ -87,11 +89,10 @@ actual class AuthViewModel : ViewModel {
                     authManager.currentUser,
                     authManager.currentBusiness,
                     authManager.currentBranch
-                ) { isAuth, user, business, branch ->
+                ) { isAuth, user, _, _ ->
                     _uiState.value = _uiState.value.copy(
                         isAuthenticated = isAuth,
-                        user = user,
-                        isLoading = false
+                        user = user
                     )
                 }.collect()
             }
@@ -112,20 +113,16 @@ actual class AuthViewModel : ViewModel {
      */
     private fun restoreSessionIfNeeded() {
         viewModelScope.launch {
-            Log.d(TAG, "restoreSessionIfNeeded: verificando token guardado")
 
             // Verificar si hay token guardado
             if (TokenManager.hasStoredToken()) {
-                Log.d(TAG, "restoreSessionIfNeeded: token encontrado, restaurando sesi?n...")
-                // NO mostrar loading al inicio para evitar pantalla de "Verificando sesi?n"
-                // Solo se mostrar? si hay contenido que cargar
+                _uiState.value = _uiState.value.copy(isLoading = true)
 
                 // Obtener usuario actual desde el backend
                 val result = authManager.getCurrentUser()
 
                 when (result) {
                     is AuthResult.Success -> {
-                        Log.d(TAG, "restoreSessionIfNeeded: sesi?n restaurada para ${result.data.email}")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             isAuthenticated = true,
@@ -158,7 +155,7 @@ actual class AuthViewModel : ViewModel {
                     }
                 }
             } else {
-                Log.d(TAG, "restoreSessionIfNeeded: no hay token guardado")
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
     }
@@ -171,30 +168,28 @@ actual class AuthViewModel : ViewModel {
     private suspend fun loadBusinessData() {
         ensureInitialized()
 
-        Log.d(TAG, "loadBusinessData: cargando negocios en paralelo...")
 
         // Cargar negocios
         val result = authManager.getBusinesses()
 
-        Log.d(TAG, "loadBusinessData: resultado de getBusinesses = ${result::class.simpleName}")
 
         when (result) {
             is BusinessResult.Success -> {
-                Log.d(TAG, "loadBusinessData: ${result.data.size} negocios cargados")
+                _uiState.value = _uiState.value.copy(error = null)
 
                 // Si hay al menos un negocio, cargar sus sucursales
                 val currentBusiness = authManager.currentBusiness.value
                 if (currentBusiness != null) {
-                    Log.d(TAG, "loadBusinessData: cargando sucursales para negocio ${currentBusiness.id}")
 
-                    // Las sucursales se cargan inmediatamente después de obtener el negocio
+                    // Las sucursales se cargan inmediatamente despuÃ©s de obtener el negocio
                     val branchesResult = authManager.getBranches(currentBusiness.id)
                     when (branchesResult) {
                         is BusinessResult.Success -> {
-                            Log.d(TAG, "loadBusinessData: ${branchesResult.data.size} sucursales cargadas exitosamente")
+                            _uiState.value = _uiState.value.copy(error = null)
                         }
                         is BusinessResult.Error -> {
                             Log.e(TAG, "loadBusinessData: error cargando sucursales - ${branchesResult.message} (code: ${branchesResult.code})")
+                            _uiState.value = _uiState.value.copy(error = branchesResult.message)
                         }
                         else -> {
                             Log.w(TAG, "loadBusinessData: resultado inesperado al cargar sucursales")
@@ -206,6 +201,7 @@ actual class AuthViewModel : ViewModel {
             }
             is BusinessResult.Error -> {
                 Log.e(TAG, "loadBusinessData: error al cargar negocios: ${result.message} (code: ${result.code})")
+                _uiState.value = _uiState.value.copy(error = result.message)
             }
             else -> {
                 Log.w(TAG, "loadBusinessData: resultado inesperado: $result")
@@ -269,19 +265,15 @@ actual class AuthViewModel : ViewModel {
     actual fun loginWithGoogle(idToken: String, nonce: String?) {
         ensureInitialized()
 
-        Log.d(TAG, "loginWithGoogle: iniciando con idToken length=${idToken.length}")
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             _loginError.value = null
 
-            Log.d(TAG, "loginWithGoogle: llamando authManager.loginWithGoogle...")
             val result = authManager.loginWithGoogle(idToken, nonce)
-            Log.d(TAG, "loginWithGoogle: resultado = ${result::class.simpleName}")
 
             when (result) {
                 is AuthResult.Success -> {
-                    Log.d(TAG, "loginWithGoogle: éxito - usuario=${result.data.email}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isAuthenticated = true,
@@ -351,7 +343,6 @@ actual class AuthViewModel : ViewModel {
     actual fun authenticateWithToken(token: String) {
         ensureInitialized()
 
-        Log.d(TAG, "authenticateWithToken: iniciando con token length=${token.length}")
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -361,7 +352,6 @@ actual class AuthViewModel : ViewModel {
 
             when (result) {
                 is AuthResult.Success -> {
-                    Log.d(TAG, "authenticateWithToken: ?xito - usuario=${result.data.email}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isAuthenticated = true,
@@ -485,12 +475,11 @@ actual class AuthViewModel : ViewModel {
 
     /**
      * Recarga los datos del usuario y sus negocios/sucursales desde el backend
-     * Útil después de aceptar una invitación o cualquier cambio que afecte businessIds/branchIds
+     * Ãštil despuÃ©s de aceptar una invitaciÃ³n o cualquier cambio que afecte businessIds/branchIds
      */
     actual fun reloadUserData() {
         ensureInitialized()
 
-        Log.d(TAG, "reloadUserData: Iniciando recarga de datos del usuario...")
 
         viewModelScope.launch {
             // Primero, recargar el usuario actual desde el backend
@@ -498,7 +487,6 @@ actual class AuthViewModel : ViewModel {
 
             when (result) {
                 is AuthResult.Success -> {
-                    Log.d(TAG, "reloadUserData: Usuario recargado exitosamente - ${result.data.email}")
                     _uiState.value = _uiState.value.copy(
                         user = result.data,
                         isAuthenticated = true
@@ -520,3 +508,4 @@ actual class AuthViewModel : ViewModel {
         }
     }
 }
+

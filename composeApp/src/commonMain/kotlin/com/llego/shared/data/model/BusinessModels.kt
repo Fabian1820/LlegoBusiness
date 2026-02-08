@@ -81,6 +81,8 @@ data class Branch(
     val phone: String,
     val schedule: Map<String, List<String>> = emptyMap(),  // JSON map: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo> = emptyList(),  // RESTAURANTE, DULCERIA, TIENDA
+    val useAppMessaging: Boolean = true,
+    val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String> = emptyList(),  // IDs of accepted payment methods
     val managerIds: List<String> = emptyList(),
     val status: String = "active",  // "active", "inactive", "pending"
@@ -106,6 +108,15 @@ enum class BranchTipo {
     TIENDA
 }
 
+@Serializable
+enum class BranchVehicle {
+    MOTO,
+    BICICLETA,
+    CARRO,
+    CAMIONETA,
+    CAMINANDO
+}
+
 /**
  * Convierte BranchTipo a string legible
  */
@@ -113,6 +124,14 @@ fun BranchTipo.toDisplayName(): String = when (this) {
     BranchTipo.RESTAURANTE -> "Restaurante"
     BranchTipo.DULCERIA -> "Dulcer?a"
     BranchTipo.TIENDA -> "Tienda"
+}
+
+fun BranchVehicle.toDisplayName(): String = when (this) {
+    BranchVehicle.MOTO -> "Moto"
+    BranchVehicle.BICICLETA -> "Bicicleta"
+    BranchVehicle.CARRO -> "Carro"
+    BranchVehicle.CAMIONETA -> "Camioneta"
+    BranchVehicle.CAMINANDO -> "Caminando"
 }
 
 /**
@@ -200,6 +219,8 @@ data class RegisterBranchInput(
     @Contextual
     val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
+    val useAppMessaging: Boolean = true,
+    val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String>,  // Requerido: IDs of accepted payment methods
     val address: String? = null,
     val managerIds: List<String>? = null,
@@ -221,6 +242,8 @@ data class CreateBranchInput(
     @Contextual
     val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
+    val useAppMessaging: Boolean = true,
+    val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String>,  // Requerido: IDs of accepted payment methods
     val address: String? = null,
     val managerIds: List<String>? = null,
@@ -240,6 +263,8 @@ data class UpdateBranchInput(
     val phone: String? = null,
     val schedule: Map<String, List<String>>? = null,  // {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>? = null,
+    val useAppMessaging: Boolean? = null,
+    val vehicles: List<BranchVehicle>? = null,
     val paymentMethodIds: List<String>? = null,  // IDs of accepted payment methods
     val address: String? = null,
     val avatar: String? = null,

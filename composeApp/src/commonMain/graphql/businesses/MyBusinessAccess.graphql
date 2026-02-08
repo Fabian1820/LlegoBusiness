@@ -5,10 +5,7 @@ query MyBusinessAccess($jwt: String!) {
         expiresAt
         daysUntilExpiration
         business {
-            id
-            name
-            ownerId
-            avatar
+            ...BusinessAccessFields
         }
     }
 }

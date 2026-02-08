@@ -1,17 +1,5 @@
 mutation AcceptOrder($orderId: String!, $estimatedMinutes: Int!, $jwt: String!) {
   acceptOrder(orderId: $orderId, estimatedMinutes: $estimatedMinutes, jwt: $jwt) {
-    id
-    orderNumber
-    status
-    updatedAt
-    lastStatusAt
-    estimatedDeliveryTime
-    estimatedMinutesRemaining
-    timeline {
-      status
-      timestamp
-      message
-      actor
-    }
+    ...OrderAcceptUpdateFields
   }
 }

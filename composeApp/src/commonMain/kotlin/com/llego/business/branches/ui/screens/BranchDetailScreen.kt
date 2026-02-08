@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
 
@@ -249,6 +250,16 @@ fun BranchDetailScreen(
                             value = "$radius km"
                         )
                     }
+
+                    BranchDetailRow(
+                        icon = Icons.Default.CheckCircle,
+                        label = "Mensajeria",
+                        value = if (branch.useAppMessaging) {
+                            "Gestionada por la app"
+                        } else {
+                            "Gestionada externamente"
+                        }
+                    )
                 }
             }
 
@@ -340,6 +351,47 @@ fun BranchDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (branch.vehicles.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.infoCard,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Vehiculos de delivery",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            branch.vehicles.forEach { vehicle ->
+                                Surface(
+                                    shape = LlegoShapes.small,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = vehicle.toDisplayName(),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }

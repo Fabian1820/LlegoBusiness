@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
+import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
 import com.llego.shared.data.model.*
@@ -52,6 +53,8 @@ fun BranchCreateScreen(
     var deliveryRadius by remember { mutableStateOf("") }
     var managerIds by remember { mutableStateOf("") }
     var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
+    var useAppMessaging by remember { mutableStateOf(true) }
+    var selectedVehicles by remember { mutableStateOf(emptySet<BranchVehicle>()) }
     var branchSchedule by remember {
         mutableStateOf(
             mapOf(
@@ -213,6 +216,53 @@ fun BranchCreateScreen(
                 onSelectionChange = { selectedTipos = it }
             )
 
+            Text(
+                text = "Mensajeria con clientes",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = if (useAppMessaging) {
+                            "Mensajeria de la app activada"
+                        } else {
+                            "Mensajeria externa"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (useAppMessaging) {
+                            "Los mensajes de pedidos y clientes se gestionan desde la app."
+                        } else {
+                            "La sucursal gestiona la comunicacion por su propio canal."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = useAppMessaging,
+                    onCheckedChange = { useAppMessaging = it }
+                )
+            }
+
+            Text(
+                text = "Vehiculos de delivery",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            BranchVehiclesSelector(
+                selectedVehicles = selectedVehicles,
+                onSelectionChange = { selectedVehicles = it }
+            )
+
             SchedulePicker(
                 schedule = branchSchedule,
                 onScheduleChange = { branchSchedule = it }
@@ -304,6 +354,8 @@ fun BranchCreateScreen(
                             ),
                             schedule = branchSchedule.toBackendSchedule(),
                             tipos = selectedTipos.toList(),
+                            useAppMessaging = useAppMessaging,
+                            vehicles = selectedVehicles.toList(),
                             paymentMethodIds = selectedPaymentMethodIds,
                             managerIds = parsedManagerIds.takeIf { it.isNotEmpty() },
                             avatar = avatarPath,

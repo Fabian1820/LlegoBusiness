@@ -1,0 +1,5 @@
+query GetMyBranches($jwt: String!) {
+  getMyBranches(jwt: $jwt) {
+    ...BranchCoreFields
+  }
+}

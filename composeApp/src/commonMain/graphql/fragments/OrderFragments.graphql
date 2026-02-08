@@ -1,0 +1,287 @@
+fragment OrderItemFields on OrderItemType {
+  productId
+  name
+  price
+  quantity
+  imageUrl
+  wasModifiedByStore
+  lineTotal
+}
+
+fragment OrderItemPendingFields on OrderItemType {
+  productId
+  name
+  price
+  quantity
+  imageUrl
+  lineTotal
+}
+
+fragment OrderDiscountFields on OrderDiscountType {
+  id
+  title
+  amount
+  type
+}
+
+fragment DeliveryAddressFields on DeliveryAddressType {
+  street
+  city
+  reference
+  coordinates {
+    ...CoordinatesFields
+  }
+}
+
+fragment DeliveryAddressPendingFields on DeliveryAddressType {
+  street
+  city
+  reference
+}
+
+fragment OrderTimelineFields on OrderTimelineType {
+  status
+  timestamp
+  message
+  actor
+}
+
+fragment OrderCommentFields on OrderCommentType {
+  id
+  author
+  message
+  timestamp
+}
+
+fragment DeliveryPersonFields on DeliveryPersonType {
+  id
+  name
+  phone
+  rating
+  totalDeliveries
+  vehicleType
+  vehiclePlate
+  profileImageUrl
+  isOnline
+  currentLocation {
+    ...CoordinatesFields
+  }
+}
+
+fragment OrderFullFields on OrderType {
+  id
+  orderNumber
+  customerId
+  branchId
+  businessId
+  subtotal
+  deliveryFee
+  total
+  currency
+  status
+  paymentMethod
+  paymentStatus
+  createdAt
+  updatedAt
+  lastStatusAt
+  deliveryPersonId
+  estimatedDeliveryTime
+  paymentId
+  rating
+  ratingComment
+  isEditable
+  canCancel
+  estimatedMinutesRemaining
+  items {
+    ...OrderItemFields
+  }
+  discounts {
+    ...OrderDiscountFields
+  }
+  deliveryAddress {
+    ...DeliveryAddressFields
+  }
+  timeline {
+    ...OrderTimelineFields
+  }
+  comments {
+    ...OrderCommentFields
+  }
+  customer {
+    ...UserOrderCustomerFields
+  }
+  branch {
+    ...BranchOrderInfoFields
+  }
+  business {
+    ...BusinessOrderInfoFields
+  }
+  deliveryPerson {
+    ...DeliveryPersonFields
+  }
+}
+
+fragment OrderNewBranchFields on OrderType {
+  id
+  orderNumber
+  customerId
+  branchId
+  businessId
+  subtotal
+  deliveryFee
+  total
+  currency
+  status
+  paymentMethod
+  paymentStatus
+  createdAt
+  updatedAt
+  lastStatusAt
+  isEditable
+  canCancel
+  estimatedMinutesRemaining
+  items {
+    ...OrderItemFields
+  }
+  discounts {
+    ...OrderDiscountFields
+  }
+  deliveryAddress {
+    ...DeliveryAddressFields
+  }
+  timeline {
+    ...OrderTimelineFields
+  }
+  comments {
+    ...OrderCommentFields
+  }
+  customer {
+    ...UserOrderCustomerFields
+  }
+  branch {
+    ...BranchOrderInfoFields
+  }
+  business {
+    ...BusinessOrderInfoFields
+  }
+}
+
+fragment OrderUpdatedFields on OrderType {
+  id
+  orderNumber
+  customerId
+  branchId
+  businessId
+  subtotal
+  deliveryFee
+  total
+  currency
+  status
+  paymentMethod
+  paymentStatus
+  createdAt
+  updatedAt
+  lastStatusAt
+  deliveryPersonId
+  estimatedDeliveryTime
+  isEditable
+  canCancel
+  estimatedMinutesRemaining
+  items {
+    ...OrderItemFields
+  }
+  discounts {
+    ...OrderDiscountFields
+  }
+  deliveryAddress {
+    ...DeliveryAddressFields
+  }
+  timeline {
+    ...OrderTimelineFields
+  }
+  comments {
+    ...OrderCommentFields
+  }
+  customer {
+    ...UserOrderCustomerFields
+  }
+  branch {
+    ...BranchOrderInfoFields
+  }
+  business {
+    ...BusinessOrderInfoFields
+  }
+  deliveryPerson {
+    ...DeliveryPersonFields
+  }
+}
+
+fragment OrderPendingFields on OrderType {
+  id
+  orderNumber
+  status
+  total
+  currency
+  createdAt
+  branchId
+  paymentMethod
+  paymentStatus
+  isEditable
+  canCancel
+  estimatedMinutesRemaining
+  items {
+    ...OrderItemPendingFields
+  }
+  customer {
+    ...UserOrderPendingCustomerFields
+  }
+  deliveryAddress {
+    ...DeliveryAddressPendingFields
+  }
+}
+
+fragment OrderStatusUpdateFields on OrderType {
+  id
+  orderNumber
+  status
+  updatedAt
+  lastStatusAt
+  timeline {
+    ...OrderTimelineFields
+  }
+}
+
+fragment OrderAcceptUpdateFields on OrderType {
+  ...OrderStatusUpdateFields
+  estimatedDeliveryTime
+  estimatedMinutesRemaining
+}
+
+fragment OrderModifyItemsUpdateFields on OrderType {
+  id
+  orderNumber
+  status
+  subtotal
+  deliveryFee
+  total
+  updatedAt
+  lastStatusAt
+  isEditable
+  items {
+    ...OrderItemFields
+  }
+  discounts {
+    ...OrderDiscountFields
+  }
+  timeline {
+    ...OrderTimelineFields
+  }
+}
+
+fragment OrderCommentsUpdateFields on OrderType {
+  id
+  orderNumber
+  comments {
+    ...OrderCommentFields
+  }
+}

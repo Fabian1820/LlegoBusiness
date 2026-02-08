@@ -1,7 +1,5 @@
 mutation AddBranchToUser($input: AddBranchToUserInput!, $jwt: String!) {
   addBranchToUser(input: $input, jwt: $jwt) {
-    id
-    name
-    branchIds
+    ...UserBranchAccessFields
   }
 }

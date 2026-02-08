@@ -1,15 +1,5 @@
 query GetBusiness($id: String!, $jwt: String) {
   business(id: $id, jwt: $jwt) {
-    id
-    name
-    description
-    avatar
-    tags
-    socialMedia
-    globalRating
-    isActive
-    createdAt
-    ownerId
-    avatarUrl
+    ...BusinessOwnedFields
   }
 }

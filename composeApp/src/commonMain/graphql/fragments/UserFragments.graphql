@@ -1,0 +1,78 @@
+fragment UserAuthFields on UserData {
+  id
+  name
+  email
+  phone
+  role
+  createdAt
+}
+
+fragment UserCoreFields on UserType {
+  id
+  name
+  email
+  username
+  phone
+  role
+  avatar
+  businessIds
+  branchIds
+  createdAt
+  authProvider
+  providerUserId
+  applePrivateEmail
+  wallet {
+    local
+    usd
+  }
+  walletStatus
+  avatarUrl
+}
+
+fragment UserUpdateFields on UserType {
+  id
+  name
+  email
+  username
+  phone
+  role
+  avatar
+  businessIds
+  branchIds
+  wallet {
+    local
+    usd
+  }
+  walletStatus
+  avatarUrl
+}
+
+fragment UserBranchAccessFields on UserType {
+  id
+  name
+  branchIds
+}
+
+fragment UserReferenceFields on UserType {
+  id
+  name
+}
+
+fragment UserAccessFields on UserType {
+  id
+  name
+  email
+}
+
+fragment UserOrderCustomerFields on UserType {
+  id
+  name
+  phone
+  avatarUrl
+}
+
+fragment UserOrderPendingCustomerFields on UserType {
+  id
+  name
+  phone
+}

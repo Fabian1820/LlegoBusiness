@@ -1,55 +1,60 @@
 package com.llego.shared.data.mappers
 
 import com.apollographql.apollo.api.Optional
-import com.llego.shared.data.model.*
 import com.llego.multiplatform.graphql.*
-import com.llego.multiplatform.graphql.type.CreateBusinessInput as GQLCreateBusinessInput
-import com.llego.multiplatform.graphql.type.UpdateBusinessInput as GQLUpdateBusinessInput
-import com.llego.multiplatform.graphql.type.RegisterBranchInput as GQLRegisterBranchInput
-import com.llego.multiplatform.graphql.type.CreateBranchInput as GQLCreateBranchInput
-import com.llego.multiplatform.graphql.type.UpdateBranchInput as GQLUpdateBranchInput
+import com.llego.multiplatform.graphql.fragment.BranchCoreFields
+import com.llego.multiplatform.graphql.fragment.BranchUpdateFields
+import com.llego.multiplatform.graphql.fragment.BusinessCoreFields
+import com.llego.multiplatform.graphql.fragment.BusinessOwnedFields
+import com.llego.multiplatform.graphql.fragment.BusinessUpdateFields
+import com.llego.multiplatform.graphql.fragment.CoordinatesFields
+import com.llego.multiplatform.graphql.fragment.ScoredBranchCoreFields
+import com.llego.multiplatform.graphql.fragment.WalletBalanceFields
 import com.llego.multiplatform.graphql.type.CoordinatesInput as GQLCoordinatesInput
+import com.llego.multiplatform.graphql.type.CreateBranchInput as GQLCreateBranchInput
+import com.llego.multiplatform.graphql.type.CreateBusinessInput as GQLCreateBusinessInput
+import com.llego.multiplatform.graphql.type.RegisterBranchInput as GQLRegisterBranchInput
+import com.llego.multiplatform.graphql.type.UpdateBranchInput as GQLUpdateBranchInput
+import com.llego.multiplatform.graphql.type.UpdateBusinessInput as GQLUpdateBusinessInput
+import com.llego.shared.data.model.*
 
 /**
- * Mappers para convertir tipos GraphQL a modelos de dominio
- * Sigue el mismo patrón que AuthRepository.kt
+ * Mappers para convertir tipos GraphQL a modelos de dominio.
  */
 
 // ============= BUSINESS MAPPERS (GraphQL -> Domain) =============
 
-fun GetBusinessesQuery.Business.toDomain(): Business {
-    return Business(
+fun GetBusinessesQuery.Business.toDomain(): Business =
+    businessCoreFields.toDomain(ownerId = "")
+
+fun GetMyBusinessesQuery.GetMyBusiness.toDomain(): Business =
+    businessOwnedFields.toDomain()
+
+fun GetMyBusinessesWithBranchesQuery.GetMyBusinessesWithBranch.toDomain(): Business =
+    Business(
         id = id,
         name = name,
-        ownerId = "", // No viene en la query lista
-        globalRating = globalRating,
+        ownerId = "",
+        globalRating = 0.0,
         avatar = avatar,
-        description = description,
-        socialMedia = parseStringMap(socialMedia),
-        tags = tags,
-        isActive = isActive,
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        description = null,
+        socialMedia = null,
+        tags = emptyList(),
+        isActive = true,
+        createdAt = "",
+        avatarUrl = null
     )
-}
 
-fun GetMyBusinessesQuery.GetMyBusiness.toDomain(): Business {
-    return Business(
-        id = id,
-        name = name,
-        ownerId = ownerId, // Esta query SÍ incluye ownerId
-        globalRating = globalRating,
-        avatar = avatar,
-        description = description,
-        socialMedia = parseStringMap(socialMedia),
-        tags = tags,
-        isActive = isActive,
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
-    )
-}
+fun GetBusinessQuery.Business.toDomain(): Business =
+    businessOwnedFields.toDomain()
 
-fun GetMyBusinessesWithBranchesQuery.GetMyBusinessesWithBranch.toDomain(): Business {
+fun RegisterBusinessMutation.RegisterBusiness.toDomain(): Business =
+    businessCoreFields.toDomain(ownerId = "")
+
+fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business =
+    businessUpdateFields.toDomain()
+
+private fun BusinessCoreFields.toDomain(ownerId: String): Business {
     return Business(
         id = id,
         name = name,
@@ -65,227 +70,141 @@ fun GetMyBusinessesWithBranchesQuery.GetMyBusinessesWithBranch.toDomain(): Busin
     )
 }
 
-fun GetBusinessQuery.Business.toDomain(): Business {
-    return Business(
-        id = id,
-        name = name,
-        ownerId = ownerId,
-        globalRating = globalRating,
-        avatar = avatar,
-        description = description,
-        socialMedia = parseStringMap(socialMedia),
-        tags = tags,
-        isActive = isActive,
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
-    )
+private fun BusinessOwnedFields.toDomain(): Business {
+    return businessCoreFields.toDomain(ownerId = ownerId)
 }
 
-fun RegisterBusinessMutation.RegisterBusiness.toDomain(): Business {
+private fun BusinessUpdateFields.toDomain(): Business {
     return Business(
         id = id,
         name = name,
-        ownerId = "", // Se llenará del context
+        ownerId = "",
         globalRating = globalRating,
         avatar = avatar,
         description = description,
         socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
-    )
-}
-
-fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business {
-    return Business(
-        id = id,
-        name = name,
-        ownerId = "", // No cambia en update
-        globalRating = globalRating,
-        avatar = avatar,
-        description = description,
-        socialMedia = parseStringMap(socialMedia),
-        tags = tags,
-        isActive = isActive,
-        createdAt = "", // No viene en update
+        createdAt = "",
         avatarUrl = avatarUrl
     )
 }
 
 // ============= BRANCH MAPPERS (GraphQL -> Domain) =============
 
-/**
- * Mapper para la nueva estructura paginada de branches
- * La respuesta viene en formato: branches.edges[].node
- */
-fun GetBranchesQuery.Node.toDomain(): Branch {
-    val scheduleMap = parseSchedule(schedule)
+fun GetBranchesQuery.Node.toDomain(): Branch =
+    scoredBranchCoreFields.toDomain()
 
-    // Convertir tipos de GraphQL a modelo de dominio
-    val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        mapBranchTipo(gqlTipo)
-    } ?: emptyList()
+fun GetBranchQuery.Branch.toDomain(): Branch =
+    branchCoreFields.toDomain()
 
-    return Branch(
-        id = id,
-        businessId = businessId,
-        name = name,
-        address = address,
-        coordinates = coordinates.toDomain(),
-        phone = phone,
-        schedule = scheduleMap,
-        tipos = branchTipos,
-        paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = managerIds ?: emptyList(),
-        status = status ?: "active",
-        avatar = avatar,
-        coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities ?: emptyList(),
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl,
-        coverUrl = coverUrl,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
-        walletStatus = walletStatus
-    )
-}
+fun CreateBranchMutation.CreateBranch.toDomain(): Branch =
+    branchCoreFields.toDomain()
 
-fun GetBranchQuery.Branch.toDomain(): Branch {
-    val scheduleMap = parseSchedule(schedule)
+fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch =
+    branchUpdateFields.toDomain()
 
-    val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        mapBranchTipo(gqlTipo)
-    } ?: emptyList()
+private fun ScoredBranchCoreFields.toDomain(): Branch {
+    val branchTipos = tipos.mapNotNull { gqlTipo -> mapBranchTipo(gqlTipo) }
+    val branchVehicles = vehicles.mapNotNull { gqlVehicle -> mapBranchVehicle(gqlVehicle) }
 
     return Branch(
         id = id,
         businessId = businessId,
         name = name,
         address = address,
-        coordinates = coordinates.toDomain(),
+        coordinates = coordinates.coordinatesFields.toDomain(),
         phone = phone,
-        schedule = scheduleMap,
+        schedule = parseSchedule(schedule),
         tipos = branchTipos,
-        paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = managerIds ?: emptyList(),
-        status = status ?: "active",
-        avatar = avatar,
-        coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities ?: emptyList(),
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl,
-        coverUrl = coverUrl,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
-        walletStatus = walletStatus
-    )
-}
-
-fun CreateBranchMutation.CreateBranch.toDomain(): Branch {
-    val scheduleMap = parseSchedule(schedule)
-
-    val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        mapBranchTipo(gqlTipo)
-    } ?: emptyList()
-
-    return Branch(
-        id = id,
-        businessId = businessId,
-        name = name,
-        address = address,
-        coordinates = coordinates.toDomain(),
-        phone = phone,
-        schedule = scheduleMap,
-        tipos = branchTipos,
-        paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = managerIds ?: emptyList(),
-        status = status ?: "active",
-        avatar = avatar,
-        coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities ?: emptyList(),
-        createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl,
-        coverUrl = coverUrl,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
-        walletStatus = walletStatus
-    )
-}
-
-fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch {
-    val scheduleMap = parseSchedule(schedule)
-
-    val branchTipos = tipos?.mapNotNull { gqlTipo ->
-        mapBranchTipo(gqlTipo)
-    } ?: emptyList()
-
-    return Branch(
-        id = id,
-        businessId = businessId,
-        name = name,
-        address = address,
-        coordinates = coordinates.toDomain(),
-        phone = phone,
-        schedule = scheduleMap,
-        tipos = branchTipos,
-        paymentMethodIds = paymentMethodIds ?: emptyList(),
-        managerIds = managerIds ?: emptyList(),
+        useAppMessaging = useAppMessaging,
+        vehicles = branchVehicles,
+        paymentMethodIds = paymentMethodIds,
+        managerIds = managerIds,
         status = status,
         avatar = avatar,
         coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
-        createdAt = "", // No viene en update
+        createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
-        wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
-        ),
+        wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus
     )
 }
 
-// ============= COORDINATES MAPPERS =============
+private fun BranchCoreFields.toDomain(): Branch {
+    val branchTipos = tipos.mapNotNull { gqlTipo -> mapBranchTipo(gqlTipo) }
+    val branchVehicles = vehicles.mapNotNull { gqlVehicle -> mapBranchVehicle(gqlVehicle) }
 
-/**
- * Mapper para coordenadas de la estructura paginada de branches
- */
-fun GetBranchesQuery.Coordinates.toDomain(): com.llego.shared.data.model.Coordinates {
-    return com.llego.shared.data.model.Coordinates(
-        type = type ?: "Point",
-        coordinates = coordinates ?: listOf(0.0, 0.0)
+    return Branch(
+        id = id,
+        businessId = businessId,
+        name = name,
+        address = address,
+        coordinates = coordinates.coordinatesFields.toDomain(),
+        phone = phone,
+        schedule = parseSchedule(schedule),
+        tipos = branchTipos,
+        useAppMessaging = useAppMessaging,
+        vehicles = branchVehicles,
+        paymentMethodIds = paymentMethodIds,
+        managerIds = managerIds,
+        status = status,
+        avatar = avatar,
+        coverImage = coverImage,
+        deliveryRadius = deliveryRadius,
+        facilities = facilities,
+        createdAt = createdAt.toString(),
+        avatarUrl = avatarUrl,
+        coverUrl = coverUrl,
+        wallet = wallet.walletBalanceFields.toDomain(),
+        walletStatus = walletStatus
     )
 }
 
-fun GetBranchQuery.Coordinates.toDomain(): com.llego.shared.data.model.Coordinates {
-    return com.llego.shared.data.model.Coordinates(
-        type = type ?: "Point",
-        coordinates = coordinates ?: listOf(0.0, 0.0)
+private fun BranchUpdateFields.toDomain(): Branch {
+    val branchTipos = tipos.mapNotNull { gqlTipo -> mapBranchTipo(gqlTipo) }
+    val branchVehicles = vehicles.mapNotNull { gqlVehicle -> mapBranchVehicle(gqlVehicle) }
+
+    return Branch(
+        id = id,
+        businessId = businessId,
+        name = name,
+        address = address,
+        coordinates = coordinates.coordinatesFields.toDomain(),
+        phone = phone,
+        schedule = parseSchedule(schedule),
+        tipos = branchTipos,
+        useAppMessaging = useAppMessaging,
+        vehicles = branchVehicles,
+        paymentMethodIds = paymentMethodIds,
+        managerIds = managerIds,
+        status = status,
+        avatar = avatar,
+        coverImage = coverImage,
+        deliveryRadius = deliveryRadius,
+        facilities = facilities,
+        createdAt = "",
+        avatarUrl = avatarUrl,
+        coverUrl = coverUrl,
+        wallet = wallet.walletBalanceFields.toDomain(),
+        walletStatus = walletStatus
     )
 }
 
-fun CreateBranchMutation.Coordinates.toDomain(): com.llego.shared.data.model.Coordinates {
-    return com.llego.shared.data.model.Coordinates(
-        type = type ?: "Point",
-        coordinates = coordinates ?: listOf(0.0, 0.0)
+private fun CoordinatesFields.toDomain(): Coordinates {
+    return Coordinates(
+        type = type,
+        coordinates = coordinates
     )
 }
 
-fun UpdateBranchMutation.Coordinates.toDomain(): com.llego.shared.data.model.Coordinates {
-    return com.llego.shared.data.model.Coordinates(
-        type = type ?: "Point",
-        coordinates = coordinates ?: listOf(0.0, 0.0)
+private fun WalletBalanceFields.toDomain(): WalletBalance {
+    return WalletBalance(
+        local = local,
+        usd = usd
     )
 }
 
@@ -319,6 +238,8 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
+        useAppMessaging = useAppMessaging,
+        vehicles = vehicles.toGraphQLVehicleList(),
         paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
@@ -337,6 +258,8 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
+        useAppMessaging = useAppMessaging,
+        vehicles = vehicles.toGraphQLVehicleList(),
         paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
@@ -361,6 +284,8 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         facilities = Optional.presentIfNotNull(facilities),
         managerIds = Optional.presentIfNotNull(managerIds),
         tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
+        useAppMessaging = Optional.presentIfNotNull(useAppMessaging),
+        vehicles = Optional.presentIfNotNull(vehicles?.toGraphQLVehicleList()),
         paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds)
     )
 }
@@ -376,6 +301,10 @@ private fun List<BranchTipo>.toGraphQLList(): List<com.llego.multiplatform.graph
     return map { tipo ->
         tipo.toGraphQL()
     }
+}
+
+private fun List<BranchVehicle>.toGraphQLVehicleList(): List<com.llego.multiplatform.graphql.type.BranchVehicle> {
+    return map { vehicle -> vehicle.toGraphQL() }
 }
 
 private fun BranchTipo.toGraphQL(): com.llego.multiplatform.graphql.type.BranchTipo {
@@ -395,4 +324,14 @@ private fun BranchTipo.toGraphQL(): com.llego.multiplatform.graphql.type.BranchT
 
     // Fallback: primer valor disponible del enum GraphQL
     return com.llego.multiplatform.graphql.type.BranchTipo.values().first()
+}
+
+private fun BranchVehicle.toGraphQL(): com.llego.multiplatform.graphql.type.BranchVehicle {
+    return when (this) {
+        BranchVehicle.MOTO -> com.llego.multiplatform.graphql.type.BranchVehicle.MOTO
+        BranchVehicle.BICICLETA -> com.llego.multiplatform.graphql.type.BranchVehicle.BICICLETA
+        BranchVehicle.CARRO -> com.llego.multiplatform.graphql.type.BranchVehicle.CARRO
+        BranchVehicle.CAMIONETA -> com.llego.multiplatform.graphql.type.BranchVehicle.CAMIONETA
+        BranchVehicle.CAMINANDO -> com.llego.multiplatform.graphql.type.BranchVehicle.CAMINANDO
+    }
 }

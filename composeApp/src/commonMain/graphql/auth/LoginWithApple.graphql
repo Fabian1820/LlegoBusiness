@@ -3,12 +3,7 @@ mutation LoginWithApple($input: AppleLoginInput!) {
         accessToken
         tokenType
         user {
-            id
-            name
-            email
-            phone
-            role
-            createdAt
+            ...UserAuthFields
         }
     }
 }

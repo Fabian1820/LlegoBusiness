@@ -1,0 +1,43 @@
+query NearbyBranches(
+  $longitude: Float!
+  $latitude: Float!
+  $radiusKm: Float!
+  $first: Int
+  $after: String
+  $jwt: String
+) {
+  nearbyBranches(
+    longitude: $longitude
+    latitude: $latitude
+    radiusKm: $radiusKm
+    first: $first
+    after: $after
+    jwt: $jwt
+  ) {
+    edges {
+      cursor
+      node {
+        id
+        businessId
+        name
+        address
+        phone
+        status
+        useAppMessaging
+        vehicles
+        tipos
+        distanceM
+        distanceKm
+        avatarUrl
+        coverUrl
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+      totalCount
+    }
+  }
+}

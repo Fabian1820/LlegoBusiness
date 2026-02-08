@@ -64,6 +64,11 @@ type Query {
   branch(id: String!, jwt: String = null): BranchType
 
   """
+  Obtener mis sucursales (merchant app)
+  """
+  getMyBranches(jwt: String!): [BranchType!]!
+
+  """
   Buscar sucursales con scoring por cercanía (paginado)
   """
   searchBranches(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, radiusKm: Float = null, jwt: String = null): BranchConnection!
@@ -405,6 +410,10 @@ type ScoredBranchType {
 
   tipos: [BranchTipo!]!
 
+  useAppMessaging: Boolean!
+
+  vehicles: [BranchVehicle!]!
+
   paymentMethodIds: [String!]!
 
   createdAt: DateTime!
@@ -457,6 +466,18 @@ enum BranchTipo {
   BAKERY
 
   CAFE
+}
+
+enum BranchVehicle {
+  MOTO
+
+  BICICLETA
+
+  CARRO
+
+  CAMIONETA
+
+  CAMINANDO
 }
 
 
@@ -548,6 +569,10 @@ type BranchType {
   facilities: [String!]!
 
   tipos: [BranchTipo!]!
+
+  useAppMessaging: Boolean!
+
+  vehicles: [BranchVehicle!]!
 
   paymentMethodIds: [String!]!
 
@@ -647,6 +672,10 @@ type NearbyBranchType {
   facilities: [String!]!
 
   tipos: [BranchTipo!]!
+
+  useAppMessaging: Boolean!
+
+  vehicles: [BranchVehicle!]!
 
   paymentMethodIds: [String!]!
 
@@ -1549,6 +1578,10 @@ input RegisterBranchInput {
 
   tipos: [BranchTipo!]!
 
+  useAppMessaging: Boolean!
+
+  vehicles: [BranchVehicle!]!
+
   paymentMethodIds: [String!]!
 
   address: String = null
@@ -1603,6 +1636,10 @@ input CreateBranchInput {
 
   tipos: [BranchTipo!]!
 
+  useAppMessaging: Boolean!
+
+  vehicles: [BranchVehicle!]!
+
   paymentMethodIds: [String!]!
 
   address: String = null
@@ -1630,6 +1667,10 @@ input UpdateBranchInput {
   schedule: JSON = null
 
   status: String = null
+
+  useAppMessaging: Boolean = null
+
+  vehicles: [BranchVehicle!] = null
 
   deliveryRadius: Float = null
 

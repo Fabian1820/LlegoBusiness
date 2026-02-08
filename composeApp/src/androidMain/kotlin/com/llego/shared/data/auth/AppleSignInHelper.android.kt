@@ -1,4 +1,4 @@
-package com.llego.shared.data.auth
+﻿package com.llego.shared.data.auth
 
 import android.content.Context
 import android.net.Uri
@@ -30,11 +30,11 @@ data class AppleStartResponse(
 )
 
 /**
- * Implementación Android de AppleSignInHelper
+ * ImplementaciÃ³n Android de AppleSignInHelper
  * Usa OAuth Web flow con Custom Tabs para Apple Sign-In
  * 
  * Flujo:
- * 1. Llama GET /apple/start → recibe { auth_url, state }
+ * 1. Llama GET /apple/start â†’ recibe { auth_url, state }
  * 2. Abre auth_url en Custom Tab (navegador in-app)
  * 3. Usuario se autentica en Apple
  * 4. Apple redirige al backend (POST /apple/callback)
@@ -53,7 +53,6 @@ actual class AppleSignInHelper(
         onSuccess: (identityToken: String, nonce: String?) -> Unit,
         onError: (message: String) -> Unit
     ) {
-        Log.d(TAG, "signIn: iniciando flujo Apple Sign-In para Android")
         
         // Guardar callbacks en el companion object para notificaciones
         // NOTA: onSuccess no se usa directamente porque MainActivity maneja el token
@@ -74,7 +73,6 @@ actual class AppleSignInHelper(
     }
     
     private suspend fun startAppleSignIn(context: Context) {
-        Log.d(TAG, "startAppleSignIn: llamando a /apple/start")
         
         val response = withContext(Dispatchers.IO) {
             val url = URL("${BackendConfig.BASE_URL}/apple/start")
@@ -86,14 +84,12 @@ actual class AppleSignInHelper(
                 connection.readTimeout = 15000
                 
                 val responseCode = connection.responseCode
-                Log.d(TAG, "startAppleSignIn: responseCode = $responseCode")
                 
                 if (responseCode != HttpURLConnection.HTTP_OK) {
                     throw Exception("Error del servidor: $responseCode")
                 }
                 
                 val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d(TAG, "startAppleSignIn: response = $responseBody")
                 
                 json.decodeFromString<AppleStartResponse>(responseBody)
             } finally {
@@ -101,10 +97,8 @@ actual class AppleSignInHelper(
             }
         }
         
-        Log.d(TAG, "startAppleSignIn: auth_url = ${response.auth_url}")
-        Log.d(TAG, "startAppleSignIn: state = ${response.state}")
         
-        // Guardar el state para validación posterior (opcional)
+        // Guardar el state para validaciÃ³n posterior (opcional)
         pendingState = response.state
         
         // Abrir Custom Tab con la URL de Apple
@@ -114,7 +108,6 @@ actual class AppleSignInHelper(
             .build()
         
         customTabsIntent.launchUrl(context, Uri.parse(response.auth_url))
-        Log.d(TAG, "startAppleSignIn: Custom Tab abierto")
     }
     
     companion object {
@@ -124,12 +117,11 @@ actual class AppleSignInHelper(
         private var pendingState: String? = null
         
         /**
-         * Notifica que el flujo de Apple Sign-In terminó exitosamente
-         * Llamado desde MainActivity después de authenticateWithToken()
+         * Notifica que el flujo de Apple Sign-In terminÃ³ exitosamente
+         * Llamado desde MainActivity despuÃ©s de authenticateWithToken()
          */
         fun notifySuccess() {
-            Log.d(TAG, "notifySuccess: flujo completado exitosamente")
-            // No llamamos onSuccess porque MainActivity ya manejó el token
+            // No llamamos onSuccess porque MainActivity ya manejÃ³ el token
             // Solo limpiamos los callbacks
             clearCallbacks()
         }

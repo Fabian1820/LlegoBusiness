@@ -11,20 +11,16 @@ query InvitationByCode($code: String!) {
         createdAt
         usedAt
         business {
-            id
-            name
+            ...BusinessReferenceFields
         }
         branch {
-            id
-            name
+            ...BranchReferenceFields
         }
         creator {
-            id
-            name
+            ...UserReferenceFields
         }
         redeemer {
-            id
-            name
+            ...UserReferenceFields
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchStatusSelector
 import com.llego.business.branches.ui.components.BranchTipoSelector
+import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
 import com.llego.shared.data.model.*
@@ -54,6 +55,8 @@ fun BranchEditScreen(
     var deliveryRadius by remember { mutableStateOf(branch.deliveryRadius?.toString().orEmpty()) }
     var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
     var selectedTipos by remember { mutableStateOf(branch.tipos.toSet()) }
+    var useAppMessaging by remember { mutableStateOf(branch.useAppMessaging) }
+    var selectedVehicles by remember { mutableStateOf(branch.vehicles.toSet()) }
     var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
     var branchFacilities by remember(branch) { mutableStateOf(branch.facilities) }
     var status by remember { mutableStateOf(if (branch.status == "inactive") "inactive" else "active") }
@@ -240,6 +243,53 @@ fun BranchEditScreen(
                 onStatusChange = { status = it }
             )
 
+            Text(
+                text = "Mensajeria con clientes",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = if (useAppMessaging) {
+                            "Mensajeria de la app activada"
+                        } else {
+                            "Mensajeria externa"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (useAppMessaging) {
+                            "Los mensajes de pedidos y clientes se gestionan desde la app."
+                        } else {
+                            "La sucursal gestiona la comunicacion por su propio canal."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = useAppMessaging,
+                    onCheckedChange = { useAppMessaging = it }
+                )
+            }
+
+            Text(
+                text = "Vehiculos de delivery",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            BranchVehiclesSelector(
+                selectedVehicles = selectedVehicles,
+                onSelectionChange = { selectedVehicles = it }
+            )
+
             SchedulePicker(
                 schedule = branchSchedule,
                 onScheduleChange = { branchSchedule = it }
@@ -338,6 +388,8 @@ fun BranchEditScreen(
                             },
                             schedule = scheduleValue.takeIf { it != branch.schedule },
                             tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                            useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
+                            vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
                             paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
                             status = status.takeIf { it != branch.status },
                             deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },

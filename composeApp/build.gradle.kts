@@ -12,10 +12,24 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.composeHotReload) apply false
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.apolloGraphQl)
     id("org.jetbrains.kotlin.native.cocoapods")
+}
+
+val enableDesktop = providers.gradleProperty("llego.enableDesktop")
+    .map { value -> value.equals("true", ignoreCase = true) }
+    .orElse(false)
+    .get()
+
+val enableDesktopDev = providers.gradleProperty("llego.desktopDev")
+    .map { value -> value.equals("true", ignoreCase = true) }
+    .orElse(false)
+    .get()
+
+if (enableDesktop && enableDesktopDev) {
+    apply(plugin = "org.jetbrains.compose.hot-reload")
 }
 
 kotlin {
@@ -45,8 +59,10 @@ kotlin {
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
     }
-    
-    jvm()
+
+    if (enableDesktop) {
+        jvm()
+    }
     
     sourceSets {
         androidMain.dependencies {
@@ -72,7 +88,6 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.androidx.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.apollo.runtime)
@@ -89,10 +104,13 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
-        jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
-            implementation(libs.ktor.client.okhttp)
+
+        if (enableDesktop) {
+            jvmMain.dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.kotlinx.coroutinesSwing)
+                implementation(libs.ktor.client.okhttp)
+            }
         }
     }
 }
@@ -128,14 +146,16 @@ dependencies {
     debugImplementation(compose.uiTooling)
 }
 
-compose.desktop {
-    application {
-        mainClass = "com.llego.app.MainKt"
+if (enableDesktop) {
+    compose.desktop {
+        application {
+            mainClass = "com.llego.app.MainKt"
 
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.llego.business"
-            packageVersion = "1.0.0"
+            nativeDistributions {
+                targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+                packageName = "com.llego.business"
+                packageVersion = "1.0.0"
+            }
         }
     }
 }
@@ -147,9 +167,8 @@ apollo {
         // Tells Apollo to generate Kotlin models
         generateKotlinModels.set(true)
 
-        // IMPORTANTE: Ignorar errores de parseo por campos desconocidos del backend
-        // El backend está enviando 'password' aunque no debería estar en el schema
-        generateDataBuilders.set(true)
+        // Reduce Apollo generated code when fake data builders are not used.
+        generateDataBuilders.set(false)
 
         // Introspection configuration to download schema via Gradle
         introspection {

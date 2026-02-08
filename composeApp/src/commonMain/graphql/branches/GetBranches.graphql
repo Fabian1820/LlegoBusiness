@@ -1,37 +1,29 @@
-query GetBranches($businessId: String, $jwt: String) {
-  branches(businessId: $businessId, jwt: $jwt) {
+query GetBranches(
+  $first: Int
+  $after: String
+  $businessId: String
+  $tipo: BranchTipo
+  $radiusKm: Float
+  $jwt: String
+) {
+  branches(
+    first: $first
+    after: $after
+    businessId: $businessId
+    tipo: $tipo
+    radiusKm: $radiusKm
+    jwt: $jwt
+  ) {
     edges {
+      cursor
       node {
-        id
-        businessId
-        name
-        address
-        phone
-        status
-        tipos
-        paymentMethodIds
-        avatar
-        coverImage
-        deliveryRadius
-        facilities
-        coordinates {
-          type
-          coordinates
-        }
-        schedule
-        managerIds
-        createdAt
-        avatarUrl
-        coverUrl
-        wallet {
-          local
-          usd
-        }
-        walletStatus
+        ...ScoredBranchCoreFields
       }
     }
     pageInfo {
       hasNextPage
+      hasPreviousPage
+      startCursor
       endCursor
       totalCount
     }

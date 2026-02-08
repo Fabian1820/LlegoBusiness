@@ -1,0 +1,53 @@
+fragment BusinessCoreFields on BusinessType {
+  id
+  name
+  avatar
+  description
+  tags
+  socialMedia
+  globalRating
+  isActive
+  createdAt
+  avatarUrl
+}
+
+fragment BusinessOwnedFields on BusinessType {
+  ...BusinessCoreFields
+  ownerId
+}
+
+fragment BusinessRoleFields on BusinessType {
+  ...BusinessOwnedFields
+  isOwner
+  role
+}
+
+fragment BusinessUpdateFields on BusinessType {
+  id
+  name
+  description
+  avatar
+  tags
+  socialMedia
+  isActive
+  globalRating
+  avatarUrl
+}
+
+fragment BusinessAccessFields on BusinessType {
+  id
+  name
+  ownerId
+  avatar
+}
+
+fragment BusinessReferenceFields on BusinessType {
+  id
+  name
+}
+
+fragment BusinessOrderInfoFields on BusinessType {
+  id
+  name
+  avatarUrl
+}

@@ -7,13 +7,10 @@ query BusinessAccessByBusiness($businessId: String!, $jwt: String!) {
         daysUntilExpiration
         createdAt
         user {
-            id
-            name
-            email
+            ...UserAccessFields
         }
         business {
-            id
-            name
+            ...BusinessReferenceFields
         }
     }
 }

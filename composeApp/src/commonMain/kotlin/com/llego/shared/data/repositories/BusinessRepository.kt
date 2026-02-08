@@ -1,823 +1,95 @@
 package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
-import com.apollographql.apollo.api.Optional
-import com.apollographql.apollo.exception.ApolloException
-import com.llego.multiplatform.graphql.*
 import com.llego.shared.data.auth.TokenManager
-import com.llego.shared.data.mappers.*
-import com.llego.shared.data.model.*
+import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.Business
+import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.BusinessWithBranches
+import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.CreateBusinessInput
+import com.llego.shared.data.model.RegisterBranchInput
+import com.llego.shared.data.model.UpdateBranchInput
+import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.data.network.GraphQLClient
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Repository para gestionar negocios y sucursales
- * Sigue el mismo patrÃ³n que AuthRepository.kt
+ * Facade repository that coordinates business and branch domain repositories.
  */
 class BusinessRepository(
-    private val client: ApolloClient = GraphQLClient.apolloClient,
-    private val tokenManager: TokenManager
+    client: ApolloClient = GraphQLClient.apolloClient,
+    tokenManager: TokenManager
 ) {
+    private val state = BusinessRepositoryState()
+    private val businessDomainRepository = BusinessDomainRepository(client, tokenManager, state)
+    private val branchDomainRepository = BranchDomainRepository(client, tokenManager, state)
 
-    // ============= STATE FLOWS =============
+    val currentBusiness: StateFlow<Business?> = state.currentBusiness
+    val businesses: StateFlow<List<Business>> = state.businesses
+    val branches: StateFlow<List<Branch>> = state.branches
+    val currentBranch: StateFlow<Branch?> = state.currentBranch
 
-    private val _currentBusiness = MutableStateFlow<Business?>(null)
-    val currentBusiness: StateFlow<Business?> = _currentBusiness.asStateFlow()
-
-    private val _businesses = MutableStateFlow<List<Business>>(emptyList())
-    val businesses: StateFlow<List<Business>> = _businesses.asStateFlow()
-
-    private val _branches = MutableStateFlow<List<Branch>>(emptyList())
-    val branches: StateFlow<List<Branch>> = _branches.asStateFlow()
-
-    private val _currentBranch = MutableStateFlow<Branch?>(null)
-    val currentBranch: StateFlow<Branch?> = _currentBranch.asStateFlow()
-
-    // ============= BUSINESS OPERATIONS =============
-
-    /**
-     * Registra un nuevo negocio con sus sucursales
-     */
     suspend fun registerBusiness(
         business: CreateBusinessInput,
         branches: List<RegisterBranchInput>
     ): BusinessResult<Business> {
-        val token = tokenManager.getToken()
-        
-        
-        if (token == null) {
-            return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-        }
-
-        return try {
-            
-            val gqlBusiness = business.toGraphQL()
-            val gqlBranches = branches.map { it.toGraphQL() }
-            
-            
-            val response = client.mutation(
-                RegisterBusinessMutation(
-                    business = gqlBusiness,
-                    branches = gqlBranches,
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-
-            if (response.hasErrors()) {
-                val errors = response.errors?.joinToString(", ") { "${it.message} (path: ${it.path})" }
-                return BusinessResult.Error(
-                    errors ?: "Error desconocido del servidor",
-                    "GRAPHQL_ERROR"
-                )
-            }
-            
-            // Verificar si hay excepciÃ³n
-            response.exception?.let { ex ->
-                return BusinessResult.Error(
-                    ex.message ?: "Error de conexiÃ³n",
-                    "RESPONSE_EXCEPTION"
-                )
-            }
-
-
-            response.data?.registerBusiness?.let { businessData ->
-                val newBusiness = businessData.toDomain()
-                _currentBusiness.value = newBusiness
-                BusinessResult.Success(newBusiness)
-            } ?: BusinessResult.Error(
-                "No se recibiÃ³ respuesta del servidor al crear el negocio (data.registerBusiness es null)",
-                "EMPTY_RESPONSE"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al crear negocio",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al crear negocio",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.registerBusiness(business, branches)
     }
 
-    /**
-     * Obtiene todos los negocios del usuario actual
-     * Incluye negocios propios Y negocios compartidos por invitación
-     * Filtra automáticamente accesos expirados
-     */
     suspend fun getBusinesses(): BusinessResult<List<Business>> {
-        println("DEBUG BusinessRepository: getBusinesses() iniciado")
-        
-        val token = tokenManager.getToken()
-        if (token == null) {
-            println("DEBUG BusinessRepository: No hay token")
-            return BusinessResult.Error("No hay sesión activa", "NO_TOKEN")
-        }
-
-        println("DEBUG BusinessRepository: Token presente, llamando GetMyBusinessesWithBranches")
-
-        return try {
-            // Usar getMyBusinessesWithBranches que retorna negocios propios + compartidos con sucursales
-            val response = client.query(
-                GetMyBusinessesWithBranchesQuery(
-                    jwt = token
-                )
-            ).execute()
-
-            println("DEBUG BusinessRepository: Respuesta recibida")
-            println("  - hasErrors: ${response.hasErrors()}")
-            println("  - data presente: ${response.data != null}")
-
-            if (response.hasErrors()) {
-                val errors = response.errors?.joinToString(", ") { "${it.message}" }
-                println("DEBUG BusinessRepository: Errores: $errors")
-                return BusinessResult.Error(
-                    errors ?: "Error desconocido del servidor",
-                    "GRAPHQL_ERROR"
-                )
-            }
-
-            response.data?.getMyBusinessesWithBranches?.let { businessesData ->
-                println("DEBUG BusinessRepository: ${businessesData.size} negocios recibidos")
-                
-                val businessesList = businessesData.map { it.toDomain() }
-                _businesses.value = businessesList
-
-                businessesList.forEachIndexed { index, business ->
-                    println("  [$index] ${business.name} (id: ${business.id}, owner: ${business.ownerId})")
-                }
-
-                // Si solo hay un negocio, establecerlo como actual
-                if (businessesList.size == 1) {
-                    _currentBusiness.value = businessesList.first()
-                    println("DEBUG BusinessRepository: Un solo negocio, establecido como actual")
-                } else if (businessesList.isNotEmpty()) {
-                    // Si hay múltiples negocios, establecer el primero como actual
-                    _currentBusiness.value = businessesList.first()
-                    println("DEBUG BusinessRepository: Múltiples negocios, primero establecido como actual")
-                } else {
-                    println("DEBUG BusinessRepository: Lista vacía")
-                }
-
-                BusinessResult.Success(businessesList)
-            } ?: run {
-                println("DEBUG BusinessRepository: data.getMyBusinessesWithBranches es null")
-                BusinessResult.Error(
-                    "No se recibió respuesta del servidor",
-                    "EMPTY_RESPONSE"
-                )
-            }
-
-        } catch (e: ApolloException) {
-            println("DEBUG BusinessRepository: ApolloException - ${e.message}")
-            e.printStackTrace()
-            BusinessResult.Error(
-                e.message ?: "Error de conexión al obtener negocios",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            println("DEBUG BusinessRepository: Exception - ${e.message}")
-            e.printStackTrace()
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener negocios",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.getBusinesses()
     }
 
-    /**
-     * Obtiene un negocio especÃ­fico por ID
-     */
     suspend fun getBusiness(id: String): BusinessResult<Business> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.query(
-                GetBusinessQuery(
-                    id = id,
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            response.data?.business?.let { businessData ->
-                val business = businessData.toDomain()
-                _currentBusiness.value = business
-                BusinessResult.Success(business)
-            } ?: BusinessResult.Error(
-                "No se encontrÃ³ el negocio",
-                "NOT_FOUND"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al obtener negocio",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener negocio",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.getBusiness(id)
     }
 
-    /**
-     * Actualiza un negocio
-     */
     suspend fun updateBusiness(
         businessId: String,
         input: UpdateBusinessInput
     ): BusinessResult<Business> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.mutation(
-                UpdateBusinessMutation(
-                    businessId = businessId,
-                    input = input.toGraphQL(),
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            response.data?.updateBusiness?.let { businessData ->
-                val updatedBusiness = businessData.toDomain()
-
-                // Actualizar en la lista si existe
-                _businesses.value = _businesses.value.map {
-                    if (it.id == businessId) updatedBusiness else it
-                }
-
-                // Actualizar current si es el mismo
-                if (_currentBusiness.value?.id == businessId) {
-                    _currentBusiness.value = updatedBusiness
-                }
-
-                BusinessResult.Success(updatedBusiness)
-            } ?: BusinessResult.Error(
-                "No se pudo actualizar el negocio",
-                "UPDATE_FAILED"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al actualizar negocio",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al actualizar negocio",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.updateBusiness(businessId, input)
     }
 
-    // ============= BRANCH OPERATIONS =============
-
-    /**
-     * Obtiene todas las sucursales de un negocio
-     * Si businessId es null, obtiene todas las sucursales del usuario
-     */
-    suspend fun getBranches(businessId: String? = null): BusinessResult<List<Branch>> {
-        println("DEBUG BusinessRepository: getBranches() iniciado con businessId=$businessId")
-
-        val token = tokenManager.getToken()
-        if (token == null) {
-            println("DEBUG BusinessRepository: No hay token en getBranches")
-            return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-        }
-
-        println("DEBUG BusinessRepository: Token presente en getBranches, llamando GetBranchesQuery")
-
-        return try {
-
-            val response = client.query(
-                GetBranchesQuery(
-                    businessId = Optional.presentIfNotNull(businessId),
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            println("DEBUG BusinessRepository: GetBranchesQuery ejecutado")
-            println("  - hasErrors: ${response.hasErrors()}")
-            println("  - data presente: ${response.data != null}")
-
-
-            if (response.hasErrors()) {
-                val errors = response.errors?.joinToString(", ") { "${it.message}" }
-                println("DEBUG BusinessRepository: Errores en GetBranchesQuery: $errors")
-                if (errors?.contains("_wallet") == true) {
-                    println("DEBUG BusinessRepository: Error de _wallet detectado, usando fallback")
-                    return fallbackGetBranchesByIds(token, businessId)
-                }
-                return BusinessResult.Error(
-                    errors ?: "Error desconocido del servidor",
-                    "GRAPHQL_ERROR"
-                )
-            }
-
-            println("DEBUG BusinessRepository: Verificando response.data?.branches...")
-            response.data?.branches?.let { branchesConnection ->
-                println("DEBUG BusinessRepository: branchesConnection recibido, edges count: ${branchesConnection.edges.size}")
-                // Extraer los nodos de la estructura paginada edges[].node
-                val branchesData = branchesConnection.edges.map { it.node }
-
-                val branchesList = branchesData.map { it.toDomain() }
-                _branches.value = branchesList
-                println("DEBUG BusinessRepository: ${branchesList.size} sucursales procesadas correctamente")
-
-
-                // Si solo hay una sucursal, establecerla como actual automÃ¡ticamente
-                // Si hay mÃºltiples sucursales, NO seleccionar ninguna - mostrar selector
-                if (branchesList.size == 1) {
-                    _currentBranch.value = branchesList.first()
-                } else if (branchesList.isNotEmpty()) {
-                    // NO establecer currentBranch para mÃºltiples sucursales
-                    // El usuario debe elegir en BranchSelectorScreen
-                    _currentBranch.value = null
-                } else {
-                    _currentBranch.value = null
-                }
-
-                BusinessResult.Success(branchesList)
-            } ?: run {
-                println("DEBUG BusinessRepository: response.data?.branches es null, usando fallback")
-                fallbackGetBranchesByIds(token, businessId)
-            }
-
-        } catch (e: ApolloException) {
-            println("DEBUG BusinessRepository: ApolloException en getBranches - ${e.message}")
-            e.printStackTrace()
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al obtener sucursales",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            println("DEBUG BusinessRepository: Exception en getBranches - ${e.message}")
-            e.printStackTrace()
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener sucursales",
-                "UNKNOWN_ERROR"
-            )
-        }
-    }
-
-    /**
-     * Obtiene todos los negocios del usuario con sus sucursales anidadas
-     * OPTIMIZADO: Usa getMyBusinessesWithBranches (incluye negocios propios + compartidos)
-     * Reduce queries de 1+N a 1 sola llamada
-     */
     suspend fun getBusinessesWithBranches(): BusinessResult<List<BusinessWithBranches>> {
-        val token = tokenManager.getToken()
-        if (token == null) {
-            return BusinessResult.Error("No hay sesiÃƒÂ³n activa", "NO_TOKEN")
-        }
-
-        return try {
-            val response = client.query(
-                GetMyBusinessesWithBranchesQuery(
-                    jwt = token
-                )
-            ).execute()
-
-            if (response.hasErrors()) {
-                val errors = response.errors?.joinToString(", ") { "${it.message}" }
-                return BusinessResult.Error(
-                    errors ?: "Error desconocido del servidor",
-                    "GRAPHQL_ERROR"
-                )
-            }
-
-            response.data?.getMyBusinessesWithBranches?.let { businessesData ->
-                val businessesList = businessesData.map { businessData ->
-                    val branches = businessData.branches.map { branchData ->
-                        val scheduleMap = parseSchedule(branchData.schedule)
-                        val branchTipos = branchData.tipos?.mapNotNull { mapBranchTipo(it) } ?: emptyList()
-
-                        Branch(
-                            id = branchData.id,
-                            businessId = branchData.businessId,
-                            name = branchData.name,
-                            address = branchData.address,
-                            coordinates = Coordinates(
-                                type = branchData.coordinates.type,
-                                coordinates = branchData.coordinates.coordinates
-                            ),
-                            phone = branchData.phone,
-                            schedule = scheduleMap,
-                            tipos = branchTipos,
-                            paymentMethodIds = branchData.paymentMethodIds ?: emptyList(),
-                            managerIds = branchData.managerIds ?: emptyList(),
-                            status = branchData.status ?: "active",
-                            avatar = branchData.avatar,
-                            coverImage = branchData.coverImage,
-                            deliveryRadius = branchData.deliveryRadius,
-                            facilities = branchData.facilities ?: emptyList(),
-                            createdAt = branchData.createdAt.toString(),
-                            avatarUrl = branchData.avatarUrl,
-                            coverUrl = branchData.coverUrl,
-                            wallet = WalletBalance(
-                                local = branchData.wallet.local,
-                                usd = branchData.wallet.usd
-                            ),
-                            walletStatus = branchData.walletStatus
-                        )
-                    }
-
-                    BusinessWithBranches(
-                        id = businessData.id,
-                        name = businessData.name,
-                        ownerId = businessData.ownerId,
-                        isOwner = businessData.isOwner,           // ✨ NUEVO
-                        role = businessData.role,                 // ✨ NUEVO
-                        globalRating = businessData.globalRating,
-                        avatar = businessData.avatar,
-                        description = businessData.description,
-                        socialMedia = parseStringMap(businessData.socialMedia),
-                        tags = businessData.tags,
-                        isActive = businessData.isActive,
-                        createdAt = businessData.createdAt.toString(),
-                        avatarUrl = businessData.avatarUrl,
-                        branches = branches
-                    )
-                }
-
-                _businesses.value = businessesList.map { it.toBusiness() }
-                _branches.value = businessesList.flatMap { it.branches }
-
-                if (_businesses.value.isNotEmpty()) {
-                    _currentBusiness.value = _businesses.value.first()
-                }
-
-                BusinessResult.Success(businessesList)
-            } ?: BusinessResult.Error(
-                "No se recibiÃƒÂ³ respuesta del servidor",
-                "EMPTY_RESPONSE"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃƒÂ³n al obtener negocios",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener negocios",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.getBusinessesWithBranches()
     }
 
-    /**
-     * Registra mÃƒÂºltiples negocios con sus sucursales en una sola operaciÃƒÂ³n
-     */
     suspend fun registerMultipleBusinesses(
         businesses: List<Pair<CreateBusinessInput, List<RegisterBranchInput>>>
     ): BusinessResult<List<Business>> {
-        val token = tokenManager.getToken()
-
-
-        if (token == null) {
-            return BusinessResult.Error("No hay sesiÃƒÂ³n activa", "NO_TOKEN")
-        }
-
-        return try {
-            val gqlBusinesses = businesses.map { (business, branches) ->
-                com.llego.multiplatform.graphql.type.RegisterBusinessWithBranchesInput(
-                    business = business.toGraphQL(),
-                    branches = branches.map { it.toGraphQL() }
-                )
-            }
-
-            val response = client.mutation(
-                RegisterMultipleBusinessesMutation(
-                    businesses = gqlBusinesses,
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            if (response.hasErrors()) {
-                val errors = response.errors?.joinToString(", ") { "${it.message}" }
-                return BusinessResult.Error(
-                    errors ?: "Error desconocido del servidor",
-                    "GRAPHQL_ERROR"
-                )
-            }
-
-            response.data?.registerMultipleBusinesses?.let { businessesData ->
-                val businessesList = businessesData.map { businessData ->
-                    Business(
-                        id = businessData.id,
-                        name = businessData.name,
-                        ownerId = businessData.ownerId,
-                        globalRating = businessData.globalRating,
-                        avatar = businessData.avatar,
-                        description = businessData.description,
-                        socialMedia = parseStringMap(businessData.socialMedia),
-                        tags = businessData.tags,
-                        isActive = businessData.isActive,
-                        createdAt = businessData.createdAt.toString(),
-                        avatarUrl = businessData.avatarUrl
-                    )
-                }
-
-                _businesses.value = businessesList
-                if (businessesList.isNotEmpty()) {
-                    _currentBusiness.value = businessesList.first()
-                }
-
-                BusinessResult.Success(businessesList)
-            } ?: BusinessResult.Error(
-                "No se recibiÃƒÂ³ respuesta del servidor",
-                "EMPTY_RESPONSE"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃƒÂ³n al registrar negocios",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al registrar negocios",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return businessDomainRepository.registerMultipleBusinesses(businesses)
     }
 
-    private suspend fun fallbackGetBranchesByIds(
-        token: String,
-        businessId: String?
-    ): BusinessResult<List<Branch>> {
-        return try {
-            val meResponse = client.query(MeQuery(jwt = token)).execute()
-            if (meResponse.hasErrors()) {
-                val errors = meResponse.errors?.joinToString(", ") { "${it.message}" }
-                return BusinessResult.Error(
-                    errors ?: "Error al obtener usuario para cargar sucursales",
-                    "GRAPHQL_ERROR"
-                )
-            }
-
-            val branchIds = meResponse.data?.me?.branchIds ?: emptyList()
-            if (branchIds.isEmpty()) {
-                _branches.value = emptyList()
-                _currentBranch.value = null
-                return BusinessResult.Success(emptyList())
-            }
-
-            val branches = mutableListOf<Branch>()
-            var hadErrors = false
-            branchIds.distinct().forEach { branchId ->
-                val branchResponse = client.query(
-                    GetBranchQuery(
-                        id = branchId,
-                        jwt = Optional.presentIfNotNull(token)
-                    )
-                ).execute()
-
-                if (branchResponse.hasErrors()) {
-                    val errors = branchResponse.errors?.joinToString(", ") { "${it.message}" }
-                    hadErrors = true
-                    return@forEach
-                }
-
-                branchResponse.data?.branch?.let { branchData ->
-                    branches.add(branchData.toDomain())
-                }
-            }
-
-            val filteredBranches = if (businessId != null) {
-                branches.filter { it.businessId == businessId }
-            } else {
-                branches
-            }
-
-            _branches.value = filteredBranches
-
-            if (filteredBranches.size == 1) {
-                _currentBranch.value = filteredBranches.first()
-            } else if (filteredBranches.isNotEmpty()) {
-                _currentBranch.value = null
-            } else {
-                _currentBranch.value = null
-            }
-
-            if (filteredBranches.isEmpty() && hadErrors) {
-                BusinessResult.Error("No se pudieron cargar sucursales", "GRAPHQL_ERROR")
-            } else {
-                BusinessResult.Success(filteredBranches)
-            }
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexion al obtener sucursales",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener sucursales",
-                "UNKNOWN_ERROR"
-            )
-        }
+    suspend fun getBranches(businessId: String? = null): BusinessResult<List<Branch>> {
+        return branchDomainRepository.getBranches(businessId)
     }
 
-    /**
-     * Obtiene una sucursal especÃ­fica por ID
-     */
     suspend fun getBranch(id: String): BusinessResult<Branch> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.query(
-                GetBranchQuery(
-                    id = id,
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            response.data?.branch?.let { branchData ->
-                val branch = branchData.toDomain()
-                _currentBranch.value = branch
-                BusinessResult.Success(branch)
-            } ?: BusinessResult.Error(
-                "No se encontrÃ³ la sucursal",
-                "NOT_FOUND"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al obtener sucursal",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al obtener sucursal",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return branchDomainRepository.getBranch(id)
     }
 
-    /**
-     * Crea una nueva sucursal
-     */
     suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.mutation(
-                CreateBranchMutation(
-                    input = input.toGraphQL(),
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            response.data?.createBranch?.let { branchData ->
-                val newBranch = branchData.toDomain()
-
-                // Agregar a la lista de sucursales
-                _branches.value = _branches.value + newBranch
-
-                BusinessResult.Success(newBranch)
-            } ?: BusinessResult.Error(
-                "No se pudo crear la sucursal",
-                "CREATE_FAILED"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al crear sucursal",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al crear sucursal",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return branchDomainRepository.createBranch(input)
     }
 
-    /**
-     * Actualiza una sucursal
-     */
     suspend fun updateBranch(
         branchId: String,
         input: UpdateBranchInput
     ): BusinessResult<Branch> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesiÃ³n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.mutation(
-                UpdateBranchMutation(
-                    branchId = branchId,
-                    input = input.toGraphQL(),
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            response.data?.updateBranch?.let { branchData ->
-                val updatedBranch = branchData.toDomain()
-
-                // Actualizar en la lista si existe
-                _branches.value = _branches.value.map {
-                    if (it.id == branchId) updatedBranch else it
-                }
-
-                // Actualizar current si es la misma
-                if (_currentBranch.value?.id == branchId) {
-                    _currentBranch.value = updatedBranch
-                }
-
-                BusinessResult.Success(updatedBranch)
-            } ?: BusinessResult.Error(
-                "No se pudo actualizar la sucursal",
-                "UPDATE_FAILED"
-            )
-
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexiÃ³n al actualizar sucursal",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al actualizar sucursal",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return branchDomainRepository.updateBranch(branchId, input)
     }
 
-    /**
-     * Elimina una sucursal
-     */
     suspend fun deleteBranch(branchId: String): BusinessResult<Boolean> {
-        val token = tokenManager.getToken()
-            ?: return BusinessResult.Error("No hay sesi\u00f3n activa", "NO_TOKEN")
-
-        return try {
-            val response = client.mutation(
-                DeleteBranchMutation(
-                    branchId = branchId,
-                    jwt = Optional.presentIfNotNull(token)
-                )
-            ).execute()
-
-            val deleted = response.data?.deleteBranch == true
-            if (deleted) {
-                val updatedBranches = _branches.value.filterNot { it.id == branchId }
-                _branches.value = updatedBranches
-
-                if (_currentBranch.value?.id == branchId) {
-                    _currentBranch.value = when (updatedBranches.size) {
-                        1 -> updatedBranches.first()
-                        else -> null
-                    }
-                }
-
-                BusinessResult.Success(true)
-            } else {
-                BusinessResult.Error("No se pudo eliminar la sucursal", "DELETE_FAILED")
-            }
-        } catch (e: ApolloException) {
-            BusinessResult.Error(
-                e.message ?: "Error de conexi\u00f3n al eliminar sucursal",
-                "APOLLO_ERROR"
-            )
-        } catch (e: Exception) {
-            BusinessResult.Error(
-                e.message ?: "Error desconocido al eliminar sucursal",
-                "UNKNOWN_ERROR"
-            )
-        }
+        return branchDomainRepository.deleteBranch(branchId)
     }
 
-    // ============= HELPER METHODS =============
-
-    /**
-     * Establece la sucursal actual
-     */
     fun setCurrentBranch(branch: Branch) {
-        _currentBranch.value = branch
+        state.setCurrentBranch(branch)
     }
 
-    /**
-     * Limpia todos los datos del repository
-     */
     fun clear() {
-        _currentBusiness.value = null
-        _businesses.value = emptyList()
-        _branches.value = emptyList()
-        _currentBranch.value = null
+        state.clear()
     }
-
-
-
 }

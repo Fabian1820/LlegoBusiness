@@ -15,14 +15,15 @@ import com.llego.shared.data.model.WalletBalance
 
 // UserData (respuesta bÃ¡sica de login/register) a User bÃ¡sico
 internal fun LoginMutation.User.toBasicDomain(): User {
+    val fields = userAuthFields
     return User(
-        id = id,
-        name = name,
-        email = email,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
         username = "", // Login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
+        phone = fields.phone,
+        role = fields.role,
+        createdAt = fields.createdAt,
         // Campos que requieren query 'me'
         avatar = null,
         businessIds = emptyList(),
@@ -37,14 +38,15 @@ internal fun LoginMutation.User.toBasicDomain(): User {
 }
 
 internal fun RegisterMutation.User.toBasicDomain(): User {
+    val fields = userAuthFields
     return User(
-        id = id,
-        name = name,
-        email = email,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
         username = "", // Register no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
+        phone = fields.phone,
+        role = fields.role,
+        createdAt = fields.createdAt,
         avatar = null,
         businessIds = emptyList(),
         branchIds = emptyList(),
@@ -58,14 +60,15 @@ internal fun RegisterMutation.User.toBasicDomain(): User {
 }
 
 internal fun LoginWithGoogleMutation.User.toBasicDomain(): User {
+    val fields = userAuthFields
     return User(
-        id = id,
-        name = name,
-        email = email,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
         username = "", // Google login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
+        phone = fields.phone,
+        role = fields.role,
+        createdAt = fields.createdAt,
         avatar = null,
         businessIds = emptyList(),
         branchIds = emptyList(),
@@ -79,14 +82,15 @@ internal fun LoginWithGoogleMutation.User.toBasicDomain(): User {
 }
 
 internal fun LoginWithAppleMutation.User.toBasicDomain(): User {
+    val fields = userAuthFields
     return User(
-        id = id,
-        name = name,
-        email = email,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
         username = "", // Apple login no retorna username, se obtiene con query 'me'
-        phone = phone,
-        role = role,
-        createdAt = createdAt,
+        phone = fields.phone,
+        role = fields.role,
+        createdAt = fields.createdAt,
         avatar = null,
         businessIds = emptyList(),
         branchIds = emptyList(),
@@ -101,47 +105,49 @@ internal fun LoginWithAppleMutation.User.toBasicDomain(): User {
 
 // UserType (respuesta completa de 'me') a User completo
 internal fun MeQuery.Me.toDomain(): User {
+    val fields = userCoreFields
     return User(
-        id = id,
-        name = name,
-        email = email,
-        username = username,
-        phone = phone,
-        role = role,
-        avatar = avatar,
-        businessIds = businessIds,
-        branchIds = branchIds,
-        createdAt = createdAt.toString(),
-        authProvider = authProvider,
-        providerUserId = providerUserId,
-        applePrivateEmail = applePrivateEmail,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
+        username = fields.username,
+        phone = fields.phone,
+        role = fields.role,
+        avatar = fields.avatar,
+        businessIds = fields.businessIds,
+        branchIds = fields.branchIds,
+        createdAt = fields.createdAt.toString(),
+        authProvider = fields.authProvider,
+        providerUserId = fields.providerUserId,
+        applePrivateEmail = fields.applePrivateEmail,
         wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
+            local = fields.wallet.local,
+            usd = fields.wallet.usd
         ),
-        walletStatus = walletStatus,
-        avatarUrl = avatarUrl
+        walletStatus = fields.walletStatus,
+        avatarUrl = fields.avatarUrl
     )
 }
 
 // UpdateUser response a User (con campos limitados de la query)
 internal fun UpdateUserMutation.UpdateUser.toDomain(): User {
+    val fields = userUpdateFields
     return User(
-        id = id,
-        name = name,
-        email = email,
-        username = username,
-        phone = phone,
-        role = role,
-        avatar = avatar,
-        businessIds = businessIds,
-        branchIds = branchIds,
+        id = fields.id,
+        name = fields.name,
+        email = fields.email,
+        username = fields.username,
+        phone = fields.phone,
+        role = fields.role,
+        avatar = fields.avatar,
+        businessIds = fields.businessIds,
+        branchIds = fields.branchIds,
         wallet = WalletBalance(
-            local = wallet.local,
-            usd = wallet.usd
+            local = fields.wallet.local,
+            usd = fields.wallet.usd
         ),
-        walletStatus = walletStatus,
-        avatarUrl = avatarUrl,
+        walletStatus = fields.walletStatus,
+        avatarUrl = fields.avatarUrl,
         // Campos que no vienen en UpdateUser response
         createdAt = "", // Se mantiene del usuario actual
         authProvider = "local", // Se mantiene del usuario actual

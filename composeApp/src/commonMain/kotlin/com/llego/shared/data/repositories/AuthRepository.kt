@@ -321,7 +321,7 @@ class AuthRepository(
 
             val current = _currentUser.value
             if (current != null) {
-                val newUser = current.copy(branchIds = updated.branchIds)
+                val newUser = current.copy(branchIds = updated.userBranchAccessFields.branchIds)
                 _currentUser.value = newUser
                 return AuthResult.Success(newUser)
             }
@@ -359,7 +359,7 @@ class AuthRepository(
 
             val current = _currentUser.value
             if (current != null) {
-                val newUser = current.copy(branchIds = updated.branchIds)
+                val newUser = current.copy(branchIds = updated.userBranchAccessFields.branchIds)
                 _currentUser.value = newUser
                 return AuthResult.Success(newUser)
             }

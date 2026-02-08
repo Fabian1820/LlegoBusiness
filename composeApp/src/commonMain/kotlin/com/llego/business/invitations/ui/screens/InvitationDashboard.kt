@@ -36,7 +36,7 @@ fun InvitationDashboard(
     branches: List<Pair<String, String>>,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
-    isOwner: Boolean = true
+    isOwner: Boolean = true // Parámetro mantenido por compatibilidad pero no se usa
 ) {
     var selectedTab by remember { mutableStateOf(InvitationTab.CODES) }
     var showGenerateDialog by remember { mutableStateOf(false) }
@@ -67,7 +67,7 @@ fun InvitationDashboard(
                     }
                 },
                 actions = {
-                    if (selectedTab == InvitationTab.CODES && isOwner) {
+                    if (selectedTab == InvitationTab.CODES) {
                         FilterChip(
                             selected = showActiveOnly,
                             onClick = { showActiveOnly = !showActiveOnly },
@@ -79,7 +79,7 @@ fun InvitationDashboard(
             )
         },
         floatingActionButton = {
-            if (selectedTab == InvitationTab.CODES && isOwner) {
+            if (selectedTab == InvitationTab.CODES) {
                 FloatingActionButton(
                     onClick = { showGenerateDialog = true }
                 ) {
@@ -127,11 +127,9 @@ fun InvitationDashboard(
                         InvitationCodesContent(
                             state = invitationsState,
                             showActiveOnly = showActiveOnly,
-                            onRevokeInvitation = if (isOwner) {
-                                { invitationId ->
-                                    viewModel.revokeInvitation(invitationId, businessId)
-                                }
-                            } else null,
+                            onRevokeInvitation = { invitationId ->
+                                viewModel.revokeInvitation(invitationId, businessId)
+                            },
                             onRetry = {
                                 viewModel.loadInvitations(businessId, showActiveOnly)
                             }
@@ -140,11 +138,9 @@ fun InvitationDashboard(
                     InvitationTab.ACCESS -> {
                         BusinessAccessContent(
                             state = businessAccessState,
-                            onRevokeAccess = if (isOwner) {
-                                { accessId ->
-                                    // TODO: Implement revoke BusinessAccess mutation
-                                }
-                            } else null,
+                            onRevokeAccess = { accessId ->
+                                // TODO: Implement revoke BusinessAccess mutation
+                            },
                             onRetry = {
                                 viewModel.loadBusinessAccess(businessId)
                             }
