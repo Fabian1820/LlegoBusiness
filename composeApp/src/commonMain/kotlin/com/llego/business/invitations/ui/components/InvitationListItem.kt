@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.invitations.ui.components
 
 import androidx.compose.foundation.layout.*
@@ -14,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.invitations.data.model.Invitation
 import com.llego.business.invitations.data.model.InvitationStatus
 import com.llego.business.invitations.data.model.InvitationType
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -25,7 +26,7 @@ fun InvitationListItem(
     modifier: Modifier = Modifier
 ) {
     var showRevokeDialog by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -56,7 +57,7 @@ fun InvitationListItem(
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 // Type and target
                 Text(
                     text = when (invitation.invitationType) {
@@ -66,7 +67,7 @@ fun InvitationListItem(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 // Duration
                 Text(
                     text = if (invitation.accessDurationDays != null) {
@@ -77,14 +78,14 @@ fun InvitationListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 // Status
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     StatusChip(invitation.status)
-                    
+
                     if (invitation.status == InvitationStatus.USED && invitation.redeemer != null) {
                         Text(
                             text = "por ${invitation.redeemer.name}",
@@ -93,7 +94,7 @@ fun InvitationListItem(
                         )
                     }
                 }
-                
+
                 // Created date
                 Text(
                     text = "Creado: ${formatDate(invitation.createdAt.toString())}",
@@ -101,7 +102,7 @@ fun InvitationListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             // Revoke button (only for pending invitations and if user has permission)
             if (invitation.status == InvitationStatus.PENDING && onRevoke != null) {
                 IconButton(
@@ -116,12 +117,12 @@ fun InvitationListItem(
             }
         }
     }
-    
+
     if (showRevokeDialog) {
         AlertDialog(
             onDismissRequest = { showRevokeDialog = false },
             title = { Text("Revocar invitación") },
-            text = { 
+            text = {
                 Text("¿Estás seguro de que deseas revocar este código de invitación? Esta acción no se puede deshacer.")
             },
             confirmButton = {
@@ -150,7 +151,7 @@ private fun StatusChip(status: InvitationStatus) {
         InvitationStatus.USED -> "Usado" to MaterialTheme.colorScheme.tertiary
         InvitationStatus.REVOKED -> "Revocado" to MaterialTheme.colorScheme.error
     }
-    
+
     Surface(
         color = color.copy(alpha = 0.2f),
         shape = MaterialTheme.shapes.small

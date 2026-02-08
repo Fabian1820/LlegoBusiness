@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.invitations.data.model
 
 import kotlinx.datetime.Instant
@@ -73,13 +75,13 @@ data class GenerateInvitationInput(
 sealed class InvitationDuration {
     object Indefinite : InvitationDuration()
     data class Days(val days: Int) : InvitationDuration()
-    
+
     companion object {
         val ONE_DAY = Days(1)
         val ONE_WEEK = Days(7)
         val ONE_MONTH = Days(30)
     }
-    
+
     fun toDays(): Int? = when (this) {
         is Indefinite -> null
         is Days -> days
