@@ -16,11 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.CustomerInfo
 import com.llego.business.orders.data.model.DeliveryAddress
+import com.llego.shared.utils.formatDouble
 
 /**
  * SecciÃ³n de informaciÃ³n del cliente con datos del backend
  * Requirements: 10.1, 10.5
- * 
+ *
  * @param customer InformaciÃ³n del cliente
  * @param onCallCustomer Callback para llamar al cliente
  */
@@ -30,7 +31,7 @@ fun CustomerInfoSection(
     onCallCustomer: ((String) -> Unit)? = null
 ) {
     if (customer == null) return
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -47,7 +48,7 @@ fun CustomerInfoSection(
                 ),
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -78,7 +79,7 @@ fun CustomerInfoSection(
                         }
                     }
                 }
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = customer.name,
@@ -86,7 +87,7 @@ fun CustomerInfoSection(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
-                    
+
                     customer.phone?.let { phone ->
                         Row(
                             modifier = Modifier
@@ -112,7 +113,7 @@ fun CustomerInfoSection(
                         }
                     }
                 }
-                
+
                 // BotÃ³n de llamar
                 customer.phone?.let { phone ->
                     if (onCallCustomer != null) {
@@ -139,7 +140,7 @@ fun CustomerInfoSection(
 /**
  * SecciÃ³n de direcciÃ³n de entrega con mapa opcional
  * Requirements: 10.2, 10.3
- * 
+ *
  * @param deliveryAddress DirecciÃ³n de entrega
  * @param showMap Si se debe mostrar el mapa (requiere coordenadas)
  */
@@ -164,7 +165,7 @@ fun DeliveryAddressSection(
                 ),
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             // DirecciÃ³n principal
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -183,7 +184,7 @@ fun DeliveryAddressSection(
                             fontWeight = FontWeight.Medium
                         )
                     )
-                    
+
                     deliveryAddress.city?.let { city ->
                         Text(
                             text = city,
@@ -193,7 +194,7 @@ fun DeliveryAddressSection(
                     }
                 }
             }
-            
+
             // Referencia
             deliveryAddress.reference?.let { reference ->
                 if (reference.isNotBlank()) {
@@ -228,7 +229,7 @@ fun DeliveryAddressSection(
                     }
                 }
             }
-            
+
             // Mapa con coordenadas
             if (showMap && deliveryAddress.coordinates != null) {
                 val coords = deliveryAddress.coordinates
@@ -256,12 +257,12 @@ fun DeliveryAddressSection(
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Text(
-                                    text = "Lat: ${String.format("%.6f", coords.latitude)}",
+                                    text = "Lat: ${formatDouble("%.6f", coords.latitude)}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "Lng: ${String.format("%.6f", coords.longitude)}",
+                                    text = "Lng: ${formatDouble("%.6f", coords.longitude)}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

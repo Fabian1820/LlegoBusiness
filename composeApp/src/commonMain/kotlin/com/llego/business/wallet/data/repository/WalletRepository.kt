@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.wallet.data.repository
 
 import com.apollographql.apollo.ApolloClient
@@ -494,7 +496,7 @@ class WalletRepository private constructor() {
      * Obtiene timestamp actual en formato ISO
      */
     private fun getCurrentTimestamp(): String {
-        return kotlinx.datetime.Clock.System.now().toString()
+        return kotlin.time.Clock.System.now().toString()
     }
 
     companion object {

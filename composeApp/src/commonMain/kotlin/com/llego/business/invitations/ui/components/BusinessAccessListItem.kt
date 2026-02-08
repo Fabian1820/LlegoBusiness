@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.invitations.ui.components
 
 import androidx.compose.foundation.layout.*
@@ -11,10 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.invitations.data.model.BusinessAccess
 import com.llego.shared.ui.theme.LlegoCustomShapes
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Duration.Companion.days
 
 @Composable
 fun BusinessAccessListItem(

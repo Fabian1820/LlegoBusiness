@@ -19,11 +19,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.DeliveryPersonInfo
 import com.llego.business.orders.data.model.VehicleType
+import com.llego.shared.utils.formatDouble
 
 /**
  * SecciÃ³n de informaciÃ³n del repartidor
  * Requirements: 10.4
- * 
+ *
  * @param deliveryPerson InformaciÃ³n del repartidor
  * @param onCallDeliveryPerson Callback para llamar al repartidor
  */
@@ -33,7 +34,7 @@ fun DeliveryPersonSection(
     onCallDeliveryPerson: ((String) -> Unit)? = null
 ) {
     if (deliveryPerson == null) return
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -56,7 +57,7 @@ fun DeliveryPersonSection(
                     ),
                     color = MaterialTheme.colorScheme.tertiary
                 )
-                
+
                 // Indicador de estado online
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -87,7 +88,7 @@ fun DeliveryPersonSection(
                     }
                 }
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -108,7 +109,7 @@ fun DeliveryPersonSection(
                         )
                     }
                 }
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = deliveryPerson.name,
@@ -116,7 +117,7 @@ fun DeliveryPersonSection(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
-                    
+
                     // Rating
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -129,7 +130,7 @@ fun DeliveryPersonSection(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = String.format("%.1f", deliveryPerson.rating),
+                            text = formatDouble("%.1f", deliveryPerson.rating),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontWeight = FontWeight.Medium
                             )
@@ -140,7 +141,7 @@ fun DeliveryPersonSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     // Tipo de vehÃ­culo
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -166,7 +167,7 @@ fun DeliveryPersonSection(
                         }
                     }
                 }
-                
+
                 // BotÃ³n de llamar
                 if (onCallDeliveryPerson != null) {
                     FilledIconButton(
@@ -183,7 +184,7 @@ fun DeliveryPersonSection(
                     }
                 }
             }
-            
+
             // TelÃ©fono
             Row(
                 modifier = Modifier
