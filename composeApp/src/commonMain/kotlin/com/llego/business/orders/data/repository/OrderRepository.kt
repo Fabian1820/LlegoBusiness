@@ -119,6 +119,15 @@ interface OrderRepository {
      * Requirements: 5.2
      */
     suspend fun rejectOrder(orderId: String, reason: String): Result<Order>
+
+    /**
+     * Cancela un pedido en cualquier estado permitido por backend.
+     *
+     * @param orderId ID del pedido
+     * @param reason Razón de la cancelación
+     * @return Pedido actualizado o error
+     */
+    suspend fun cancelOrder(orderId: String, reason: String): Result<Order>
     
     /**
      * Actualiza el estado de un pedido

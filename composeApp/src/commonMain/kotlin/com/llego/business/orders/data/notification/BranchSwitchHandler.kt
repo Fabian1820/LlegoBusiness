@@ -162,11 +162,11 @@ class BranchSwitchHandler {
     }
 
     companion object {
-        private val instance: BranchSwitchHandler by lazy { BranchSwitchHandler() }
+        private val singleton: BranchSwitchHandler by lazy { BranchSwitchHandler() }
 
         /**
          * Obtiene una instancia singleton del BranchSwitchHandler
          */
-        fun getInstance(): BranchSwitchHandler = instance
+        fun getInstance(): BranchSwitchHandler = singleton
     }
 }

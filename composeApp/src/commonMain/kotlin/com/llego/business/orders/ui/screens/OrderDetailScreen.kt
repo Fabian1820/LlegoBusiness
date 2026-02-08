@@ -1,33 +1,71 @@
 package com.llego.business.orders.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.business.orders.data.model.*
-import com.llego.business.orders.ui.components.*
+import com.llego.business.orders.data.model.Order
+import com.llego.business.orders.data.model.OrderItem
+import com.llego.business.orders.data.model.OrderModificationState
+import com.llego.business.orders.ui.components.OrderActionsSection
+import com.llego.business.orders.ui.components.OrderCommentsSection
+import com.llego.business.orders.ui.components.OrderItemsSection
+import com.llego.business.orders.ui.components.OrderStatusSection
+import com.llego.business.orders.ui.components.OrderTimelineSection
+import com.llego.business.orders.ui.components.PaymentSummarySection
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
+import com.llego.business.shared.ui.components.NetworkImage
+import com.llego.shared.utils.formatDouble
+import kotlinx.coroutines.delay
 
-/**
- * Pantalla de detalle del pedido con datos del backend
- * 
- * Requirements:
- * - 10.1, 10.5: Información del cliente
- * - 10.2, 10.3: Dirección de entrega con mapa
- * - 10.4: Información del repartidor
- * - 8.1, 8.2, 8.3, 8.4: Timeline del pedido
- * - 7.1, 7.2, 7.3, 7.4: Comentarios
- * - 5.5, 6.1: Botones de acción según estado
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun OrderDetailScreen(
     order: Order,
     ordersViewModel: OrdersViewModel,
@@ -35,15 +73,11 @@ fun OrderDetailScreen(
     onCallPhone: ((String) -> Unit)? = null
 ) {
     val uiState by ordersViewModel.uiState.collectAsState()
-    val isActionInProgress = uiState is OrdersUiState.ActionInProgress &&
-            (uiState as OrdersUiState.ActionInProgress).orderId == order.id
-    
-    // Obtener el pedido actualizado de la lista (para reflejar cambios en tiempo real)
-    val currentOrder by remember(order.id) {
-        derivedStateOf {
-            ordersViewModel.getOrderById(order.id) ?: order
-        }
-    }
+    val orders by ordersViewModel.orders.collectAsState()
+    val modificationState by ordersViewModel.modificationState.collectAsState()
+    val currentOrder = orders.firstOrNull { it.id == order.id } ?: order
+
+    val isActionInProgress = (uiState as? OrdersUiState.ActionInProgress)?.orderId == currentOrder.id
 
     Scaffold(
         topBar = {
@@ -52,9 +86,7 @@ fun OrderDetailScreen(
                     Column {
                         Text(
                             text = "Pedido ${currentOrder.orderNumber}",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Text(
                             text = formatOrderDate(currentOrder.createdAt),
@@ -79,15 +111,14 @@ fun OrderDetailScreen(
             )
         },
         bottomBar = {
-            // Acciones del pedido según estado - Requirements: 5.5, 6.1
             OrderActionsSection(
                 order = currentOrder,
                 isActionInProgress = isActionInProgress,
                 onAcceptOrder = { minutes ->
                     ordersViewModel.acceptOrder(currentOrder.id, minutes)
                 },
-                onRejectOrder = { reason ->
-                    ordersViewModel.rejectOrder(currentOrder.id, reason)
+                onCancelOrder = { reason ->
+                    ordersViewModel.cancelOrder(currentOrder.id, reason)
                 },
                 onMarkReady = {
                     ordersViewModel.markOrderReady(currentOrder.id)
@@ -107,51 +138,19 @@ fun OrderDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Estado actual del pedido - Requirements: 5.5
             OrderStatusSection(order = currentOrder)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-
-            // Información del cliente - Requirements: 10.1, 10.5
-            CustomerInfoSection(
-                customer = currentOrder.customer,
-                onCallCustomer = onCallPhone
-            )
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-
-            // Dirección de entrega - Requirements: 10.2, 10.3
-            DeliveryAddressSection(
-                deliveryAddress = currentOrder.deliveryAddress,
-                showMap = true
-            )
-
-            // Información del repartidor si está asignado - Requirements: 10.4
-            currentOrder.deliveryPerson?.let { deliveryPerson ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                DeliveryPersonSection(
-                    deliveryPerson = deliveryPerson,
-                    onCallDeliveryPerson = onCallPhone
-                )
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-
-            // Items del pedido
             OrderItemsSection(items = currentOrder.items)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-
-            // Resumen de pago
             PaymentSummarySection(order = currentOrder)
 
-            // Timeline del pedido - Requirements: 8.1, 8.2, 8.3, 8.4
             if (currentOrder.timeline.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 OrderTimelineSection(timeline = currentOrder.timeline)
             }
 
-            // Comentarios - Requirements: 7.1, 7.2, 7.3, 7.4
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             OrderCommentsSection(
                 comments = currentOrder.comments,
@@ -161,25 +160,220 @@ fun OrderDetailScreen(
                 isAddingComment = isActionInProgress
             )
 
-            // Espacio extra para el bottom bar
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
-    // Mostrar error si hay
+    if (modificationState != null && currentOrder.id == order.id) {
+        EditOrderItemsDialog(
+            order = currentOrder,
+            state = modificationState!!,
+            isSaving = isActionInProgress,
+            onChangeQuantity = { productId, quantity ->
+                ordersViewModel.modifyItemQuantity(productId, quantity)
+            },
+            onRemoveItem = { productId ->
+                ordersViewModel.removeItem(productId)
+            },
+            onSave = { reason ->
+                ordersViewModel.applyModification(currentOrder.id, reason.ifBlank { "Modificado por el negocio" })
+            },
+            onCancel = {
+                ordersViewModel.cancelEdit()
+            }
+        )
+    }
+
     val actionError = (uiState as? OrdersUiState.ActionError)?.message
     if (actionError != null) {
         LaunchedEffect(actionError) {
-            // El error se mostrará en un Snackbar manejado por el scaffold padre
-            kotlinx.coroutines.delay(3000)
+            delay(3000)
             ordersViewModel.clearActionError()
         }
     }
 }
 
-/**
- * Formatea la fecha del pedido para mostrar en el header
- */
+@Composable
+private fun EditOrderItemsDialog(
+    order: Order,
+    state: OrderModificationState,
+    isSaving: Boolean,
+    onChangeQuantity: (String, Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onSave: (String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var reason by rememberSaveable(order.id) { mutableStateOf("Modificado por el negocio") }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (!isSaving) onCancel()
+        },
+        title = { Text("Modificar items") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                if (state.modifiedItems.isEmpty()) {
+                    Text(
+                        text = "Debes dejar al menos un item en el pedido.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    state.modifiedItems.forEach { item ->
+                        EditableOrderItemRow(
+                            item = item,
+                            onDecrease = {
+                                if (item.quantity > 1) {
+                                    onChangeQuantity(item.productId, item.quantity - 1)
+                                }
+                            },
+                            onIncrease = {
+                                onChangeQuantity(item.productId, item.quantity + 1)
+                            },
+                            onRemove = {
+                                onRemoveItem(item.productId)
+                            }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Text(
+                    text = "Total original: ${order.currency} ${formatDouble("%.2f", state.originalTotal)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "Nuevo total: ${order.currency} ${formatDouble("%.2f", state.newTotal)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Motivo") },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(reason) },
+                enabled = !isSaving && state.hasChanges && state.modifiedItems.isNotEmpty()
+            ) {
+                Text("Guardar cambios")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, enabled = !isSaving) {
+                Text("Cerrar")
+            }
+        }
+    )
+}
+
+@Composable
+private fun EditableOrderItemRow(
+    item: OrderItem,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+    onRemove: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (item.imageUrl.isNotBlank()) {
+                    NetworkImage(
+                        url = item.imageUrl,
+                        contentDescription = item.name,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = item.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = "$${formatDouble("%.2f", item.price)} c/u",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                IconButton(onClick = onRemove) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar item",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDecrease) {
+                        Icon(Icons.Default.Remove, contentDescription = "Reducir cantidad")
+                    }
+                    Text(
+                        text = item.quantity.toString(),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    IconButton(onClick = onIncrease) {
+                        Icon(Icons.Default.Add, contentDescription = "Aumentar cantidad")
+                    }
+                }
+
+                Text(
+                    text = "$${formatDouble("%.2f", item.lineTotal)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
 private fun formatOrderDate(timestamp: String): String {
     return try {
         val parts = timestamp.split("T")
@@ -195,9 +389,7 @@ private fun formatOrderDate(timestamp: String): String {
         } else {
             timestamp
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         timestamp
     }
 }
-
-

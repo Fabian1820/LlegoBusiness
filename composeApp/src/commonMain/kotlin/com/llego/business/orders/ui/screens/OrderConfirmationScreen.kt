@@ -1,14 +1,43 @@
 package com.llego.business.orders.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -18,19 +47,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
-/**
- * Tipo de confirmación
- */
 enum class ConfirmationType {
-    ORDER_ACCEPTED,  // Orden aceptada con éxito
-    ORDER_READY      // Orden lista para entregar
+    ORDER_ACCEPTED,
+    ORDER_READY
 }
 
-/**
- * Pantalla animada de confirmación de acciones en pedidos
- * Fullscreen con fondo suave usando color primario de la app
- * Se muestra brevemente y se cierra automáticamente a los 2.5 segundos
- */
 @Composable
 fun OrderConfirmationScreen(
     type: ConfirmationType,
@@ -40,13 +61,11 @@ fun OrderConfirmationScreen(
     val accentColor = MaterialTheme.colorScheme.primary
     var visible by remember { mutableStateOf(false) }
 
-    // Animación de entrada
     LaunchedEffect(Unit) {
         visible = true
-        // Esperar 2.5 segundos y cerrar automáticamente
         delay(2500)
         visible = false
-        delay(300) // Esperar a que termine la animación de salida
+        delay(300)
         onDismiss()
     }
 
@@ -70,25 +89,17 @@ fun OrderConfirmationScreen(
                 .background(accentColor.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center
         ) {
-            ConfirmationContent(
-                type = type,
-                orderNumber = orderNumber,
-                accentColor = accentColor
-            )
+            ConfirmationContent(type = type, orderNumber = orderNumber, accentColor = accentColor)
         }
     }
 }
 
-/**
- * Contenido de confirmación para pantalla fullscreen
- */
 @Composable
 private fun ConfirmationContent(
     type: ConfirmationType,
     orderNumber: String,
     accentColor: Color
 ) {
-    // Animación del icono con efecto de pulso
     val scale by rememberInfiniteTransition().animateFloat(
         initialValue = 1f,
         targetValue = 1.08f,
@@ -105,7 +116,6 @@ private fun ConfirmationContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Icono animado grande
         Surface(
             modifier = Modifier
                 .size(96.dp)
@@ -113,9 +123,7 @@ private fun ConfirmationContent(
             shape = CircleShape,
             color = accentColor.copy(alpha = 0.12f)
         ) {
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
+            Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = when (type) {
                         ConfirmationType.ORDER_ACCEPTED -> Icons.Default.CheckCircle
@@ -130,11 +138,10 @@ private fun ConfirmationContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Título en blanco
         Text(
             text = when (type) {
-                ConfirmationType.ORDER_ACCEPTED -> "¡Orden Aceptada!"
-                ConfirmationType.ORDER_READY -> "¡Orden Lista!"
+                ConfirmationType.ORDER_ACCEPTED -> "Pedido aceptado"
+                ConfirmationType.ORDER_READY -> "Pedido listo"
             },
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
@@ -143,13 +150,10 @@ private fun ConfirmationContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Mensaje descriptivo en blanco
         Text(
             text = when (type) {
-                ConfirmationType.ORDER_ACCEPTED ->
-                    "El pedido $orderNumber ha sido aceptado exitosamente"
-                ConfirmationType.ORDER_READY ->
-                    "El pedido $orderNumber está listo para entregar"
+                ConfirmationType.ORDER_ACCEPTED -> "El pedido $orderNumber fue aceptado."
+                ConfirmationType.ORDER_READY -> "El pedido $orderNumber esta listo."
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -158,7 +162,6 @@ private fun ConfirmationContent(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Indicador de progreso en blanco
         LinearProgressIndicator(
             modifier = Modifier
                 .width(180.dp)

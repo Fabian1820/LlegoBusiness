@@ -167,6 +167,10 @@ fun App(viewModels: AppViewModels) {
             ordersViewModel.setCurrentBranchId(currentBranch?.id)
             ordersViewModel.loadMenuItems(currentBranch?.id)
         }
+
+        LaunchedEffect(branches) {
+            ordersViewModel.setSubscribedBranchIds(branches.map { it.id })
+        }
         
         // Observar eventos de cambio de sucursal desde notificaciones - Requirements: 12.2, 12.3, 12.4, 12.5
         val pendingSwitchEvent by branchSwitchHandler.pendingSwitchEvent.collectAsState()
@@ -621,5 +625,4 @@ private fun MainBusinessFlow(
         }
     }
 }
-
 

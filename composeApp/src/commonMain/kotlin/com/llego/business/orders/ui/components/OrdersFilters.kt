@@ -91,6 +91,13 @@ fun iOSStyleFilters(
             onToggle = { showStatusPicker = !showStatusPicker },
             modifier = Modifier.weight(1f)
         ) {
+            val businessStatuses = listOf(
+                OrderStatus.PENDING_ACCEPTANCE,
+                OrderStatus.MODIFIED_BY_STORE,
+                OrderStatus.ACCEPTED,
+                OrderStatus.READY_FOR_PICKUP,
+                OrderStatus.CANCELLED
+            )
             iOSStylePickerOption(
                 text = "Todos",
                 isSelected = selectedStatus == null,
@@ -99,7 +106,7 @@ fun iOSStyleFilters(
                     showStatusPicker = false
                 }
             )
-            OrderStatus.values().forEach { status ->
+            businessStatuses.forEach { status ->
                 iOSStylePickerOption(
                     text = status.getDisplayName(),
                     isSelected = selectedStatus == status,

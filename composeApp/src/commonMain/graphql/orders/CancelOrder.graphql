@@ -1,0 +1,5 @@
+mutation CancelOrder($orderId: String!, $reason: String!, $jwt: String!) {
+  cancelOrder(orderId: $orderId, reason: $reason, jwt: $jwt) {
+    ...OrderStatusUpdateFields
+  }
+}

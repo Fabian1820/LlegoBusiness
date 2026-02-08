@@ -5,6 +5,8 @@ package com.llego.business.orders.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llego.business.orders.data.model.Order
+import com.llego.business.orders.data.model.OrderActor
+import com.llego.business.orders.data.model.OrderComment
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
 import com.llego.business.orders.data.model.OrderStatus
@@ -14,20 +16,21 @@ import com.llego.business.orders.data.repository.OrderRepositoryImpl
 import com.llego.business.orders.data.repository.OrdersResult
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.auth.TokenManager
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
-/**
- * ViewModel para gestión de Pedidos integrado con backend GraphQL
- *
- * Requirements: 2.1, 2.7, 2.8, 3.3, 3.4, 5.1, 5.2, 5.4, 5.5, 5.6, 5.7, 5.8, 9.1, 9.2, 9.3, 9.4
- */
 class OrdersViewModel(
     tokenManager: TokenManager
 ) : ViewModel() {
@@ -35,85 +38,102 @@ class OrdersViewModel(
     private val repository: OrderRepository = OrderRepositoryImpl.getInstance(tokenManager)
     private val subscriptionManager = SubscriptionManager.getInstance()
 
-    // Estado de UI
     private val _uiState = MutableStateFlow<OrdersUiState>(OrdersUiState.Loading)
     val uiState: StateFlow<OrdersUiState> = _uiState.asStateFlow()
 
-    // Lista de pedidos cargados
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
 
-    // Filtro de estado actual
     private val _selectedFilter = MutableStateFlow<OrderStatus?>(null)
     val selectedFilter: StateFlow<OrderStatus?> = _selectedFilter.asStateFlow()
 
-    // Filtro de rango de fecha
-    private val _selectedDateRange = MutableStateFlow<DateRangeFilter>(DateRangeFilter.TODAY)
+    private val _selectedDateRange = MutableStateFlow(DateRangeFilter.TODAY)
     val selectedDateRange: StateFlow<DateRangeFilter> = _selectedDateRange.asStateFlow()
 
-    // Branch ID actual
     private val _currentBranchId = MutableStateFlow<String?>(null)
     val currentBranchId: StateFlow<String?> = _currentBranchId.asStateFlow()
 
-    // Pedidos filtrados localmente
+    private val _availableBranchIds = MutableStateFlow<List<String>>(emptyList())
+
     val filteredOrders: StateFlow<List<Order>> = combine(
         _orders,
         _selectedFilter
-    ) { orders, statusFilter ->
-        if (statusFilter != null) {
-            orders.filter { it.status == statusFilter }
-        } else {
-            orders
-        }
+    ) { currentOrders, statusFilter ->
+        if (statusFilter == null) currentOrders else currentOrders.filter { it.status == statusFilter }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
 
-    // Estado de modificación de pedido
     private val _modificationState = MutableStateFlow<OrderModificationState?>(null)
     val modificationState: StateFlow<OrderModificationState?> = _modificationState.asStateFlow()
 
-    // Paginación
     private var currentOffset = 0
     private var hasMore = true
     private val pageSize = 50
+
+    private var lastSubscribedBranchIds: List<String> = emptyList()
+    private var lastSubscribedActiveBranchId: String? = null
+    private val pendingBusinessCommentsByOrder = mutableMapOf<String, MutableList<String>>()
 
     init {
         observeNewOrders()
         observeOrderUpdates()
     }
 
-    /**
-     * Configura el branch ID actual y carga los pedidos
-     */
     fun setCurrentBranchId(branchId: String?) {
-        if (branchId != _currentBranchId.value) {
-            _currentBranchId.value = branchId
-            branchId?.let {
-                resetPagination()
-                loadOrders()
-                subscriptionManager.updateActiveBranch(it)
-            }
-        }
-    }
+        if (branchId == _currentBranchId.value) return
 
-    /**
-     * Carga pedidos desde el backend con los filtros actuales
-     * Requirements: 2.1, 2.3, 2.4, 2.5
-     */
-    fun loadOrders() {
-        val branchId = _currentBranchId.value
         if (branchId == null) {
+            _currentBranchId.value = null
+            _orders.value = emptyList()
+            subscriptionManager.cancelAllSubscriptions()
+            lastSubscribedBranchIds = emptyList()
+            lastSubscribedActiveBranchId = null
             return
         }
 
+        _currentBranchId.value = branchId
+        refreshSubscriptionsIfPossible()
+
+        branchId?.let {
+            resetPagination()
+            loadOrders()
+        }
+    }
+
+    fun setSubscribedBranchIds(branchIds: List<String>) {
+        val normalized = branchIds.filter { it.isNotBlank() }.distinct().sorted()
+        if (normalized == _availableBranchIds.value) return
+        _availableBranchIds.value = normalized
+        refreshSubscriptionsIfPossible()
+    }
+
+    private fun refreshSubscriptionsIfPossible() {
+        val activeBranchId = _currentBranchId.value ?: return
+        val branchIds = _availableBranchIds.value
+        if (branchIds.isEmpty()) {
+            subscriptionManager.updateActiveBranch(activeBranchId)
+            return
+        }
+
+        if (lastSubscribedBranchIds == branchIds && lastSubscribedActiveBranchId == activeBranchId) {
+            subscriptionManager.updateActiveBranch(activeBranchId)
+            return
+        }
+
+        subscriptionManager.subscribeToAllBranches(branchIds, activeBranchId)
+        lastSubscribedBranchIds = branchIds
+        lastSubscribedActiveBranchId = activeBranchId
+    }
+
+    fun loadOrders() {
+        val branchId = _currentBranchId.value ?: return
+
         viewModelScope.launch {
             _uiState.value = OrdersUiState.Loading
-
             val dateRange = _selectedDateRange.value.getDateRange()
-
 
             when (val result = repository.getBranchOrders(
                 branchId = branchId,
@@ -135,9 +155,6 @@ class OrdersViewModel(
         }
     }
 
-    /**
-     * Carga más pedidos (paginación)
-     */
     fun loadMoreOrders() {
         if (!hasMore || _uiState.value == OrdersUiState.Loading) return
 
@@ -160,16 +177,12 @@ class OrdersViewModel(
                     hasMore = result.hasMore
                 }
                 is OrdersResult.Error -> {
-                    // Revert offset on error
                     currentOffset -= pageSize
                 }
             }
         }
     }
 
-    /**
-     * Recarga pedidos desde el principio
-     */
     fun refreshOrders() {
         resetPagination()
         loadOrders()
@@ -180,16 +193,17 @@ class OrdersViewModel(
         hasMore = true
     }
 
-    /**
-     * Observa nuevos pedidos desde suscripciones en tiempo real
-     * Requirements: 3.3
-     */
     private fun observeNewOrders() {
         viewModelScope.launch {
             subscriptionManager.newOrders.collect { event ->
-                if (event.branchId == _currentBranchId.value) {
-                    // Agregar nuevo pedido al inicio de la lista
-                    _orders.update { currentOrders: List<Order> ->
+                if (event.branchId != _currentBranchId.value) return@collect
+
+                _orders.update { currentOrders ->
+                    if (currentOrders.any { it.id == event.order.id }) {
+                        currentOrders.map { current ->
+                            if (current.id == event.order.id) mergeOrder(current, event.order) else current
+                        }
+                    } else {
                         listOf(event.order) + currentOrders
                     }
                 }
@@ -197,23 +211,23 @@ class OrdersViewModel(
         }
     }
 
-    /**
-     * Observa actualizaciones de pedidos desde suscripciones en tiempo real
-     * Requirements: 3.4
-     */
     private fun observeOrderUpdates() {
         viewModelScope.launch {
             subscriptionManager.orderUpdates.collect { event ->
-                // Actualizar pedido existente en la lista
-                _orders.update { currentOrders ->
-                    currentOrders.map { order ->
-                        if (order.id == event.orderId) {
-                            order.copy(
-                                status = event.newStatus,
-                                updatedAt = event.updatedAt
-                            )
-                        } else {
-                            order
+                val incomingOrder = event.order
+                if (incomingOrder != null) {
+                    updateOrderInList(incomingOrder)
+                } else {
+                    _orders.update { currentOrders ->
+                        currentOrders.map { order ->
+                            if (order.id == event.orderId) {
+                                order.copy(
+                                    status = event.newStatus,
+                                    updatedAt = event.updatedAt
+                                )
+                            } else {
+                                order
+                            }
                         }
                     }
                 }
@@ -221,40 +235,21 @@ class OrdersViewModel(
         }
     }
 
-    // ==================== FILTROS ====================
-
-    /**
-     * Establece filtro por estado
-     * Requirements: 9.1, 9.3
-     */
     fun setFilter(status: OrderStatus?) {
         _selectedFilter.value = status
         refreshOrders()
     }
 
-    /**
-     * Limpia el filtro de estado
-     */
     fun clearFilter() {
         _selectedFilter.value = null
         refreshOrders()
     }
 
-    /**
-     * Establece filtro de rango de fecha
-     * Requirements: 9.2, 9.4
-     */
     fun setDateRangeFilter(range: DateRangeFilter) {
         _selectedDateRange.value = range
         refreshOrders()
     }
 
-    // ==================== ACCIONES SOBRE PEDIDOS ====================
-
-    /**
-     * Acepta un pedido pendiente
-     * Requirements: 5.1
-     */
     fun acceptOrder(orderId: String, estimatedMinutes: Int = 30) {
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -270,10 +265,6 @@ class OrdersViewModel(
         }
     }
 
-    /**
-     * Rechaza un pedido pendiente
-     * Requirements: 5.2
-     */
     fun rejectOrder(orderId: String, reason: String) {
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -289,29 +280,11 @@ class OrdersViewModel(
         }
     }
 
-    /**
-     * Actualiza el estado de un pedido a PREPARING
-     * Requirements: 5.3
-     */
+    // Backward compatibility: this project no longer moves through PREPARING.
     fun startPreparingOrder(orderId: String) {
-        viewModelScope.launch {
-            _uiState.value = OrdersUiState.ActionInProgress(orderId)
-
-            repository.updateOrderStatus(orderId, OrderStatus.PREPARING)
-                .onSuccess { updatedOrder ->
-                    updateOrderInList(updatedOrder)
-                    _uiState.value = OrdersUiState.Success
-                }
-                .onFailure { error ->
-                    _uiState.value = OrdersUiState.ActionError(error.message ?: "Error al iniciar preparación")
-                }
-        }
+        acceptOrder(orderId)
     }
 
-    /**
-     * Marca un pedido como listo para recoger
-     * Requirements: 5.4
-     */
     fun markOrderReady(orderId: String) {
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -327,17 +300,21 @@ class OrdersViewModel(
         }
     }
 
-    /**
-     * Cancela un pedido (lo rechaza con razón de cancelación)
-     */
     fun cancelOrder(orderId: String, reason: String = "Cancelado por el negocio") {
-        rejectOrder(orderId, reason)
+        viewModelScope.launch {
+            _uiState.value = OrdersUiState.ActionInProgress(orderId)
+
+            repository.cancelOrder(orderId, reason)
+                .onSuccess { updatedOrder ->
+                    updateOrderInList(updatedOrder)
+                    _uiState.value = OrdersUiState.Success
+                }
+                .onFailure { error ->
+                    _uiState.value = OrdersUiState.ActionError(error.message ?: "Error al cancelar pedido")
+                }
+        }
     }
 
-    /**
-     * Actualiza el estado de un pedido genéricamente
-     * Requirements: 5.3
-     */
     fun updateOrderStatus(orderId: String, newStatus: OrderStatus, message: String? = null) {
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -353,14 +330,8 @@ class OrdersViewModel(
         }
     }
 
-    // ==================== MODIFICACIÓN DE ITEMS ====================
-
-    /**
-     * Entra en modo de edición de items del pedido
-     * Requirements: 6.1
-     */
     fun enterEditMode(order: Order) {
-        if (!order.isEditable) return
+        if (!order.isEditable || order.status != OrderStatus.PENDING_ACCEPTANCE) return
 
         _modificationState.value = OrderModificationState.fromItems(
             items = order.items,
@@ -368,46 +339,27 @@ class OrdersViewModel(
         )
     }
 
-    /**
-     * Sale del modo de edición sin guardar cambios
-     */
     fun exitEditMode() {
         _modificationState.value = null
     }
 
-    /**
-     * Modifica la cantidad de un item
-     * Requirements: 6.3
-     */
     fun modifyItemQuantity(productId: String, newQuantity: Int) {
         val state = _modificationState.value ?: return
         val quantity = newQuantity.coerceAtLeast(1)
 
         val updatedItems = state.modifiedItems.map { item ->
-            if (item.productId == productId) {
-                item.copy(quantity = quantity)
-            } else {
-                item
-            }
+            if (item.productId == productId) item.copy(quantity = quantity) else item
         }
 
         updateModificationState(state, updatedItems)
     }
 
-    /**
-     * Elimina un item del pedido
-     * Requirements: 6.4
-     */
     fun removeItem(productId: String) {
         val state = _modificationState.value ?: return
         val updatedItems = state.modifiedItems.filterNot { it.productId == productId }
         updateModificationState(state, updatedItems)
     }
 
-    /**
-     * Agrega un nuevo item al pedido
-     * Requirements: 6.5
-     */
     fun addItem(productId: String, name: String, price: Double, quantity: Int, imageUrl: String) {
         val state = _modificationState.value ?: return
         val safeQuantity = quantity.coerceAtLeast(1)
@@ -424,17 +376,10 @@ class OrdersViewModel(
         updateModificationState(state, state.modifiedItems + newItem)
     }
 
-    /**
-     * Cancela la edición y restaura los items originales
-     */
     fun cancelEdit() {
         _modificationState.value = null
     }
 
-    /**
-     * Aplica las modificaciones al pedido en el backend
-     * Requirements: 6.6
-     */
     fun applyModification(orderId: String, reason: String = "Modificado por el negocio") {
         val state = _modificationState.value ?: return
 
@@ -471,115 +416,210 @@ class OrdersViewModel(
         )
     }
 
-    // ==================== COMENTARIOS ====================
-
-    /**
-     * Agrega un comentario a un pedido
-     * Requirements: 7.3
-     */
     fun addComment(orderId: String, message: String) {
+        val trimmed = message.trim()
+        if (trimmed.isEmpty()) return
+
+        val optimisticCommentId = "local_${Clock.System.now().toEpochMilliseconds()}"
+        val optimisticComment = OrderComment(
+            id = optimisticCommentId,
+            author = OrderActor.BUSINESS,
+            message = trimmed,
+            timestamp = Clock.System.now().toString()
+        )
+
+        registerPendingBusinessComment(orderId, trimmed)
+        appendOptimisticComment(orderId, optimisticComment)
+
         viewModelScope.launch {
-            repository.addOrderComment(orderId, message)
+            _uiState.value = OrdersUiState.ActionInProgress(orderId)
+
+            repository.addOrderComment(orderId, trimmed)
                 .onSuccess { updatedOrder ->
                     updateOrderInList(updatedOrder)
+                    _uiState.value = OrdersUiState.Success
+                    refreshOrderById(orderId)
                 }
                 .onFailure { error ->
+                    unregisterPendingBusinessComment(orderId, trimmed)
+                    removeOptimisticComment(orderId, optimisticCommentId)
                     _uiState.value = OrdersUiState.ActionError(error.message ?: "Error al agregar comentario")
                 }
         }
     }
 
-    /**
-     * Alias for addComment for backward compatibility
-     */
-    fun addOrderComment(orderId: String, message: String) = addComment(orderId, message)
-
-    // ==================== UTILIDADES ====================
-
-    /**
-     * Actualiza un pedido en la lista local
-     */
-    private fun updateOrderInList(updatedOrder: Order) {
+    private fun appendOptimisticComment(orderId: String, comment: OrderComment) {
         _orders.update { currentOrders ->
             currentOrders.map { order ->
-                if (order.id == updatedOrder.id) updatedOrder else order
+                if (order.id == orderId) {
+                    order.copy(comments = listOf(comment) + order.comments)
+                } else {
+                    order
+                }
             }
         }
     }
 
-    /**
-     * Obtiene un pedido por ID desde la lista local
-     */
+    private fun removeOptimisticComment(orderId: String, commentId: String) {
+        _orders.update { currentOrders ->
+            currentOrders.map { order ->
+                if (order.id == orderId) {
+                    order.copy(comments = order.comments.filterNot { it.id == commentId })
+                } else {
+                    order
+                }
+            }
+        }
+    }
+
+    private fun refreshOrderById(orderId: String) {
+        viewModelScope.launch {
+            repository.getOrder(orderId)
+                .onSuccess { freshOrder ->
+                    if (freshOrder != null) {
+                        updateOrderInList(freshOrder)
+                    }
+                }
+        }
+    }
+
+    private fun registerPendingBusinessComment(orderId: String, message: String) {
+        pendingBusinessCommentsByOrder.getOrPut(orderId) { mutableListOf() }.add(message.trim())
+    }
+
+    private fun unregisterPendingBusinessComment(orderId: String, message: String) {
+        val pending = pendingBusinessCommentsByOrder[orderId] ?: return
+        val index = pending.indexOfFirst { it == message.trim() }
+        if (index >= 0) {
+            pending.removeAt(index)
+        }
+        if (pending.isEmpty()) {
+            pendingBusinessCommentsByOrder.remove(orderId)
+        }
+    }
+
+    private fun normalizeIncomingComments(orderId: String, incomingComments: List<OrderComment>): List<OrderComment> {
+        val pending = pendingBusinessCommentsByOrder[orderId] ?: return incomingComments
+        if (pending.isEmpty()) return incomingComments
+
+        val remaining = pending.toMutableList()
+        val normalized = incomingComments.map { comment ->
+            if (comment.author != OrderActor.CUSTOMER) {
+                return@map comment
+            }
+            val index = remaining.indexOfFirst { it == comment.message.trim() }
+            if (index >= 0) {
+                remaining.removeAt(index)
+                comment.copy(author = OrderActor.BUSINESS)
+            } else {
+                comment
+            }
+        }
+
+        if (remaining.isEmpty()) {
+            pendingBusinessCommentsByOrder.remove(orderId)
+        } else {
+            pendingBusinessCommentsByOrder[orderId] = remaining
+        }
+        return normalized
+    }
+
+    fun addOrderComment(orderId: String, message: String) = addComment(orderId, message)
+
+    private fun updateOrderInList(updatedOrder: Order) {
+        _orders.update { currentOrders ->
+            var found = false
+            val updated = currentOrders.map { existing ->
+                if (existing.id == updatedOrder.id) {
+                    found = true
+                    mergeOrder(existing, updatedOrder)
+                } else {
+                    existing
+                }
+            }
+            if (!found) listOf(updatedOrder) + updated else updated
+        }
+    }
+
+    private fun mergeOrder(existing: Order, incoming: Order): Order {
+        if (!incoming.isLikelyPartial()) return incoming
+
+        val hasItemChanges = incoming.items.isNotEmpty()
+        val hasMonetaryChanges = incoming.subtotal != 0.0 || incoming.deliveryFee != 0.0 || incoming.total != 0.0
+        val hasStatusUpdate = incoming.updatedAt.isNotBlank() || incoming.lastStatusAt.isNotBlank() || incoming.timeline.isNotEmpty()
+        val hasCommentUpdate = incoming.comments.isNotEmpty()
+        val shouldTakeIncomingStatus = hasStatusUpdate || incoming.status != OrderStatus.PENDING_ACCEPTANCE || existing.status == OrderStatus.PENDING_ACCEPTANCE
+
+        return existing.copy(
+            subtotal = if (hasItemChanges || hasMonetaryChanges) incoming.subtotal else existing.subtotal,
+            deliveryFee = if (hasItemChanges || hasMonetaryChanges) incoming.deliveryFee else existing.deliveryFee,
+            total = if (hasItemChanges || hasMonetaryChanges) incoming.total else existing.total,
+            status = if (shouldTakeIncomingStatus) incoming.status else existing.status,
+            updatedAt = incoming.updatedAt.ifBlank { existing.updatedAt },
+            lastStatusAt = incoming.lastStatusAt.ifBlank { existing.lastStatusAt },
+            estimatedDeliveryTime = incoming.estimatedDeliveryTime ?: existing.estimatedDeliveryTime,
+            items = if (hasItemChanges) incoming.items else existing.items,
+            discounts = if (incoming.discounts.isNotEmpty()) incoming.discounts else existing.discounts,
+            timeline = if (incoming.timeline.isNotEmpty()) incoming.timeline else existing.timeline,
+            comments = if (hasCommentUpdate) normalizeIncomingComments(existing.id, incoming.comments) else existing.comments,
+            isEditable = if (hasItemChanges || hasStatusUpdate) incoming.isEditable else existing.isEditable,
+            canCancel = if (hasItemChanges || hasStatusUpdate) incoming.canCancel else existing.canCancel,
+            estimatedMinutesRemaining = incoming.estimatedMinutesRemaining ?: existing.estimatedMinutesRemaining
+        )
+    }
+
+    private fun Order.isLikelyPartial(): Boolean {
+        return branchId.isBlank() || businessId.isBlank() || createdAt.isBlank() || currency.isBlank()
+    }
+
     fun getOrderById(orderId: String): Order? {
         return _orders.value.firstOrNull { it.id == orderId }
     }
 
-    /**
-     * Cuenta pedidos pendientes de aceptación
-     */
     fun getPendingOrdersCount(): Int {
         return _orders.value.count { it.status == OrderStatus.PENDING_ACCEPTANCE }
     }
 
-    /**
-     * Cuenta pedidos activos (en preparación o listos)
-     */
     fun getActiveOrdersCount(): Int {
         return _orders.value.count {
-            it.status in listOf(OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP)
+            it.status in listOf(
+                OrderStatus.PENDING_ACCEPTANCE,
+                OrderStatus.MODIFIED_BY_STORE,
+                OrderStatus.ACCEPTED,
+                OrderStatus.READY_FOR_PICKUP
+            )
         }
     }
 
-    /**
-     * Limpia el estado de error
-     */
     fun clearError() {
         if (_uiState.value is OrdersUiState.Error || _uiState.value is OrdersUiState.ActionError) {
             _uiState.value = OrdersUiState.Success
         }
     }
 
-    /**
-     * Alias for clearError for backward compatibility
-     */
     fun clearActionError() = clearError()
 
-    /**
-     * Carga items del menú para agregar a pedidos (placeholder)
-     * En el futuro esto cargará desde ProductRepository
-     */
     fun loadMenuItems(branchId: String? = null) {
-        // No-op for now - menu items are loaded from product repository when needed
-        // This method exists for backward compatibility
+        // Intentionally no-op for now.
     }
 }
 
-/**
- * Estados de UI para pantalla de pedidos
- */
 sealed class OrdersUiState {
-    object Loading : OrdersUiState()
-    object Success : OrdersUiState()
+    data object Loading : OrdersUiState()
+    data object Success : OrdersUiState()
     data class Error(val message: String) : OrdersUiState()
     data class ActionInProgress(val orderId: String) : OrdersUiState()
     data class ActionError(val message: String) : OrdersUiState()
 }
 
-/**
- * Filtros de rango de fecha para pedidos
- */
 enum class DateRangeFilter(val displayName: String) {
     TODAY("Hoy"),
     YESTERDAY("Ayer"),
-    LAST_WEEK("Última Semana"),
-    LAST_MONTH("Último Mes"),
+    LAST_WEEK("Ultima semana"),
+    LAST_MONTH("Ultimo mes"),
     CUSTOM("Seleccionar"),
     ALL("Todos");
 
-    /**
-     * Obtiene el rango de fechas en formato ISO para este filtro
-     * @return Par (fromDate, toDate) o null para "Todos" o "Custom"
-     */
     fun getDateRange(): Pair<String, String>? {
         val now = Clock.System.now()
         val timezone = TimeZone.currentSystemDefault()
@@ -589,9 +629,7 @@ enum class DateRangeFilter(val displayName: String) {
         fun LocalDate.toIsoDateTimeEnd(): String = "${this}T23:59:59Z"
 
         return when (this) {
-            TODAY -> {
-                Pair(today.toIsoDateTimeStart(), today.toIsoDateTimeEnd())
-            }
+            TODAY -> Pair(today.toIsoDateTimeStart(), today.toIsoDateTimeEnd())
             YESTERDAY -> {
                 val yesterday = today.minus(DatePeriod(days = 1))
                 Pair(yesterday.toIsoDateTimeStart(), yesterday.toIsoDateTimeEnd())
@@ -604,7 +642,7 @@ enum class DateRangeFilter(val displayName: String) {
                 val monthAgo = today.minus(DatePeriod(months = 1))
                 Pair(monthAgo.toIsoDateTimeStart(), today.toIsoDateTimeEnd())
             }
-            CUSTOM -> null // Custom requires explicit date range
+            CUSTOM -> null
             ALL -> null
         }
     }

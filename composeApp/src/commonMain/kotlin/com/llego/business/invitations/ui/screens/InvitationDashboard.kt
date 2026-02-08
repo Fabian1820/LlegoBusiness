@@ -118,7 +118,6 @@ fun InvitationDashboard(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .navigationBarsPadding()
         ) {
             if (generateState is InvitationUiState.Success && selectedTab == InvitationTab.CODES) {
                 InvitationCodeDisplay(
@@ -149,8 +148,6 @@ fun InvitationDashboard(
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)
-                    .padding(bottom = 8.dp)
-                    .imePadding()
             ) {
                 when (selectedTab) {
                     InvitationTab.CODES -> {

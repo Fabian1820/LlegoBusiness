@@ -377,11 +377,11 @@ class SubscriptionManager(
     }
 
     companion object {
-        private val instance: SubscriptionManager by lazy { SubscriptionManager() }
+        private val singleton: SubscriptionManager by lazy { SubscriptionManager() }
 
         /**
          * Obtiene una instancia singleton del SubscriptionManager
          */
-        fun getInstance(): SubscriptionManager = instance
+        fun getInstance(): SubscriptionManager = singleton
     }
 }

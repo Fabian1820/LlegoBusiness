@@ -6,6 +6,7 @@ import com.llego.multiplatform.graphql.AddOrderCommentMutation
 import com.llego.multiplatform.graphql.MarkOrderReadyMutation
 import com.llego.multiplatform.graphql.ModifyOrderItemsMutation
 import com.llego.multiplatform.graphql.RejectOrderMutation
+import com.llego.multiplatform.graphql.CancelOrderMutation
 import com.llego.multiplatform.graphql.UpdateOrderStatusMutation
 
 /**
@@ -16,6 +17,9 @@ fun AcceptOrderMutation.AcceptOrder.toPartialDomain(): Order =
     orderAcceptUpdateFields.toPartialDomain()
 
 fun RejectOrderMutation.RejectOrder.toPartialDomain(): Order =
+    orderStatusUpdateFields.toPartialDomain()
+
+fun CancelOrderMutation.CancelOrder.toPartialDomain(): Order =
     orderStatusUpdateFields.toPartialDomain()
 
 fun UpdateOrderStatusMutation.UpdateOrderStatus.toPartialDomain(): Order =

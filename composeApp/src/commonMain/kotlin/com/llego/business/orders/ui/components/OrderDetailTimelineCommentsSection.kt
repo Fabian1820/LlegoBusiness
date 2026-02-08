@@ -47,7 +47,7 @@ fun OrderTimelineSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Historial del Pedido",
+                text = "Historial del pedido",
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -302,7 +302,7 @@ fun OrderCommentsSection(
             // Lista de comentarios existentes
             if (sortedComments.isEmpty()) {
                 Text(
-                    text = "No hay comentarios aÃºn",
+                    text = "No hay comentarios aun",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic

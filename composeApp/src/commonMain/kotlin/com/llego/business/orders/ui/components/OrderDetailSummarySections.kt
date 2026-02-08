@@ -1,25 +1,42 @@
-﻿package com.llego.business.orders.ui.components
+package com.llego.business.orders.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderStatus
+import com.llego.business.shared.ui.components.NetworkImage
+import com.llego.shared.utils.formatDouble
 
-/**
- * SecciÃ³n de estado del pedido con backend
- * Requirements: 5.5
- */
 @Composable
 fun OrderStatusSection(order: Order) {
     Surface(
@@ -50,23 +67,20 @@ fun OrderStatusSection(order: Order) {
                 tint = order.status.getColor(),
                 modifier = Modifier.size(32.dp)
             )
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Estado Actual",
+                    text = "Estado actual",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = order.status.getDisplayName(),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = order.status.getColor()
                 )
             }
-            
-            // Tiempo estimado restante si estÃ¡ disponible
+
             order.estimatedMinutesRemaining?.let { minutes ->
                 if (minutes > 0) {
                     Surface(
@@ -86,9 +100,7 @@ fun OrderStatusSection(order: Order) {
                             )
                             Text(
                                 text = "$minutes min",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
@@ -99,17 +111,12 @@ fun OrderStatusSection(order: Order) {
     }
 }
 
-/**
- * SecciÃ³n de items del pedido con backend
- */
 @Composable
 fun OrderItemsSection(items: List<OrderItem>) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Items del Pedido",
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold
-            )
+            text = "Items del pedido",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
         )
 
         items.forEach { item ->
@@ -118,14 +125,14 @@ fun OrderItemsSection(items: List<OrderItem>) {
                 color = if (item.wasModifiedByStore) {
                     MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
                 } else {
-                    Color(0xFFF5F5F5)
+                    MaterialTheme.colorScheme.surface
                 },
                 border = BorderStroke(
-                    1.dp, 
+                    1.dp,
                     if (item.wasModifiedByStore) {
                         MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
                     } else {
-                        Color.LightGray.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                     }
                 )
             ) {
@@ -133,9 +140,34 @@ fun OrderItemsSection(items: List<OrderItem>) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (item.imageUrl.isNotBlank()) {
+                        NetworkImage(
+                            url = item.imageUrl,
+                            contentDescription = item.name,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Surface(
+                            modifier = Modifier.size(52.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = item.name.take(1).uppercase(),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
                     Column(modifier = Modifier.weight(1f)) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -143,9 +175,7 @@ fun OrderItemsSection(items: List<OrderItem>) {
                         ) {
                             Text(
                                 text = item.name,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                             )
                             if (item.wasModifiedByStore) {
                                 Surface(
@@ -164,14 +194,13 @@ fun OrderItemsSection(items: List<OrderItem>) {
                         Text(
                             text = "Cantidad: ${item.quantity}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+
                     Text(
-                        text = "${item.lineTotal}",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
+                        text = "$${formatDouble("%.2f", item.lineTotal)}",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -180,46 +209,38 @@ fun OrderItemsSection(items: List<OrderItem>) {
     }
 }
 
-/**
- * SecciÃ³n de resumen de pago con backend
- */
 @Composable
 fun PaymentSummarySection(order: Order) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Resumen de Pago",
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold
-            )
+            text = "Resumen de pago",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
         )
-        
-        // Subtotal
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Subtotal:", style = MaterialTheme.typography.bodyMedium)
+            Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
             Text(
-                text = "${order.currency} ${order.subtotal}",
+                text = "${order.currency} ${formatDouble("%.2f", order.subtotal)}",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        
-        // Delivery fee
+
         if (order.deliveryFee > 0) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("EnvÃ­o:", style = MaterialTheme.typography.bodyMedium)
+                Text("Envio", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    text = "${order.currency} ${order.deliveryFee}",
+                    text = "${order.currency} ${formatDouble("%.2f", order.deliveryFee)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
-        
-        // Descuentos
+
         order.discounts.forEach { discount ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -244,27 +265,24 @@ fun PaymentSummarySection(order: Order) {
                     }
                 }
                 Text(
-                    text = "-${order.currency} ${discount.amount}",
+                    text = "-${order.currency} ${formatDouble("%.2f", discount.amount)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF4CAF50)
+                    color = Color(0xFF2E7D32)
                 )
             }
         }
-        
+
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-        
-        // MÃ©todo de pago
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("MÃ©todo de Pago:", style = MaterialTheme.typography.bodyMedium)
+            Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = order.paymentMethod,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Surface(
                     shape = RoundedCornerShape(4.dp),
@@ -279,20 +297,17 @@ fun PaymentSummarySection(order: Order) {
                 }
             }
         }
-        
-        // Total
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Total:",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
+                text = "Total",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "${order.currency} ${order.total}",
+                text = "${order.currency} ${formatDouble("%.2f", order.total)}",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -301,5 +316,3 @@ fun PaymentSummarySection(order: Order) {
         }
     }
 }
-
-

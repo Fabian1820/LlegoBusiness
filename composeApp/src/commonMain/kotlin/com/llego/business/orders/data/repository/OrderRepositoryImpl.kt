@@ -13,6 +13,7 @@ import com.llego.multiplatform.graphql.GetOrderQuery
 import com.llego.multiplatform.graphql.OrderStatsQuery
 import com.llego.multiplatform.graphql.AcceptOrderMutation
 import com.llego.multiplatform.graphql.RejectOrderMutation
+import com.llego.multiplatform.graphql.CancelOrderMutation
 import com.llego.multiplatform.graphql.UpdateOrderStatusMutation
 import com.llego.multiplatform.graphql.MarkOrderReadyMutation
 import com.llego.multiplatform.graphql.ModifyOrderItemsMutation
@@ -245,6 +246,38 @@ class OrderRepositoryImpl(
                     Result.success(order)
                 } else {
                     Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
+                }
+            }
+        } catch (e: ApolloException) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado: ${e.message}"))
+        }
+    }
+
+    /**
+     * Cancela un pedido
+     */
+    override suspend fun cancelOrder(orderId: String, reason: String): Result<Order> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
+
+            val response = apolloClient.mutation(
+                CancelOrderMutation(
+                    orderId = orderId,
+                    reason = reason,
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al cancelar pedido"))
+            } else {
+                val order = response.data?.cancelOrder?.toPartialDomain()
+                if (order != null) {
+                    Result.success(order)
+                } else {
+                    Result.failure(Exception("No se recibió respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {
