@@ -28,16 +28,14 @@ fun BusinessAccessListItem(
         modifier = modifier.fillMaxWidth(),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
-            containerColor = if (access.isExpired) {
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-            } else if (access.isActive) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = 0.dp
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
         )
     ) {
         Column(

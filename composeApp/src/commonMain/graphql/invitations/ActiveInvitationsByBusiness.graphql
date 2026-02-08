@@ -1,8 +1,10 @@
-query ActiveInvitationsByBusiness($businessId: String!) {
-    activeInvitationsByBusiness(businessId: $businessId) {
+query ActiveInvitationsByBusiness($businessId: String!, $jwt: String!) {
+    activeInvitationsByBusiness(businessId: $businessId, jwt: $jwt) {
         id
         code
         invitationType
+        businessId
+        branchId
         status
         accessDurationDays
         accessExpiresAt

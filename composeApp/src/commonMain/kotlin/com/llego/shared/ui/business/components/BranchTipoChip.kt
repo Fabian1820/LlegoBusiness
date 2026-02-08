@@ -26,6 +26,7 @@ fun BranchTipoChip(
         BranchTipo.RESTAURANTE -> "Restaurante"
         BranchTipo.TIENDA -> "Tienda"
         BranchTipo.DULCERIA -> "Dulceria"
+        BranchTipo.CAFE -> "Cafe"
     }
 
     FilterChip(

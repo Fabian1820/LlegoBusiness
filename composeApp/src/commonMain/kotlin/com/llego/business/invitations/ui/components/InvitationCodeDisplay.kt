@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.llego.business.invitations.data.model.Invitation
 import com.llego.business.invitations.data.model.InvitationType
+import com.llego.shared.ui.theme.LlegoCustomShapes
 
 @Composable
 fun InvitationCodeDisplay(
@@ -35,8 +36,9 @@ fun InvitationCodeDisplay(
     
     Card(
         modifier = modifier.fillMaxWidth(),
+        shape = LlegoCustomShapes.infoCard,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
         )
     ) {
         Column(
@@ -48,7 +50,7 @@ fun InvitationCodeDisplay(
             Text(
                 text = "Código generado",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -91,7 +93,7 @@ fun InvitationCodeDisplay(
             if (showCopiedMessage) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "✓ Código copiado",
+                    text = "Codigo copiado",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -110,7 +112,7 @@ fun InvitationCodeDisplay(
                         InvitationType.BUSINESS -> "Acceso a: ${invitation.business.name} (todas las sucursales)"
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 
                 Text(
@@ -120,9 +122,10 @@ fun InvitationCodeDisplay(
                         "Duración: Indefinida"
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         }
     }
 }
+

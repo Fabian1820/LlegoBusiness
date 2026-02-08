@@ -3,6 +3,8 @@ query InvitationByCode($code: String!) {
         id
         code
         invitationType
+        businessId
+        branchId
         status
         accessDurationDays
         accessExpiresAt

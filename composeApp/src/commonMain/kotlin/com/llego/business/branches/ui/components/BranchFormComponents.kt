@@ -28,7 +28,8 @@ fun BranchTipoSelector(
     val options = listOf(
         BranchTipo.RESTAURANTE,
         BranchTipo.TIENDA,
-        BranchTipo.DULCERIA
+        BranchTipo.DULCERIA,
+        BranchTipo.CAFE
     )
 
     Row(
@@ -41,6 +42,7 @@ fun BranchTipoSelector(
                 BranchTipo.RESTAURANTE -> "Restaurante" to secondaryColor
                 BranchTipo.TIENDA -> "Tienda" to primaryColor
                 BranchTipo.DULCERIA -> "Dulceria" to tertiaryColor
+                BranchTipo.CAFE -> "Cafe" to secondaryColor
             }
 
             FilterChip(

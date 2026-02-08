@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,8 +31,8 @@ fun InvitationListItem(
         colors = CardDefaults.cardColors(
             containerColor = when (invitation.status) {
                 InvitationStatus.PENDING -> MaterialTheme.colorScheme.surfaceVariant
-                InvitationStatus.USED -> MaterialTheme.colorScheme.tertiaryContainer
-                InvitationStatus.REVOKED -> MaterialTheme.colorScheme.errorContainer
+                InvitationStatus.USED -> Color(0xFFFFF1EC)
+                InvitationStatus.REVOKED -> Color(0xFFFFE6DE)
             }
         )
     ) {

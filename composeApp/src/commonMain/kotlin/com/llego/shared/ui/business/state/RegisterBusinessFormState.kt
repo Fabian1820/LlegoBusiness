@@ -1,6 +1,7 @@
 package com.llego.shared.ui.business.state
 
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.BranchVehicle
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.ui.components.molecules.DaySchedule
 import com.llego.shared.ui.components.molecules.TimeRange
@@ -26,6 +27,8 @@ data class BranchFormState(
     val deliveryRadius: Double = 5.0,
     val facilities: List<String> = emptyList(),
     val selectedTipos: Set<BranchTipo> = emptySet(),
+    val useAppMessaging: Boolean = true,
+    val selectedVehicles: Set<BranchVehicle> = emptySet(),
     val selectedPaymentMethodIds: List<String> = emptyList(),
     val avatarState: ImageUploadState = ImageUploadState.Idle,
     val coverState: ImageUploadState = ImageUploadState.Idle

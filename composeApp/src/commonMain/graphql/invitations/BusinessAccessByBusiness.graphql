@@ -5,7 +5,7 @@ query BusinessAccessByBusiness($businessId: String!, $jwt: String!) {
         isExpired
         expiresAt
         daysUntilExpiration
-        createdAt
+        grantedAt
         user {
             ...UserAccessFields
         }

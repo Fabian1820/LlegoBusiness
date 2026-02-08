@@ -1,6 +1,7 @@
 fragment BusinessCoreFields on BusinessType {
   id
   name
+  ownerId
   avatar
   description
   tags
@@ -13,11 +14,20 @@ fragment BusinessCoreFields on BusinessType {
 
 fragment BusinessOwnedFields on BusinessType {
   ...BusinessCoreFields
-  ownerId
 }
 
-fragment BusinessRoleFields on BusinessType {
-  ...BusinessOwnedFields
+fragment BusinessRoleFields on BusinessWithBranchesType {
+  id
+  name
+  ownerId
+  avatar
+  description
+  tags
+  socialMedia
+  globalRating
+  isActive
+  createdAt
+  avatarUrl
   isOwner
   role
 }

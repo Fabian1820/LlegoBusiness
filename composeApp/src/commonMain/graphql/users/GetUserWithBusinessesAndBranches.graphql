@@ -3,12 +3,12 @@ query GetUserWithBusinessesAndBranches($jwt: String!) {
     ...UserCoreFields
   }
 
-  getMyBusinesses(jwt: $jwt) {
-    ...BusinessOwnedFields
+  getMyBusinesses: getMyBusinessesWithBranches(jwt: $jwt) {
+    ...BusinessRoleFields
   }
 
-  getBusinessesWithBranches(jwt: $jwt) {
-    ...BusinessOwnedFields
+  getBusinessesWithBranches: getMyBusinessesWithBranches(jwt: $jwt) {
+    ...BusinessRoleFields
     branches {
       ...BranchCoreFields
     }

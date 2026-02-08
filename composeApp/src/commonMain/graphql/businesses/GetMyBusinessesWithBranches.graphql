@@ -1,10 +1,6 @@
 query GetMyBusinessesWithBranches($jwt: String!) {
   getMyBusinessesWithBranches(jwt: $jwt) {
-    id
-    name
-    avatar
-    isOwner
-    role
+    ...BusinessRoleFields
     branches {
       ...BranchCoreFields
     }

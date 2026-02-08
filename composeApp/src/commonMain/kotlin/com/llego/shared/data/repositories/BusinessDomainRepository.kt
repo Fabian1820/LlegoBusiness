@@ -206,6 +206,26 @@ internal class BusinessDomainRepository(
                             coverImage = fields.coverImage,
                             deliveryRadius = fields.deliveryRadius,
                             facilities = fields.facilities,
+                            accounts = fields.accounts.map { account ->
+                                com.llego.shared.data.model.TransferAccount(
+                                    cardNumber = account.cardNumber,
+                                    cardHolderName = account.cardHolderName,
+                                    bankName = account.bankName,
+                                    isActive = account.isActive
+                                )
+                            },
+                            qrPayments = fields.qrPayments.map { qr ->
+                                com.llego.shared.data.model.QrPayment(
+                                    value = qr.value,
+                                    isActive = qr.isActive
+                                )
+                            },
+                            phones = fields.phones.map { phone ->
+                                com.llego.shared.data.model.TransferPhone(
+                                    phone = phone.phone,
+                                    isActive = phone.isActive
+                                )
+                            },
                             createdAt = fields.createdAt.toString(),
                             avatarUrl = fields.avatarUrl,
                             coverUrl = fields.coverUrl,
@@ -217,20 +237,21 @@ internal class BusinessDomainRepository(
                         )
                     }
 
+                    val businessFields = businessData.businessRoleFields
                     BusinessWithBranches(
-                        id = businessData.id,
-                        name = businessData.name,
-                        ownerId = "",
-                        isOwner = businessData.isOwner,
-                        role = businessData.role,
-                        globalRating = 0.0,
-                        avatar = businessData.avatar,
-                        description = null,
-                        socialMedia = null,
-                        tags = emptyList(),
-                        isActive = true,
-                        createdAt = "",
-                        avatarUrl = null,
+                        id = businessFields.id,
+                        name = businessFields.name,
+                        ownerId = businessFields.ownerId,
+                        isOwner = businessFields.isOwner,
+                        role = businessFields.role,
+                        globalRating = businessFields.globalRating,
+                        avatar = businessFields.avatar,
+                        description = businessFields.description,
+                        socialMedia = parseStringMap(businessFields.socialMedia),
+                        tags = businessFields.tags,
+                        isActive = businessFields.isActive,
+                        createdAt = businessFields.createdAt.toString(),
+                        avatarUrl = businessFields.avatarUrl,
                         branches = branches
                     )
                 }
@@ -284,7 +305,7 @@ internal class BusinessDomainRepository(
                     Business(
                         id = core.id,
                         name = core.name,
-                        ownerId = fields.ownerId,
+                        ownerId = core.ownerId,
                         globalRating = core.globalRating,
                         avatar = core.avatar,
                         description = core.description,

@@ -6,6 +6,7 @@ import com.llego.multiplatform.graphql.fragment.BranchCoreFields
 import com.llego.multiplatform.graphql.fragment.BranchUpdateFields
 import com.llego.multiplatform.graphql.fragment.BusinessCoreFields
 import com.llego.multiplatform.graphql.fragment.BusinessOwnedFields
+import com.llego.multiplatform.graphql.fragment.BusinessRoleFields
 import com.llego.multiplatform.graphql.fragment.BusinessUpdateFields
 import com.llego.multiplatform.graphql.fragment.CoordinatesFields
 import com.llego.multiplatform.graphql.fragment.ScoredBranchCoreFields
@@ -28,22 +29,10 @@ fun GetBusinessesQuery.Business.toDomain(): Business =
     businessCoreFields.toDomain(ownerId = "")
 
 fun GetMyBusinessesQuery.GetMyBusiness.toDomain(): Business =
-    businessOwnedFields.toDomain()
+    businessRoleFields.toDomain()
 
 fun GetMyBusinessesWithBranchesQuery.GetMyBusinessesWithBranch.toDomain(): Business =
-    Business(
-        id = id,
-        name = name,
-        ownerId = "",
-        globalRating = 0.0,
-        avatar = avatar,
-        description = null,
-        socialMedia = null,
-        tags = emptyList(),
-        isActive = true,
-        createdAt = "",
-        avatarUrl = null
-    )
+    businessRoleFields.toDomain()
 
 fun GetBusinessQuery.Business.toDomain(): Business =
     businessOwnedFields.toDomain()
@@ -71,7 +60,23 @@ private fun BusinessCoreFields.toDomain(ownerId: String): Business {
 }
 
 private fun BusinessOwnedFields.toDomain(): Business {
-    return businessCoreFields.toDomain(ownerId = ownerId)
+    return businessCoreFields.toDomain(ownerId = businessCoreFields.ownerId)
+}
+
+private fun BusinessRoleFields.toDomain(): Business {
+    return Business(
+        id = id,
+        name = name,
+        ownerId = ownerId,
+        globalRating = globalRating,
+        avatar = avatar,
+        description = description,
+        socialMedia = parseStringMap(socialMedia),
+        tags = tags,
+        isActive = isActive,
+        createdAt = createdAt.toString(),
+        avatarUrl = avatarUrl
+    )
 }
 
 private fun BusinessUpdateFields.toDomain(): Business {
@@ -126,6 +131,26 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
+        accounts = accounts.map { account ->
+            TransferAccount(
+                cardNumber = account.cardNumber,
+                cardHolderName = account.cardHolderName,
+                bankName = account.bankName,
+                isActive = account.isActive
+            )
+        },
+        qrPayments = qrPayments.map { qr ->
+            QrPayment(
+                value = qr.value,
+                isActive = qr.isActive
+            )
+        },
+        phones = phones.map { phone ->
+            TransferPhone(
+                phone = phone.phone,
+                isActive = phone.isActive
+            )
+        },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
@@ -156,6 +181,26 @@ private fun BranchCoreFields.toDomain(): Branch {
         coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
+        accounts = accounts.map { account ->
+            TransferAccount(
+                cardNumber = account.cardNumber,
+                cardHolderName = account.cardHolderName,
+                bankName = account.bankName,
+                isActive = account.isActive
+            )
+        },
+        qrPayments = qrPayments.map { qr ->
+            QrPayment(
+                value = qr.value,
+                isActive = qr.isActive
+            )
+        },
+        phones = phones.map { phone ->
+            TransferPhone(
+                phone = phone.phone,
+                isActive = phone.isActive
+            )
+        },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
@@ -186,6 +231,26 @@ private fun BranchUpdateFields.toDomain(): Branch {
         coverImage = coverImage,
         deliveryRadius = deliveryRadius,
         facilities = facilities,
+        accounts = accounts.map { account ->
+            TransferAccount(
+                cardNumber = account.cardNumber,
+                cardHolderName = account.cardHolderName,
+                bankName = account.bankName,
+                isActive = account.isActive
+            )
+        },
+        qrPayments = qrPayments.map { qr ->
+            QrPayment(
+                value = qr.value,
+                isActive = qr.isActive
+            )
+        },
+        phones = phones.map { phone ->
+            TransferPhone(
+                phone = phone.phone,
+                isActive = phone.isActive
+            )
+        },
         createdAt = "",
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
@@ -238,15 +303,16 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
-        useAppMessaging = useAppMessaging,
-        vehicles = vehicles.toGraphQLVehicleList(),
         paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities)
+        facilities = Optional.presentIfNotNull(facilities),
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
+        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
+        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
     )
 }
 
@@ -258,15 +324,18 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
-        useAppMessaging = useAppMessaging,
-        vehicles = vehicles.toGraphQLVehicleList(),
+        useAppMessaging = Optional.present(useAppMessaging),
+        vehicles = Optional.presentIfNotNull(vehicles.takeIf { it.isNotEmpty() }?.toGraphQLVehicleList()),
         paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities)
+        facilities = Optional.presentIfNotNull(facilities),
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
+        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
+        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
     )
 }
 
@@ -286,7 +355,10 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
         useAppMessaging = Optional.presentIfNotNull(useAppMessaging),
         vehicles = Optional.presentIfNotNull(vehicles?.toGraphQLVehicleList()),
-        paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds)
+        paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds),
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
+        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
+        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
     )
 }
 
@@ -307,11 +379,41 @@ private fun List<BranchVehicle>.toGraphQLVehicleList(): List<com.llego.multiplat
     return map { vehicle -> vehicle.toGraphQL() }
 }
 
+private fun List<TransferAccount>.toGraphQLAccountList(): List<com.llego.multiplatform.graphql.type.TransferAccountInput> {
+    return map { account ->
+        com.llego.multiplatform.graphql.type.TransferAccountInput(
+            cardNumber = account.cardNumber,
+            cardHolderName = account.cardHolderName,
+            bankName = account.bankName,
+            isActive = Optional.present(account.isActive)
+        )
+    }
+}
+
+private fun List<QrPayment>.toGraphQLQrPaymentList(): List<com.llego.multiplatform.graphql.type.QrPaymentInput> {
+    return map { qr ->
+        com.llego.multiplatform.graphql.type.QrPaymentInput(
+            value = qr.value,
+            isActive = Optional.present(qr.isActive)
+        )
+    }
+}
+
+private fun List<TransferPhone>.toGraphQLPhoneList(): List<com.llego.multiplatform.graphql.type.TransferPhoneInput> {
+    return map { phone ->
+        com.llego.multiplatform.graphql.type.TransferPhoneInput(
+            phone = phone.phone,
+            isActive = Optional.present(phone.isActive)
+        )
+    }
+}
+
 private fun BranchTipo.toGraphQL(): com.llego.multiplatform.graphql.type.BranchTipo {
     val candidateNames = when (this) {
         BranchTipo.RESTAURANTE -> listOf("RESTAURANTE", "RESTAURANT")
         BranchTipo.TIENDA -> listOf("TIENDA", "STORE")
         BranchTipo.DULCERIA -> listOf("DULCERIA", "BAKERY")
+        BranchTipo.CAFE -> listOf("CAFE")
     }
 
     for (candidate in candidateNames) {

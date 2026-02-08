@@ -13,6 +13,7 @@ import com.llego.multiplatform.graphql.fragment.BusinessReferenceFields
 import com.llego.multiplatform.graphql.fragment.UserAccessFields
 import com.llego.multiplatform.graphql.fragment.UserReferenceFields
 import com.llego.multiplatform.graphql.type.InvitationType as GraphQLInvitationType
+import com.llego.multiplatform.graphql.type.InvitationStatus as GraphQLInvitationStatus
 import kotlinx.datetime.Instant
 import kotlin.time.ExperimentalTime
 
@@ -31,7 +32,8 @@ fun InvitationByCodeQuery.InvitationByCode?.toInvitation(): Invitation? {
         accessStatus = accessStatus.toAccessStatus(),
         createdAt = parseBackendDateTime(createdAt.toString()),
         usedAt = usedAt?.toString()?.let { parseBackendDateTime(it) },
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = businessId, name = "Negocio"),
         branch = branch?.branchReferenceFields?.toInvitationBranch(),
         creator = creator?.userReferenceFields?.toInvitationUser(),
         redeemer = redeemer?.userReferenceFields?.toInvitationUser()
@@ -51,7 +53,8 @@ fun GenerateInvitationCodeMutation.GenerateInvitationCode.toInvitation(): Invita
         accessStatus = accessStatus.toAccessStatus(),
         createdAt = parseBackendDateTime(createdAt.toString()),
         usedAt = usedAt?.toString()?.let { parseBackendDateTime(it) },
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = businessId, name = "Negocio"),
         branch = branch?.branchReferenceFields?.toInvitationBranch(),
         creator = creator?.userReferenceFields?.toInvitationUser(),
         redeemer = redeemer?.userReferenceFields?.toInvitationUser()
@@ -71,7 +74,8 @@ fun AcceptInvitationCodeMutation.AcceptInvitationCode.toInvitation(): Invitation
         accessStatus = accessStatus.toAccessStatus(),
         createdAt = parseBackendDateTime(createdAt.toString()),
         usedAt = usedAt?.toString()?.let { parseBackendDateTime(it) },
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = businessId, name = "Negocio"),
         branch = branch?.branchReferenceFields?.toInvitationBranch(),
         creator = creator?.userReferenceFields?.toInvitationUser(),
         redeemer = redeemer?.userReferenceFields?.toInvitationUser()
@@ -91,7 +95,8 @@ fun InvitationsByBusinessQuery.InvitationsByBusiness.toInvitation(): Invitation 
         accessStatus = accessStatus.toAccessStatus(),
         createdAt = parseBackendDateTime(createdAt.toString()),
         usedAt = usedAt?.toString()?.let { parseBackendDateTime(it) },
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = businessId, name = "Negocio"),
         branch = branch?.branchReferenceFields?.toInvitationBranch(),
         creator = creator?.userReferenceFields?.toInvitationUser(),
         redeemer = redeemer?.userReferenceFields?.toInvitationUser()
@@ -111,7 +116,8 @@ fun ActiveInvitationsByBusinessQuery.ActiveInvitationsByBusiness.toInvitation():
         accessStatus = accessStatus.toAccessStatus(),
         createdAt = parseBackendDateTime(createdAt.toString()),
         usedAt = usedAt?.toString()?.let { parseBackendDateTime(it) },
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = businessId, name = "Negocio"),
         branch = branch?.branchReferenceFields?.toInvitationBranch(),
         creator = creator?.userReferenceFields?.toInvitationUser(),
         redeemer = redeemer?.userReferenceFields?.toInvitationUser()
@@ -127,12 +133,12 @@ private fun GraphQLInvitationType.toInvitationType(): InvitationType {
     }
 }
 
-private fun String.toInvitationStatus(): InvitationStatus {
-    return when (this.uppercase()) {
-        "PENDING" -> InvitationStatus.PENDING
-        "USED" -> InvitationStatus.USED
-        "REVOKED" -> InvitationStatus.REVOKED
-        else -> InvitationStatus.PENDING
+private fun GraphQLInvitationStatus.toInvitationStatus(): InvitationStatus {
+    return when (this) {
+        GraphQLInvitationStatus.PENDING -> InvitationStatus.PENDING
+        GraphQLInvitationStatus.USED -> InvitationStatus.USED
+        GraphQLInvitationStatus.REVOKED -> InvitationStatus.REVOKED
+        GraphQLInvitationStatus.UNKNOWN__ -> InvitationStatus.PENDING
     }
 }
 
@@ -150,13 +156,15 @@ private fun String.toAccessStatus(): AccessStatus {
 fun BusinessAccessByBusinessQuery.BusinessAccessByBusiness.toBusinessAccess(): BusinessAccess {
     return BusinessAccess(
         id = id,
-        user = user.userAccessFields.toInvitationUser(),
-        business = business.businessReferenceFields.toInvitationBusiness(),
+        user = user?.userAccessFields?.toInvitationUser()
+            ?: InvitationUser(id = "", name = "Usuario"),
+        business = business?.businessReferenceFields?.toInvitationBusiness()
+            ?: InvitationBusiness(id = "", name = "Negocio"),
         expiresAt = expiresAt?.toString()?.let { parseBackendDateTime(it) },
         isActive = isActive,
         isExpired = isExpired,
         daysUntilExpiration = daysUntilExpiration,
-        grantedAt = parseBackendDateTime(createdAt.toString())
+        grantedAt = parseBackendDateTime(grantedAt.toString())
     )
 }
 

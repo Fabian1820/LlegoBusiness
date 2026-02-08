@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.invitations.data.model.GenerateInvitationInput
 import com.llego.business.invitations.data.model.InvitationType
@@ -58,12 +59,22 @@ fun InvitationDashboard(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Gestión de Accesos") },
+                title = {
+                    Text(
+                        text = "Gestion de accesos",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 actions = {
@@ -72,18 +83,33 @@ fun InvitationDashboard(
                             selected = showActiveOnly,
                             onClick = { showActiveOnly = !showActiveOnly },
                             label = { Text(if (showActiveOnly) "Activos" else "Todos") },
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier.padding(end = 8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         },
         floatingActionButton = {
             if (selectedTab == InvitationTab.CODES) {
-                FloatingActionButton(
-                    onClick = { showGenerateDialog = true }
+                ExtendedFloatingActionButton(
+                    onClick = { showGenerateDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Generar código")
+                    Icon(Icons.Default.Add, contentDescription = "Generar codigo")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Generar")
                 }
             }
         }
@@ -92,6 +118,7 @@ fun InvitationDashboard(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
         ) {
             if (generateState is InvitationUiState.Success && selectedTab == InvitationTab.CODES) {
                 InvitationCodeDisplay(
@@ -103,7 +130,8 @@ fun InvitationDashboard(
 
             PrimaryTabRow(
                 selectedTabIndex = selectedTab.ordinal,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.background
             ) {
                 Tab(
                     selected = selectedTab == InvitationTab.CODES,
@@ -121,6 +149,8 @@ fun InvitationDashboard(
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)
+                    .padding(bottom = 8.dp)
+                    .imePadding()
             ) {
                 when (selectedTab) {
                     InvitationTab.CODES -> {
@@ -349,3 +379,4 @@ private fun BusinessAccessContent(
         }
     }
 }
+

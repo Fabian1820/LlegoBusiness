@@ -289,6 +289,7 @@ fun BranchDetailScreen(
                                 BranchTipo.RESTAURANTE -> "Restaurante" to MaterialTheme.colorScheme.secondary
                                 BranchTipo.TIENDA -> "Tienda" to MaterialTheme.colorScheme.primary
                                 BranchTipo.DULCERIA -> "Dulceria" to MaterialTheme.colorScheme.tertiary
+                                BranchTipo.CAFE -> "Cafe" to MaterialTheme.colorScheme.tertiary
                             }
                             Surface(
                                 shape = LlegoShapes.small,

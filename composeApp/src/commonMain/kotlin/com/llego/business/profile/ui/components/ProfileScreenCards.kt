@@ -85,14 +85,14 @@ fun BranchesManagementCard(
                 )
                 Column {
                     Text(
-                        text = "Gestionar Negocios",
+                        text = "Gestionar negocios",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Administra tus negocios y sucursales",
+                        text = "Administra negocios y sucursales",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -150,7 +150,7 @@ fun InvitationsCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Invita a otros a administrar",
+                        text = "Invita colaboradores a administrar",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

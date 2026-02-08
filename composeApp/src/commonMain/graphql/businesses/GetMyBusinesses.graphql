@@ -1,5 +1,5 @@
 query GetMyBusinesses($jwt: String!) {
-    getMyBusinesses(jwt: $jwt) {
-        ...BusinessOwnedFields
-    }
+  getMyBusinesses: getMyBusinessesWithBranches(jwt: $jwt) {
+    ...BusinessRoleFields
+  }
 }

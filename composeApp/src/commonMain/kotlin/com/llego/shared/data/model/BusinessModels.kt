@@ -90,6 +90,9 @@ data class Branch(
     val coverImage: String? = null,
     val deliveryRadius: Double? = null,
     val facilities: List<String> = emptyList(),
+    val accounts: List<TransferAccount> = emptyList(),
+    val qrPayments: List<QrPayment> = emptyList(),
+    val phones: List<TransferPhone> = emptyList(),
     val createdAt: String,
     val avatarUrl: String? = null,
     val coverUrl: String? = null,
@@ -105,7 +108,8 @@ data class Branch(
 enum class BranchTipo {
     RESTAURANTE,
     DULCERIA,
-    TIENDA
+    TIENDA,
+    CAFE
 }
 
 @Serializable
@@ -124,6 +128,7 @@ fun BranchTipo.toDisplayName(): String = when (this) {
     BranchTipo.RESTAURANTE -> "Restaurante"
     BranchTipo.DULCERIA -> "Dulcer?a"
     BranchTipo.TIENDA -> "Tienda"
+    BranchTipo.CAFE -> "Cafeteria"
 }
 
 fun BranchVehicle.toDisplayName(): String = when (this) {
@@ -163,6 +168,26 @@ data class PaymentMethod(
     val id: String,
     val currency: String,  // e.g., "CUP", "USD"
     val method: String     // e.g., "tarjeta", "efectivo", "transferencia"
+)
+
+@Serializable
+data class TransferAccount(
+    val cardNumber: String,
+    val cardHolderName: String,
+    val bankName: String,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class QrPayment(
+    val value: String,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class TransferPhone(
+    val phone: String,
+    val isActive: Boolean = true
 )
 
 /**
@@ -227,7 +252,10 @@ data class RegisterBranchInput(
     val avatar: String? = null,
     val coverImage: String? = null,
     val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null
+    val facilities: List<String>? = null,
+    val accounts: List<TransferAccount>? = null,
+    val qrPayments: List<QrPayment>? = null,
+    val phones: List<TransferPhone>? = null
 )
 
 /**
@@ -250,7 +278,10 @@ data class CreateBranchInput(
     val avatar: String? = null,
     val coverImage: String? = null,
     val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null
+    val facilities: List<String>? = null,
+    val accounts: List<TransferAccount>? = null,
+    val qrPayments: List<QrPayment>? = null,
+    val phones: List<TransferPhone>? = null
 )
 
 /**
@@ -272,7 +303,10 @@ data class UpdateBranchInput(
     val status: String? = null,
     val deliveryRadius: Double? = null,
     val facilities: List<String>? = null,
-    val managerIds: List<String>? = null
+    val managerIds: List<String>? = null,
+    val accounts: List<TransferAccount>? = null,
+    val qrPayments: List<QrPayment>? = null,
+    val phones: List<TransferPhone>? = null
 )
 
 /**

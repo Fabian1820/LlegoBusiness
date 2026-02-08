@@ -17,6 +17,20 @@ fragment BranchCoreFields on BranchType {
   tipos
   useAppMessaging
   vehicles
+  accounts {
+    cardNumber
+    cardHolderName
+    bankName
+    isActive
+  }
+  qrPayments {
+    value
+    isActive
+  }
+  phones {
+    phone
+    isActive
+  }
   paymentMethodIds
   managerIds
   avatar
@@ -47,6 +61,20 @@ fragment BranchUpdateFields on BranchType {
   tipos
   useAppMessaging
   vehicles
+  accounts {
+    cardNumber
+    cardHolderName
+    bankName
+    isActive
+  }
+  qrPayments {
+    value
+    isActive
+  }
+  phones {
+    phone
+    isActive
+  }
   paymentMethodIds
   managerIds
   avatar
@@ -75,6 +103,20 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   tipos
   useAppMessaging
   vehicles
+  accounts {
+    cardNumber
+    cardHolderName
+    bankName
+    isActive
+  }
+  qrPayments {
+    value
+    isActive
+  }
+  phones {
+    phone
+    isActive
+  }
   paymentMethodIds
   avatar
   coverImage

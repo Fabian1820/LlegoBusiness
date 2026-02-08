@@ -126,9 +126,12 @@ class InvitationRepository(
         businessId: String
     ): Result<List<Invitation>> {
         return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token found"))
+
             val response = apolloClient.query(
                 InvitationsByBusinessQuery(
-                    businessId = businessId
+                    businessId = businessId,
+                    jwt = token
                 )
             ).execute()
             
@@ -166,9 +169,12 @@ class InvitationRepository(
         businessId: String
     ): Result<List<Invitation>> {
         return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token found"))
+
             val response = apolloClient.query(
                 ActiveInvitationsByBusinessQuery(
-                    businessId = businessId
+                    businessId = businessId,
+                    jwt = token
                 )
             ).execute()
             

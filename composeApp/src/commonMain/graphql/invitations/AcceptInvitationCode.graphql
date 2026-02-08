@@ -3,6 +3,8 @@ mutation AcceptInvitationCode($input: AcceptInvitationInput!, $jwt: String) {
         id
         code
         invitationType
+        businessId
+        branchId
         status
         accessDurationDays
         accessExpiresAt

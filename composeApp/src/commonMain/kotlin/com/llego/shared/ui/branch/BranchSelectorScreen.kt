@@ -67,9 +67,6 @@ fun BranchSelectorScreen(
         branchSelectorViewModel.loadBusinesses()
     }
 
-    val authUiState by authViewModel.uiState.collectAsState()
-    val currentUserId = authUiState.user?.id
-
     val branchesByBusiness = remember(branchSelectorState.businessesWithBranches) {
         branchSelectorState.businessesWithBranches.map { it.toBusiness() to it.branches }
     }
@@ -103,12 +100,12 @@ fun BranchSelectorScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Gestiona tus Negocios",
+                        "Gestionar negocios",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         )
@@ -123,9 +120,9 @@ fun BranchSelectorScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -134,6 +131,7 @@ fun BranchSelectorScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             if (branchSelectorState.isLoading) {
                 LoadingState()
@@ -155,7 +153,7 @@ fun BranchSelectorScreen(
                         Text(
                             text = "Selecciona la sucursal que deseas administrar",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
                         )
                     }
@@ -248,7 +246,7 @@ private fun BusinessSection(
         // ── Business banner card ──
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             onClick = { isExpanded = !isExpanded }
@@ -262,12 +260,11 @@ private fun BusinessSection(
                         .background(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f)
                                 )
                             ),
-                            shape = RoundedCornerShape(16.dp)
+                            shape = RoundedCornerShape(14.dp)
                         )
                 )
 
@@ -292,7 +289,7 @@ private fun BusinessSection(
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -300,7 +297,7 @@ private fun BusinessSection(
                         Text(
                             text = "${branches.size} ${if (branches.size == 1) "sucursal" else "sucursales"}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
                         )
                     }
 
@@ -308,13 +305,13 @@ private fun BusinessSection(
                     Surface(
                         modifier = Modifier.size(32.dp),
                         shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.2f)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.ExpandMore,
                                 contentDescription = if (isExpanded) "Colapsar" else "Expandir",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier
                                     .size(20.dp)
                                     .rotate(rotationAngle)
@@ -343,7 +340,7 @@ private fun BusinessSection(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column {
                     branches.forEachIndexed { index, branch ->
@@ -373,7 +370,7 @@ private fun ActionsSection(
     if (!canCreateBusiness) return
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel("Acciones")
+        SectionLabel("Acciones rapidas")
 
         GroupedCard {
             Row(
@@ -444,7 +441,7 @@ private fun InvitationSection(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionLabel("Invitación")
+        SectionLabel("Codigo de invitacion")
 
         GroupedCard {
             Column(
@@ -597,7 +594,7 @@ private fun BusinessAvatar(
     Surface(
         modifier = Modifier.size(sizeDp),
         shape = RoundedCornerShape(14.dp),
-        color = Color.White.copy(alpha = 0.2f),
+        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f),
         shadowElevation = 0.dp
     ) {
         if (hasPhoto) {
@@ -616,7 +613,7 @@ private fun BusinessAvatar(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -673,7 +670,7 @@ private fun GroupedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
         Column(content = content)
@@ -858,13 +855,12 @@ private fun ListDivider() {
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium.copy(
+        text = text,
+        style = MaterialTheme.typography.titleSmall.copy(
             fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp,
-            fontSize = 13.sp
+            letterSpacing = 0.sp
         ),
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
     )
 }
@@ -1040,6 +1036,7 @@ private fun branchTypeColor(tipo: BranchTipo?): Color {
         BranchTipo.RESTAURANTE -> MaterialTheme.colorScheme.secondary
         BranchTipo.TIENDA -> MaterialTheme.colorScheme.primary
         BranchTipo.DULCERIA -> MaterialTheme.colorScheme.tertiary
+        BranchTipo.CAFE -> MaterialTheme.colorScheme.tertiary
         null -> MaterialTheme.colorScheme.primary
     }
 }
@@ -1049,6 +1046,7 @@ private fun branchTypeIcon(tipo: BranchTipo?): ImageVector {
         BranchTipo.RESTAURANTE -> Icons.Outlined.Restaurant
         BranchTipo.TIENDA -> Icons.Outlined.Storefront
         BranchTipo.DULCERIA -> Icons.Outlined.Cake
+        BranchTipo.CAFE -> Icons.Outlined.LocalCafe
         null -> Icons.Outlined.Store
     }
 }
@@ -1058,5 +1056,6 @@ private fun branchTypeLabel(tipo: BranchTipo): String {
         BranchTipo.RESTAURANTE -> "Restaurante"
         BranchTipo.TIENDA -> "Tienda"
         BranchTipo.DULCERIA -> "Dulcería"
+        BranchTipo.CAFE -> "Cafe"
     }
 }

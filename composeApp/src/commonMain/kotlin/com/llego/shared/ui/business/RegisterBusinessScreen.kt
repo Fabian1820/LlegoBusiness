@@ -31,6 +31,7 @@ import com.llego.shared.ui.components.molecules.combinePhoneNumber
 import com.llego.shared.ui.components.molecules.toBackendSchedule
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.business.components.BranchTipoChip
+import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.shared.ui.business.state.BranchFormState
 import com.llego.shared.ui.business.state.BusinessFormState
 import com.llego.shared.ui.business.state.defaultBranchFormState
@@ -279,6 +280,25 @@ fun RegisterBusinessScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        BranchTipoChip(
+                                            tipo = BranchTipo.CAFE,
+                                            selected = branch.selectedTipos.contains(BranchTipo.CAFE),
+                                            onClick = {
+                                                val updated = if (branch.selectedTipos.contains(BranchTipo.CAFE)) {
+                                                    branch.selectedTipos - BranchTipo.CAFE
+                                                } else {
+                                                    branch.selectedTipos + BranchTipo.CAFE
+                                                }
+                                                updateBranch(businessIndex, branchIndex) { current -> current.copy(selectedTipos = updated) }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
 
                                 LlegoTextField(
@@ -334,6 +354,58 @@ fun RegisterBusinessScreen(
                                         updateBranch(businessIndex, branchIndex) { current -> current.copy(deliveryRadius = radius) }
                                     }
                                 )
+
+                                Text(
+                                    text = "La sucursal gestiona transporte",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (branch.useAppMessaging) {
+                                            "Si, con mensajeria integrada"
+                                        } else {
+                                            "No, gestion externa"
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Switch(
+                                        checked = branch.useAppMessaging,
+                                        onCheckedChange = { enabled ->
+                                            updateBranch(businessIndex, branchIndex) { current ->
+                                                current.copy(
+                                                    useAppMessaging = enabled,
+                                                    selectedVehicles = if (enabled) current.selectedVehicles else emptySet()
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+
+                                if (branch.useAppMessaging) {
+                                    Text(
+                                        text = "Vehiculos disponibles",
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    )
+                                    BranchVehiclesSelector(
+                                        selectedVehicles = branch.selectedVehicles,
+                                        onSelectionChange = { vehicles ->
+                                            updateBranch(businessIndex, branchIndex) { current ->
+                                                current.copy(selectedVehicles = vehicles)
+                                            }
+                                        }
+                                    )
+                                }
 
                                 FacilitiesSelector(
                                     selectedFacilities = branch.facilities,
@@ -547,6 +619,8 @@ fun RegisterBusinessScreen(
                                     ),
                                     schedule = branch.schedule.toBackendSchedule(),
                                     tipos = branch.selectedTipos.toList(),
+                                    useAppMessaging = branch.useAppMessaging,
+                                    vehicles = branch.selectedVehicles.toList(),
                                     paymentMethodIds = branch.selectedPaymentMethodIds,
                                     avatar = (branch.avatarState as? ImageUploadState.Success)?.s3Path,
                                     coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path,
