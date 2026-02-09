@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +41,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llego.business.home.config.HomeTabConfig
+import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.screens.ConfirmationType
@@ -50,6 +53,7 @@ import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.wallet.ui.screens.WalletScreen
 import com.llego.shared.data.model.Product
 import com.llego.shared.ui.auth.AuthViewModel
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Pantalla principal generica sin diferenciacion por tipo de negocio.
@@ -60,6 +64,9 @@ fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
     onNavigateToProfile: () -> Unit,
     onNavigateToStatistics: () -> Unit = {},
+    onNavigateToDeliveryManagement: () -> Unit = {},
+    showDeliveryManagementAction: Boolean = false,
+    deliveryPendingRequestsCount: Int = 0,
     selectedTabIndex: Int = 0,
     onTabSelected: (Int) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
@@ -91,6 +98,33 @@ fun BusinessHomeScreen(
                     )
                 },
                 actions = {
+                    if (showDeliveryManagementAction) {
+                        IconButton(onClick = onNavigateToDeliveryManagement) {
+                            BadgedBox(
+                                badge = {
+                                    if (deliveryPendingRequestsCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        ) {
+                                            Text(
+                                                text = deliveryPendingRequestsCount.toString(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeliveryDining,
+                                    contentDescription = "Gestion de choferes",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+
                     IconButton(onClick = onNavigateToStatistics) {
                         Icon(
                             imageVector = Icons.Default.BarChart,
@@ -156,16 +190,14 @@ fun BusinessHomeScreen(
                                                     }
                                                 }
                                             ) {
-                                                Icon(
-                                                    imageVector = tab.icon,
-                                                    contentDescription = tab.title,
+                                                HomeNavigationTabIcon(
+                                                    tab = tab,
                                                     modifier = Modifier.size(24.dp)
                                                 )
                                             }
                                         } else {
-                                            Icon(
-                                                imageVector = tab.icon,
-                                                contentDescription = tab.title,
+                                            HomeNavigationTabIcon(
+                                                tab = tab,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -232,5 +264,25 @@ fun BusinessHomeScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HomeNavigationTabIcon(
+    tab: HomeTabConfig,
+    modifier: Modifier = Modifier
+) {
+    when (val icon = tab.icon) {
+        is HomeTabIcon.Vector -> Icon(
+            imageVector = icon.value,
+            contentDescription = tab.title,
+            modifier = modifier
+        )
+
+        is HomeTabIcon.Drawable -> Icon(
+            painter = painterResource(icon.value),
+            contentDescription = tab.title,
+            modifier = modifier
+        )
     }
 }

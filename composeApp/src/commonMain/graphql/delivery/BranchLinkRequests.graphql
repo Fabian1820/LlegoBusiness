@@ -1,0 +1,28 @@
+query BranchLinkRequests(
+  $branchId: String!
+  $status: DeliveryRequestStatusEnum
+  $jwt: String!
+) {
+  branchLinkRequests(branchId: $branchId, status: $status, jwt: $jwt) {
+    id
+    deliveryPersonId
+    branchId
+    status
+    message
+    respondedBy
+    respondedAt
+    createdAt
+    updatedAt
+    deliveryPerson {
+      id
+      name
+      phone
+      rating
+      totalDeliveries
+      vehicleType
+      vehiclePlate
+      profileImageUrl
+      isOnline
+    }
+  }
+}

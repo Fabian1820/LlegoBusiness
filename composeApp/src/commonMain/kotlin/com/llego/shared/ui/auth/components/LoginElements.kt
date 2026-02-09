@@ -46,8 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import llegobusiness.composeapp.generated.resources.Res
-import llegobusiness.composeapp.generated.resources.apple
-import llegobusiness.composeapp.generated.resources.google
+import llegobusiness.composeapp.generated.resources.apple_mark
+import llegobusiness.composeapp.generated.resources.google_mark
 import llegobusiness.composeapp.generated.resources.logo
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -205,7 +205,7 @@ internal fun SocialButtons(
     ) {
         SocialButton(
             text = "Continuar con Apple",
-            icon = Res.drawable.apple,
+            icon = Res.drawable.apple_mark,
             onClick = onAppleClick,
             containerColor = Color.Black,
             contentColor = Color.White,
@@ -215,11 +215,11 @@ internal fun SocialButtons(
 
         SocialButton(
             text = "Continuar con Google",
-            icon = Res.drawable.google,
+            icon = Res.drawable.google_mark,
             onClick = onGoogleClick,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+            containerColor = Color.White,
+            contentColor = Color(0xFF1F1F1F),
+            borderColor = Color(0xFFDADCE0),
             iconTint = null
         )
     }

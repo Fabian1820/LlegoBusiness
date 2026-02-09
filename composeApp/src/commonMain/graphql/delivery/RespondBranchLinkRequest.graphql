@@ -1,0 +1,24 @@
+mutation RespondBranchLinkRequest($input: RespondBranchLinkInput!, $jwt: String!) {
+  respondBranchLinkRequest(input: $input, jwt: $jwt) {
+    id
+    deliveryPersonId
+    branchId
+    status
+    message
+    respondedBy
+    respondedAt
+    createdAt
+    updatedAt
+    deliveryPerson {
+      id
+      name
+      phone
+      rating
+      totalDeliveries
+      vehicleType
+      vehiclePlate
+      profileImageUrl
+      isOnline
+    }
+  }
+}

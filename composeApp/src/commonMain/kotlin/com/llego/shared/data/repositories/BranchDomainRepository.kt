@@ -166,6 +166,9 @@ internal class BranchDomainRepository(
                         else -> null
                     }
                 )
+                if (updatedBranches.none { it.id == branchId }) {
+                    tokenManager.clearLastSelectedBranchId()
+                }
             }
 
             BusinessResult.Success(true)
@@ -239,10 +242,23 @@ internal class BranchDomainRepository(
     }
 
     private fun updateCurrentBranchFromList(branchesList: List<Branch>) {
-        when {
-            branchesList.size == 1 -> state.setCurrentBranch(branchesList.first())
-            branchesList.isNotEmpty() -> state.setCurrentBranch(null)
-            else -> state.setCurrentBranch(null)
+        val current = state.currentBranch.value
+        val persistedBranchId = tokenManager.getLastSelectedBranchId()
+
+        val resolvedBranch = when {
+            branchesList.isEmpty() -> null
+            current != null -> branchesList.firstOrNull { it.id == current.id }
+            !persistedBranchId.isNullOrBlank() -> branchesList.firstOrNull { it.id == persistedBranchId }
+            branchesList.size == 1 -> branchesList.first()
+            else -> branchesList.first()
+        }
+
+        state.setCurrentBranch(resolvedBranch)
+
+        if (resolvedBranch != null) {
+            tokenManager.saveLastSelectedBranchId(resolvedBranch.id)
+        } else {
+            tokenManager.clearLastSelectedBranchId()
         }
     }
 }

@@ -281,14 +281,16 @@ fun BranchEditScreen(
                 )
             }
 
-            Text(
-                text = "Vehiculos de delivery",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-            )
-            BranchVehiclesSelector(
-                selectedVehicles = selectedVehicles,
-                onSelectionChange = { selectedVehicles = it }
-            )
+            if (!useAppMessaging) {
+                Text(
+                    text = "Vehiculos de delivery",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+                BranchVehiclesSelector(
+                    selectedVehicles = selectedVehicles,
+                    onSelectionChange = { selectedVehicles = it }
+                )
+            }
 
             SchedulePicker(
                 schedule = branchSchedule,
@@ -349,6 +351,11 @@ fun BranchEditScreen(
                     }
                     if (selectedPaymentMethodIds.isEmpty()) {
                         statusMessage = "Selecciona al menos un metodo de pago"
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
+                    if (!useAppMessaging && selectedVehicles.isEmpty()) {
+                        statusMessage = "Para delivery propio debes seleccionar al menos un vehiculo"
                         onError(statusMessage ?: "")
                         return@Button
                     }

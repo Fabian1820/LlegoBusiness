@@ -16,6 +16,7 @@ class AppNavigatorState {
     var showBranchesManagement by mutableStateOf(false)
     var showStatistics by mutableStateOf(false)
     var showInvitations by mutableStateOf(false)
+    var showDeliveryManagement by mutableStateOf(false)
     var showAddProduct by mutableStateOf(false)
     var productToEdit by mutableStateOf<Product?>(null)
     var showProductDetail by mutableStateOf(false)
@@ -61,6 +62,25 @@ class AppNavigatorState {
     fun dismissConfirmation() {
         confirmationType = null
         confirmationOrderNumber = ""
+    }
+
+    fun resetForNewSession(homeTabIndex: Int = 0) {
+        showProfile = false
+        showBranchesManagement = false
+        showStatistics = false
+        showInvitations = false
+        showDeliveryManagement = false
+        showAddProduct = false
+        productToEdit = null
+        showProductDetail = false
+        productToView = null
+        showProductSearch = false
+        showOrderDetail = false
+        selectedOrderId = null
+        selectedHomeTabIndex = homeTabIndex
+        branchCreateBusinessId = null
+        dismissConfirmation()
+        closeMapSelection()
     }
 }
 

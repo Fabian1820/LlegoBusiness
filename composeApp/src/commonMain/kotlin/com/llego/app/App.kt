@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
 import com.llego.shared.ui.theme.LlegoBusinessTheme
+import com.llego.shared.data.auth.TokenManager
 import com.llego.business.home.ui.screens.BusinessHomeScreen
 import com.llego.business.products.ui.screens.AddProductScreen
 import com.llego.business.products.ui.screens.ProductDetailScreen
@@ -23,6 +24,8 @@ import com.llego.business.branches.ui.screens.BranchesManagementScreen
 import com.llego.business.branches.ui.screens.BranchCreateScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.invitations.ui.screens.InvitationDashboard
+import com.llego.business.delivery.ui.screens.DeliveryLinkManagementScreen
+import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.orders.ui.screens.OrderConfirmationScreen
 import com.llego.business.orders.ui.screens.OrderDetailScreen
 import com.llego.business.orders.ui.screens.ConfirmationType
@@ -33,6 +36,7 @@ import com.llego.business.orders.data.notification.BranchSwitchHandler
 import com.llego.business.orders.data.notification.BranchSwitchResult
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.model.Product
+import com.llego.shared.data.model.ProductsResult
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
@@ -50,12 +54,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class AppViewModels(
+    val tokenManager: TokenManager,
     val auth: AuthViewModel,
     val orders: OrdersViewModel,
     val products: ProductViewModel,
     val settings: SettingsViewModel,
     val registerBusiness: RegisterBusinessViewModel,
     val invitations: InvitationViewModel,
+    val deliveryLinks: DeliveryLinkViewModel,
     val branchSelector: BranchSelectorViewModel,
     val branchesManagement: BranchesManagementViewModel
 )
@@ -70,6 +76,7 @@ fun App(viewModels: AppViewModels) {
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var canCancelBusinessRegistration by remember { mutableStateOf(false) }
         val navigator = rememberAppNavigatorState()
+        var hasRestoredHomeState by remember { mutableStateOf(false) }
         val openMapSelection = navigator::openMapSelection
 
         // Estado para controlar la carga inicial (verificaciÃ³n de sesiÃ³n)
@@ -156,6 +163,23 @@ fun App(viewModels: AppViewModels) {
             } else if (currentBusiness != null || branches.isNotEmpty()) {
                 // Tenemos datos, ocultar loading
                 isResolvingBusiness = false
+            }
+        }
+
+        // Restaurar/limpiar estado de navegacion al cambiar autenticacion
+        LaunchedEffect(isAuthenticated) {
+            if (!isAuthenticated) {
+                navigator.resetForNewSession(homeTabIndex = 0)
+                hasRestoredHomeState = false
+                return@LaunchedEffect
+            }
+
+            if (!hasRestoredHomeState) {
+                val savedTab = viewModels.tokenManager.getLastHomeTabIndex()
+                    ?.coerceIn(0, 3)
+                    ?: 0
+                navigator.resetForNewSession(homeTabIndex = savedTab)
+                hasRestoredHomeState = true
             }
         }
 
@@ -305,6 +329,8 @@ fun App(viewModels: AppViewModels) {
                         settingsViewModel = settingsViewModel,
                         branchesManagementViewModel = viewModels.branchesManagement,
                         invitationViewModel = viewModels.invitations,
+                        deliveryLinkViewModel = viewModels.deliveryLinks,
+                        tokenManager = viewModels.tokenManager,
                         branchSwitchConfirmation = branchSwitchConfirmation,
                         onDismissBranchSwitchConfirmation = { branchSwitchConfirmation = null },
                         showBranchNotFound = showBranchNotFound,
@@ -352,6 +378,26 @@ fun App(viewModels: AppViewModels) {
             }
         }
     }
+}
+
+private fun resolveDeliveryManagementBranch(
+    allBranches: List<com.llego.shared.data.model.Branch>,
+    currentBranchId: String?,
+    pendingBranchIds: Set<String>,
+    suggestedBranchId: String?
+): com.llego.shared.data.model.Branch? {
+    val current = allBranches.firstOrNull { it.id == currentBranchId }
+    if (current != null && (!current.useAppMessaging || current.id in pendingBranchIds)) {
+        return current
+    }
+
+    if (!suggestedBranchId.isNullOrBlank()) {
+        allBranches.firstOrNull { it.id == suggestedBranchId }?.let { return it }
+    }
+
+    allBranches.firstOrNull { it.id in pendingBranchIds }?.let { return it }
+    allBranches.firstOrNull { !it.useAppMessaging }?.let { return it }
+    return current ?: allBranches.firstOrNull()
 }
 
 @Composable
@@ -415,6 +461,8 @@ private fun MainBusinessFlow(
     settingsViewModel: SettingsViewModel,
     branchesManagementViewModel: BranchesManagementViewModel,
     invitationViewModel: InvitationViewModel,
+    deliveryLinkViewModel: DeliveryLinkViewModel,
+    tokenManager: TokenManager,
     branchSwitchConfirmation: BranchSwitchConfirmationData?,
     onDismissBranchSwitchConfirmation: () -> Unit,
     showBranchNotFound: Boolean,
@@ -423,6 +471,18 @@ private fun MainBusinessFlow(
 ) {
     val scope = rememberCoroutineScope()
     val productsState by productViewModel.productsState.collectAsState()
+    val branches by authViewModel.branches.collectAsState()
+    val currentBranch by authViewModel.currentBranch.collectAsState()
+    val deliveryEntryPointState by deliveryLinkViewModel.uiState.collectAsState()
+
+    LaunchedEffect(branches, currentBranch?.id) {
+        if (branches.isNotEmpty()) {
+            deliveryLinkViewModel.loadEntryPointForBranches(
+                branches = branches,
+                currentBranchId = currentBranch?.id
+            )
+        }
+    }
 
     Box(modifier = Modifier) {
         when {
@@ -491,10 +551,18 @@ private fun MainBusinessFlow(
                     onSave = { form ->
                         val currentBranchId = authViewModel.getCurrentBranchId()
                         scope.launch {
-                            if (currentBranchId == null) return@launch
-                            if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) return@launch
+                            if (currentBranchId == null) {
+                                println("❌ Error: No hay sucursal seleccionada")
+                                return@launch
+                            }
+                            if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) {
+                                println("❌ Error: No hay imagen subida para el nuevo producto")
+                                return@launch
+                            }
 
-                            if (navigator.productToEdit == null) {
+                            println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
+                            
+                            val result = if (navigator.productToEdit == null) {
                                 productViewModel.createProductWithImagePath(
                                     name = form.name,
                                     description = form.description,
@@ -518,10 +586,20 @@ private fun MainBusinessFlow(
                                     imagePath = form.imagePath
                                 )
                             }
-                            productViewModel.loadProducts(branchId = currentBranchId)
+                            
+                            when (result) {
+                                is ProductsResult.Success -> {
+                                    println("✅ Producto guardado exitosamente")
+                                    productViewModel.loadProducts(branchId = currentBranchId)
+                                    navigator.showAddProduct = false
+                                    navigator.productToEdit = null
+                                }
+                                is ProductsResult.Error -> {
+                                    println("❌ Error al guardar producto: ${result.message}")
+                                }
+                                is ProductsResult.Loading -> {}
+                            }
                         }
-                        navigator.showAddProduct = false
-                        navigator.productToEdit = null
                     },
                     existingProduct = navigator.productToEdit
                 )
@@ -543,16 +621,61 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.showDeliveryManagement -> {
+                val targetBranch = resolveDeliveryManagementBranch(
+                    allBranches = branches,
+                    currentBranchId = currentBranch?.id,
+                    pendingBranchIds = deliveryEntryPointState.pendingRequestBranchIds,
+                    suggestedBranchId = deliveryEntryPointState.suggestedEntryBranchId
+                )
+
+                if (targetBranch != null) {
+                    DeliveryLinkManagementScreen(
+                        viewModel = deliveryLinkViewModel,
+                        branchId = targetBranch.id,
+                        branchName = targetBranch.name,
+                        initialBranchUsesAppMessaging = targetBranch.useAppMessaging,
+                        onNavigateBack = { navigator.showDeliveryManagement = false },
+                        onDeliveryModeEnabled = { authViewModel.reloadUserData() }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.foundation.layout.Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            androidx.compose.foundation.layout.Spacer(
+                                modifier = Modifier.height(12.dp)
+                            )
+                            androidx.compose.material3.Text(
+                                text = "Buscando sucursal..."
+                            )
+                        }
+                    }
+                }
+            }
+
             navigator.showInvitations -> {
                 val currentBusiness by authViewModel.currentBusiness.collectAsState()
-                val branches by authViewModel.branches.collectAsState()
+                val invitationCurrentBranch by authViewModel.currentBranch.collectAsState()
 
                 if (currentBusiness != null) {
                     InvitationDashboard(
                         viewModel = invitationViewModel,
+                        deliveryLinkViewModel = deliveryLinkViewModel,
                         businessId = currentBusiness!!.id,
                         businessName = currentBusiness!!.name,
                         branches = branches.map { it.id to it.name },
+                        allBranches = branches,
+                        currentBranchId = invitationCurrentBranch?.id,
+                        currentBranchName = invitationCurrentBranch?.name,
+                        currentBranchUsesAppMessaging = invitationCurrentBranch?.useAppMessaging ?: true,
+                        onBranchDeliveryModeUpdated = { authViewModel.reloadUserData() },
                         onNavigateBack = { navigator.showInvitations = false }
                     )
                 }
@@ -568,12 +691,25 @@ private fun MainBusinessFlow(
             }
 
             else -> {
+                val hasOwnDeliveryInBusiness = branches.any { !it.useAppMessaging }
+                val canOpenDeliveryManagement = branches.isNotEmpty() && (
+                    hasOwnDeliveryInBusiness ||
+                        deliveryEntryPointState.hasPendingRequests ||
+                        deliveryEntryPointState.entryPointQueryFailed
+                    )
+
                 BusinessHomeScreen(
                     authViewModel = authViewModel,
                     onNavigateToProfile = { navigator.showProfile = true },
                     onNavigateToStatistics = { navigator.showStatistics = true },
+                    onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },
+                    showDeliveryManagementAction = canOpenDeliveryManagement,
+                    deliveryPendingRequestsCount = deliveryEntryPointState.pendingRequestCount,
                     selectedTabIndex = navigator.selectedHomeTabIndex,
-                    onTabSelected = { navigator.selectedHomeTabIndex = it },
+                    onTabSelected = {
+                        navigator.selectedHomeTabIndex = it
+                        tokenManager.saveLastHomeTabIndex(it)
+                    },
                     onNavigateToOrderDetail = { orderId ->
                         navigator.selectedOrderId = orderId
                         navigator.showOrderDetail = true
@@ -625,4 +761,3 @@ private fun MainBusinessFlow(
         }
     }
 }
-

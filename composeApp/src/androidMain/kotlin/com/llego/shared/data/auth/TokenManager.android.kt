@@ -10,6 +10,8 @@ private const val TAG = "TokenManager"
 private const val PREFS_NAME = "llego_auth_prefs"
 private const val KEY_ACCESS_TOKEN = "access_token"
 private const val KEY_REFRESH_TOKEN = "refresh_token"
+private const val KEY_LAST_BRANCH_ID = "last_branch_id"
+private const val KEY_LAST_HOME_TAB_INDEX = "last_home_tab_index"
 
 /**
  * TokenManager - ImplementaciÃ³n Android usando EncryptedSharedPreferences
@@ -81,5 +83,34 @@ actual class TokenManager actual constructor() {
 
     actual fun clearAll() {
         sharedPrefs?.edit()?.clear()?.apply()
+    }
+
+    actual fun saveLastSelectedBranchId(branchId: String) {
+        sharedPrefs?.edit()?.putString(KEY_LAST_BRANCH_ID, branchId)?.apply()
+    }
+
+    actual fun getLastSelectedBranchId(): String? {
+        return sharedPrefs?.getString(KEY_LAST_BRANCH_ID, null)
+    }
+
+    actual fun clearLastSelectedBranchId() {
+        sharedPrefs?.edit()?.remove(KEY_LAST_BRANCH_ID)?.apply()
+    }
+
+    actual fun saveLastHomeTabIndex(index: Int) {
+        sharedPrefs?.edit()?.putInt(KEY_LAST_HOME_TAB_INDEX, index)?.apply()
+    }
+
+    actual fun getLastHomeTabIndex(): Int? {
+        val prefs = sharedPrefs ?: return null
+        return if (prefs.contains(KEY_LAST_HOME_TAB_INDEX)) {
+            prefs.getInt(KEY_LAST_HOME_TAB_INDEX, 0)
+        } else {
+            null
+        }
+    }
+
+    actual fun clearLastHomeTabIndex() {
+        sharedPrefs?.edit()?.remove(KEY_LAST_HOME_TAB_INDEX)?.apply()
     }
 }

@@ -15,10 +15,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -36,10 +33,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
+import llegobusiness.composeapp.generated.resources.Res
+import llegobusiness.composeapp.generated.resources.social_facebook
+import llegobusiness.composeapp.generated.resources.social_instagram
+import llegobusiness.composeapp.generated.resources.social_whatsapp
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 // ============= SOCIAL LINKS SECTION =============
 
@@ -80,9 +84,10 @@ fun SocialLinksSection(
                 label = { Text("Instagram") },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.CameraAlt,
+                        painter = painterResource(Res.drawable.social_instagram),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.Unspecified
                     )
                 },
                 singleLine = true,
@@ -101,9 +106,10 @@ fun SocialLinksSection(
                 label = { Text("Facebook") },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Public,
+                        painter = painterResource(Res.drawable.social_facebook),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.Unspecified
                     )
                 },
                 singleLine = true,
@@ -122,9 +128,10 @@ fun SocialLinksSection(
                 label = { Text("WhatsApp") },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Chat,
+                        painter = painterResource(Res.drawable.social_whatsapp),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.Unspecified
                     )
                 },
                 singleLine = true,
@@ -141,19 +148,19 @@ fun SocialLinksSection(
                 SocialLinkButton(
                     label = "Instagram",
                     value = instagram,
-                    icon = Icons.Default.CameraAlt,
+                    icon = Res.drawable.social_instagram,
                     onClick = { /* TODO: Abrir Instagram */ }
                 )
                 SocialLinkButton(
                     label = "Facebook",
                     value = facebook,
-                    icon = Icons.Default.Public,
+                    icon = Res.drawable.social_facebook,
                     onClick = { /* TODO: Abrir Facebook */ }
                 )
                 SocialLinkButton(
                     label = "WhatsApp",
                     value = whatsapp,
-                    icon = Icons.Default.Chat,
+                    icon = Res.drawable.social_whatsapp,
                     onClick = { /* TODO: Abrir WhatsApp */ }
                 )
             }
@@ -165,7 +172,7 @@ fun SocialLinksSection(
 private fun SocialLinkButton(
     label: String,
     value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: DrawableResource,
     onClick: () -> Unit
 ) {
     FilledTonalButton(
@@ -182,9 +189,10 @@ private fun SocialLinkButton(
         )
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(icon),
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(22.dp),
+            tint = Color.Unspecified
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column {

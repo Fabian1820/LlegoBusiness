@@ -3845,6 +3845,52 @@ Indicates an Input Object is a OneOf Input Object.
 """
 directive @oneOf on INPUT_OBJECT
 
+enum DeliveryRequestStatusEnum {
+  PENDING
+
+  ACCEPTED
+
+  REJECTED
+}
+
+type BranchDeliveryRequestType {
+  id: String!
+
+  deliveryPersonId: String!
+
+  branchId: String!
+
+  status: DeliveryRequestStatusEnum!
+
+  message: String
+
+  respondedBy: String
+
+  respondedAt: DateTime
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+
+  branch: BranchType
+
+  deliveryPerson: DeliveryPersonType
+}
+
+input RespondBranchLinkInput {
+  requestId: String!
+
+  accept: Boolean!
+}
+
+extend type Query {
+  branchLinkRequests(branchId: String!, status: DeliveryRequestStatusEnum = null, jwt: String!): [BranchDeliveryRequestType!]!
+}
+
+extend type Mutation {
+  respondBranchLinkRequest(input: RespondBranchLinkInput!, jwt: String!): BranchDeliveryRequestType!
+}
+
 schema {
   query: Query
   mutation: Mutation

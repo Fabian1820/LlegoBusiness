@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.llego.app.AppViewModels
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
+import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
@@ -54,6 +55,9 @@ class MainActivity : ComponentActivity() {
     private val invitationViewModel: InvitationViewModel by viewModels {
         appViewModelFactory { appContainer.createInvitationViewModel() }
     }
+    private val deliveryLinkViewModel: DeliveryLinkViewModel by viewModels {
+        appViewModelFactory { appContainer.createDeliveryLinkViewModel() }
+    }
     private val branchSelectorViewModel: BranchSelectorViewModel by viewModels {
         appViewModelFactory { appContainer.createBranchSelectorViewModel() }
     }
@@ -80,12 +84,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             App(
                 AppViewModels(
+                    tokenManager = appContainer.tokenManager,
                     auth = authViewModel,
                     orders = ordersViewModel,
                     products = productViewModel,
                     settings = settingsViewModel,
                     registerBusiness = registerBusinessViewModel,
                     invitations = invitationViewModel,
+                    deliveryLinks = deliveryLinkViewModel,
                     branchSelector = branchSelectorViewModel,
                     branchesManagement = branchesManagementViewModel
                 )

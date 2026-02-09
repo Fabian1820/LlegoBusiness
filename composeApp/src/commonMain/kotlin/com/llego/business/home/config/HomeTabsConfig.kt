@@ -1,11 +1,13 @@
 package com.llego.business.home.config
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
+import llegobusiness.composeapp.generated.resources.Res
+import llegobusiness.composeapp.generated.resources.nav_orders
+import llegobusiness.composeapp.generated.resources.nav_products
+import llegobusiness.composeapp.generated.resources.nav_wallet
+import org.jetbrains.compose.resources.DrawableResource
 
 /**
  * Configuracion de tabs para la navegacion inferior del home.
@@ -13,8 +15,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 data class HomeTabConfig(
     val id: String,
     val title: String,
-    val icon: ImageVector
+    val icon: HomeTabIcon
 )
+
+sealed interface HomeTabIcon {
+    data class Vector(val value: ImageVector) : HomeTabIcon
+    data class Drawable(val value: DrawableResource) : HomeTabIcon
+}
 
 /**
  * Proveedor de tabs genericos (iguales para todos los negocios).
@@ -22,10 +29,10 @@ data class HomeTabConfig(
 object HomeTabsProvider {
     fun getTabs(): List<HomeTabConfig> {
         return listOf(
-            HomeTabConfig("orders", "Pedidos", Icons.Default.ShoppingCart),
-            HomeTabConfig("products", "Productos", Icons.Default.Inventory),
-            HomeTabConfig("wallet", "Wallet", Icons.Default.AccountBalanceWallet),
-            HomeTabConfig("settings", "Ajustes", Icons.Default.Settings)
+            HomeTabConfig("orders", "Pedidos", HomeTabIcon.Drawable(Res.drawable.nav_orders)),
+            HomeTabConfig("products", "Productos", HomeTabIcon.Drawable(Res.drawable.nav_products)),
+            HomeTabConfig("wallet", "Wallet", HomeTabIcon.Drawable(Res.drawable.nav_wallet)),
+            HomeTabConfig("settings", "Ajustes", HomeTabIcon.Vector(Icons.Default.Settings))
         )
     }
 }

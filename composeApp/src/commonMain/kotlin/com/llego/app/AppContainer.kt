@@ -2,6 +2,8 @@ package com.llego.app
 
 import com.llego.business.invitations.data.repository.InvitationRepository
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
+import com.llego.business.delivery.data.repository.DeliveryLinkRepository
+import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
@@ -46,6 +48,9 @@ class AppContainer(
     val invitationRepository: InvitationRepository by lazy {
         InvitationRepository(tokenManager = tokenManager)
     }
+    val deliveryLinkRepository: DeliveryLinkRepository by lazy {
+        DeliveryLinkRepository(tokenManager = tokenManager)
+    }
 
     // Factories de ViewModel
     fun createAuthViewModel(): AuthViewModel = AuthViewModel()
@@ -62,6 +67,9 @@ class AppContainer(
     fun createInvitationViewModel(): InvitationViewModel =
         InvitationViewModel(invitationRepository)
 
+    fun createDeliveryLinkViewModel(): DeliveryLinkViewModel =
+        DeliveryLinkViewModel(deliveryLinkRepository)
+
     fun createBranchSelectorViewModel(): BranchSelectorViewModel =
         BranchSelectorViewModel(businessRepository)
 
@@ -70,12 +78,14 @@ class AppContainer(
 
     fun createAppViewModels(authViewModel: AuthViewModel = createAuthViewModel()): AppViewModels =
         AppViewModels(
+            tokenManager = tokenManager,
             auth = authViewModel,
             orders = createOrdersViewModel(),
             products = createProductViewModel(),
             settings = createSettingsViewModel(),
             registerBusiness = createRegisterBusinessViewModel(),
             invitations = createInvitationViewModel(),
+            deliveryLinks = createDeliveryLinkViewModel(),
             branchSelector = createBranchSelectorViewModel(),
             branchesManagement = createBranchesManagementViewModel()
         )

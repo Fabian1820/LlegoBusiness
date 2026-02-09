@@ -50,6 +50,34 @@ actual class TokenManager {
         saveProperties()
     }
 
+    actual fun saveLastSelectedBranchId(branchId: String) {
+        properties.setProperty(KEY_LAST_BRANCH_ID, branchId)
+        saveProperties()
+    }
+
+    actual fun getLastSelectedBranchId(): String? {
+        return properties.getProperty(KEY_LAST_BRANCH_ID)
+    }
+
+    actual fun clearLastSelectedBranchId() {
+        properties.remove(KEY_LAST_BRANCH_ID)
+        saveProperties()
+    }
+
+    actual fun saveLastHomeTabIndex(index: Int) {
+        properties.setProperty(KEY_LAST_HOME_TAB_INDEX, index.toString())
+        saveProperties()
+    }
+
+    actual fun getLastHomeTabIndex(): Int? {
+        return properties.getProperty(KEY_LAST_HOME_TAB_INDEX)?.toIntOrNull()
+    }
+
+    actual fun clearLastHomeTabIndex() {
+        properties.remove(KEY_LAST_HOME_TAB_INDEX)
+        saveProperties()
+    }
+
     private fun saveProperties() {
         propsFile.outputStream().use { properties.store(it, "Llego Auth Tokens") }
     }
@@ -57,5 +85,7 @@ actual class TokenManager {
     companion object {
         private const val KEY_TOKEN = "jwt_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
+        private const val KEY_LAST_BRANCH_ID = "last_branch_id"
+        private const val KEY_LAST_HOME_TAB_INDEX = "last_home_tab_index"
     }
 }

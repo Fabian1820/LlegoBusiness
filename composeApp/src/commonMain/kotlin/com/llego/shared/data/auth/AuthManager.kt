@@ -112,6 +112,8 @@ class AuthManager(private val tokenManager: TokenManager) {
      */
     suspend fun logout(): AuthResult<Unit> {
         businessRepository.clear()
+        tokenManager.clearLastSelectedBranchId()
+        tokenManager.clearLastHomeTabIndex()
         return authRepository.logout()
     }
 
@@ -197,6 +199,7 @@ class AuthManager(private val tokenManager: TokenManager) {
      */
     fun setCurrentBranch(branch: Branch) {
         businessRepository.setCurrentBranch(branch)
+        tokenManager.saveLastSelectedBranchId(branch.id)
     }
 
     /**
