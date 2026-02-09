@@ -168,35 +168,26 @@ actual class AuthViewModel : ViewModel {
     private suspend fun loadBusinessData() {
         ensureInitialized()
 
-
         // Cargar negocios
         val result = authManager.getBusinesses()
-
 
         when (result) {
             is BusinessResult.Success -> {
                 _uiState.value = _uiState.value.copy(error = null)
 
-                // Si hay al menos un negocio, cargar sus sucursales
-                val currentBusiness = authManager.currentBusiness.value
-                if (currentBusiness != null) {
-
-                    // Las sucursales se cargan inmediatamente despuÃ©s de obtener el negocio
-                    val branchesResult = authManager.getBranches(currentBusiness.id)
-                    when (branchesResult) {
-                        is BusinessResult.Success -> {
-                            _uiState.value = _uiState.value.copy(error = null)
-                        }
-                        is BusinessResult.Error -> {
-                            Log.e(TAG, "loadBusinessData: error cargando sucursales - ${branchesResult.message} (code: ${branchesResult.code})")
-                            _uiState.value = _uiState.value.copy(error = branchesResult.message)
-                        }
-                        else -> {
-                            Log.w(TAG, "loadBusinessData: resultado inesperado al cargar sucursales")
-                        }
+                // Cargar TODAS las sucursales accesibles (incluye escenarios multi-negocio).
+                val branchesResult = authManager.getBranches()
+                when (branchesResult) {
+                    is BusinessResult.Success -> {
+                        _uiState.value = _uiState.value.copy(error = null)
                     }
-                } else {
-                    Log.w(TAG, "loadBusinessData: getBusinesses exitoso pero currentBusiness es null")
+                    is BusinessResult.Error -> {
+                        Log.e(TAG, "loadBusinessData: error cargando sucursales - ${branchesResult.message} (code: ${branchesResult.code})")
+                        _uiState.value = _uiState.value.copy(error = branchesResult.message)
+                    }
+                    else -> {
+                        Log.w(TAG, "loadBusinessData: resultado inesperado al cargar sucursales")
+                    }
                 }
             }
             is BusinessResult.Error -> {

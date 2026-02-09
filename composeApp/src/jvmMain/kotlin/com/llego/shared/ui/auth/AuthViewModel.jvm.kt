@@ -67,11 +67,8 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         // Cargar negocios
         authManager.getBusinesses()
 
-        // Si hay al menos un negocio, cargar sus sucursales
-        val currentBusiness = authManager.currentBusiness.value
-        if (currentBusiness != null) {
-            authManager.getBranches(currentBusiness.id)
-        }
+        // Cargar TODAS las sucursales accesibles (incluye escenarios multi-negocio).
+        authManager.getBranches()
     }
 
     actual fun updateEmail(newEmail: String) {

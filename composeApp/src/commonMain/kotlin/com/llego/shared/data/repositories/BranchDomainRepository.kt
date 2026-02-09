@@ -250,7 +250,9 @@ internal class BranchDomainRepository(
             current != null -> branchesList.firstOrNull { it.id == current.id }
             !persistedBranchId.isNullOrBlank() -> branchesList.firstOrNull { it.id == persistedBranchId }
             branchesList.size == 1 -> branchesList.first()
-            else -> branchesList.first()
+            // Si hay varias sucursales y no hay seleccion previa valida,
+            // forzamos la seleccion manual en BranchSelectorScreen.
+            else -> null
         }
 
         state.setCurrentBranch(resolvedBranch)
