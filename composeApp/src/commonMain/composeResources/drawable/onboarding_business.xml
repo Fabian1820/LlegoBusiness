@@ -1,0 +1,81 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Background circle -->
+    <path
+        android:pathData="M60,60m-56,0a56,56 0,1 1,112 0a56,56 0,1 1,-112 0"
+        android:fillColor="#E1C78E"
+        android:fillAlpha="0.15"/>
+    <!-- Storefront roof / awning -->
+    <path
+        android:pathData="M24,52L60,28L96,52L24,52Z"
+        android:fillColor="#023133"/>
+    <!-- Awning scallops -->
+    <path
+        android:pathData="M24,52Q30,62 36,52Q42,62 48,52Q54,62 60,52Q66,62 72,52Q78,62 84,52Q90,62 96,52"
+        android:strokeColor="#E1C78E"
+        android:strokeWidth="2.5"
+        android:fillColor="#023133"
+        android:strokeLineCap="round"/>
+    <!-- Building body -->
+    <path
+        android:pathData="M28,52L28,88L92,88L92,52"
+        android:fillColor="#023133"
+        android:fillAlpha="0.85"/>
+    <!-- Door -->
+    <path
+        android:pathData="M50,88L50,66Q50,62 54,62L66,62Q70,62 70,66L70,88Z"
+        android:fillColor="#E1C78E"
+        android:fillAlpha="0.9"/>
+    <!-- Door handle -->
+    <path
+        android:pathData="M64,76m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"
+        android:fillColor="#023133"/>
+    <!-- Left window -->
+    <path
+        android:pathData="M33,58L45,58L45,72L33,72Z"
+        android:fillColor="#B2D69A"
+        android:fillAlpha="0.5"/>
+    <path
+        android:pathData="M33,58L45,58L45,72L33,72Z"
+        android:strokeColor="#E1C78E"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"/>
+    <!-- Left window cross -->
+    <path
+        android:pathData="M39,58L39,72M33,65L45,65"
+        android:strokeColor="#E1C78E"
+        android:strokeWidth="1"/>
+    <!-- Right window -->
+    <path
+        android:pathData="M75,58L87,58L87,72L75,72Z"
+        android:fillColor="#B2D69A"
+        android:fillAlpha="0.5"/>
+    <path
+        android:pathData="M75,58L87,58L87,72L75,72Z"
+        android:strokeColor="#E1C78E"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"/>
+    <!-- Right window cross -->
+    <path
+        android:pathData="M81,58L81,72M75,65L87,65"
+        android:strokeColor="#E1C78E"
+        android:strokeWidth="1"/>
+    <!-- Sign above door -->
+    <path
+        android:pathData="M46,40L74,40L74,48L46,48Z"
+        android:fillColor="#E1C78E"
+        android:fillAlpha="0.8"/>
+    <!-- Star on sign -->
+    <path
+        android:pathData="M60,42L61.2,45L64.5,45L62,46.8L63,50L60,48L57,50L58,46.8L55.5,45L58.8,45Z"
+        android:fillColor="#023133"/>
+    <!-- Base line -->
+    <path
+        android:pathData="M20,88L100,88"
+        android:strokeColor="#023133"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"/>
+</vector>

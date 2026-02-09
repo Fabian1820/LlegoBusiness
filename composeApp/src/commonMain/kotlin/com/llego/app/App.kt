@@ -5,8 +5,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,9 +56,22 @@ import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.screens.MapSelectionScreen
+import com.llego.shared.ui.onboarding.WelcomeScreen
+import com.llego.shared.ui.onboarding.OnboardingIntroScreen
+import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/**
+ * Estado de la pantalla pre-autenticacion.
+ * Controla que pantalla se muestra antes de que el usuario inicie sesion.
+ */
+private enum class PreAuthScreen {
+    WELCOME,  // Pantalla de bienvenida con dos opciones
+    INTRO,    // Onboarding introductorio para nuevos usuarios
+    LOGIN     // Pantalla de login existente
+}
 
 data class AppViewModels(
     val tokenManager: TokenManager,
@@ -75,6 +95,8 @@ fun App(viewModels: AppViewModels) {
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var canCancelBusinessRegistration by remember { mutableStateOf(false) }
+        var preAuthScreen by remember { mutableStateOf(PreAuthScreen.WELCOME) }
+        var isOnboardingNewUser by remember { mutableStateOf(false) }
         val navigator = rememberAppNavigatorState()
         var hasRestoredHomeState by remember { mutableStateOf(false) }
         val openMapSelection = navigator::openMapSelection
@@ -88,7 +110,7 @@ fun App(viewModels: AppViewModels) {
         // Estado para confirmaciÃ³n de cambio de sucursal - Requirements: 12.4
         var branchSwitchConfirmation by remember { mutableStateOf<BranchSwitchConfirmationData?>(null) }
         var showBranchNotFound by remember { mutableStateOf(false) }
-        
+
         // BranchSwitchHandler y SubscriptionManager - Requirements: 12.2, 12.5
         val branchSwitchHandler = remember { BranchSwitchHandler.getInstance() }
         val subscriptionManager = remember { SubscriptionManager.getInstance() }
@@ -171,6 +193,8 @@ fun App(viewModels: AppViewModels) {
             if (!isAuthenticated) {
                 navigator.resetForNewSession(homeTabIndex = 0)
                 hasRestoredHomeState = false
+                preAuthScreen = PreAuthScreen.WELCOME
+                isOnboardingNewUser = false
                 return@LaunchedEffect
             }
 
@@ -195,10 +219,10 @@ fun App(viewModels: AppViewModels) {
         LaunchedEffect(branches) {
             ordersViewModel.setSubscribedBranchIds(branches.map { it.id })
         }
-        
+
         // Observar eventos de cambio de sucursal desde notificaciones - Requirements: 12.2, 12.3, 12.4, 12.5
         val pendingSwitchEvent by branchSwitchHandler.pendingSwitchEvent.collectAsState()
-        
+
         // Ejecutar cambio de sucursal pendiente cuando hay branches disponibles
         LaunchedEffect(pendingSwitchEvent, branches) {
             if (pendingSwitchEvent != null && branches.isNotEmpty()) {
@@ -213,7 +237,7 @@ fun App(viewModels: AppViewModels) {
                 )
             }
         }
-        
+
         // Observar resultados de cambio de sucursal para mostrar confirmaciÃ³n - Requirements: 12.4
         LaunchedEffect(Unit) {
             branchSwitchHandler.switchResult.collect { result ->
@@ -234,7 +258,7 @@ fun App(viewModels: AppViewModels) {
                 }
             }
         }
-        
+
         // Observar navegaciÃ³n a detalle de pedido desde cambio de sucursal - Requirements: 12.3
         LaunchedEffect(Unit) {
             branchSwitchHandler.navigateToOrder.collect { orderId ->
@@ -297,26 +321,45 @@ fun App(viewModels: AppViewModels) {
                     }
                 }
 
-                // Caso 1: Usuario autenticado SIN negocio â†’ Registro de negocio
+                // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
                 isAuthenticated && needsBusinessRegistration -> {
-                    RegisterBusinessScreen(
-                        onRegisterSuccess = {
-                            needsBusinessRegistration = false
-                            canCancelBusinessRegistration = false
-                        },
-                        onNavigateBack = {
-                            if (canCancelBusinessRegistration) {
+                    if (isOnboardingNewUser && !canCancelBusinessRegistration) {
+                        // Nuevo usuario desde onboarding → Wizard paso a paso
+                        OnboardingWizardScreen(
+                            registerBusinessViewModel = viewModels.registerBusiness,
+                            authViewModel = authViewModel,
+                            onSuccess = {
                                 needsBusinessRegistration = false
                                 canCancelBusinessRegistration = false
-                            } else {
+                                isOnboardingNewUser = false
+                            },
+                            onBack = {
                                 authViewModel.logout()
-                            }
-                        },
-                        viewModel = viewModels.registerBusiness,
-                        onOpenMapSelection = openMapSelection,
-                        invitationViewModel = viewModels.invitations,
-                        authViewModel = authViewModel
-                    )
+                                isOnboardingNewUser = false
+                            },
+                            onOpenMapSelection = openMapSelection
+                        )
+                    } else {
+                        // Usuario existente agregando otro negocio → Pantalla clásica
+                        RegisterBusinessScreen(
+                            onRegisterSuccess = {
+                                needsBusinessRegistration = false
+                                canCancelBusinessRegistration = false
+                            },
+                            onNavigateBack = {
+                                if (canCancelBusinessRegistration) {
+                                    needsBusinessRegistration = false
+                                    canCancelBusinessRegistration = false
+                                } else {
+                                    authViewModel.logout()
+                                }
+                            },
+                            viewModel = viewModels.registerBusiness,
+                            onOpenMapSelection = openMapSelection,
+                            invitationViewModel = viewModels.invitations,
+                            authViewModel = authViewModel
+                        )
+                    }
                 }
 
                 // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada â†’ Dashboard
@@ -356,9 +399,56 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
 
-                // Caso 4: Usuario NO autenticado â†’ Login
+                // Caso 4: Usuario NO autenticado → Welcome / Intro / Login
                 else -> {
-                    AuthFlow(authViewModel)
+                    when (preAuthScreen) {
+                        PreAuthScreen.WELCOME -> {
+                            WelcomeScreen(
+                                onExistingUser = {
+                                    isOnboardingNewUser = false
+                                    preAuthScreen = PreAuthScreen.LOGIN
+                                },
+                                onNewUser = {
+                                    preAuthScreen = PreAuthScreen.INTRO
+                                }
+                            )
+                        }
+                        PreAuthScreen.INTRO -> {
+                            OnboardingIntroScreen(
+                                onContinue = {
+                                    isOnboardingNewUser = true
+                                    preAuthScreen = PreAuthScreen.LOGIN
+                                },
+                                onBack = {
+                                    preAuthScreen = PreAuthScreen.WELCOME
+                                }
+                            )
+                        }
+                        PreAuthScreen.LOGIN -> {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AuthFlow(authViewModel)
+                                // Boton de retroceso flotante sobre el login
+                                IconButton(
+                                    onClick = {
+                                        preAuthScreen = if (isOnboardingNewUser) {
+                                            PreAuthScreen.INTRO
+                                        } else {
+                                            PreAuthScreen.WELCOME
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .statusBarsPadding()
+                                        .padding(start = 4.dp, top = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Volver",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -561,7 +651,7 @@ private fun MainBusinessFlow(
                             }
 
                             println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
-                            
+
                             val result = if (navigator.productToEdit == null) {
                                 productViewModel.createProductWithImagePath(
                                     name = form.name,
@@ -586,7 +676,7 @@ private fun MainBusinessFlow(
                                     imagePath = form.imagePath
                                 )
                             }
-                            
+
                             when (result) {
                                 is ProductsResult.Success -> {
                                     println("✅ Producto guardado exitosamente")

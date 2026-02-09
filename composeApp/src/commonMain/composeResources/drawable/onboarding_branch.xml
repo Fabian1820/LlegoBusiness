@@ -1,0 +1,79 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Outer circle background -->
+    <path
+        android:pathData="M60,10 C87.6,10 110,32.4 110,60 C110,87.6 87.6,110 60,110 C32.4,110 10,87.6 10,60 C10,32.4 32.4,10 60,10Z"
+        android:fillColor="#E1C78E"
+        android:fillAlpha="0.15"/>
+
+    <!-- Map pin body -->
+    <path
+        android:pathData="M60,18 C74.4,18 86,29.6 86,44 C86,64 60,90 60,90 C60,90 34,64 34,44 C34,29.6 45.6,18 60,18Z"
+        android:fillColor="#023133"/>
+
+    <!-- Inner circle of pin -->
+    <path
+        android:pathData="M60,32 C66.6,32 72,37.4 72,44 C72,50.6 66.6,56 60,56 C53.4,56 48,50.6 48,44 C48,37.4 53.4,32 60,32Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Small storefront inside pin -->
+    <path
+        android:pathData="M54,41 L66,41 L66,50 L54,50Z"
+        android:fillColor="#023133"/>
+    <path
+        android:pathData="M52,41 L68,41 L65,37 L55,37Z"
+        android:fillColor="#E1C78E"/>
+    <path
+        android:pathData="M58,44 L62,44 L62,50 L58,50Z"
+        android:fillColor="#B2D69A"/>
+
+    <!-- Shadow ellipse -->
+    <path
+        android:pathData="M48,92 Q60,98 72,92"
+        android:strokeColor="#023133"
+        android:strokeAlpha="0.15"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"/>
+
+    <!-- Small secondary pin left -->
+    <path
+        android:pathData="M26,62 C30.4,62 34,65.6 34,70 C34,77 26,84 26,84 C26,84 18,77 18,70 C18,65.6 21.6,62 26,62Z"
+        android:fillColor="#B2D69A"
+        android:fillAlpha="0.7"/>
+    <path
+        android:pathData="M26,66 C28.2,66 30,67.8 30,70 C30,72.2 28.2,74 26,74 C23.8,74 22,72.2 22,70 C22,67.8 23.8,66 26,66Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Small secondary pin right -->
+    <path
+        android:pathData="M90,55 C94.4,55 98,58.6 98,63 C98,70 90,77 90,77 C90,77 82,70 82,63 C82,58.6 85.6,55 90,55Z"
+        android:fillColor="#E1C78E"
+        android:fillAlpha="0.7"/>
+    <path
+        android:pathData="M90,59 C92.2,59 94,60.8 94,63 C94,65.2 92.2,67 90,67 C87.8,67 86,65.2 86,63 C86,60.8 87.8,59 90,59Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Dashed connection lines -->
+    <path
+        android:pathData="M34,70 L48,55"
+        android:strokeColor="#023133"
+        android:strokeAlpha="0.2"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0"
+        android:trimPathEnd="0.5"/>
+    <path
+        android:pathData="M82,63 L72,52"
+        android:strokeColor="#023133"
+        android:strokeAlpha="0.2"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"
+        android:trimPathStart="0"
+        android:trimPathEnd="0.5"/>
+</vector>
