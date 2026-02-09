@@ -42,7 +42,7 @@
         android:pathData="M33,58L45,58L45,72L33,72Z"
         android:strokeColor="#E1C78E"
         android:strokeWidth="1.5"
-        android:fillColor="@android:color/transparent"/>
+        android:fillColor="#00000000"/>
     <!-- Left window cross -->
     <path
         android:pathData="M39,58L39,72M33,65L45,65"
@@ -57,7 +57,7 @@
         android:pathData="M75,58L87,58L87,72L75,72Z"
         android:strokeColor="#E1C78E"
         android:strokeWidth="1.5"
-        android:fillColor="@android:color/transparent"/>
+        android:fillColor="#00000000"/>
     <!-- Right window cross -->
     <path
         android:pathData="M81,58L81,72M75,65L87,65"

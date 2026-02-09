@@ -37,7 +37,8 @@
         android:strokeColor="#023133"
         android:strokeAlpha="0.15"
         android:strokeWidth="2"
-        android:fillColor="#00000000"/>
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
 
     <!-- Small secondary pin left -->
     <path
@@ -64,16 +65,12 @@
         android:strokeAlpha="0.2"
         android:strokeWidth="1.5"
         android:fillColor="#00000000"
-        android:strokeLineCap="round"
-        android:trimPathStart="0"
-        android:trimPathEnd="0.5"/>
+        android:strokeLineCap="round"/>
     <path
         android:pathData="M82,63 L72,52"
         android:strokeColor="#023133"
         android:strokeAlpha="0.2"
         android:strokeWidth="1.5"
         android:fillColor="#00000000"
-        android:strokeLineCap="round"
-        android:trimPathStart="0"
-        android:trimPathEnd="0.5"/>
+        android:strokeLineCap="round"/>
 </vector>

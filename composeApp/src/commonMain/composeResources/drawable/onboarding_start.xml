@@ -14,16 +14,12 @@
         android:fillColor="#FFFFFF"
         android:fillAlpha="0.2"/>
     <!-- Window -->
-    <circle
-        android:cx="60"
-        android:cy="52"
-        android:r="7"
+    <path
+        android:pathData="M53,52 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0Z"
         android:fillColor="#B2D69A"/>
     <!-- Window inner -->
-    <circle
-        android:cx="60"
-        android:cy="52"
-        android:r="4.5"
+    <path
+        android:pathData="M55.5,52 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0Z"
         android:fillColor="#E1C78E"
         android:fillAlpha="0.6"/>
     <!-- Left fin -->
@@ -60,22 +56,16 @@
         android:fillColor="#E1C78E"
         android:fillAlpha="0.35"/>
     <!-- Dot accents -->
-    <circle
-        android:cx="95"
-        android:cy="28"
-        android:r="2"
+    <path
+        android:pathData="M93,28 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0Z"
         android:fillColor="#B2D69A"
         android:fillAlpha="0.4"/>
-    <circle
-        android:cx="35"
-        android:cy="100"
-        android:r="1.5"
+    <path
+        android:pathData="M33.5,100 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0Z"
         android:fillColor="#E1C78E"
         android:fillAlpha="0.35"/>
-    <circle
-        android:cx="88"
-        android:cy="72"
-        android:r="1.8"
+    <path
+        android:pathData="M86.2,72 a1.8,1.8 0 1,0 3.6,0 a1.8,1.8 0 1,0 -3.6,0Z"
         android:fillColor="#023133"
         android:fillAlpha="0.2"/>
 </vector>
