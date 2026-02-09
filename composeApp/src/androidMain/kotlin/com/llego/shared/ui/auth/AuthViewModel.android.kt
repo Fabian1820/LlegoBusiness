@@ -133,6 +133,7 @@ actual class AuthViewModel : ViewModel {
                         // Cargar datos de negocio y sucursales
                         loadBusinessData()
                     }
+
                     is AuthResult.Error -> {
                         Log.w(TAG, "restoreSessionIfNeeded: error restaurando sesi?n: ${result.message}")
 
@@ -150,6 +151,7 @@ actual class AuthViewModel : ViewModel {
                             error = null // No mostrar error en pantalla de login
                         )
                     }
+
                     else -> {
                         _uiState.value = _uiState.value.copy(isLoading = false)
                     }
@@ -181,19 +183,26 @@ actual class AuthViewModel : ViewModel {
                     is BusinessResult.Success -> {
                         _uiState.value = _uiState.value.copy(error = null)
                     }
+
                     is BusinessResult.Error -> {
-                        Log.e(TAG, "loadBusinessData: error cargando sucursales - ${branchesResult.message} (code: ${branchesResult.code})")
+                        Log.e(
+                            TAG,
+                            "loadBusinessData: error cargando sucursales - ${branchesResult.message} (code: ${branchesResult.code})"
+                        )
                         _uiState.value = _uiState.value.copy(error = branchesResult.message)
                     }
+
                     else -> {
                         Log.w(TAG, "loadBusinessData: resultado inesperado al cargar sucursales")
                     }
                 }
             }
+
             is BusinessResult.Error -> {
                 Log.e(TAG, "loadBusinessData: error al cargar negocios: ${result.message} (code: ${result.code})")
                 _uiState.value = _uiState.value.copy(error = result.message)
             }
+
             else -> {
                 Log.w(TAG, "loadBusinessData: resultado inesperado: $result")
             }
@@ -239,6 +248,7 @@ actual class AuthViewModel : ViewModel {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -246,6 +256,7 @@ actual class AuthViewModel : ViewModel {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {
                     // AuthResult.Loading - no deber?a llegar aqu?
                 }
@@ -277,6 +288,7 @@ actual class AuthViewModel : ViewModel {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     Log.e(TAG, "loginWithGoogle: ERROR - ${result.message}")
                     _uiState.value = _uiState.value.copy(
@@ -285,6 +297,7 @@ actual class AuthViewModel : ViewModel {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {
                     Log.w(TAG, "loginWithGoogle: resultado inesperado")
                 }
@@ -315,6 +328,7 @@ actual class AuthViewModel : ViewModel {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -322,6 +336,7 @@ actual class AuthViewModel : ViewModel {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -355,6 +370,7 @@ actual class AuthViewModel : ViewModel {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     Log.e(TAG, "authenticateWithToken: error - ${result.message}")
                     _uiState.value = _uiState.value.copy(
@@ -363,6 +379,7 @@ actual class AuthViewModel : ViewModel {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -380,12 +397,14 @@ actual class AuthViewModel : ViewModel {
                     _uiState.value = AuthUiState()
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
                 }
+
                 else -> {}
             }
         }
@@ -464,6 +483,11 @@ actual class AuthViewModel : ViewModel {
         authManager.setCurrentBranch(branch)
     }
 
+    actual fun clearCurrentBranch() {
+        ensureInitialized()
+        authManager.clearCurrentBranch()
+    }
+
     /**
      * Recarga los datos del usuario y sus negocios/sucursales desde el backend
      * Ãštil despuÃ©s de aceptar una invitaciÃ³n o cualquier cambio que afecte businessIds/branchIds
@@ -486,12 +510,14 @@ actual class AuthViewModel : ViewModel {
                     // Luego cargar negocios y sucursales
                     loadBusinessData()
                 }
+
                 is AuthResult.Error -> {
                     Log.e(TAG, "reloadUserData: Error al recargar usuario - ${result.message}")
                     _uiState.value = _uiState.value.copy(
                         error = result.message
                     )
                 }
+
                 else -> {
                     Log.w(TAG, "reloadUserData: Resultado inesperado")
                 }
@@ -499,4 +525,3 @@ actual class AuthViewModel : ViewModel {
         }
     }
 }
-

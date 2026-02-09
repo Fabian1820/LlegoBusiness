@@ -65,6 +65,9 @@ expect class AuthViewModel() : ViewModel {
     /** Establece la sucursal actual */
     fun setCurrentBranch(branch: Branch)
 
+    /** Limpia la sucursal actual para volver al selector */
+    fun clearCurrentBranch()
+
     /** Recarga los datos del usuario y sus negocios/sucursales desde el backend */
     fun reloadUserData()
 }

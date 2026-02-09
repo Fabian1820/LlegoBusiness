@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.llego.business.orders.ui.screens.ConfirmationType
+import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Product
 
 @Stable
@@ -26,6 +27,7 @@ class AppNavigatorState {
     var selectedOrderId by mutableStateOf<String?>(null)
     var selectedHomeTabIndex by mutableIntStateOf(0)
     var branchCreateBusinessId by mutableStateOf<String?>(null)
+    var branchToEdit by mutableStateOf<Branch?>(null)
 
     var showMapSelection by mutableStateOf(false)
     var mapSelectionTitle by mutableStateOf("")
@@ -79,6 +81,7 @@ class AppNavigatorState {
         selectedOrderId = null
         selectedHomeTabIndex = homeTabIndex
         branchCreateBusinessId = null
+        branchToEdit = null
         dismissConfirmation()
         closeMapSelection()
     }

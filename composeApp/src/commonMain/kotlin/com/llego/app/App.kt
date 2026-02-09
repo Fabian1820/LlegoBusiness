@@ -29,6 +29,7 @@ import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
 import com.llego.business.branches.ui.screens.BranchCreateScreen
+import com.llego.business.branches.ui.screens.BranchEditScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.invitations.ui.screens.InvitationDashboard
 import com.llego.business.delivery.ui.screens.DeliveryLinkManagementScreen
@@ -93,6 +94,7 @@ fun App(viewModels: AppViewModels) {
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var canCancelBusinessRegistration by remember { mutableStateOf(false) }
+        var isExploringWithoutBusiness by remember { mutableStateOf(false) }
         var preAuthScreen by remember { mutableStateOf(PreAuthScreen.ONBOARDING) }
         val navigator = rememberAppNavigatorState()
         var hasRestoredHomeState by remember { mutableStateOf(false) }
@@ -190,6 +192,7 @@ fun App(viewModels: AppViewModels) {
             if (!isAuthenticated) {
                 navigator.resetForNewSession(homeTabIndex = 0)
                 hasRestoredHomeState = false
+                isExploringWithoutBusiness = false
                 preAuthScreen = PreAuthScreen.ONBOARDING
                 return@LaunchedEffect
             }
@@ -245,9 +248,11 @@ fun App(viewModels: AppViewModels) {
                             orderId = result.orderId
                         )
                     }
+
                     is BranchSwitchResult.BranchNotFound -> {
                         showBranchNotFound = true
                     }
+
                     is BranchSwitchResult.Error -> {
                         // Manejar error si es necesario
                     }
@@ -318,7 +323,7 @@ fun App(viewModels: AppViewModels) {
                 }
 
                 // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
-                isAuthenticated && needsBusinessRegistration -> {
+                isAuthenticated && needsBusinessRegistration && !isExploringWithoutBusiness -> {
                     if (canCancelBusinessRegistration) {
                         // Usuario existente agregando otro negocio → Pantalla clásica
                         RegisterBusinessScreen(
@@ -343,6 +348,7 @@ fun App(viewModels: AppViewModels) {
                             onSuccess = {
                                 needsBusinessRegistration = false
                                 canCancelBusinessRegistration = false
+                                isExploringWithoutBusiness = false
                             },
                             onBack = {
                                 authViewModel.logout()
@@ -361,6 +367,7 @@ fun App(viewModels: AppViewModels) {
                         productViewModel = productViewModel,
                         settingsViewModel = settingsViewModel,
                         branchesManagementViewModel = viewModels.branchesManagement,
+                        branchSelectorViewModel = viewModels.branchSelector,
                         invitationViewModel = viewModels.invitations,
                         deliveryLinkViewModel = viewModels.deliveryLinks,
                         tokenManager = viewModels.tokenManager,
@@ -368,11 +375,32 @@ fun App(viewModels: AppViewModels) {
                         onDismissBranchSwitchConfirmation = { branchSwitchConfirmation = null },
                         showBranchNotFound = showBranchNotFound,
                         onDismissBranchNotFound = { showBranchNotFound = false },
-                        onOpenMapSelection = openMapSelection
+                        onOpenMapSelection = openMapSelection,
+                        onNavigateBackToBranchSelector = {
+                            authViewModel.clearCurrentBranch()
+                        }
                     )
                 }
 
-                // Caso 3: Usuario autenticado CON negocio pero SIN sucursal seleccionada
+                // Caso 3: Usuario explorando sin negocio → Mostrar selector de sucursales (vacío) con opción de crear
+                isAuthenticated && isExploringWithoutBusiness && currentBranch == null -> {
+                    BranchSelectionFlow(
+                        navigator = navigator,
+                        authViewModel = authViewModel,
+                        branches = branches,
+                        branchSelectorViewModel = viewModels.branchSelector,
+                        invitationViewModel = viewModels.invitations,
+                        onOpenMapSelection = openMapSelection,
+                        onStartBusinessRegistration = {
+                            navigator.branchCreateBusinessId = null
+                            canCancelBusinessRegistration = false
+                            needsBusinessRegistration = true
+                            isExploringWithoutBusiness = false
+                        }
+                    )
+                }
+
+                // Caso 4: Usuario autenticado CON negocio pero SIN sucursal seleccionada
                 isAuthenticated && !needsBusinessRegistration && currentBranch == null -> {
                     BranchSelectionFlow(
                         navigator = navigator,
@@ -389,7 +417,7 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
 
-                // Caso 4: Usuario NO autenticado → Onboarding / Login
+                // Caso 5: Usuario NO autenticado → Onboarding / Login
                 else -> {
                     when (preAuthScreen) {
                         PreAuthScreen.ONBOARDING -> {
@@ -399,6 +427,7 @@ fun App(viewModels: AppViewModels) {
                                 }
                             )
                         }
+
                         PreAuthScreen.LOGIN -> {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 AuthFlow(authViewModel)
@@ -481,35 +510,56 @@ private fun BranchSelectionFlow(
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit,
     onStartBusinessRegistration: () -> Unit
 ) {
-    if (navigator.branchCreateBusinessId != null) {
-        BranchCreateScreen(
-            businessId = navigator.branchCreateBusinessId ?: "",
-            onNavigateBack = { navigator.branchCreateBusinessId = null },
-            onSuccess = { _ ->
-                navigator.branchCreateBusinessId = null
-                authViewModel.reloadUserData()
-            },
-            onError = { _ -> },
-            authViewModel = authViewModel,
-            onOpenMapSelection = onOpenMapSelection
-        )
-    } else {
-        BranchSelectorScreen(
-            branchSelectorViewModel = branchSelectorViewModel,
-            branches = branches,
-            onBranchSelected = { branch ->
-                authViewModel.setCurrentBranch(branch)
-            },
-            onAddBusiness = onStartBusinessRegistration,
-            onAddBranch = { businessId ->
-                navigator.branchCreateBusinessId = businessId
-            },
-            onNavigateBack = {
-                authViewModel.logout()
-            },
-            invitationViewModel = invitationViewModel,
-            authViewModel = authViewModel
-        )
+    when {
+        navigator.branchToEdit != null -> {
+            BranchEditScreen(
+                branch = navigator.branchToEdit!!,
+                onNavigateBack = { navigator.branchToEdit = null },
+                onSuccess = { _ ->
+                    navigator.branchToEdit = null
+                    authViewModel.reloadUserData()
+                    branchSelectorViewModel.loadBusinesses()
+                },
+                onError = { _ -> },
+                authViewModel = authViewModel
+            )
+        }
+
+        navigator.branchCreateBusinessId != null -> {
+            BranchCreateScreen(
+                businessId = navigator.branchCreateBusinessId ?: "",
+                onNavigateBack = { navigator.branchCreateBusinessId = null },
+                onSuccess = { _ ->
+                    navigator.branchCreateBusinessId = null
+                    authViewModel.reloadUserData()
+                },
+                onError = { _ -> },
+                authViewModel = authViewModel,
+                onOpenMapSelection = onOpenMapSelection
+            )
+        }
+
+        else -> {
+            BranchSelectorScreen(
+                branchSelectorViewModel = branchSelectorViewModel,
+                branches = branches,
+                onBranchSelected = { branch ->
+                    authViewModel.setCurrentBranch(branch)
+                },
+                onEditBranch = { branch ->
+                    navigator.branchToEdit = branch
+                },
+                onAddBusiness = onStartBusinessRegistration,
+                onAddBranch = { businessId ->
+                    navigator.branchCreateBusinessId = businessId
+                },
+                onNavigateBack = {
+                    authViewModel.logout()
+                },
+                invitationViewModel = invitationViewModel,
+                authViewModel = authViewModel
+            )
+        }
     }
 }
 
@@ -521,6 +571,7 @@ private fun MainBusinessFlow(
     productViewModel: ProductViewModel,
     settingsViewModel: SettingsViewModel,
     branchesManagementViewModel: BranchesManagementViewModel,
+    branchSelectorViewModel: BranchSelectorViewModel,
     invitationViewModel: InvitationViewModel,
     deliveryLinkViewModel: DeliveryLinkViewModel,
     tokenManager: TokenManager,
@@ -528,7 +579,8 @@ private fun MainBusinessFlow(
     onDismissBranchSwitchConfirmation: () -> Unit,
     showBranchNotFound: Boolean,
     onDismissBranchNotFound: () -> Unit,
-    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit
+    onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit,
+    onNavigateBackToBranchSelector: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val productsState by productViewModel.productsState.collectAsState()
@@ -655,9 +707,11 @@ private fun MainBusinessFlow(
                                     navigator.showAddProduct = false
                                     navigator.productToEdit = null
                                 }
+
                                 is ProductsResult.Error -> {
                                     println("❌ Error al guardar producto: ${result.message}")
                                 }
+
                                 is ProductsResult.Loading -> {}
                             }
                         }
@@ -673,12 +727,43 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.branchToEdit != null -> {
+                BranchEditScreen(
+                    branch = navigator.branchToEdit!!,
+                    onNavigateBack = { navigator.branchToEdit = null },
+                    onSuccess = { _ ->
+                        navigator.branchToEdit = null
+                        authViewModel.reloadUserData()
+                        branchSelectorViewModel.loadBusinesses()
+                    },
+                    onError = { _ -> },
+                    authViewModel = authViewModel
+                )
+            }
+
             navigator.showBranchesManagement -> {
-                BranchesManagementScreen(
-                    authViewModel = authViewModel,
-                    branchesManagementViewModel = branchesManagementViewModel,
+                BranchSelectorScreen(
+                    branchSelectorViewModel = branchSelectorViewModel,
+                    branches = branches,
+                    onBranchSelected = { branch ->
+                        authViewModel.setCurrentBranch(branch)
+                        navigator.showBranchesManagement = false
+                    },
+                    onEditBranch = { branch ->
+                        navigator.branchToEdit = branch
+                        navigator.showBranchesManagement = false
+                    },
+                    onAddBusiness = {
+                        navigator.branchCreateBusinessId = null
+                        navigator.showBranchesManagement = false
+                    },
+                    onAddBranch = { businessId ->
+                        navigator.branchCreateBusinessId = businessId
+                        navigator.showBranchesManagement = false
+                    },
                     onNavigateBack = { navigator.showBranchesManagement = false },
-                    onOpenMapSelection = onOpenMapSelection
+                    invitationViewModel = invitationViewModel,
+                    authViewModel = authViewModel
                 )
             }
 
@@ -754,13 +839,14 @@ private fun MainBusinessFlow(
             else -> {
                 val hasOwnDeliveryInBusiness = branches.any { !it.useAppMessaging }
                 val canOpenDeliveryManagement = branches.isNotEmpty() && (
-                    hasOwnDeliveryInBusiness ||
-                        deliveryEntryPointState.hasPendingRequests ||
-                        deliveryEntryPointState.entryPointQueryFailed
-                    )
+                        hasOwnDeliveryInBusiness ||
+                                deliveryEntryPointState.hasPendingRequests ||
+                                deliveryEntryPointState.entryPointQueryFailed
+                        )
 
                 BusinessHomeScreen(
                     authViewModel = authViewModel,
+                    onNavigateBack = onNavigateBackToBranchSelector,
                     onNavigateToProfile = { navigator.showProfile = true },
                     onNavigateToStatistics = { navigator.showStatistics = true },
                     onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },

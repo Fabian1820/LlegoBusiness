@@ -1,12 +1,16 @@
 package com.llego.shared.ui.business.components
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
@@ -35,7 +39,10 @@ fun BranchTipoChip(
         label = {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
             )
         },
         colors = FilterChipDefaults.filterChipColors(
@@ -49,9 +56,10 @@ fun BranchTipoChip(
             selected = selected,
             borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
             selectedBorderColor = primaryColor.copy(alpha = 0.5f),
-            selectedBorderWidth = 1.dp
+            selectedBorderWidth = 1.5.dp
         ),
         shape = LlegoCustomShapes.secondaryButton,
         modifier = modifier
+            .height(52.dp)
     )
 }

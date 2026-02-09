@@ -126,8 +126,8 @@ private fun StepDot(
 
     val dotColor by animateColorAsState(
         targetValue = when {
-            isCompleted -> LlegoPrimary
-            isCurrent -> LlegoPrimary
+            isCompleted -> MaterialTheme.colorScheme.primary
+            isCurrent -> MaterialTheme.colorScheme.primary
             else -> MaterialTheme.colorScheme.surfaceVariant
         },
         animationSpec = tween(300),
@@ -150,14 +150,14 @@ private fun StepDot(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         } else {
             Text(
                 text = "${stepIndex + 1}",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isCurrent) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = if (isCurrent) 12.sp else 10.sp
                 )
             )
@@ -193,7 +193,11 @@ fun PageDotIndicator(
             )
 
             val color by animateColorAsState(
-                targetValue = if (isSelected) LlegoPrimary else LlegoPrimary.copy(alpha = 0.25f),
+                targetValue = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                },
                 animationSpec = tween(300),
                 label = "dot_indicator_color"
             )
@@ -259,13 +263,13 @@ fun OnboardingStepLayout(
         // Icon badge
         Box(
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(64.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            LlegoPrimary,
-                            LlegoPrimary.copy(alpha = 0.8f)
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                         )
                     )
                 ),
@@ -274,33 +278,35 @@ fun OnboardingStepLayout(
             Icon(
                 imageVector = stepIcon,
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = Color.White
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
-                lineHeight = 28.sp,
+                fontSize = 28.sp,
+                lineHeight = 34.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = subtitle,
-            style = MaterialTheme.typography.bodyMedium.copy(
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 22.sp
+                lineHeight = 24.sp
             )
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         content()
     }
@@ -322,15 +328,17 @@ fun RequiredFieldLabel(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
         )
         Text(
             text = "*",
-            style = MaterialTheme.typography.labelLarge.copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.error
             )
         )
@@ -345,26 +353,27 @@ fun OptionalFieldLabel(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
         )
         Surface(
-            shape = RoundedCornerShape(4.dp),
+            shape = RoundedCornerShape(6.dp),
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Text(
                 text = "Opcional",
-                style = MaterialTheme.typography.labelSmall.copy(
+                style = MaterialTheme.typography.labelMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 9.sp
+                    fontSize = 11.sp
                 ),
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
             )
         }
     }
@@ -407,20 +416,21 @@ fun OnboardingNavigationBar(
                 enabled = !isLoading,
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
                 border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
+                    1.5.dp,
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                 )
             ) {
                 Text(
-                    text = "Atras",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
+                    text = "Atrás",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
                     )
                 )
             }
@@ -432,10 +442,11 @@ fun OnboardingNavigationBar(
             enabled = canAdvance && !isLoading,
             modifier = Modifier
                 .weight(if (isFirstStep) 1f else 1.4f)
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp),
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isLastStep) LlegoPrimary else LlegoPrimary,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ),
             elevation = ButtonDefaults.buttonElevation(
@@ -445,23 +456,25 @@ fun OnboardingNavigationBar(
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
+                    modifier = Modifier.size(22.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.5.dp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Creando...",
-                    style = MaterialTheme.typography.titleSmall.copy(
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 )
             } else {
                 Text(
                     text = nextText,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
                     )
                 )
             }
@@ -543,10 +556,10 @@ fun InfoHighlightCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        color = LlegoPrimary.copy(alpha = 0.06f),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
         border = androidx.compose.foundation.BorderStroke(
             0.5.dp,
-            LlegoPrimary.copy(alpha = 0.12f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
         )
     ) {
         Row(
@@ -558,14 +571,14 @@ fun InfoHighlightCard(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(LlegoPrimary.copy(alpha = 0.1f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = LlegoPrimary
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             Text(

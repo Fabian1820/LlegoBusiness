@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DeliveryDining
@@ -62,6 +63,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
+    onNavigateBack: () -> Unit = {},
     onNavigateToProfile: () -> Unit,
     onNavigateToStatistics: () -> Unit = {},
     onNavigateToDeliveryManagement: () -> Unit = {},
@@ -91,6 +93,15 @@ fun BusinessHomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
                 title = {
                     Text(
                         businessName,
@@ -241,6 +252,7 @@ fun BusinessHomeScreen(
                         onShowConfirmation = onShowConfirmation
                     )
                 }
+
                 "products" -> {
                     ProductsScreen(
                         viewModel = productViewModel,
@@ -250,12 +262,14 @@ fun BusinessHomeScreen(
                         onNavigateToProductSearch = onNavigateToProductSearch
                     )
                 }
+
                 "wallet" -> {
                     WalletScreen(
                         onNavigateBack = { },
                         branchId = currentBranch?.id
                     )
                 }
+
                 "settings" -> {
                     com.llego.business.settings.ui.screens.SettingsScreen(
                         settingsViewModel = settingsViewModel,

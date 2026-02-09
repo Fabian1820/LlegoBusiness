@@ -89,6 +89,10 @@ class BusinessRepository(
         state.setCurrentBranch(branch)
     }
 
+    fun clearCurrentBranch() {
+        state.setCurrentBranch(null)
+    }
+
     fun clear() {
         state.clear()
     }

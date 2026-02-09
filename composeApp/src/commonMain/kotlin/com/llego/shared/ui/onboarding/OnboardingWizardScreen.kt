@@ -33,31 +33,47 @@ import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.onboarding.components.*
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoAccent
 import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
 
 /**
  * Wizard de creacion de negocio paso a paso para nuevos usuarios.
  *
- * Divide el formulario de registro (que antes era una sola pantalla larga)
- * en 7 pasos claros y guiados, con 1-3 campos por pantalla:
+ * Flujo adaptativo según cantidad de sucursales:
  *
- *   Paso 1 → Nombre y descripcion del negocio
+ * MODO UNA SUCURSAL (6 pasos):
+ *   Paso 0 → Selección de modo
+ *   Paso 1 → Nombre (negocio = sucursal) + tipos de servicio
+ *   Paso 2 → Teléfono y dirección
+ *   Paso 3 → Ubicación en el mapa
+ *   Paso 4 → Horario de atención
+ *   Paso 5 → Métodos de pago
+ *   Paso 6 → Resumen y creación
+ *
+ * MODO VARIAS SUCURSALES (8 pasos):
+ *   Paso 0 → Selección de modo
+ *   Paso 1 → Nombre y descripción del negocio
  *   Paso 2 → Nombre de la sucursal y tipos de servicio
- *   Paso 3 → Telefono y direccion
- *   Paso 4 → Ubicacion en el mapa
- *   Paso 5 → Horario de atencion
- *   Paso 6 → Metodos de pago
- *   Paso 7 → Resumen y creacion
+ *   Paso 3 → Teléfono y dirección
+ *   Paso 4 → Ubicación en el mapa
+ *   Paso 5 → Horario de atención
+ *   Paso 6 → Métodos de pago
+ *   Paso 7 → Resumen y creación
  *
- * Diseno Apple-inspired: transiciones con slide + fade entre pasos,
- * barra de progreso animada, tarjetas de informacion y tipografia limpia.
+ * Diseño Apple-inspired: transiciones con slide + fade entre pasos,
+ * barra de progreso animada, tarjetas de información y tipografía limpia.
  */
 
-private const val TOTAL_STEPS = 7
+private enum class WizardMode {
+    NOT_SELECTED,
+    SINGLE_BRANCH,
+    MULTIPLE_BRANCHES
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,9 +88,20 @@ fun OnboardingWizardScreen(
     val haptic = LocalHapticFeedback.current
     val registerUiState by registerBusinessViewModel.uiState.collectAsState()
 
-    // ── Form State ──────────────────────────────────────────
+    // ── Wizard Mode State ───────────────────────────────────
+    var wizardMode by remember { mutableStateOf(WizardMode.NOT_SELECTED) }
     var currentStep by remember { mutableStateOf(0) }
+    var showValidationErrors by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
+    val totalSteps = when (wizardMode) {
+        WizardMode.SINGLE_BRANCH -> 8  // 0=modo, 1=nombre+tipos, 2=contacto, 3=mapa, 4=horario, 5=pago, 6=imágenes, 7=resumen
+        WizardMode.MULTIPLE_BRANCHES -> 9  // 0=modo, 1=negocio, 2=sucursal+tipos, 3=contacto, 4=mapa, 5=horario, 6=pago, 7=imágenes, 8=resumen
+        WizardMode.NOT_SELECTED -> 1  // Solo paso 0
+    }
+
+    // ── Form State ──────────────────────────────────────────
     // Step 1: Business basics
     var businessName by remember { mutableStateOf("") }
     var businessDescription by remember { mutableStateOf("") }
@@ -101,24 +128,60 @@ fun OnboardingWizardScreen(
     val paymentMethodsUiState by paymentMethodsViewModel.uiState.collectAsState()
     var selectedPaymentMethodIds by remember { mutableStateOf(listOf<String>()) }
 
-    // Load payment methods when reaching step 6
-    LaunchedEffect(currentStep) {
-        if (currentStep == 5 && paymentMethodsUiState.methods.isEmpty() && !paymentMethodsUiState.isLoading) {
+    // Step 7: Images (avatar and cover)
+    val imageUploadViewModel = remember { ImageUploadViewModel() }
+    var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var useBusinessAvatarForBranch by remember { mutableStateOf(true) }
+
+    // Load payment methods cuando se llega al paso de pagos
+    LaunchedEffect(currentStep, wizardMode) {
+        val paymentStep = when (wizardMode) {
+            WizardMode.SINGLE_BRANCH -> 5
+            WizardMode.MULTIPLE_BRANCHES -> 6
+            else -> -1
+        }
+        if (currentStep == paymentStep && paymentMethodsUiState.methods.isEmpty() && !paymentMethodsUiState.isLoading) {
             paymentMethodsViewModel.loadPaymentMethods()
         }
     }
 
     // ── Validation ──────────────────────────────────────────
     val canAdvanceFromStep: (Int) -> Boolean = { step ->
-        when (step) {
-            0 -> businessName.isNotBlank()
-            1 -> branchName.isNotBlank() && selectedTipos.isNotEmpty()
-            2 -> phoneNumber.isNotBlank()
-            3 -> locationSelected
-            4 -> schedule.values.any { it.isOpen }
-            5 -> selectedPaymentMethodIds.isNotEmpty()
-            6 -> true // review step
-            else -> false
+        when (wizardMode) {
+            WizardMode.NOT_SELECTED -> {
+                step == 0 && false // No se puede avanzar hasta seleccionar modo
+            }
+
+            WizardMode.SINGLE_BRANCH -> {
+                when (step) {
+                    0 -> true // Ya seleccionó modo
+                    1 -> businessName.isNotBlank() && selectedTipos.isNotEmpty()
+                    2 -> phoneNumber.isNotBlank()
+                    3 -> locationSelected
+                    4 -> schedule.values.any { it.isOpen }
+                    5 -> selectedPaymentMethodIds.isNotEmpty()
+                    6 -> true // images step (opcional)
+                    7 -> true // review step
+                    else -> false
+                }
+            }
+
+            WizardMode.MULTIPLE_BRANCHES -> {
+                when (step) {
+                    0 -> true // Ya seleccionó modo
+                    1 -> businessName.isNotBlank()
+                    2 -> branchName.isNotBlank() && selectedTipos.isNotEmpty()
+                    3 -> phoneNumber.isNotBlank()
+                    4 -> locationSelected
+                    5 -> schedule.values.any { it.isOpen }
+                    6 -> selectedPaymentMethodIds.isNotEmpty()
+                    7 -> true // images step (opcional)
+                    8 -> true // review step
+                    else -> false
+                }
+            }
         }
     }
 
@@ -147,18 +210,106 @@ fun OnboardingWizardScreen(
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (currentStep > 0) {
-                            currentStep--
-                        } else {
-                            onBack()
+                    IconButton(
+                        onClick = {
+                            if (currentStep > 1 && wizardMode != WizardMode.NOT_SELECTED) {
+                                currentStep--
+                            } else if (currentStep == 1 && wizardMode != WizardMode.NOT_SELECTED) {
+                                currentStep = 0
+                                wizardMode = WizardMode.NOT_SELECTED
+                            } else {
+                                onBack()
+                            }
                         }
-                    }) {
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = "Atrás",
                             tint = MaterialTheme.colorScheme.onBackground
                         )
+                    }
+                },
+                actions = {
+                    if (wizardMode != WizardMode.NOT_SELECTED) {
+                        val lastStep = totalSteps - 1
+                        val nextText = if (currentStep == lastStep) "Crear" else "Siguiente"
+
+                        TextButton(
+                            onClick = {
+                                if (canAdvanceFromStep(currentStep)) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    showValidationErrors = false
+                                    if (currentStep < lastStep) {
+                                        currentStep++
+                                        scope.launch { scrollState.animateScrollTo(0) }
+                                    } else {
+                                        // Submit
+                                        val finalBusinessName = businessName.trim()
+                                        val finalBranchName = if (wizardMode == WizardMode.SINGLE_BRANCH) {
+                                            finalBusinessName
+                                        } else {
+                                            branchName.trim()
+                                        }
+
+                                        // Extraer URLs de imágenes subidas
+                                        val branchAvatarUrl = (branchAvatarState as? ImageUploadState.Success)?.s3Path
+                                        val branchCoverUrl = (branchCoverState as? ImageUploadState.Success)?.s3Path
+
+                                        // Para modo una sucursal, el avatar de la sucursal se usa también para el negocio
+                                        // Para modo múltiples sucursales, depende del flag useBusinessAvatarForBranch
+                                        val businessAvatarUrl = if (wizardMode == WizardMode.SINGLE_BRANCH) {
+                                            branchAvatarUrl
+                                        } else if (useBusinessAvatarForBranch) {
+                                            branchAvatarUrl
+                                        } else {
+                                            (businessAvatarState as? ImageUploadState.Success)?.s3Path
+                                        }
+
+                                        submitRegistration(
+                                            registerBusinessViewModel = registerBusinessViewModel,
+                                            businessName = finalBusinessName,
+                                            businessDescription = businessDescription.trim(),
+                                            branchName = finalBranchName,
+                                            selectedTipos = selectedTipos,
+                                            countryCode = countryCode,
+                                            phoneNumber = phoneNumber.trim(),
+                                            address = address.trim(),
+                                            latitude = latitude,
+                                            longitude = longitude,
+                                            schedule = schedule,
+                                            selectedPaymentMethodIds = selectedPaymentMethodIds,
+                                            businessAvatarUrl = businessAvatarUrl,
+                                            branchAvatarUrl = branchAvatarUrl,
+                                            branchCoverUrl = branchCoverUrl
+                                        )
+                                    }
+                                } else {
+                                    showValidationErrors = true
+                                    // Scroll al inicio para mostrar el primer error
+                                    scope.launch {
+                                        scrollState.animateScrollTo(0)
+                                    }
+                                }
+                            },
+                            enabled = !registerUiState.isLoading
+                        ) {
+                            if (registerUiState.isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = nextText,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -169,76 +320,73 @@ fun OnboardingWizardScreen(
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier
     ) { padding ->
-        Column(
+        // ── Scrollable Content ────────────────────────
+        AnimatedContent(
+            targetState = currentStep,
+            transitionSpec = {
+                val direction = if (targetState > initialState) {
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                } else {
+                    AnimatedContentTransitionScope.SlideDirection.Right
+                }
+                slideIntoContainer(
+                    towards = direction,
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeIn(
+                    animationSpec = tween(280)
+                ) togetherWith slideOutOfContainer(
+                    towards = direction,
+                    animationSpec = tween(380, easing = FastOutSlowInEasing)
+                ) + fadeOut(
+                    animationSpec = tween(200)
+                )
+            },
+            label = "wizard_step_transition",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .imePadding()
-                .padding(horizontal = 24.dp)
-        ) {
-            // ── Progress Bar ────────────────────────
-            StepProgressBar(
-                currentStep = currentStep,
-                totalSteps = TOTAL_STEPS
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ── Step Content ────────────────────────
-            Box(
+        ) { step ->
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 20.dp, bottom = 24.dp)
             ) {
-                AnimatedContent(
-                    targetState = currentStep,
-                    transitionSpec = {
-                        val direction = if (targetState > initialState) {
-                            AnimatedContentTransitionScope.SlideDirection.Left
-                        } else {
-                            AnimatedContentTransitionScope.SlideDirection.Right
+                when (wizardMode) {
+                    WizardMode.NOT_SELECTED -> {
+                        if (step == 0) {
+                            StepModeSelection(
+                                onModeSelected = { mode ->
+                                    wizardMode = mode
+                                    currentStep = 1
+                                }
+                            )
                         }
-                        slideIntoContainer(
-                            towards = direction,
-                            animationSpec = tween(380, easing = FastOutSlowInEasing)
-                        ) + fadeIn(
-                            animationSpec = tween(280)
-                        ) togetherWith slideOutOfContainer(
-                            towards = direction,
-                            animationSpec = tween(380, easing = FastOutSlowInEasing)
-                        ) + fadeOut(
-                            animationSpec = tween(200)
-                        )
-                    },
-                    label = "wizard_step_transition"
-                ) { step ->
-                    val scrollState = rememberScrollState()
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState)
-                    ) {
+                    }
+
+                    WizardMode.SINGLE_BRANCH -> {
                         when (step) {
-                            0 -> StepBusinessBasics(
+                            0 -> {} // Ya pasó la selección
+                            1 -> StepSingleBranchBasics(
                                 businessName = businessName,
                                 onBusinessNameChange = { businessName = it },
-                                businessDescription = businessDescription,
-                                onBusinessDescriptionChange = { businessDescription = it }
-                            )
-                            1 -> StepBranchBasics(
-                                branchName = branchName,
-                                onBranchNameChange = { branchName = it },
                                 selectedTipos = selectedTipos,
-                                onTiposChange = { selectedTipos = it }
+                                onTiposChange = { selectedTipos = it },
+                                showErrors = showValidationErrors
                             )
+
                             2 -> StepContact(
                                 countryCode = countryCode,
                                 onCountryCodeChange = { countryCode = it },
                                 phoneNumber = phoneNumber,
                                 onPhoneChange = { phoneNumber = it },
                                 address = address,
-                                onAddressChange = { address = it }
+                                onAddressChange = { address = it },
+                                showErrors = showValidationErrors
                             )
+
                             3 -> StepLocation(
                                 latitude = latitude,
                                 longitude = longitude,
@@ -255,10 +403,12 @@ fun OnboardingWizardScreen(
                                     }
                                 }
                             )
+
                             4 -> StepSchedule(
                                 schedule = schedule,
                                 onScheduleChange = { schedule = it }
                             )
+
                             5 -> StepPaymentMethods(
                                 paymentMethods = paymentMethodsUiState.methods,
                                 selectedIds = selectedPaymentMethodIds,
@@ -267,7 +417,104 @@ fun OnboardingWizardScreen(
                                 error = paymentMethodsUiState.error,
                                 onRetry = { paymentMethodsViewModel.loadPaymentMethods() }
                             )
-                            6 -> StepReview(
+
+                            6 -> StepImagesSingleBranch(
+                                branchAvatarState = branchAvatarState,
+                                onBranchAvatarChange = { branchAvatarState = it },
+                                branchCoverState = branchCoverState,
+                                onBranchCoverChange = { branchCoverState = it },
+                                imageUploadViewModel = imageUploadViewModel
+                            )
+
+                            7 -> StepReview(
+                                businessName = businessName,
+                                businessDescription = "",
+                                branchName = businessName, // Mismo nombre
+                                selectedTipos = selectedTipos,
+                                phone = combinePhoneNumber(countryCode, phoneNumber),
+                                address = address,
+                                locationSelected = locationSelected,
+                                schedule = schedule,
+                                paymentMethods = paymentMethodsUiState.methods,
+                                selectedPaymentMethodIds = selectedPaymentMethodIds,
+                                error = registerUiState.error
+                            )
+                        }
+                    }
+
+                    WizardMode.MULTIPLE_BRANCHES -> {
+                        when (step) {
+                            0 -> {} // Ya pasó la selección
+                            1 -> StepBusinessBasics(
+                                businessName = businessName,
+                                onBusinessNameChange = { businessName = it },
+                                businessDescription = businessDescription,
+                                onBusinessDescriptionChange = { businessDescription = it },
+                                showErrors = showValidationErrors
+                            )
+
+                            2 -> StepBranchBasics(
+                                branchName = branchName,
+                                onBranchNameChange = { branchName = it },
+                                selectedTipos = selectedTipos,
+                                onTiposChange = { selectedTipos = it },
+                                showErrors = showValidationErrors
+                            )
+
+                            3 -> StepContact(
+                                countryCode = countryCode,
+                                onCountryCodeChange = { countryCode = it },
+                                phoneNumber = phoneNumber,
+                                onPhoneChange = { phoneNumber = it },
+                                address = address,
+                                onAddressChange = { address = it },
+                                showErrors = showValidationErrors
+                            )
+
+                            4 -> StepLocation(
+                                latitude = latitude,
+                                longitude = longitude,
+                                locationSelected = locationSelected,
+                                onOpenMap = {
+                                    onOpenMapSelection(
+                                        "Ubicacion de tu sucursal",
+                                        latitude,
+                                        longitude
+                                    ) { lat, lng ->
+                                        latitude = lat
+                                        longitude = lng
+                                        locationSelected = true
+                                    }
+                                }
+                            )
+
+                            5 -> StepSchedule(
+                                schedule = schedule,
+                                onScheduleChange = { schedule = it }
+                            )
+
+                            6 -> StepPaymentMethods(
+                                paymentMethods = paymentMethodsUiState.methods,
+                                selectedIds = selectedPaymentMethodIds,
+                                onSelectionChange = { selectedPaymentMethodIds = it },
+                                isLoading = paymentMethodsUiState.isLoading,
+                                error = paymentMethodsUiState.error,
+                                onRetry = { paymentMethodsViewModel.loadPaymentMethods() }
+                            )
+
+                            7 -> StepImagesMultipleBranches(
+                                branchAvatarState = branchAvatarState,
+                                onBranchAvatarChange = { branchAvatarState = it },
+                                branchCoverState = branchCoverState,
+                                onBranchCoverChange = { branchCoverState = it },
+                                businessAvatarState = businessAvatarState,
+                                onBusinessAvatarChange = { businessAvatarState = it },
+                                useBusinessAvatarForBranch = useBusinessAvatarForBranch,
+                                onUseBusinessAvatarChange = { useBusinessAvatarForBranch = it },
+                                imageUploadViewModel = imageUploadViewModel
+                            )
+
+                            8 -> StepReview(
                                 businessName = businessName,
                                 businessDescription = businessDescription,
                                 branchName = branchName,
@@ -281,53 +528,253 @@ fun OnboardingWizardScreen(
                                 error = registerUiState.error
                             )
                         }
-
-                        // Bottom spacer so content doesn't hide behind nav bar
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
-            }
 
-            // ── Navigation Buttons ──────────────────
-            OnboardingNavigationBar(
-                onBack = {
-                    if (currentStep > 0) currentStep--
-                    else onBack()
+            }
+        }
+    }
+}
+
+// ═════════════════════════════════════════════════
+//  STEP 0 — Mode Selection
+// ═════════════════════════════════════════════════
+
+@Composable
+private fun StepModeSelection(
+    onModeSelected: (WizardMode) -> Unit
+) {
+    OnboardingStepLayout(
+        stepIcon = Icons.Default.Business,
+        title = "¿Cuántas sucursales tendrá tu negocio?",
+        subtitle = "Selecciona la opción que mejor describa tu negocio."
+    ) {
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            onClick = { onModeSelected(WizardMode.SINGLE_BRANCH) },
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.5.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            ),
+            modifier = Modifier.fillMaxWidth().height(140.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(68.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Store,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Una sola sucursal",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Proceso simplificado y rápido",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 15.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Surface(
+            onClick = { onModeSelected(WizardMode.MULTIPLE_BRANCHES) },
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.5.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            ),
+            modifier = Modifier.fillMaxWidth().height(140.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(68.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Business,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Varias sucursales",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Configura cada ubicación por separado",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 15.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ═════════════════════════════════════════════════
+//  STEP 1 (Single Branch) — Name + Service Types
+// ═════════════════════════════════════════════════
+
+@Composable
+private fun StepSingleBranchBasics(
+    businessName: String,
+    onBusinessNameChange: (String) -> Unit,
+    selectedTipos: Set<BranchTipo>,
+    onTiposChange: (Set<BranchTipo>) -> Unit,
+    showErrors: Boolean = false
+) {
+    val hasNameError = showErrors && businessName.isBlank()
+    val hasTiposError = showErrors && selectedTipos.isEmpty()
+
+    OnboardingStepLayout(
+        stepIcon = Icons.Default.Storefront,
+        title = "Nombre de tu negocio",
+        subtitle = "Este nombre se usará tanto para tu negocio como para tu sucursal."
+    ) {
+        RequiredFieldLabel("Nombre")
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = businessName,
+            onValueChange = onBusinessNameChange,
+            label = "",
+            placeholder = "Ej: Cafetería El Buen Sabor",
+            singleLine = true,
+            isError = hasNameError
+        )
+        if (hasNameError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "El nombre es obligatorio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        RequiredFieldLabel("Tipos de servicio")
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Selecciona uno o más tipos que describan tu negocio",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = if (hasTiposError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BranchTipoChip(
+                tipo = BranchTipo.RESTAURANTE,
+                selected = BranchTipo.RESTAURANTE in selectedTipos,
+                onClick = {
+                    onTiposChange(
+                        if (BranchTipo.RESTAURANTE in selectedTipos) selectedTipos - BranchTipo.RESTAURANTE
+                        else selectedTipos + BranchTipo.RESTAURANTE
+                    )
                 },
-                onNext = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (currentStep < TOTAL_STEPS - 1) {
-                        currentStep++
-                    } else {
-                        // Submit
-                        submitRegistration(
-                            registerBusinessViewModel = registerBusinessViewModel,
-                            businessName = businessName.trim(),
-                            businessDescription = businessDescription.trim(),
-                            branchName = branchName.trim(),
-                            selectedTipos = selectedTipos,
-                            countryCode = countryCode,
-                            phoneNumber = phoneNumber.trim(),
-                            address = address.trim(),
-                            latitude = latitude,
-                            longitude = longitude,
-                            schedule = schedule,
-                            selectedPaymentMethodIds = selectedPaymentMethodIds
-                        )
-                    }
+                modifier = Modifier.weight(1f)
+            )
+            BranchTipoChip(
+                tipo = BranchTipo.TIENDA,
+                selected = BranchTipo.TIENDA in selectedTipos,
+                onClick = {
+                    onTiposChange(
+                        if (BranchTipo.TIENDA in selectedTipos) selectedTipos - BranchTipo.TIENDA
+                        else selectedTipos + BranchTipo.TIENDA
+                    )
                 },
-                canAdvance = canAdvanceFromStep(currentStep),
-                isFirstStep = currentStep == 0,
-                isLastStep = currentStep == TOTAL_STEPS - 1,
-                isLoading = registerUiState.isLoading,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BranchTipoChip(
+                tipo = BranchTipo.DULCERIA,
+                selected = BranchTipo.DULCERIA in selectedTipos,
+                onClick = {
+                    onTiposChange(
+                        if (BranchTipo.DULCERIA in selectedTipos) selectedTipos - BranchTipo.DULCERIA
+                        else selectedTipos + BranchTipo.DULCERIA
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            )
+            BranchTipoChip(
+                tipo = BranchTipo.CAFE,
+                selected = BranchTipo.CAFE in selectedTipos,
+                onClick = {
+                    onTiposChange(
+                        if (BranchTipo.CAFE in selectedTipos) selectedTipos - BranchTipo.CAFE
+                        else selectedTipos + BranchTipo.CAFE
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (hasTiposError) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Debes seleccionar al menos un tipo de servicio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
             )
         }
     }
 }
 
 // ═════════════════════════════════════════════════
-//  STEP 1 — Business Name & Description
+//  STEP 1 (Multiple Branches) — Business Name & Description
 // ═════════════════════════════════════════════════
 
 @Composable
@@ -335,8 +782,10 @@ private fun StepBusinessBasics(
     businessName: String,
     onBusinessNameChange: (String) -> Unit,
     businessDescription: String,
-    onBusinessDescriptionChange: (String) -> Unit
+    onBusinessDescriptionChange: (String) -> Unit,
+    showErrors: Boolean = false
 ) {
+    val hasNameError = showErrors && businessName.isBlank()
     OnboardingStepLayout(
         stepIcon = Icons.Default.Storefront,
         title = "Nombre de tu negocio",
@@ -350,8 +799,16 @@ private fun StepBusinessBasics(
             label = "",
             placeholder = "Ej: Cafeteria El Buen Sabor",
             singleLine = true,
-            isError = false
+            isError = hasNameError
         )
+        if (hasNameError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "El nombre del negocio es obligatorio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -381,7 +838,7 @@ private fun StepBusinessBasics(
                 Icon(
                     imageVector = Icons.Default.Lightbulb,
                     contentDescription = null,
-                    tint = LlegoPrimary.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
@@ -405,8 +862,11 @@ private fun StepBranchBasics(
     branchName: String,
     onBranchNameChange: (String) -> Unit,
     selectedTipos: Set<BranchTipo>,
-    onTiposChange: (Set<BranchTipo>) -> Unit
+    onTiposChange: (Set<BranchTipo>) -> Unit,
+    showErrors: Boolean = false
 ) {
+    val hasNameError = showErrors && branchName.isBlank()
+    val hasTiposError = showErrors && selectedTipos.isEmpty()
     OnboardingStepLayout(
         stepIcon = Icons.Default.Store,
         title = "Tu primera sucursal",
@@ -419,8 +879,17 @@ private fun StepBranchBasics(
             onValueChange = onBranchNameChange,
             label = "",
             placeholder = "Ej: Sucursal Centro",
-            singleLine = true
+            singleLine = true,
+            isError = hasNameError
         )
+        if (hasNameError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "El nombre de la sucursal es obligatorio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -429,7 +898,7 @@ private fun StepBranchBasics(
         Text(
             text = "Selecciona uno o mas tipos que describan tu sucursal",
             style = MaterialTheme.typography.bodySmall.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (hasTiposError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -493,6 +962,15 @@ private fun StepBranchBasics(
                 modifier = Modifier.weight(1f)
             )
         }
+
+        if (hasTiposError) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Debes seleccionar al menos un tipo de servicio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
     }
 }
 
@@ -507,8 +985,11 @@ private fun StepContact(
     phoneNumber: String,
     onPhoneChange: (String) -> Unit,
     address: String,
-    onAddressChange: (String) -> Unit
+    onAddressChange: (String) -> Unit,
+    showErrors: Boolean = false
 ) {
+    val hasPhoneError = showErrors && phoneNumber.isBlank()
+
     OnboardingStepLayout(
         stepIcon = Icons.Default.ContactPhone,
         title = "Contacto de la sucursal",
@@ -520,8 +1001,17 @@ private fun StepContact(
             phoneNumber = phoneNumber,
             countryCode = countryCode,
             onPhoneChange = onPhoneChange,
-            onCountryCodeChange = onCountryCodeChange
+            onCountryCodeChange = onCountryCodeChange,
+            isError = hasPhoneError
         )
+        if (hasPhoneError) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "El teléfono es obligatorio",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -568,7 +1058,7 @@ private fun StepLocation(
             },
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
-                if (locationSelected) LlegoPrimary.copy(alpha = 0.25f)
+                if (locationSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
             ),
             modifier = Modifier
@@ -586,7 +1076,7 @@ private fun StepLocation(
                     imageVector = if (locationSelected) Icons.Default.CheckCircle else Icons.Default.Map,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = if (locationSelected) LlegoPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (locationSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -596,7 +1086,7 @@ private fun StepLocation(
                         text = "Ubicacion seleccionada",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
-                            color = LlegoPrimary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     )
                     Text(
@@ -609,7 +1099,7 @@ private fun StepLocation(
                     Text(
                         text = "Toca para cambiar",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = LlegoPrimary.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                         )
                     )
                 } else {
@@ -741,7 +1231,237 @@ private fun StepPaymentMethods(
 }
 
 // ═════════════════════════════════════════════════
-//  STEP 7 — Review & Create
+//  STEP 6/7 — Images (Single Branch Mode)
+// ═════════════════════════════════════════════════
+
+@Composable
+private fun StepImagesSingleBranch(
+    branchAvatarState: ImageUploadState,
+    onBranchAvatarChange: (ImageUploadState) -> Unit,
+    branchCoverState: ImageUploadState,
+    onBranchCoverChange: (ImageUploadState) -> Unit,
+    imageUploadViewModel: ImageUploadViewModel
+) {
+    OnboardingStepLayout(
+        stepIcon = Icons.Default.Photo,
+        title = "Fotos de tu negocio",
+        subtitle = "Agrega imágenes para que tus clientes conozcan mejor tu negocio. Ambas son opcionales."
+    ) {
+        // Avatar (se usará para negocio y sucursal)
+        Text(
+            text = "Foto de perfil",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Esta imagen representará tu negocio. Usa tu logo o una foto característica.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ImageUploadPreview(
+            label = "Avatar del negocio",
+            uploadState = branchAvatarState,
+            onStateChange = onBranchAvatarChange,
+            uploadFunction = imageUploadViewModel::uploadBranchAvatar,
+            size = ImageUploadSize.MEDIUM,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Portada (solo para sucursal)
+        Text(
+            text = "Foto de portada",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Una imagen horizontal que muestre tu local o productos. Se verá en la parte superior de tu perfil.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ImageUploadPreview(
+            label = "Portada de la sucursal",
+            uploadState = branchCoverState,
+            onStateChange = onBranchCoverChange,
+            uploadFunction = imageUploadViewModel::uploadBranchCover,
+            size = ImageUploadSize.LARGE,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// ═════════════════════════════════════════════════
+//  STEP 7/8 — Images (Multiple Branches Mode)
+// ═════════════════════════════════════════════════
+
+@Composable
+private fun StepImagesMultipleBranches(
+    branchAvatarState: ImageUploadState,
+    onBranchAvatarChange: (ImageUploadState) -> Unit,
+    branchCoverState: ImageUploadState,
+    onBranchCoverChange: (ImageUploadState) -> Unit,
+    businessAvatarState: ImageUploadState,
+    onBusinessAvatarChange: (ImageUploadState) -> Unit,
+    useBusinessAvatarForBranch: Boolean,
+    onUseBusinessAvatarChange: (Boolean) -> Unit,
+    imageUploadViewModel: ImageUploadViewModel
+) {
+    OnboardingStepLayout(
+        stepIcon = Icons.Default.Photo,
+        title = "Fotos de tu negocio",
+        subtitle = "Agrega imágenes para tu sucursal y negocio. Todas son opcionales."
+    ) {
+        // Avatar de la sucursal
+        Text(
+            text = "Foto de perfil de la sucursal",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Imagen que representará esta sucursal específica.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ImageUploadPreview(
+            label = "Avatar de la sucursal",
+            uploadState = branchAvatarState,
+            onStateChange = onBranchAvatarChange,
+            uploadFunction = imageUploadViewModel::uploadBranchAvatar,
+            size = ImageUploadSize.MEDIUM,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Portada de la sucursal
+        Text(
+            text = "Foto de portada de la sucursal",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Imagen horizontal que se verá en la parte superior del perfil de esta sucursal.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ImageUploadPreview(
+            label = "Portada de la sucursal",
+            uploadState = branchCoverState,
+            onStateChange = onBranchCoverChange,
+            uploadFunction = imageUploadViewModel::uploadBranchCover,
+            size = ImageUploadSize.LARGE,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Pregunta: ¿Usar la misma imagen para el negocio?
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            ),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "¿Usar la misma foto para el negocio?",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (useBusinessAvatarForBranch) {
+                                "Se usará el avatar de la sucursal también para el negocio"
+                            } else {
+                                "Puedes poner un avatar diferente para el negocio"
+                            },
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                    Switch(
+                        checked = useBusinessAvatarForBranch,
+                        onCheckedChange = onUseBusinessAvatarChange
+                    )
+                }
+
+                // Si NO usa la misma, mostrar campo para avatar del negocio
+                AnimatedVisibility(visible = !useBusinessAvatarForBranch) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Foto de perfil del negocio",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Esta imagen representará tu negocio en general (todas las sucursales).",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        ImageUploadPreview(
+                            label = "Avatar del negocio",
+                            uploadState = businessAvatarState,
+                            onStateChange = onBusinessAvatarChange,
+                            uploadFunction = imageUploadViewModel::uploadBusinessAvatar,
+                            size = ImageUploadSize.MEDIUM,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═════════════════════════════════════════════════
+//  STEP 7/8 — Review & Create
 // ═════════════════════════════════════════════════
 
 @Composable
@@ -864,7 +1584,7 @@ private fun ReviewSection(
                 text = title,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = LlegoPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
             HorizontalDivider(
@@ -1040,11 +1760,15 @@ private fun submitRegistration(
     latitude: Double,
     longitude: Double,
     schedule: Map<String, DaySchedule>,
-    selectedPaymentMethodIds: List<String>
+    selectedPaymentMethodIds: List<String>,
+    businessAvatarUrl: String?,
+    branchAvatarUrl: String?,
+    branchCoverUrl: String?
 ) {
     val businessInput = CreateBusinessInput(
         name = businessName,
-        description = businessDescription.ifBlank { null }
+        description = businessDescription.ifBlank { null },
+        avatar = businessAvatarUrl
     )
 
     val branchInput = RegisterBranchInput(
@@ -1054,7 +1778,9 @@ private fun submitRegistration(
         schedule = schedule.toBackendSchedule(),
         tipos = selectedTipos.toList(),
         paymentMethodIds = selectedPaymentMethodIds,
-        address = address.ifBlank { null }
+        address = address.ifBlank { null },
+        avatar = branchAvatarUrl,
+        coverImage = branchCoverUrl
     )
 
     registerBusinessViewModel.registerBusiness(

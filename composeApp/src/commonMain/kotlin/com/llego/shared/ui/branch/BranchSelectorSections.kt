@@ -8,7 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,12 +26,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -49,7 +47,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -63,11 +60,17 @@ import com.llego.business.invitations.ui.viewmodel.RedeemState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 
+/**
+ * Business card section matching the Pencil design:
+ * White card with shadow, business header (avatar + name + category + status badge),
+ * divider, expandable branch count row, and branch items list.
+ */
 @Composable
 internal fun BusinessSection(
     business: Business,
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
+    onEditBranch: ((Branch) -> Unit)? = null,
     onAddBranch: () -> Unit,
     canAddBranch: Boolean
 ) {
@@ -78,105 +81,139 @@ internal fun BusinessSection(
         label = "chevron_rotation"
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            onClick = { isExpanded = !isExpanded }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                )
-
+            // Business header: avatar + info + status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BusinessAvatar(
                         avatarUrl = business.avatarUrl,
                         name = business.name,
-                        size = 56
+                        size = 48,
+                        backgroundColor = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column {
                         Text(
                             text = business.name,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${branches.size} ${if (branches.size == 1) "sucursal" else "sucursales"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-
-                    Surface(
-                        modifier = Modifier.size(32.dp),
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.2f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.ExpandMore,
-                                contentDescription = if (isExpanded) "Colapsar" else "Expandir",
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .rotate(rotationAngle)
+                        // Category from tags or description
+                        val categoryText = business.tags.take(2).joinToString(" \u2022 ")
+                            .ifEmpty { business.description ?: "" }
+                        if (categoryText.isNotEmpty()) {
+                            Text(
+                                text = categoryText,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-            }
-        }
 
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-                fadeIn(animationSpec = tween(200, delayMillis = 50)),
-            exit = shrinkVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) +
-                fadeOut(animationSpec = tween(150))
-        ) {
-            Card(
+                // Status badge
+                if (business.isActive) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE8F5E9)
+                    ) {
+                        Text(
+                            text = "Activo",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+            }
+
+            // Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+            )
+
+            // Branch count header (expandable)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    .clickable { isExpanded = !isExpanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    branches.forEachIndexed { index, branch ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${branches.size} ${if (branches.size == 1) "sucursal" else "sucursales"}",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Colapsar" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .rotate(rotationAngle)
+                )
+            }
+
+            // Expandable branch list
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        fadeIn(animationSpec = tween(200, delayMillis = 50)),
+                exit = shrinkVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) +
+                        fadeOut(animationSpec = tween(150))
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    branches.forEach { branch ->
                         BranchRow(
                             branch = branch,
-                            onClick = { onBranchSelected(branch) }
+                            onClick = { onBranchSelected(branch) },
+                            onEdit = onEditBranch?.let { { it(branch) } }
                         )
-                        if (index < branches.lastIndex || canAddBranch) {
-                            ListDivider()
-                        }
                     }
 
                     if (canAddBranch) {

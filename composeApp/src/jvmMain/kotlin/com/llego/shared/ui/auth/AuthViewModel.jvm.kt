@@ -105,6 +105,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -112,6 +113,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -138,6 +140,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -145,6 +148,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -171,6 +175,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -178,6 +183,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -205,6 +211,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     loadBusinessData()
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -212,6 +219,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -227,12 +235,14 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     _uiState.value = AuthUiState()
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
                 }
+
                 else -> {}
             }
         }
@@ -283,6 +293,10 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
     actual fun setCurrentBranch(branch: Branch) {
         authManager.setCurrentBranch(branch)
+    }
+
+    actual fun clearCurrentBranch() {
+        authManager.clearCurrentBranch()
     }
 
     actual fun reloadUserData() {

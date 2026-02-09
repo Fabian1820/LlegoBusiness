@@ -243,15 +243,13 @@ internal class BranchDomainRepository(
 
     private fun updateCurrentBranchFromList(branchesList: List<Branch>) {
         val current = state.currentBranch.value
-        val persistedBranchId = tokenManager.getLastSelectedBranchId()
 
+        // Si ya hay una sucursal seleccionada en la sesion actual, mantenerla
+        // si sigue existiendo en la lista. De lo contrario, siempre forzar
+        // al usuario a elegir manualmente via BranchSelectorScreen.
         val resolvedBranch = when {
             branchesList.isEmpty() -> null
             current != null -> branchesList.firstOrNull { it.id == current.id }
-            !persistedBranchId.isNullOrBlank() -> branchesList.firstOrNull { it.id == persistedBranchId }
-            branchesList.size == 1 -> branchesList.first()
-            // Si hay varias sucursales y no hay seleccion previa valida,
-            // forzamos la seleccion manual en BranchSelectorScreen.
             else -> null
         }
 

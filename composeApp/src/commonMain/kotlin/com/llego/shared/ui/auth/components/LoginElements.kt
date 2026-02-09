@@ -210,7 +210,7 @@ internal fun SocialButtons(
             containerColor = Color.Black,
             contentColor = Color.White,
             borderColor = Color.Black,
-            iconTint = null  // Sin tint para que se vea el logo correctamente
+            iconTint = Color.White
         )
 
         SocialButton(

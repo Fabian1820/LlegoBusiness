@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddBusiness
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Cake
 import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.LocationOn
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.Store
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,19 +46,24 @@ import coil3.compose.AsyncImage
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
 
+/**
+ * Avatar del negocio: círculo con inicial o foto.
+ * Matches Pencil design: 48dp rounded square with colored background + white letter.
+ */
 @Composable
 internal fun BusinessAvatar(
     avatarUrl: String?,
     name: String,
-    size: Int
+    size: Int,
+    backgroundColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val sizeDp = size.dp
     val hasPhoto = !avatarUrl.isNullOrBlank()
 
     Surface(
         modifier = Modifier.size(sizeDp),
-        shape = RoundedCornerShape(14.dp),
-        color = Color.White.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(12.dp),
+        color = if (hasPhoto) Color.Transparent else backgroundColor,
         shadowElevation = 0.dp
     ) {
         if (hasPhoto) {
@@ -65,14 +72,14 @@ internal fun BusinessAvatar(
                 contentDescription = name,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(14.dp)),
+                    .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
         } else {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = name.take(1).uppercase(),
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )
             }
@@ -80,36 +87,130 @@ internal fun BusinessAvatar(
     }
 }
 
+/**
+ * Branch row item matching Pencil: map-pin icon in colored circle + name + address + status dot + chevron.
+ */
 @Composable
-internal fun BranchAvatar(branch: Branch) {
-    val hasPhoto = !branch.avatarUrl.isNullOrBlank()
-    val typeColor = branchTypeColor(branch.tipos.firstOrNull())
-
-    Surface(
-        modifier = Modifier.size(48.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = if (hasPhoto) Color.Transparent else typeColor.copy(alpha = 0.1f),
-        shadowElevation = 0.dp
-    ) {
-        if (hasPhoto) {
-            AsyncImage(
-                model = branch.avatarUrl,
-                contentDescription = branch.name,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+internal fun BranchRow(
+    branch: Branch,
+    onClick: () -> Unit,
+    onEdit: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(10.dp)
             )
-        } else {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = branchTypeIcon(branch.tipos.firstOrNull()),
-                    contentDescription = null,
-                    tint = typeColor,
-                    modifier = Modifier.size(22.dp)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Map pin icon in colored circle
+        val typeColor = branchTypeColor(branch.tipos.firstOrNull())
+        val hasPhoto = !branch.avatarUrl.isNullOrBlank()
+
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = if (hasPhoto) Color.Transparent else typeColor.copy(alpha = 0.12f),
+            shadowElevation = 0.dp
+        ) {
+            if (hasPhoto) {
+                AsyncImage(
+                    model = branch.avatarUrl,
+                    contentDescription = branch.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = typeColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = branch.name,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!branch.address.isNullOrBlank()) {
+                Text(
+                    text = branch.address,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // Status dot
+        val isActive = branch.status == "active"
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isActive) Color(0xFF4CAF50)
+                    else Color(0xFFFF9800)
+                )
+        )
+
+        // Paused label if not active
+        if (!isActive) {
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "Pausado",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 10.sp
+                ),
+                color = Color(0xFFE65100)
+            )
+        }
+
+        if (onEdit != null) {
+            IconButton(
+                onClick = onEdit,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = "Editar sucursal",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(4.dp))
+
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Seleccionar",
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -120,93 +221,12 @@ internal fun GroupedCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shadowElevation = 0.dp
+        shadowElevation = 2.dp,
+        tonalElevation = 0.dp
     ) {
         Column(content = content)
-    }
-}
-
-@Composable
-internal fun BranchRow(
-    branch: Branch,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BranchAvatar(branch = branch)
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = branch.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Row(
-                modifier = Modifier.padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                branch.tipos.take(2).forEach { tipo ->
-                    BranchTypeChip(tipo = tipo)
-                }
-            }
-
-            if (!branch.address.isNullOrBlank()) {
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = branch.address,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(
-                    if (branch.status == "active") Color(0xFF34C759)
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = "Seleccionar",
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
 
@@ -239,8 +259,8 @@ internal fun AddBranchRow(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            modifier = Modifier.size(48.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.size(32.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -248,16 +268,16 @@ internal fun AddBranchRow(onClick: () -> Unit) {
                     imageVector = Icons.Default.AddBusiness,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         Text(
             text = "Agregar sucursal",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
@@ -266,7 +286,7 @@ internal fun AddBranchRow(onClick: () -> Unit) {
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(16.dp)
         )
     }
 }
@@ -274,23 +294,21 @@ internal fun AddBranchRow(onClick: () -> Unit) {
 @Composable
 internal fun ListDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 78.dp),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+        modifier = Modifier.fillMaxWidth(),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
     )
 }
 
 @Composable
 internal fun SectionLabel(text: String) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium.copy(
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp,
-            fontSize = 13.sp
+        text = text,
+        style = MaterialTheme.typography.titleSmall.copy(
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 17.sp
         ),
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        color = MaterialTheme.colorScheme.onBackground
     )
 }
 

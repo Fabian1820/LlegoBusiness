@@ -23,18 +23,17 @@ val LocalLlegoTheme = staticCompositionLocalOf { LlegoThemeConfig() }
 
 /**
  * Tema principal de Llego que envuelve todas las configuraciones
- * Forzado a modo claro para mantener consistencia de marca
+ * Usa modo claro/oscuro según preferencia del sistema (o override explícito).
  */
 @Composable
 fun LlegoTheme(
     config: LlegoThemeConfig = LlegoThemeConfig(),
-    darkTheme: Boolean = false, // Siempre modo claro
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    // Siempre usar el esquema de colores claro
-    val colorScheme = LlegoLightColorScheme
+    val colorScheme = if (darkTheme) LlegoDarkColorScheme else LlegoLightColorScheme
 
-    val updatedConfig = config.copy(isDarkMode = false)
+    val updatedConfig = config.copy(isDarkMode = darkTheme)
 
     CompositionLocalProvider(LocalLlegoTheme provides updatedConfig) {
         MaterialTheme(
@@ -48,19 +47,19 @@ fun LlegoTheme(
 
 /**
  * Tema específico para la app de negocios
- * Siempre en modo claro para consistencia de marca
+ * Hereda modo claro/oscuro desde el sistema por defecto.
  */
 @Composable
 fun LlegoBusinessTheme(
-    darkTheme: Boolean = false, // Siempre modo claro
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     LlegoTheme(
         config = LlegoThemeConfig(
             enableAnimations = true,
-            isDarkMode = false
+            isDarkMode = darkTheme
         ),
-        darkTheme = false,
+        darkTheme = darkTheme,
         content = content
     )
 }

@@ -35,7 +35,7 @@ import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
 import llegobusiness.composeapp.generated.resources.Res
-import llegobusiness.composeapp.generated.resources.icon
+import llegobusiness.composeapp.generated.resources.logo
 import llegobusiness.composeapp.generated.resources.onboarding_branch
 import llegobusiness.composeapp.generated.resources.onboarding_business
 import llegobusiness.composeapp.generated.resources.onboarding_start
@@ -241,7 +241,8 @@ fun OnboardingIntroScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LlegoPrimary
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 0.dp,
@@ -329,7 +330,7 @@ private fun WelcomePageLayout() {
                     )
             )
             Image(
-                painter = painterResource(Res.drawable.icon),
+                painter = painterResource(Res.drawable.logo),
                 contentDescription = "Logo Llego",
                 modifier = Modifier.size(110.dp),
                 contentScale = ContentScale.Fit
@@ -354,7 +355,7 @@ private fun WelcomePageLayout() {
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
             ),
-            color = LlegoPrimary,
+            color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
         )
 
@@ -575,7 +576,7 @@ private fun MiniStatBadge(
                 text = value,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = LlegoPrimary
+                    color = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
             )

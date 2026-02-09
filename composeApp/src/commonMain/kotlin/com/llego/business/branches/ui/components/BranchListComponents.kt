@@ -1,41 +1,45 @@
 package com.llego.business.branches.ui.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.AddBusiness
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,15 +47,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BusinessWithBranches
-import com.llego.shared.data.model.toDisplayName
-import com.llego.shared.ui.theme.LlegoCustomShapes
-import com.llego.shared.ui.theme.LlegoShapes
 
+/**
+ * Branch row matching Pencil design: map-pin icon in colored rounded rect,
+ * name + address, status dot, action buttons on tap, chevron.
+ */
 @Composable
 fun BranchCard(
     branch: Branch,
@@ -65,231 +76,166 @@ fun BranchCard(
     canEdit: Boolean = true,
     canDelete: Boolean = true
 ) {
-    val statusColor = when (branch.status) {
-        "active" -> MaterialTheme.colorScheme.tertiary
-        "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.secondary
-    }
+    var showActions by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpenDetails() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isActive) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        shape = LlegoCustomShapes.infoCard,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(
-            1.dp,
-            if (isActive) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            } else {
-                Color.Transparent
-            }
-        )
-    ) {
-        Column(
+    Column {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .clickable { onOpenDetails() }
+                .background(
+                    color = if (isActive)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Map pin icon in colored rounded square
+            val hasPhoto = !branch.avatarUrl.isNullOrBlank()
+            val iconBgColor = if (isActive)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            else
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+            val iconColor = if (isActive)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.secondary
+
+            Surface(
+                modifier = Modifier.size(36.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = if (hasPhoto) Color.Transparent else iconBgColor
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Store,
-                        contentDescription = null,
-                        tint = if (isActive) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(22.dp)
+                if (hasPhoto) {
+                    AsyncImage(
+                        model = branch.avatarUrl,
+                        contentDescription = branch.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
                     )
+                } else {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = null,
+                            tint = iconColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = branch.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
                         ),
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     if (isActive) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         Surface(
-                            shape = LlegoShapes.small,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ) {
                             Text(
                                 text = "Activa",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.sp
+                                ),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
                 }
-
-                Surface(
-                    shape = CircleShape,
-                    color = statusColor
-                ) {
-                    Box(modifier = Modifier.size(10.dp))
-                }
-            }
-
-            branch.address?.let { address ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
+                if (!branch.address.isNullOrBlank()) {
                     Text(
-                        text = address,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = branch.address,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // Status dot
+            val statusActive = branch.status == "active"
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (statusActive) Color(0xFF4CAF50)
+                        else Color(0xFFFF9800)
+                    )
+            )
+
+            if (!statusActive) {
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = branch.phone,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Pausado",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 10.sp
+                    ),
+                    color = Color(0xFFE65100)
                 )
             }
 
-            branch.deliveryRadius?.let { radius ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DeliveryDining,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "Radio: $radius km",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.width(6.dp))
 
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Ver detalles",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        // Inline action buttons row
+        AnimatedVisibility(visible = showActions) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Chat,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = if (branch.useAppMessaging) {
-                        "Mensajeria app"
-                    } else {
-                        "Mensajeria externa"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (branch.vehicles.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Vehiculos:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = branch.vehicles.joinToString(", ") { vehicle -> vehicle.toDisplayName() },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 46.dp, top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (!isActive) {
                     TextButton(onClick = onSetActive) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Activar",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text("Activar")
+                        Icon(Icons.Default.Check, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Activar", fontSize = 12.sp)
                     }
                 }
                 if (canEdit) {
-                    IconButton(onClick = {
-                        onOpenMapSelection(
-                            branch.name,
-                            branch.coordinates.latitude,
-                            branch.coordinates.longitude
-                        ) { lat, lng ->
-                            onLocationUpdate(lat, lng)
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Editar ubicacion",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    TextButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Editar", fontSize = 12.sp)
                     }
                 }
                 if (canDelete) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Eliminar",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.width(4.dp))
+                        Text("Eliminar", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -297,6 +243,11 @@ fun BranchCard(
     }
 }
 
+/**
+ * Business card group matching Pencil design:
+ * White card with shadow, business header (avatar + name + category + status badge),
+ * divider, expandable branch count, branch list.
+ */
 @Composable
 fun BusinessBranchesGroupCard(
     business: BusinessWithBranches,
@@ -315,98 +266,224 @@ fun BusinessBranchesGroupCard(
     canDeleteBranch: Boolean = true
 ) {
     var isExpanded by remember { mutableStateOf(true) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 0f else -90f,
+        animationSpec = tween(250, easing = FastOutSlowInEasing),
+        label = "chevron_rotation"
+    )
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = LlegoCustomShapes.productCard,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+        tonalElevation = 0.dp
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // Business header: avatar + name + status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Business avatar
+                    val hasPhoto = !business.avatarUrl.isNullOrBlank()
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (hasPhoto) Color.Transparent else MaterialTheme.colorScheme.primary
+                    ) {
+                        if (hasPhoto) {
+                            AsyncImage(
+                                model = business.avatarUrl,
+                                contentDescription = business.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = business.name.take(1).uppercase(),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = business.name,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val categoryText = business.tags.take(2).joinToString(" \u2022 ")
+                            .ifEmpty { business.description ?: "" }
+                        if (categoryText.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = categoryText,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // Status badge
+                if (business.isActive) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE8F5E9)
+                    ) {
+                        Text(
+                            text = "Activo",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+            }
+
+            // Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+            )
+
+            // Branch count + expand toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { isExpanded = !isExpanded },
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Business,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = business.name,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${branches.size} ${if (branches.size == 1) "sucursal" else "sucursales"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
                     )
                 }
+
                 Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "Colapsar" else "Expandir",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(rotationAngle)
                 )
             }
 
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (branches.isEmpty()) {
-                    Text(
-                        text = "No hay sucursales registradas",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                } else {
-                    branches.forEach { branch ->
-                        BranchCard(
-                            branch = branch,
-                            isActive = branch.id == currentBranchId,
-                            onOpenDetails = { onOpenDetails(branch) },
-                            onSetActive = { onSetActive(branch) },
-                            onEdit = { onEdit(branch) },
-                            onDelete = { onDelete(branch) },
-                            onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
-                            onOpenMapSelection = onOpenMapSelection,
-                            canEdit = canEditBranch,
-                            canDelete = canDeleteBranch
+            // Expandable branch list
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        fadeIn(animationSpec = tween(200, delayMillis = 50)),
+                exit = shrinkVertically(animationSpec = tween(250, easing = FastOutSlowInEasing)) +
+                        fadeOut(animationSpec = tween(150))
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (branches.isEmpty()) {
+                        Text(
+                            text = "No hay sucursales registradas",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        branches.forEach { branch ->
+                            BranchCard(
+                                branch = branch,
+                                isActive = branch.id == currentBranchId,
+                                onOpenDetails = { onOpenDetails(branch) },
+                                onSetActive = { onSetActive(branch) },
+                                onEdit = { onEdit(branch) },
+                                onDelete = { onDelete(branch) },
+                                onLocationUpdate = { lat, lng -> onLocationUpdate(branch, lat, lng) },
+                                onOpenMapSelection = onOpenMapSelection,
+                                canEdit = canEditBranch,
+                                canDelete = canDeleteBranch
+                            )
+                        }
                     }
-                }
 
-                if (canAddBranch) {
-                    OutlinedButton(
-                        onClick = onAddBranch,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = LlegoCustomShapes.secondaryButton
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Agregar sucursal")
+                    if (canAddBranch) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onAddBranch)
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(36.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddBusiness,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Text(
+                                text = "Agregar sucursal",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

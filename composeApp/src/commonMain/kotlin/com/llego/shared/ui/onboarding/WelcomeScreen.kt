@@ -36,7 +36,7 @@ import com.llego.shared.ui.theme.LlegoSecondary
 import com.llego.shared.ui.theme.LlegoAccent
 import kotlinx.coroutines.delay
 import llegobusiness.composeapp.generated.resources.Res
-import llegobusiness.composeapp.generated.resources.icon
+import llegobusiness.composeapp.generated.resources.logo
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -175,7 +175,7 @@ fun WelcomeScreen(
                         )
                 )
                 Image(
-                    painter = painterResource(Res.drawable.icon),
+                    painter = painterResource(Res.drawable.logo),
                     contentDescription = "Logo Llego",
                     modifier = Modifier.size(100.dp),
                     contentScale = ContentScale.Fit

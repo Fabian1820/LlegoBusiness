@@ -1,23 +1,33 @@
 ﻿package com.llego.shared.ui.branch
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,8 +35,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.invitations.ui.viewmodel.RedeemState
 import com.llego.shared.data.model.Branch
@@ -35,18 +47,12 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 
-/**
- * Pantalla de selección de sucursal.
- *
- * Este archivo mantiene solo el flujo principal de estado y navegación.
- * Las secciones visuales están divididas en archivos dedicados.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BranchSelectorScreen(
     branchSelectorViewModel: BranchSelectorViewModel,
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
+    onEditBranch: ((Branch) -> Unit)? = null,
     onAddBusiness: () -> Unit,
     onAddBranch: (String) -> Unit,
     onNavigateBack: () -> Unit,
@@ -68,14 +74,6 @@ fun BranchSelectorScreen(
             isOwnerOfAny || branchSelectorState.businessesWithBranches.isEmpty()
         } ?: false
     }
-    val orphanBranches = remember(branches, branchSelectorState.businessesWithBranches) {
-        val knownIds = branchSelectorState.businessesWithBranches
-            .flatMap { it.branches }
-            .map { it.id }
-            .toSet()
-        branches.filter { it.id !in knownIds }
-    }
-
     LaunchedEffect(Unit) {
         branchSelectorViewModel.loadBusinesses()
     }
@@ -96,28 +94,21 @@ fun BranchSelectorScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Gestiona tus Negocios",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+        floatingActionButton = {
+            if (canCreateBusiness) {
+                FloatingActionButton(
+                    onClick = onAddBusiness,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar negocio",
+                        modifier = Modifier.size(26.dp)
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
+                }
+            }
         }
     ) { padding ->
         Box(
@@ -127,7 +118,7 @@ fun BranchSelectorScreen(
         ) {
             when {
                 branchSelectorState.isLoading -> LoadingState()
-                branchesByBusiness.isEmpty() && orphanBranches.isEmpty() -> {
+                branchesByBusiness.isEmpty() -> {
                     EmptyState(
                         canCreateBusiness = canCreateBusiness,
                         onAddBusiness = onAddBusiness,
@@ -135,65 +126,125 @@ fun BranchSelectorScreen(
                         redeemState = redeemState
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        contentPadding = PaddingValues(bottom = 80.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        item(key = "subtitle") {
-                            Text(
-                                text = "Selecciona la sucursal que deseas administrar",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
-                                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
-                            )
-                        }
+                        // Header: logo + title + action buttons
+                        item(key = "header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        modifier = Modifier.size(40.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Business,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Mis Negocios",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 20.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
 
-                        branchesByBusiness.forEach { (business, businessBranches) ->
-                            item(key = "business_${business.id}") {
-                                val isOwner = currentUserId != null && currentUserId == business.ownerId
-                                BusinessSection(
-                                    business = business,
-                                    branches = businessBranches,
-                                    onBranchSelected = onBranchSelected,
-                                    onAddBranch = { onAddBranch(business.id) },
-                                    canAddBranch = isOwner
-                                )
-                            }
-                        }
-
-                        if (orphanBranches.isNotEmpty()) {
-                            item(key = "orphan_header") {
-                                SectionLabel("Otras sucursales")
-                            }
-                            item(key = "orphan_branches") {
-                                GroupedCard {
-                                    orphanBranches.forEachIndexed { idx, branch ->
-                                        BranchRow(
-                                            branch = branch,
-                                            onClick = { onBranchSelected(branch) }
-                                        )
-                                        if (idx < orphanBranches.lastIndex) {
-                                            ListDivider()
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Surface(
+                                        modifier = Modifier.size(40.dp),
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        IconButton(onClick = { /* search */ }) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Search,
+                                                contentDescription = "Buscar",
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    Surface(
+                                        modifier = Modifier.size(40.dp),
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        IconButton(onClick = onNavigateBack) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Menu,
+                                                contentDescription = "Menú",
+                                                tint = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.size(20.dp)
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
 
-                        item(key = "actions") {
-                            ActionsSection(
-                                canCreateBusiness = canCreateBusiness,
-                                onAddBusiness = onAddBusiness
-                            )
+                        // Section header: "Tus negocios"
+                        item(key = "section_header") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Tus negocios",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
+                        }
+
+                        // Business cards
+                        branchesByBusiness.forEach { (business, businessBranches) ->
+                            item(key = "business_${business.id}") {
+                                val isOwner = currentUserId != null && currentUserId == business.ownerId
+                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                    BusinessSection(
+                                        business = business,
+                                        branches = businessBranches,
+                                        onBranchSelected = onBranchSelected,
+                                        onEditBranch = onEditBranch,
+                                        onAddBranch = { onAddBranch(business.id) },
+                                        canAddBranch = isOwner
+                                    )
+                                }
+                            }
                         }
 
                         item(key = "invitation") {
-                            InvitationSection(
-                                invitationViewModel = invitationViewModel,
-                                redeemState = redeemState
-                            )
+                            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                InvitationSection(
+                                    invitationViewModel = invitationViewModel,
+                                    redeemState = redeemState
+                                )
+                            }
                         }
 
                         item(key = "bottom_spacer") {

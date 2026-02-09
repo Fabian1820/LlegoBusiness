@@ -55,6 +55,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.llego.shared.ui.theme.LlegoAccentPrimary
+import com.llego.shared.ui.theme.LlegoAccentSecondary
+import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.data.auth.rememberAppleSignInHelper
 import com.llego.shared.data.auth.rememberGoogleSignInHelper
 import com.llego.shared.ui.auth.components.AppTipsSection
@@ -132,9 +135,9 @@ fun LoginScreen(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0.0f to MaterialTheme.colorScheme.primary,
-                            0.55f to MaterialTheme.colorScheme.primaryContainer,
-                            1.0f to MaterialTheme.colorScheme.primary
+                            0.0f to LlegoPrimary,
+                            0.55f to LlegoAccentPrimary,
+                            1.0f to LlegoPrimary
                         )
                     )
                 )
@@ -145,7 +148,7 @@ fun LoginScreen(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f),
+                                LlegoAccentSecondary.copy(alpha = 0.35f),
                                 Color.Transparent
                             ),
                             radius = 600f
@@ -358,8 +361,8 @@ fun LoginScreen(
 private fun String.isUserAuthCancellation(): Boolean {
     val lower = lowercase()
     return lower.contains("cancel") ||
-        lower.contains("canceled") ||
-        lower.contains("12501")
+            lower.contains("canceled") ||
+            lower.contains("12501")
 }
 
 private fun String.toFriendlyAuthErrorMessage(): String {
@@ -379,12 +382,15 @@ private fun String.toFriendlyAuthErrorMessage(): String {
         lower.contains("timeout") || lower.contains("conexion") || lower.contains("network") -> {
             "No hay conexion con el servidor en este momento. Revisa tu internet e intentalo nuevamente."
         }
+
         lower.contains("token") || lower.contains("unauthorized") || lower.contains("401") -> {
             "Tu sesion no pudo validarse. Intenta iniciar sesion nuevamente."
         }
+
         lower.contains("credencial") || lower.contains("password") || lower.contains("contras") -> {
             "Tus datos de acceso no fueron aceptados. Verifica la cuenta e intenta otra vez."
         }
+
         else -> "Ocurrio un problema al autenticar tu cuenta. Intenta nuevamente en unos segundos."
     }
 }
@@ -430,7 +436,7 @@ private fun LoginHeader() {
         Text(
             text = fullTitle,
             style = headerStyle,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = Color.White,
             modifier = Modifier.alpha(0f)
         )
 
@@ -438,13 +444,13 @@ private fun LoginHeader() {
             Text(
                 text = displayedTitle,
                 style = headerStyle,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = Color.White
             )
             if (!typingDone && cursorVisible) {
                 Text(
                     text = "|",
                     style = headerStyle,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = Color.White
                 )
             }
         }

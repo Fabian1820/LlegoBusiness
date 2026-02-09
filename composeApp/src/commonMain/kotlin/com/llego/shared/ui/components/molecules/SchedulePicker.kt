@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Modelo para un rango de horario
@@ -76,34 +77,34 @@ fun SchedulePicker(
         if (showHeader) {
             // Header
             Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.AccessTime,
-                    contentDescription = null,
-                    tint = primaryColor
-                )
-                Text(
-                    text = "Horario de Atención",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = primaryColor
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = primaryColor
                     )
-                )
-            }
+                    Text(
+                        text = "Horario de Atención",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor
+                        )
+                    )
+                }
 
-            TextButton(
-                onClick = { showDetailedPicker = !showDetailedPicker }
-            ) {
-                Text(if (showDetailedPicker) "Modo Simple" else "Modo Avanzado")
+                TextButton(
+                    onClick = { showDetailedPicker = !showDetailedPicker }
+                ) {
+                    Text(if (showDetailedPicker) "Modo Simple" else "Modo Avanzado")
+                }
             }
-        }
 
         }
 
@@ -128,7 +129,7 @@ fun SchedulePicker(
 }
 
 /**
- * Modo simple: Un horario general para toda la semana
+ * Modo simple: Configuración por grupos de días
  */
 @Composable
 private fun SimpleModeSchedule(
@@ -138,135 +139,185 @@ private fun SimpleModeSchedule(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Estado local para el horario general
-    var startTime by remember { mutableStateOf("09:00") }
-    var endTime by remember { mutableStateOf("18:00") }
-    var selectedDays by remember {
-        mutableStateOf(
-            daysOfWeek.map { it.first }.filter { schedule[it]?.isOpen == true }.toSet()
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Grupo 1: Lunes a Viernes
+        DayGroupSchedule(
+            groupTitle = "Lunes a Viernes",
+            dayKeys = listOf("mon", "tue", "wed", "thu", "fri"),
+            schedule = schedule,
+            onScheduleChange = onScheduleChange,
+            defaultStart = "09:00",
+            defaultEnd = "18:00"
+        )
+
+        HorizontalDivider()
+
+        // Grupo 2: Sábado
+        DayGroupSchedule(
+            groupTitle = "Sábado",
+            dayKeys = listOf("sat"),
+            schedule = schedule,
+            onScheduleChange = onScheduleChange,
+            defaultStart = "10:00",
+            defaultEnd = "14:00"
+        )
+
+        HorizontalDivider()
+
+        // Grupo 3: Domingo
+        DayGroupSchedule(
+            groupTitle = "Domingo",
+            dayKeys = listOf("sun"),
+            schedule = schedule,
+            onScheduleChange = onScheduleChange,
+            defaultStart = "10:00",
+            defaultEnd = "14:00"
         )
     }
+}
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Selector de días
-        Text(
-            text = "Días de apertura:",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Medium
-            )
-        )
+/**
+ * Componente para configurar un grupo de días con el mismo horario
+ */
+@Composable
+private fun DayGroupSchedule(
+    groupTitle: String,
+    dayKeys: List<String>,
+    schedule: Map<String, DaySchedule>,
+    onScheduleChange: (Map<String, DaySchedule>) -> Unit,
+    defaultStart: String,
+    defaultEnd: String
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-        // Chips de días
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            daysOfWeek.forEach { (key, label) ->
-                FilterChip(
-                    selected = key in selectedDays,
-                    onClick = {
-                        selectedDays = if (key in selectedDays) {
-                            selectedDays - key
-                        } else {
-                            selectedDays + key
-                        }
-                    },
-                    label = { Text(label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = primaryColor.copy(alpha = 0.15f),
-                        selectedLabelColor = primaryColor
-                    )
+    // Determinar si el grupo está abierto
+    val isGroupOpen = dayKeys.any { schedule[it]?.isOpen == true }
+
+    // Obtener horario del primer día abierto del grupo
+    val firstOpenDay = dayKeys.firstOrNull { schedule[it]?.isOpen == true }
+    val currentRange = firstOpenDay?.let { schedule[it]?.timeRanges?.firstOrNull() }
+
+    var startTime by remember(currentRange) {
+        mutableStateOf(currentRange?.start ?: defaultStart)
+    }
+    var endTime by remember(currentRange) {
+        mutableStateOf(currentRange?.end ?: defaultEnd)
+    }
+    var isOpen by remember(isGroupOpen) {
+        mutableStateOf(isGroupOpen)
+    }
+
+    // Aplicar cambios automáticamente
+    val applyChanges = {
+        val newSchedule = schedule.toMutableMap()
+        dayKeys.forEach { key ->
+            newSchedule[key] = if (isOpen) {
+                DaySchedule(
+                    isOpen = true,
+                    timeRanges = listOf(TimeRange(startTime, endTime))
                 )
+            } else {
+                DaySchedule(isOpen = false, timeRanges = emptyList())
             }
         }
+        onScheduleChange(newSchedule)
+    }
 
-        // Selector de horario
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOpen) {
+                primaryColor.copy(alpha = 0.06f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            }
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (isOpen) {
+                primaryColor.copy(alpha = 0.3f)
+            } else {
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = startTime,
-                onValueChange = { startTime = it },
-                label = { Text("Apertura") },
-                placeholder = { Text("09:00") },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-
-            Text(
-                text = "a",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            OutlinedTextField(
-                value = endTime,
-                onValueChange = { endTime = it },
-                label = { Text("Cierre") },
-                placeholder = { Text("18:00") },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // Botón aplicar
-        Button(
-            onClick = {
-                val newSchedule = daysOfWeek.associate { (key, _) ->
-                    key to if (key in selectedDays) {
-                        DaySchedule(
-                            isOpen = true,
-                            timeRanges = listOf(TimeRange(startTime, endTime))
-                        )
-                    } else {
-                        DaySchedule(isOpen = false, timeRanges = emptyList())
-                    }
-                }
-                onScheduleChange(newSchedule)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = primaryColor
-            )
-        ) {
-            Text("Aplicar Horario")
-        }
-
-        // Resumen visual
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = primaryColor.copy(alpha = 0.08f)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            // Header con título y switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Resumen:",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = primaryColor
+                    text = groupTitle,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
                     )
                 )
-                if (selectedDays.isNotEmpty()) {
-                    Text(
-                        text = "${selectedDays.joinToString(", ") { it.uppercase() }}: $startTime - $endTime",
-                        style = MaterialTheme.typography.bodyMedium
+
+                Switch(
+                    checked = isOpen,
+                    onCheckedChange = { newIsOpen ->
+                        isOpen = newIsOpen
+                        applyChanges()
+                    }
+                )
+            }
+
+            // Selector de horario (solo visible si está abierto)
+            AnimatedVisibility(visible = isOpen) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = startTime,
+                        onValueChange = { newStart ->
+                            startTime = newStart
+                            applyChanges()
+                        },
+                        label = { Text("Apertura") },
+                        placeholder = { Text("09:00") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
                     )
-                } else {
+
                     Text(
-                        text = "Ningún día seleccionado",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = "a",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium
                         )
                     )
+
+                    OutlinedTextField(
+                        value = endTime,
+                        onValueChange = { newEnd ->
+                            endTime = newEnd
+                            applyChanges()
+                        },
+                        label = { Text("Cierre") },
+                        placeholder = { Text("18:00") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
+            }
+
+            // Estado de cierre
+            if (!isOpen) {
+                Text(
+                    text = "Cerrado",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
             }
         }
     }

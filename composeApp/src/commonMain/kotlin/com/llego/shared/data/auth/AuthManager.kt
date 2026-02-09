@@ -202,6 +202,11 @@ class AuthManager(private val tokenManager: TokenManager) {
         tokenManager.saveLastSelectedBranchId(branch.id)
     }
 
+    fun clearCurrentBranch() {
+        businessRepository.clearCurrentBranch()
+        tokenManager.clearLastSelectedBranchId()
+    }
+
     /**
      * Verifica si el usuario est? autenticado (sincr?nico)
      */

@@ -44,19 +44,74 @@ actual class AuthViewModel actual constructor() : ViewModel() {
     actual val branches: StateFlow<List<Branch>> = authManager.branches
 
     init {
+        // Si hay token guardado, mostrar loading mientras se verifica
+        if (tokenManager.getToken() != null) {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+        }
+
+        // Observar cambios en el estado de autenticacion y business data
         viewModelScope.launch {
             combine(
                 authManager.isAuthenticated,
                 authManager.currentUser,
                 authManager.currentBusiness,
                 authManager.currentBranch
-            ) { isAuth, user, business, branch ->
+            ) { isAuth, user, _, _ ->
                 _uiState.value = _uiState.value.copy(
                     isAuthenticated = isAuth,
-                    user = user,
-                    isLoading = false
+                    user = user
                 )
             }.collect()
+        }
+
+        // Intentar restaurar sesion automaticamente al inicializar
+        restoreSessionIfNeeded()
+    }
+
+    /**
+     * Restaura la sesion del usuario si hay un token guardado en NSUserDefaults.
+     */
+    private fun restoreSessionIfNeeded() {
+        viewModelScope.launch {
+            if (tokenManager.getToken() != null) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+
+                val result = authManager.getCurrentUser()
+
+                when (result) {
+                    is AuthResult.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isAuthenticated = true,
+                            user = result.data,
+                            error = null
+                        )
+                        loadBusinessData()
+                    }
+
+                    is AuthResult.Error -> {
+                        // Si el error es de conexion, limpiar token para evitar reintentos
+                        if (result.code == "APOLLO_ERROR" ||
+                            result.message.contains("conexion", ignoreCase = true)
+                        ) {
+                            authManager.logout()
+                        }
+
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isAuthenticated = false,
+                            user = null,
+                            error = null
+                        )
+                    }
+
+                    else -> {
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                    }
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 
@@ -105,6 +160,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -112,6 +168,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -138,6 +195,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -145,6 +203,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -171,6 +230,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -178,6 +238,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -205,6 +266,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     loadBusinessData()
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -212,6 +274,7 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     )
                     _loginError.value = result.message
                 }
+
                 else -> {}
             }
         }
@@ -227,12 +290,14 @@ actual class AuthViewModel actual constructor() : ViewModel() {
                     _uiState.value = AuthUiState()
                     clearLoginForm()
                 }
+
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
                 }
+
                 else -> {}
             }
         }
@@ -283,6 +348,10 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
     actual fun setCurrentBranch(branch: Branch) {
         authManager.setCurrentBranch(branch)
+    }
+
+    actual fun clearCurrentBranch() {
+        authManager.clearCurrentBranch()
     }
 
     actual fun reloadUserData() {
