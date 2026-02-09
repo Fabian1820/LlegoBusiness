@@ -173,6 +173,7 @@ fun OnboardingWizardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
                 .padding(horizontal = 24.dp)
         ) {
             // ── Progress Bar ────────────────────────

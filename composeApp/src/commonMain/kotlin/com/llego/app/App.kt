@@ -56,7 +56,6 @@ import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.screens.MapSelectionScreen
-import com.llego.shared.ui.onboarding.WelcomeScreen
 import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
@@ -68,9 +67,8 @@ import kotlinx.coroutines.launch
  * Controla que pantalla se muestra antes de que el usuario inicie sesion.
  */
 private enum class PreAuthScreen {
-    WELCOME,  // Pantalla de bienvenida con dos opciones
-    INTRO,    // Onboarding introductorio para nuevos usuarios
-    LOGIN     // Pantalla de login existente
+    ONBOARDING,  // Pantallas introductorias (bienvenida + info)
+    LOGIN        // Pantalla de login
 }
 
 data class AppViewModels(
@@ -95,8 +93,7 @@ fun App(viewModels: AppViewModels) {
         var isAuthenticated by remember { mutableStateOf(false) }
         var needsBusinessRegistration by remember { mutableStateOf(false) }
         var canCancelBusinessRegistration by remember { mutableStateOf(false) }
-        var preAuthScreen by remember { mutableStateOf(PreAuthScreen.WELCOME) }
-        var isOnboardingNewUser by remember { mutableStateOf(false) }
+        var preAuthScreen by remember { mutableStateOf(PreAuthScreen.ONBOARDING) }
         val navigator = rememberAppNavigatorState()
         var hasRestoredHomeState by remember { mutableStateOf(false) }
         val openMapSelection = navigator::openMapSelection
@@ -193,8 +190,7 @@ fun App(viewModels: AppViewModels) {
             if (!isAuthenticated) {
                 navigator.resetForNewSession(homeTabIndex = 0)
                 hasRestoredHomeState = false
-                preAuthScreen = PreAuthScreen.WELCOME
-                isOnboardingNewUser = false
+                preAuthScreen = PreAuthScreen.ONBOARDING
                 return@LaunchedEffect
             }
 
@@ -323,23 +319,7 @@ fun App(viewModels: AppViewModels) {
 
                 // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
                 isAuthenticated && needsBusinessRegistration -> {
-                    if (isOnboardingNewUser && !canCancelBusinessRegistration) {
-                        // Nuevo usuario desde onboarding → Wizard paso a paso
-                        OnboardingWizardScreen(
-                            registerBusinessViewModel = viewModels.registerBusiness,
-                            authViewModel = authViewModel,
-                            onSuccess = {
-                                needsBusinessRegistration = false
-                                canCancelBusinessRegistration = false
-                                isOnboardingNewUser = false
-                            },
-                            onBack = {
-                                authViewModel.logout()
-                                isOnboardingNewUser = false
-                            },
-                            onOpenMapSelection = openMapSelection
-                        )
-                    } else {
+                    if (canCancelBusinessRegistration) {
                         // Usuario existente agregando otro negocio → Pantalla clásica
                         RegisterBusinessScreen(
                             onRegisterSuccess = {
@@ -347,17 +327,27 @@ fun App(viewModels: AppViewModels) {
                                 canCancelBusinessRegistration = false
                             },
                             onNavigateBack = {
-                                if (canCancelBusinessRegistration) {
-                                    needsBusinessRegistration = false
-                                    canCancelBusinessRegistration = false
-                                } else {
-                                    authViewModel.logout()
-                                }
+                                needsBusinessRegistration = false
+                                canCancelBusinessRegistration = false
                             },
                             viewModel = viewModels.registerBusiness,
                             onOpenMapSelection = openMapSelection,
                             invitationViewModel = viewModels.invitations,
                             authViewModel = authViewModel
+                        )
+                    } else {
+                        // Primera vez sin negocio → Wizard paso a paso
+                        OnboardingWizardScreen(
+                            registerBusinessViewModel = viewModels.registerBusiness,
+                            authViewModel = authViewModel,
+                            onSuccess = {
+                                needsBusinessRegistration = false
+                                canCancelBusinessRegistration = false
+                            },
+                            onBack = {
+                                authViewModel.logout()
+                            },
+                            onOpenMapSelection = openMapSelection
                         )
                     }
                 }
@@ -399,28 +389,13 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
 
-                // Caso 4: Usuario NO autenticado → Welcome / Intro / Login
+                // Caso 4: Usuario NO autenticado → Onboarding / Login
                 else -> {
                     when (preAuthScreen) {
-                        PreAuthScreen.WELCOME -> {
-                            WelcomeScreen(
-                                onExistingUser = {
-                                    isOnboardingNewUser = false
-                                    preAuthScreen = PreAuthScreen.LOGIN
-                                },
-                                onNewUser = {
-                                    preAuthScreen = PreAuthScreen.INTRO
-                                }
-                            )
-                        }
-                        PreAuthScreen.INTRO -> {
+                        PreAuthScreen.ONBOARDING -> {
                             OnboardingIntroScreen(
-                                onContinue = {
-                                    isOnboardingNewUser = true
+                                onFinish = {
                                     preAuthScreen = PreAuthScreen.LOGIN
-                                },
-                                onBack = {
-                                    preAuthScreen = PreAuthScreen.WELCOME
                                 }
                             )
                         }
@@ -430,11 +405,7 @@ fun App(viewModels: AppViewModels) {
                                 // Boton de retroceso flotante sobre el login
                                 IconButton(
                                     onClick = {
-                                        preAuthScreen = if (isOnboardingNewUser) {
-                                            PreAuthScreen.INTRO
-                                        } else {
-                                            PreAuthScreen.WELCOME
-                                        }
+                                        preAuthScreen = PreAuthScreen.ONBOARDING
                                     },
                                     modifier = Modifier
                                         .statusBarsPadding()

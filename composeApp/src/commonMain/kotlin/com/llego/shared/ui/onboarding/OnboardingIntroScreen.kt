@@ -35,31 +35,42 @@ import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
 import llegobusiness.composeapp.generated.resources.Res
+import llegobusiness.composeapp.generated.resources.icon
 import llegobusiness.composeapp.generated.resources.onboarding_branch
 import llegobusiness.composeapp.generated.resources.onboarding_business
 import llegobusiness.composeapp.generated.resources.onboarding_start
 import org.jetbrains.compose.resources.painterResource
 
 /**
- * Pantallas introductorias del onboarding para nuevos usuarios.
+ * Pantallas introductorias del onboarding.
  *
- * Presenta 3 paginas animadas que explican como funcionan los negocios
- * y las sucursales en Llego, antes de redirigir al usuario a crear
- * su cuenta y su primer negocio.
+ * Pagina 0 es la bienvenida con el logo de Llego (reemplaza al antiguo WelcomeScreen).
+ * Las paginas siguientes explican como funcionan los negocios y sucursales.
  *
- * Diseno inspirado en Apple: transiciones suaves, tipografia limpia,
- * gradientes elegantes e iconografia personalizada.
+ * Todas las paginas muestran "Omitir" para saltar directo al login.
+ * El boton principal avanza de pagina; en la ultima pagina lleva al login.
  */
 
-private data class IntroPage(
-    val title: String,
-    val description: String,
-    val highlights: List<Pair<ImageVector, String>>,
-    val drawableKey: String
-)
+// ─────────────────────────────────────────────────
+//  Page model
+// ─────────────────────────────────────────────────
 
-private val introPages = listOf(
-    IntroPage(
+private sealed class IntroPageData {
+    /** Pagina 0 — bienvenida con logo */
+    data object Welcome : IntroPageData()
+
+    /** Paginas informativas con ilustracion vectorial */
+    data class Info(
+        val title: String,
+        val description: String,
+        val highlights: List<Pair<ImageVector, String>>,
+        val drawableKey: String
+    ) : IntroPageData()
+}
+
+private val introPages: List<IntroPageData> = listOf(
+    IntroPageData.Welcome,
+    IntroPageData.Info(
         title = "Tu negocio en Llego",
         description = "El negocio es la cara de tu empresa en la plataforma. " +
                 "Es lo primero que ven tus clientes y donde se refleja la identidad de tu marca.",
@@ -69,7 +80,7 @@ private val introPages = listOf(
         ),
         drawableKey = "business"
     ),
-    IntroPage(
+    IntroPageData.Info(
         title = "Las sucursales",
         description = "Cada sucursal es una sede de tu negocio. " +
                 "Es donde los clientes ven el catalogo de productos, realizan pedidos y reciben entregas.",
@@ -79,7 +90,7 @@ private val introPages = listOf(
         ),
         drawableKey = "branch"
     ),
-    IntroPage(
+    IntroPageData.Info(
         title = "Crea tu primer negocio",
         description = "Te guiaremos paso a paso para configurar tu negocio y tu primera sucursal. " +
                 "Solo necesitas unos minutos para empezar a recibir pedidos.",
@@ -88,10 +99,17 @@ private val introPages = listOf(
     )
 )
 
+// ─────────────────────────────────────────────────
+//  Public composable
+// ─────────────────────────────────────────────────
+
+/**
+ * @param onFinish se llama cuando el usuario termina o salta el onboarding.
+ *                 El llamador debe navegar al login.
+ */
 @Composable
 fun OnboardingIntroScreen(
-    onContinue: () -> Unit,
-    onBack: () -> Unit,
+    onFinish: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -123,7 +141,7 @@ fun OnboardingIntroScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // ── Top Bar ─────────────────────────────
+            // ── Top bar ─────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -131,39 +149,32 @@ fun OnboardingIntroScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = {
-                    if (currentPage > 0) {
-                        currentPage--
-                    } else {
-                        onBack()
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                // Skip button (only on non-last pages)
-                if (currentPage < totalPages - 1) {
-                    TextButton(onClick = {
-                        currentPage = totalPages - 1
-                    }) {
-                        Text(
-                            text = "Omitir",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Back arrow (hidden on page 0)
+                if (currentPage > 0) {
+                    IconButton(onClick = { currentPage-- }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 } else {
                     Spacer(modifier = Modifier.width(48.dp))
                 }
+
+                // Omitir — always visible, skips to login
+                TextButton(onClick = { onFinish() }) {
+                    Text(
+                        text = "Omitir",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            // ── Page Content ────────────────────────
+            // ── Page content ────────────────────────
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -191,14 +202,14 @@ fun OnboardingIntroScreen(
                     },
                     label = "intro_page_transition"
                 ) { page ->
-                    IntroPageLayout(
-                        page = introPages[page],
-                        pageIndex = page
-                    )
+                    when (val data = introPages[page]) {
+                        is IntroPageData.Welcome -> WelcomePageLayout()
+                        is IntroPageData.Info -> InfoPageLayout(page = data, pageIndex = page)
+                    }
                 }
             }
 
-            // ── Bottom Section ──────────────────────
+            // ── Bottom section ──────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -213,14 +224,14 @@ fun OnboardingIntroScreen(
                     currentPage = currentPage
                 )
 
-                // Action button
+                // Primary button
                 val isLastPage = currentPage == totalPages - 1
 
                 Button(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         if (isLastPage) {
-                            onContinue()
+                            onFinish()
                         } else {
                             currentPage++
                         }
@@ -249,13 +260,150 @@ fun OnboardingIntroScreen(
     }
 }
 
-// ─────────────────────────────────────────────────
-// Individual Intro Page
-// ─────────────────────────────────────────────────
+// ═════════════════════════════════════════════════
+//  Page 0 — Welcome
+// ═════════════════════════════════════════════════
 
 @Composable
-private fun IntroPageLayout(
-    page: IntroPage,
+private fun WelcomePageLayout() {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(120)
+        visible = true
+    }
+
+    val logoScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.6f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "welcome_logo_scale"
+    )
+
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "welcome_content_alpha"
+    )
+
+    val contentOffsetY by animateFloatAsState(
+        targetValue = if (visible) 0f else 50f,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "welcome_content_offset"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp)
+            .graphicsLayer {
+                alpha = contentAlpha
+                translationY = contentOffsetY
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.weight(0.15f))
+
+        // Logo with glow
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.graphicsLayer {
+                scaleX = logoScale
+                scaleY = logoScale
+            }
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                LlegoSecondary.copy(alpha = 0.2f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Image(
+                painter = painterResource(Res.drawable.icon),
+                contentDescription = "Logo Llego",
+                modifier = Modifier.size(110.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Title
+        Text(
+            text = "Bienvenido a",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-0.3).sp
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Llego Negocios",
+            style = MaterialTheme.typography.displayMedium.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp
+            ),
+            color = LlegoPrimary,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "La plataforma que impulsa tu negocio\ny lo conecta con miles de clientes",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                lineHeight = 26.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(36.dp))
+
+        // Badges row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            MiniStatBadge(
+                value = "5 min",
+                label = "Configuracion",
+                color = LlegoPrimary
+            )
+            MiniStatBadge(
+                value = "Gratis",
+                label = "Para empezar",
+                color = LlegoAccent
+            )
+            MiniStatBadge(
+                value = "24/7",
+                label = "Soporte",
+                color = LlegoSecondary
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(0.2f))
+    }
+}
+
+// ═════════════════════════════════════════════════
+//  Info pages (1-3)
+// ═════════════════════════════════════════════════
+
+@Composable
+private fun InfoPageLayout(
+    page: IntroPageData.Info,
     pageIndex: Int
 ) {
     var contentVisible by remember { mutableStateOf(false) }
@@ -295,7 +443,7 @@ private fun IntroPageLayout(
             modifier = Modifier.size(160.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Subtle glow circle behind icon
+            // Glow circle behind icon
             Box(
                 modifier = Modifier
                     .size(160.dp)
@@ -304,8 +452,8 @@ private fun IntroPageLayout(
                         Brush.radialGradient(
                             colors = listOf(
                                 when (pageIndex) {
-                                    0 -> LlegoSecondary.copy(alpha = 0.15f)
-                                    1 -> LlegoAccent.copy(alpha = 0.15f)
+                                    1 -> LlegoSecondary.copy(alpha = 0.15f)
+                                    2 -> LlegoAccent.copy(alpha = 0.15f)
                                     else -> LlegoPrimary.copy(alpha = 0.1f)
                                 },
                                 Color.Transparent
@@ -399,30 +547,6 @@ private fun IntroPageLayout(
                     }
                 }
             }
-        } else {
-            // Last page — show motivational mini-stats
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                MiniStatBadge(
-                    value = "5 min",
-                    label = "Configuracion",
-                    color = LlegoPrimary
-                )
-                MiniStatBadge(
-                    value = "Gratis",
-                    label = "Para empezar",
-                    color = LlegoAccent
-                )
-                MiniStatBadge(
-                    value = "24/7",
-                    label = "Soporte",
-                    color = LlegoSecondary
-                )
-            }
         }
 
         Spacer(modifier = Modifier.weight(0.12f))
@@ -430,7 +554,7 @@ private fun IntroPageLayout(
 }
 
 // ─────────────────────────────────────────────────
-// Mini Stat Badge (used on last intro page)
+//  Mini Stat Badge
 // ─────────────────────────────────────────────────
 
 @Composable
