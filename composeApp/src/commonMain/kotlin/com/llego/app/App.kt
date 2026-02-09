@@ -57,7 +57,7 @@ import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.screens.MapSelectionScreen
 import com.llego.shared.ui.onboarding.WelcomeScreen
-import com.llego.shared.ui.onboarding.OnboardingIntroScreen
+// import com.llego.shared.ui.onboarding.OnboardingIntroScreen  // TODO: Descomentar cuando se decida mantener el onboarding intro
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import kotlinx.coroutines.delay
@@ -69,7 +69,7 @@ import kotlinx.coroutines.launch
  */
 private enum class PreAuthScreen {
     WELCOME,  // Pantalla de bienvenida con dos opciones
-    INTRO,    // Onboarding introductorio para nuevos usuarios
+    // INTRO,    // Onboarding introductorio para nuevos usuarios — comentado de momento
     LOGIN     // Pantalla de login existente
 }
 
@@ -409,32 +409,34 @@ fun App(viewModels: AppViewModels) {
                                     preAuthScreen = PreAuthScreen.LOGIN
                                 },
                                 onNewUser = {
-                                    preAuthScreen = PreAuthScreen.INTRO
-                                }
-                            )
-                        }
-                        PreAuthScreen.INTRO -> {
-                            OnboardingIntroScreen(
-                                onContinue = {
+                                    // Salta directo al login marcando que es nuevo usuario
+                                    // para que al autenticarse entre al wizard paso a paso
                                     isOnboardingNewUser = true
                                     preAuthScreen = PreAuthScreen.LOGIN
-                                },
-                                onBack = {
-                                    preAuthScreen = PreAuthScreen.WELCOME
                                 }
                             )
                         }
+                        // OnboardingIntroScreen comentado de momento — se mantiene el código
+                        // en OnboardingIntroScreen.kt por si se decide reactivar.
+                        // PreAuthScreen.INTRO -> {
+                        //     OnboardingIntroScreen(
+                        //         onContinue = {
+                        //             isOnboardingNewUser = true
+                        //             preAuthScreen = PreAuthScreen.LOGIN
+                        //         },
+                        //         onBack = {
+                        //             preAuthScreen = PreAuthScreen.WELCOME
+                        //         }
+                        //     )
+                        // }
                         PreAuthScreen.LOGIN -> {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 AuthFlow(authViewModel)
                                 // Boton de retroceso flotante sobre el login
                                 IconButton(
                                     onClick = {
-                                        preAuthScreen = if (isOnboardingNewUser) {
-                                            PreAuthScreen.INTRO
-                                        } else {
-                                            PreAuthScreen.WELCOME
-                                        }
+                                        preAuthScreen = PreAuthScreen.WELCOME
+                                        isOnboardingNewUser = false
                                     },
                                     modifier = Modifier
                                         .statusBarsPadding()
