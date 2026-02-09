@@ -37,6 +37,7 @@ import com.llego.shared.ui.theme.LlegoAccent
 import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
+import kotlin.math.roundToLong
 
 /**
  * Wizard de creacion de negocio paso a paso para nuevos usuarios.
@@ -598,7 +599,7 @@ private fun StepLocation(
                         )
                     )
                     Text(
-                        text = "Lat: ${"%.4f".format(latitude)}, Lng: ${"%.4f".format(longitude)}",
+                        text = "Lat: ${formatCoordinate(latitude, 4)}, Lng: ${formatCoordinate(longitude, 4)}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -656,6 +657,23 @@ private fun StepLocation(
                 }
             }
         }
+    }
+}
+
+private fun formatCoordinate(value: Double, decimals: Int): String {
+    if (decimals <= 0) return value.roundToLong().toString()
+
+    val multiplier = (1..decimals).fold(1.0) { acc, _ -> acc * 10.0 }
+    val rounded = (value * multiplier).roundToLong() / multiplier
+    val text = rounded.toString()
+
+    return if (text.contains(".")) {
+        val parts = text.split(".")
+        val integerPart = parts[0]
+        val decimalPart = parts.getOrElse(1) { "" }.padEnd(decimals, '0').take(decimals)
+        "$integerPart.$decimalPart"
+    } else {
+        "$text.${"0".repeat(decimals)}"
     }
 }
 
