@@ -24,8 +24,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
@@ -420,12 +420,12 @@ class OrdersViewModel(
         val trimmed = message.trim()
         if (trimmed.isEmpty()) return
 
-        val optimisticCommentId = "local_${Clock.System.now().toEpochMilliseconds()}"
+        val optimisticCommentId = "local_${kotlin.time.Clock.System.now().toEpochMilliseconds()}"
         val optimisticComment = OrderComment(
             id = optimisticCommentId,
             author = OrderActor.BUSINESS,
             message = trimmed,
-            timestamp = Clock.System.now().toString()
+            timestamp = kotlin.time.Clock.System.now().toString()
         )
 
         registerPendingBusinessComment(orderId, trimmed)
@@ -621,7 +621,7 @@ enum class DateRangeFilter(val displayName: String) {
     ALL("Todos");
 
     fun getDateRange(): Pair<String, String>? {
-        val now = Clock.System.now()
+        val now = Instant.fromEpochMilliseconds(kotlin.time.Clock.System.now().toEpochMilliseconds())
         val timezone = TimeZone.currentSystemDefault()
         val today: LocalDate = now.toLocalDateTime(timezone).date
 

@@ -632,6 +632,7 @@ private fun EmptyStateText(text: String) {
     )
 }
 
+@OptIn(kotlin.time.ExperimentalTime::class)
 private fun formatDate(rawValue: String): String {
     return try {
         val localDateTime = Instant.parse(rawValue)
