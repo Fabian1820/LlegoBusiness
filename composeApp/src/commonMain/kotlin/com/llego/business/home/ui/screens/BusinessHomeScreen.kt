@@ -273,6 +273,7 @@ fun BusinessHomeScreen(
                 "settings" -> {
                     com.llego.business.settings.ui.screens.SettingsScreen(
                         settingsViewModel = settingsViewModel,
+                        authViewModel = authViewModel,
                         onNavigateBack = { }
                     )
                 }

@@ -1,6 +1,12 @@
 ﻿package com.llego.shared.ui.branch
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,21 +24,31 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.outlined.Business
-import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,7 +71,7 @@ fun BranchSelectorScreen(
     onEditBranch: ((Branch) -> Unit)? = null,
     onAddBusiness: () -> Unit,
     onAddBranch: (String) -> Unit,
-    onNavigateBack: () -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier,
     invitationViewModel: InvitationViewModel,
     authViewModel: AuthViewModel
@@ -64,9 +80,34 @@ fun BranchSelectorScreen(
     val authUiState by authViewModel.uiState.collectAsState()
     val redeemState by invitationViewModel.redeemState.collectAsState()
 
+    var searchEnabled by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     val currentUserId = authUiState.user?.id
     val branchesByBusiness = remember(branchSelectorState.businessesWithBranches) {
         branchSelectorState.businessesWithBranches.map { it.toBusiness() to it.branches }
+    }
+    val normalizedQuery = remember(searchQuery) { searchQuery.trim().lowercase() }
+    val visibleBusinesses = remember(branchesByBusiness, normalizedQuery) {
+        if (normalizedQuery.isBlank()) {
+            branchesByBusiness
+        } else {
+            branchesByBusiness.mapNotNull { (business, businessBranches) ->
+                val businessMatches = business.name.contains(normalizedQuery, ignoreCase = true)
+                val visibleBranches = if (businessMatches) {
+                    businessBranches
+                } else {
+                    businessBranches.filter { it.name.contains(normalizedQuery, ignoreCase = true) }
+                }
+
+                if (businessMatches || visibleBranches.isNotEmpty()) {
+                    business to visibleBranches
+                } else {
+                    null
+                }
+            }
+        }
     }
     val canCreateBusiness = remember(currentUserId, branchSelectorState.businessesWithBranches) {
         currentUserId?.let { userId ->
@@ -74,6 +115,7 @@ fun BranchSelectorScreen(
             isOwnerOfAny || branchSelectorState.businessesWithBranches.isEmpty()
         } ?: false
     }
+
     LaunchedEffect(Unit) {
         branchSelectorViewModel.loadBusinesses()
     }
@@ -93,6 +135,19 @@ fun BranchSelectorScreen(
     }
 
     Scaffold(
+        topBar = {
+            BranchSelectorTopBar(
+                searchEnabled = searchEnabled,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                onOpenSearch = { searchEnabled = true },
+                onCloseSearch = {
+                    searchEnabled = false
+                    searchQuery = ""
+                },
+                onRequestLogout = { showLogoutDialog = true }
+            )
+        },
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             if (canCreateBusiness) {
@@ -130,110 +185,32 @@ fun BranchSelectorScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        // Header: logo + title + action buttons
-                        item(key = "header") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        modifier = Modifier.size(40.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = MaterialTheme.colorScheme.primary
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Business,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Mis Negocios",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 20.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                }
-
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Surface(
-                                        modifier = Modifier.size(40.dp),
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                    ) {
-                                        IconButton(onClick = { /* search */ }) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Search,
-                                                contentDescription = "Buscar",
-                                                tint = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                    Surface(
-                                        modifier = Modifier.size(40.dp),
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                    ) {
-                                        IconButton(onClick = onNavigateBack) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Menu,
-                                                contentDescription = "Menú",
-                                                tint = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Section header: "Tus negocios"
-                        item(key = "section_header") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
+                        if (visibleBusinesses.isEmpty()) {
+                            item(key = "empty_search") {
                                 Text(
-                                    text = "Tus negocios",
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 16.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    text = "No encontramos negocios ni sucursales con \"$searchQuery\"",
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
                                 )
                             }
-                        }
-
-                        // Business cards
-                        branchesByBusiness.forEach { (business, businessBranches) ->
-                            item(key = "business_${business.id}") {
-                                val isOwner = currentUserId != null && currentUserId == business.ownerId
-                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                                    BusinessSection(
-                                        business = business,
-                                        branches = businessBranches,
-                                        onBranchSelected = onBranchSelected,
-                                        onEditBranch = onEditBranch,
-                                        onAddBranch = { onAddBranch(business.id) },
-                                        canAddBranch = isOwner
-                                    )
+                        } else {
+                            visibleBusinesses.forEach { (business, businessBranches) ->
+                                item(key = "business_${business.id}") {
+                                    val isOwner = currentUserId != null && currentUserId == business.ownerId
+                                    Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                                        BusinessSection(
+                                            business = business,
+                                            branches = businessBranches,
+                                            onBranchSelected = onBranchSelected,
+                                            onEditBranch = onEditBranch,
+                                            onAddBranch = { onAddBranch(business.id) },
+                                            canAddBranch = isOwner
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -258,6 +235,171 @@ fun BranchSelectorScreen(
                 ErrorBanner(
                     message = error,
                     modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Estás seguro de que quieres cerrar sesión?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text("Cerrar sesión", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun BranchSelectorTopBar(
+    searchEnabled: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenSearch: () -> Unit,
+    onCloseSearch: () -> Unit,
+    onRequestLogout: () -> Unit
+) {
+    Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.background) {
+        AnimatedContent(
+            targetState = searchEnabled,
+            transitionSpec = {
+                slideIntoContainer(
+                    towards = if (targetState) {
+                        AnimatedContentTransitionScope.SlideDirection.Left
+                    } else {
+                        AnimatedContentTransitionScope.SlideDirection.Right
+                    },
+                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(180)) togetherWith
+                    slideOutOfContainer(
+                        towards = if (targetState) {
+                            AnimatedContentTransitionScope.SlideDirection.Left
+                        } else {
+                            AnimatedContentTransitionScope.SlideDirection.Right
+                        },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(150))
+            },
+            label = "branch_selector_topbar_transition"
+        ) { isSearchMode ->
+            if (isSearchMode) {
+                TopAppBar(
+                    title = {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text("Busca por negocio o sucursal")
+                            },
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Search,
+                                    contentDescription = null
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = onCloseSearch) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cerrar búsqueda"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Business,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Mis Negocios",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 20.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    },
+                    actions = {
+                        Row(
+                            modifier = Modifier.padding(end = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                IconButton(onClick = onOpenSearch) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = "Buscar",
+                                        tint = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                IconButton(onClick = onRequestLogout) {
+                                    Icon(
+                                        imageVector = Icons.Default.Logout,
+                                        contentDescription = "Cerrar sesión",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
                 )
             }
         }

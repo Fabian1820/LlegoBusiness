@@ -28,7 +28,7 @@ import com.llego.business.products.ui.screens.ProductDetailScreen
 import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
-import com.llego.business.branches.ui.screens.BranchCreateScreen
+import com.llego.business.branches.ui.screens.BranchCreateWizardScreen
 import com.llego.business.branches.ui.screens.BranchEditScreen
 import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.invitations.ui.screens.InvitationDashboard
@@ -52,7 +52,6 @@ import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.shared.data.model.hasBranches
-import com.llego.shared.ui.business.RegisterBusinessScreen
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.ui.branch.BranchSelectorViewModel
@@ -322,40 +321,27 @@ fun App(viewModels: AppViewModels) {
                     }
                 }
 
-                // Caso 1: Usuario autenticado SIN negocio → Registro de negocio
+                // Caso 1: Usuario autenticado SIN negocio o agregando negocio → Wizard de registro
                 isAuthenticated && needsBusinessRegistration && !isExploringWithoutBusiness -> {
-                    if (canCancelBusinessRegistration) {
-                        // Usuario existente agregando otro negocio → Pantalla clásica
-                        RegisterBusinessScreen(
-                            onRegisterSuccess = {
-                                needsBusinessRegistration = false
-                                canCancelBusinessRegistration = false
-                            },
-                            onNavigateBack = {
-                                needsBusinessRegistration = false
-                                canCancelBusinessRegistration = false
-                            },
-                            viewModel = viewModels.registerBusiness,
-                            onOpenMapSelection = openMapSelection,
-                            invitationViewModel = viewModels.invitations,
-                            authViewModel = authViewModel
-                        )
-                    } else {
-                        // Primera vez sin negocio → Wizard paso a paso
-                        OnboardingWizardScreen(
-                            registerBusinessViewModel = viewModels.registerBusiness,
-                            authViewModel = authViewModel,
-                            onSuccess = {
+                    OnboardingWizardScreen(
+                        registerBusinessViewModel = viewModels.registerBusiness,
+                        authViewModel = authViewModel,
+                        onSuccess = {
+                            needsBusinessRegistration = false
+                            canCancelBusinessRegistration = false
+                            isExploringWithoutBusiness = false
+                        },
+                        onBack = {
+                            if (canCancelBusinessRegistration) {
                                 needsBusinessRegistration = false
                                 canCancelBusinessRegistration = false
                                 isExploringWithoutBusiness = false
-                            },
-                            onBack = {
+                            } else {
                                 authViewModel.logout()
-                            },
-                            onOpenMapSelection = openMapSelection
-                        )
-                    }
+                            }
+                        },
+                        onOpenMapSelection = openMapSelection
+                    )
                 }
 
                 // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada â†’ Dashboard
@@ -526,12 +512,13 @@ private fun BranchSelectionFlow(
         }
 
         navigator.branchCreateBusinessId != null -> {
-            BranchCreateScreen(
+            BranchCreateWizardScreen(
                 businessId = navigator.branchCreateBusinessId ?: "",
                 onNavigateBack = { navigator.branchCreateBusinessId = null },
                 onSuccess = { _ ->
                     navigator.branchCreateBusinessId = null
                     authViewModel.reloadUserData()
+                    branchSelectorViewModel.loadBusinesses()
                 },
                 onError = { _ -> },
                 authViewModel = authViewModel,
@@ -553,7 +540,7 @@ private fun BranchSelectionFlow(
                 onAddBranch = { businessId ->
                     navigator.branchCreateBusinessId = businessId
                 },
-                onNavigateBack = {
+                onLogout = {
                     authViewModel.logout()
                 },
                 invitationViewModel = invitationViewModel,
@@ -727,6 +714,21 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.branchCreateBusinessId != null -> {
+                BranchCreateWizardScreen(
+                    businessId = navigator.branchCreateBusinessId ?: "",
+                    onNavigateBack = { navigator.branchCreateBusinessId = null },
+                    onSuccess = { _ ->
+                        navigator.branchCreateBusinessId = null
+                        authViewModel.reloadUserData()
+                        branchSelectorViewModel.loadBusinesses()
+                    },
+                    onError = { _ -> },
+                    authViewModel = authViewModel,
+                    onOpenMapSelection = onOpenMapSelection
+                )
+            }
+
             navigator.branchToEdit != null -> {
                 BranchEditScreen(
                     branch = navigator.branchToEdit!!,
@@ -761,7 +763,9 @@ private fun MainBusinessFlow(
                         navigator.branchCreateBusinessId = businessId
                         navigator.showBranchesManagement = false
                     },
-                    onNavigateBack = { navigator.showBranchesManagement = false },
+                    onLogout = {
+                        authViewModel.logout()
+                    },
                     invitationViewModel = invitationViewModel,
                     authViewModel = authViewModel
                 )
@@ -831,7 +835,6 @@ private fun MainBusinessFlow(
                 BusinessProfileScreen(
                     authViewModel = authViewModel,
                     onNavigateBack = { navigator.showProfile = false },
-                    onNavigateToBranches = { navigator.showBranchesManagement = true },
                     onNavigateToInvitations = { navigator.showInvitations = true }
                 )
             }

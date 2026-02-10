@@ -28,23 +28,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.profile.ui.components.BannerWithLogoSection
-import com.llego.business.profile.ui.components.BranchesManagementCard
 import com.llego.business.profile.ui.components.BusinessInfoSection
 import com.llego.business.profile.ui.components.BusinessTagsSection
 import com.llego.business.profile.ui.components.ImageUploadDialog
 import com.llego.business.profile.ui.components.InvitationsCard
-import com.llego.business.profile.ui.components.LogoutActionButton
-import com.llego.business.profile.ui.components.LogoutDialog
 import com.llego.business.profile.ui.components.ProfileSaveMessageCard
 import com.llego.business.profile.ui.components.ShareDialog
 import com.llego.business.profile.ui.components.SocialLinksSection
-import com.llego.business.profile.ui.components.UserInfoSection
-import com.llego.shared.data.model.AuthResult
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
-import com.llego.shared.data.model.UpdateUserInput
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.upload.ImageUploadViewModel
@@ -59,13 +53,11 @@ import kotlinx.coroutines.launch
 fun BusinessProfileScreen(
     authViewModel: AuthViewModel,
     onNavigateBack: () -> Unit = {},
-    onNavigateToBranches: () -> Unit = {},
     onNavigateToInvitations: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
 
     var showShareDialog by remember { mutableStateOf(false) }
-    var showLogoutDialog by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
     val imageUploadViewModel = remember { ImageUploadViewModel() }
@@ -75,15 +67,9 @@ fun BusinessProfileScreen(
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
 
-    // Datos del usuario, negocio y sucursal
-    val authUiState by authViewModel.uiState.collectAsState()
-    val currentUser = authUiState.user
+    // Datos del negocio y sucursal
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
-    val branches by authViewModel.branches.collectAsState()
-
-    // Todos los usuarios con acceso pueden gestionar el negocio
-    val canManage = currentBusiness != null
 
     // Mostrar mensaje de guardado
     LaunchedEffect(saveMessage) {
@@ -206,42 +192,6 @@ fun BusinessProfileScreen(
                 )
             }
 
-            // Informacion del propietario
-            item {
-                UserInfoSection(
-                    user = currentUser,
-                    onSave = { name, username, phone ->
-                        currentUser?.let { user ->
-                            coroutineScope.launch {
-                                isSaving = true
-                                saveMessage = "Guardando cambios del usuario..."
-
-                                val normalizedUsername = username.trim().removePrefix("@")
-                                val input = UpdateUserInput(
-                                    name = name.takeIf { it != user.name },
-                                    username = normalizedUsername.takeIf {
-                                        it.isNotBlank() && it != user.username
-                                    },
-                                    phone = phone.takeIf { it != user.phone }
-                                )
-
-                                when (val result = authViewModel.updateUser(input)) {
-                                    is AuthResult.Success -> {
-                                        saveMessage = "OK: Usuario actualizado correctamente"
-                                    }
-                                    is AuthResult.Error -> {
-                                        saveMessage = "Error: ${result.message}"
-                                    }
-                                    else -> {}
-                                }
-
-                                isSaving = false
-                            }
-                        }
-                    }
-                )
-            }
-
             // Redes sociales
             item {
                 SocialLinksSection(
@@ -304,16 +254,6 @@ fun BusinessProfileScreen(
                 )
             }
 
-            // Gestion de sucursales (siempre visible si hay múltiples)
-            if (branches.size > 1) {
-                item {
-                    BranchesManagementCard(
-                        onClick = onNavigateToBranches,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-                }
-            }
-
             // Codigos de invitacion (siempre visible)
             item {
                 InvitationsCard(
@@ -322,13 +262,6 @@ fun BusinessProfileScreen(
                 )
             }
 
-            // Cerrar sesion
-            item {
-                LogoutActionButton(
-                    onClick = { showLogoutDialog = true },
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-            }
         }
 
         if (showBranchAvatarDialog) {
@@ -419,14 +352,5 @@ fun BusinessProfileScreen(
             ShareDialog(onDismiss = { showShareDialog = false })
         }
 
-        if (showLogoutDialog) {
-            LogoutDialog(
-                onDismiss = { showLogoutDialog = false },
-                onConfirm = {
-                    authViewModel.logout()
-                    showLogoutDialog = false
-                }
-            )
-        }
     }
 }

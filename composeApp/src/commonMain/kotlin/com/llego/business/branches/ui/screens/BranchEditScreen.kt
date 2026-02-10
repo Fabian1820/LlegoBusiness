@@ -78,6 +78,89 @@ fun BranchEditScreen(
     val isUploading = branchAvatarState is ImageUploadState.Uploading ||
         branchCoverState is ImageUploadState.Uploading
 
+    fun saveBranchChanges() {
+        if (name.isBlank() || phone.isBlank()) {
+            statusMessage = "Completa los campos requeridos"
+            onError(statusMessage ?: "")
+            return
+        }
+        if (selectedTipos.isEmpty()) {
+            statusMessage = "Selecciona al menos un tipo de sucursal"
+            onError(statusMessage ?: "")
+            return
+        }
+        if (selectedPaymentMethodIds.isEmpty()) {
+            statusMessage = "Selecciona al menos un metodo de pago"
+            onError(statusMessage ?: "")
+            return
+        }
+        if (!useAppMessaging && selectedVehicles.isEmpty()) {
+            statusMessage = "Para delivery propio debes seleccionar al menos un vehiculo"
+            onError(statusMessage ?: "")
+            return
+        }
+        if (isUploading) {
+            statusMessage = "Espera a que terminen las subidas de imagen"
+            onError(statusMessage ?: "")
+            return
+        }
+
+        val latValue = latitude.toDoubleOrNull()
+        val lngValue = longitude.toDoubleOrNull()
+        if (latValue == null || lngValue == null) {
+            statusMessage = "Coordenadas invalidas"
+            onError(statusMessage ?: "")
+            return
+        }
+
+        coroutineScope.launch {
+            isLoading = true
+
+            val nameValue = name.trim()
+            val phoneValue = phone.trim()
+            val addressValue = address.trim()
+            val scheduleValue = branchSchedule.toBackendSchedule()
+            val parsedManagerIds = parseManagerIds(managerIds)
+            val deliveryValue = deliveryRadius.toDoubleOrNull()
+
+            val input = UpdateBranchInput(
+                name = nameValue.takeIf { it != branch.name },
+                phone = phoneValue.takeIf { it != branch.phone },
+                address = addressValue.takeIf { it != branch.address.orEmpty() },
+                coordinates = if (latValue != branch.coordinates.latitude ||
+                    lngValue != branch.coordinates.longitude) {
+                    CoordinatesInput(lat = latValue, lng = lngValue)
+                } else {
+                    null
+                },
+                schedule = scheduleValue.takeIf { it != branch.schedule },
+                tipos = selectedTipos.toList().takeIf { it != branch.tipos },
+                useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
+                vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
+                paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
+                status = status.takeIf { it != branch.status },
+                deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
+                facilities = branchFacilities.takeIf { it != branch.facilities },
+                managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
+                avatar = avatarPath,
+                coverImage = coverPath
+            )
+
+            when (val result = authViewModel.updateBranch(branch.id, input)) {
+                is BusinessResult.Success -> {
+                    onSuccess(result.data)
+                }
+                is BusinessResult.Error -> {
+                    statusMessage = result.message
+                    onError(result.message)
+                }
+                else -> {}
+            }
+
+            isLoading = false
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -95,10 +178,31 @@ fun BranchEditScreen(
                         )
                     }
                 },
+                actions = {
+                    TextButton(
+                        onClick = { saveBranchChanges() },
+                        enabled = !isLoading && !isUploading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Guardar",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -335,109 +439,7 @@ fun BranchEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    if (name.isBlank() || phone.isBlank()) {
-                        statusMessage = "Completa los campos requeridos"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-                    if (selectedTipos.isEmpty()) {
-                        statusMessage = "Selecciona al menos un tipo de sucursal"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-                    if (selectedPaymentMethodIds.isEmpty()) {
-                        statusMessage = "Selecciona al menos un metodo de pago"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-                    if (!useAppMessaging && selectedVehicles.isEmpty()) {
-                        statusMessage = "Para delivery propio debes seleccionar al menos un vehiculo"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-                    if (isUploading) {
-                        statusMessage = "Espera a que terminen las subidas de imagen"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-
-                    val latValue = latitude.toDoubleOrNull()
-                    val lngValue = longitude.toDoubleOrNull()
-                    if (latValue == null || lngValue == null) {
-                        statusMessage = "Coordenadas invalidas"
-                        onError(statusMessage ?: "")
-                        return@Button
-                    }
-
-                    coroutineScope.launch {
-                        isLoading = true
-
-                        val nameValue = name.trim()
-                        val phoneValue = phone.trim()
-                        val addressValue = address.trim()
-                        val scheduleValue = branchSchedule.toBackendSchedule()
-                        val parsedManagerIds = parseManagerIds(managerIds)
-                        val deliveryValue = deliveryRadius.toDoubleOrNull()
-
-                        val input = UpdateBranchInput(
-                            name = nameValue.takeIf { it != branch.name },
-                            phone = phoneValue.takeIf { it != branch.phone },
-                            address = addressValue.takeIf { it != branch.address.orEmpty() },
-                            coordinates = if (latValue != branch.coordinates.latitude ||
-                                lngValue != branch.coordinates.longitude) {
-                                CoordinatesInput(lat = latValue, lng = lngValue)
-                            } else {
-                                null
-                            },
-                            schedule = scheduleValue.takeIf { it != branch.schedule },
-                            tipos = selectedTipos.toList().takeIf { it != branch.tipos },
-                            useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
-                            vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
-                            paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
-                            status = status.takeIf { it != branch.status },
-                            deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
-                            facilities = branchFacilities.takeIf { it != branch.facilities },
-                            managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
-                            avatar = avatarPath,
-                            coverImage = coverPath
-                        )
-
-                        when (val result = authViewModel.updateBranch(branch.id, input)) {
-                            is BusinessResult.Success -> {
-                                onSuccess(result.data)
-                            }
-                            is BusinessResult.Error -> {
-                                statusMessage = result.message
-                                onError(result.message)
-                            }
-                            else -> {}
-                        }
-
-                        isLoading = false
-                    }
-                },
-                enabled = !isLoading && !isUploading,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = LlegoCustomShapes.primaryButton
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Guardar cambios")
-                }
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
-

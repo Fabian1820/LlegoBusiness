@@ -18,11 +18,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.settings.data.model.*
+import com.llego.business.profile.ui.components.UserInfoSection
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsUiState
+import com.llego.shared.data.model.AuthResult
+import com.llego.shared.data.model.UpdateUserInput
+import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Pantalla de Configuracion del Restaurante
@@ -32,17 +37,29 @@ import kotlinx.coroutines.delay
 @Composable
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
+    authViewModel: AuthViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
     var animateContent by remember { mutableStateOf(false) }
+    var ownerSaveMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     val uiState by settingsViewModel.uiState.collectAsState()
     val settings by settingsViewModel.settings.collectAsState()
+    val authUiState by authViewModel.uiState.collectAsState()
+    val currentUser = authUiState.user
 
     // Animacion de entrada
     LaunchedEffect(Unit) {
         delay(100)
         animateContent = true
+    }
+
+    LaunchedEffect(ownerSaveMessage) {
+        ownerSaveMessage?.let {
+            delay(3000)
+            ownerSaveMessage = null
+        }
     }
 
     Box(
@@ -68,6 +85,57 @@ fun SettingsScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        item {
+                            UserInfoSection(
+                                user = currentUser,
+                                onSave = { name, username, phone ->
+                                    currentUser?.let { user ->
+                                        coroutineScope.launch {
+                                            val normalizedUsername = username.trim().removePrefix("@")
+                                            val input = UpdateUserInput(
+                                                name = name.takeIf { it != user.name },
+                                                username = normalizedUsername.takeIf {
+                                                    it.isNotBlank() && it != user.username
+                                                },
+                                                phone = phone.takeIf { it != user.phone }
+                                            )
+
+                                            when (val result = authViewModel.updateUser(input)) {
+                                                is AuthResult.Success -> {
+                                                    ownerSaveMessage = "OK: Usuario actualizado correctamente"
+                                                }
+                                                is AuthResult.Error -> {
+                                                    ownerSaveMessage = "Error: ${result.message}"
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        ownerSaveMessage?.let { message ->
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    shape = LlegoCustomShapes.infoCard
+                                ) {
+                                    Text(
+                                        text = message,
+                                        modifier = Modifier.padding(16.dp),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
                         // Cuenta y Seguridad
                         item {
                             SettingsSection(

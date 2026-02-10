@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material3.ButtonDefaults
@@ -33,6 +34,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -209,11 +211,31 @@ internal fun BusinessSection(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     branches.forEach { branch ->
-                        BranchRow(
-                            branch = branch,
-                            onClick = { onBranchSelected(branch) },
-                            onEdit = onEditBranch?.let { { it(branch) } }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            BranchRow(
+                                branch = branch,
+                                onClick = { onBranchSelected(branch) },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            if (onEditBranch != null) {
+                                IconButton(
+                                    onClick = { onEditBranch(branch) },
+                                    modifier = Modifier.size(30.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Edit,
+                                        contentDescription = "Editar sucursal",
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     if (canAddBranch) {
