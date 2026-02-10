@@ -66,7 +66,6 @@ import com.llego.shared.ui.components.molecules.SchedulePicker
 import com.llego.shared.ui.components.molecules.toBackendSchedule
 import com.llego.shared.ui.onboarding.components.OnboardingStepLayout
 import com.llego.shared.ui.onboarding.components.RequiredFieldLabel
-import com.llego.shared.ui.onboarding.components.StepProgressBar
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import kotlinx.coroutines.launch
 
@@ -254,8 +253,6 @@ fun BranchCreateWizardScreen(
                     .padding(top = 16.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                StepProgressBar(currentStep = step, totalSteps = totalSteps)
-
                 statusMessage?.let { message ->
                     Card(
                         shape = RoundedCornerShape(12.dp),
