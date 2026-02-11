@@ -40,13 +40,13 @@ sealed class BusinessAccessListState {
 class InvitationViewModel(
     private val repository: InvitationRepository
 ) : ViewModel() {
-    
+
     private val _generateState = MutableStateFlow<InvitationUiState>(InvitationUiState.Idle)
     val generateState: StateFlow<InvitationUiState> = _generateState.asStateFlow()
-    
+
     private val _invitationsState = MutableStateFlow<InvitationListState>(InvitationListState.Idle)
     val invitationsState: StateFlow<InvitationListState> = _invitationsState.asStateFlow()
-    
+
     private val _redeemState = MutableStateFlow<RedeemState>(RedeemState.Idle)
     val redeemState: StateFlow<RedeemState> = _redeemState.asStateFlow()
 
@@ -70,17 +70,17 @@ class InvitationViewModel(
                 }
         }
     }
-    
+
     fun loadInvitations(businessId: String, activeOnly: Boolean = false) {
         viewModelScope.launch {
             _invitationsState.value = InvitationListState.Loading
-            
+
             val result = if (activeOnly) {
                 repository.getActiveInvitationsByBusiness(businessId)
             } else {
                 repository.getInvitationsByBusiness(businessId)
             }
-            
+
             result
                 .onSuccess { invitations ->
                     _invitationsState.value = InvitationListState.Success(invitations)
@@ -92,15 +92,15 @@ class InvitationViewModel(
                 }
         }
     }
-    
+
     fun redeemInvitationCode(code: String) {
-        
+
         viewModelScope.launch {
             _redeemState.value = RedeemState.Loading
 
             repository.acceptInvitationCode(code)
                 .onSuccess { invitation ->
-                    
+
                     // CORRECCIÃ“N: Cuando el backend acepta un cÃ³digo exitosamente,
                     // retorna status=USED e isUsable=false (porque ya no se puede reusar)
                     // pero accessStatus=ACTIVE indica que el acceso estÃ¡ activo.
@@ -128,7 +128,7 @@ class InvitationViewModel(
                     }
                 }
                 .onFailure { error ->
-                    
+
                     // Mejorar mensajes segÃºn el error del backend
                     val message = when {
                         error.message?.contains("ya tienes acceso", ignoreCase = true) == true -> {
@@ -156,7 +156,7 @@ class InvitationViewModel(
                             error.message ?: "Error al canjear el cÃ³digo"
                         }
                     }
-                    
+
                     _redeemState.value = RedeemState.Error(message)
                 }
         }
@@ -178,12 +178,12 @@ class InvitationViewModel(
         }
     }
 
-    fun revokeInvitation(invitationId: String, businessId: String) {
+    fun revokeInvitation(invitationId: String, businessId: String, activeOnly: Boolean = false) {
         viewModelScope.launch {
             repository.revokeInvitationCode(invitationId)
                 .onSuccess {
                     // Reload invitations after revoking
-                    loadInvitations(businessId)
+                    loadInvitations(businessId, activeOnly)
                 }
                 .onFailure { error ->
                     _invitationsState.value = InvitationListState.Error(
@@ -192,11 +192,11 @@ class InvitationViewModel(
                 }
         }
     }
-    
+
     fun resetGenerateState() {
         _generateState.value = InvitationUiState.Idle
     }
-    
+
     fun resetRedeemState() {
         _redeemState.value = RedeemState.Idle
     }

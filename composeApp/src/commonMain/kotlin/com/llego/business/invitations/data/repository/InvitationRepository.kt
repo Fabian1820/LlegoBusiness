@@ -1,6 +1,7 @@
 package com.llego.business.invitations.data.repository
 
 import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.api.Optional
 import com.llego.multiplatform.graphql.AcceptInvitationCodeMutation
 import com.llego.multiplatform.graphql.ActiveInvitationsByBusinessQuery
 import com.llego.multiplatform.graphql.BusinessAccessByBusinessQuery
@@ -19,13 +20,13 @@ class InvitationRepository(
     private val apolloClient: ApolloClient = GraphQLClient.apolloClient,
     private val tokenManager: TokenManager = TokenManager()
 ) {
-    
+
     suspend fun generateInvitationCode(
         input: GenerateInvitationInput
     ): Result<Invitation> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token found"))
-            
+
             val response = apolloClient.mutation(
                 GenerateInvitationCodeMutation(
                     input = input.toGraphQLInput(),
@@ -49,7 +50,7 @@ class InvitationRepository(
             Result.failure(e)
         }
     }
-    
+
     suspend fun acceptInvitationCode(
         code: String
     ): Result<Invitation> {
@@ -83,17 +84,21 @@ class InvitationRepository(
             Result.failure(e)
         }
     }
-    
+
     suspend fun revokeInvitationCode(
         invitationId: String
     ): Result<Boolean> {
         return try {
+            val token = tokenManager.getToken()
+                ?: return Result.failure(Exception("No authentication token found"))
+
             val response = apolloClient.mutation(
                 RevokeInvitationCodeMutation(
-                    invitationId = invitationId
+                    invitationId = invitationId,
+                    jwt = Optional.presentIfNotNull(token)
                 )
             ).execute()
-            
+
             if (response.hasErrors()) {
                 Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error revoking invitation code"))
             } else {
@@ -104,13 +109,13 @@ class InvitationRepository(
             Result.failure(e)
         }
     }
-    
+
     suspend fun getInvitationByCode(code: String): Result<Invitation?> {
         return try {
             val response = apolloClient.query(
                 InvitationByCodeQuery(code = code.uppercase())
             ).execute()
-            
+
             if (response.hasErrors()) {
                 Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error fetching invitation"))
             } else {
@@ -121,7 +126,7 @@ class InvitationRepository(
             Result.failure(e)
         }
     }
-    
+
     suspend fun getInvitationsByBusiness(
         businessId: String
     ): Result<List<Invitation>> {
@@ -134,18 +139,18 @@ class InvitationRepository(
                     jwt = token
                 )
             ).execute()
-            
+
             if (response.hasErrors()) {
                 val errorMessage = response.errors?.firstOrNull()?.message ?: "Error fetching invitations"
                 // Si el error es sobre tipo desconocido, probablemente no hay invitaciones
-                if (errorMessage.contains("unknown", ignoreCase = true) || 
+                if (errorMessage.contains("unknown", ignoreCase = true) ||
                     errorMessage.contains("type", ignoreCase = true)) {
                     Result.success(emptyList())
                 } else {
                     Result.failure(Exception(errorMessage))
                 }
             } else {
-                val invitations = response.data?.invitationsByBusiness?.mapNotNull { 
+                val invitations = response.data?.invitationsByBusiness?.mapNotNull {
                     try {
                         it.toInvitation()
                     } catch (e: Exception) {
@@ -164,7 +169,7 @@ class InvitationRepository(
             }
         }
     }
-    
+
     suspend fun getActiveInvitationsByBusiness(
         businessId: String
     ): Result<List<Invitation>> {
@@ -177,18 +182,18 @@ class InvitationRepository(
                     jwt = token
                 )
             ).execute()
-            
+
             if (response.hasErrors()) {
                 val errorMessage = response.errors?.firstOrNull()?.message ?: "Error fetching active invitations"
                 // Si el error es sobre tipo desconocido, probablemente no hay invitaciones
-                if (errorMessage.contains("unknown", ignoreCase = true) || 
+                if (errorMessage.contains("unknown", ignoreCase = true) ||
                     errorMessage.contains("type", ignoreCase = true)) {
                     Result.success(emptyList())
                 } else {
                     Result.failure(Exception(errorMessage))
                 }
             } else {
-                val invitations = response.data?.activeInvitationsByBusiness?.mapNotNull { 
+                val invitations = response.data?.activeInvitationsByBusiness?.mapNotNull {
                     try {
                         it.toInvitation()
                     } catch (e: Exception) {

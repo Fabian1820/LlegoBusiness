@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.products.config.ProductCategoryProvider
+import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.extractFilename
@@ -55,7 +56,7 @@ import com.llego.shared.ui.upload.ImageUploadViewModel
 
 /**
  * Datos normalizados del formulario de producto.
- * 
+ *
  * @property name Nombre del producto (requerido)
  * @property description Descripción del producto (requerido)
  * @property price Precio del producto (requerido)
@@ -83,12 +84,13 @@ data class ProductFormData(
 @Composable
 fun AddProductScreen(
     branchId: String?,
+    branchTipos: Set<BranchTipo> = emptySet(),
     onNavigateBack: () -> Unit,
     onSave: (ProductFormData) -> Unit,
     existingProduct: Product? = null,
     modifier: Modifier = Modifier
 ) {
-    val categories = remember { ProductCategoryProvider.getCategories() }
+    val categories = remember(branchTipos) { ProductCategoryProvider.getCategories(branchTipos) }
     val imageUploadViewModel = remember { ImageUploadViewModel() }
 
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
@@ -100,6 +102,12 @@ fun AddProductScreen(
     var isAvailable by remember { mutableStateOf(existingProduct?.availability ?: true) }
 
     var showCategoryDropdown by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(categories, selectedCategoryId) {
+        if (selectedCategoryId != null && categories.none { it.id == selectedCategoryId }) {
+            selectedCategoryId = null
+        }
+    }
 
     val initialImageState = remember(existingProduct) {
         existingProduct?.let { product ->

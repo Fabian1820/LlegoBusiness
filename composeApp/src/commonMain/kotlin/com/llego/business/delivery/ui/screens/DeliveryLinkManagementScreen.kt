@@ -1,6 +1,7 @@
 package com.llego.business.delivery.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,9 +50,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,9 +64,8 @@ import com.llego.business.delivery.data.model.DeliveryRequestStatus
 import com.llego.business.delivery.data.model.LinkedDriverSummary
 import com.llego.business.delivery.data.model.toVehicleLabel
 import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+
+private const val DELIVERY_PULL_REFRESH_THRESHOLD_PX = 120f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +80,27 @@ fun DeliveryLinkManagementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    var gesturePullDistance by remember { mutableStateOf(0f) }
+    var showDisableDeliveryDialog by remember { mutableStateOf(false) }
+
+    val canTriggerRefresh = !uiState.isLoading &&
+        !uiState.isRefreshing &&
+        uiState.actionRequestId == null &&
+        !uiState.isUpdatingDeliveryMode
+    val isAtTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+
+    val refreshData = {
+        viewModel.loadManagementData(
+            branchId = branchId,
+            branchUsesAppMessaging = uiState.branchUsesAppMessaging,
+            isManualRefresh = true
+        )
+        viewModel.loadEntryPoint(
+            branchId = branchId,
+            branchUsesAppMessaging = uiState.branchUsesAppMessaging
+        )
+    }
 
     LaunchedEffect(branchId, initialBranchUsesAppMessaging) {
         viewModel.loadManagementData(
@@ -117,23 +142,6 @@ fun DeliveryLinkManagementScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.loadManagementData(
-                                branchId = branchId,
-                                branchUsesAppMessaging = uiState.branchUsesAppMessaging,
-                                isManualRefresh = true
-                            )
-                        },
-                        enabled = !uiState.isRefreshing && uiState.actionRequestId == null
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Recargar"
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -142,95 +150,159 @@ fun DeliveryLinkManagementScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (uiState.isLoading && uiState.pendingRequests.isEmpty() && uiState.linkedDrivers.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    DeliveryStatusBanner(
-                        hasOwnDelivery = !uiState.branchUsesAppMessaging,
-                        pendingRequests = uiState.pendingRequestCount
-                    )
-                }
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = refreshData,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .pointerInput(canTriggerRefresh, isAtTop) {
+                    detectVerticalDragGestures(
+                        onVerticalDrag = { _, dragAmount ->
+                            if (!canTriggerRefresh || !isAtTop) return@detectVerticalDragGestures
 
-                item {
-                    SummaryRow(
-                        pendingCount = uiState.pendingRequestCount,
-                        linkedCount = uiState.linkedDrivers.size
-                    )
-                }
-
-                item {
-                    SectionTitle("Solicitudes pendientes")
-                }
-
-                if (uiState.pendingRequests.isEmpty()) {
-                    item {
-                        EmptyStateText("No hay solicitudes pendientes")
-                    }
-                } else {
-                    items(uiState.pendingRequests, key = { it.id }) { request ->
-                        PendingRequestCard(
-                            request = request,
-                            isActionLoading = uiState.actionRequestId == request.id,
-                            onAccept = {
-                                viewModel.respondToRequest(
-                                    branchId = branchId,
-                                    requestId = request.id,
-                                    accept = true,
-                                    onDeliveryModeEnabled = onDeliveryModeEnabled
-                                )
-                            },
-                            onReject = {
-                                viewModel.respondToRequest(
-                                    branchId = branchId,
-                                    requestId = request.id,
-                                    accept = false
-                                )
+                            if (dragAmount > 0f) {
+                                gesturePullDistance += dragAmount
+                                if (gesturePullDistance >= DELIVERY_PULL_REFRESH_THRESHOLD_PX) {
+                                    refreshData()
+                                    gesturePullDistance = 0f
+                                }
+                            } else if (dragAmount < 0f) {
+                                gesturePullDistance = 0f
                             }
+                        },
+                        onDragEnd = { gesturePullDistance = 0f },
+                        onDragCancel = { gesturePullDistance = 0f }
+                    )
+                }
+        ) {
+            if (uiState.isLoading && uiState.pendingRequests.isEmpty() && uiState.linkedDrivers.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        DeliveryStatusBanner(
+                            hasOwnDelivery = !uiState.branchUsesAppMessaging,
+                            pendingRequests = uiState.pendingRequestCount
                         )
                     }
-                }
 
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SectionTitle("Choferes ya vinculados")
-                }
-
-                if (uiState.linkedDrivers.isEmpty()) {
                     item {
-                        EmptyStateText("Aun no tienes choferes vinculados")
+                        SummaryRow(
+                            pendingCount = uiState.pendingRequestCount,
+                            linkedCount = uiState.linkedDrivers.size
+                        )
                     }
-                } else {
-                    items(uiState.linkedDrivers, key = { it.deliveryPerson.id }) { linkedDriver ->
-                        LinkedDriverCard(linkedDriver = linkedDriver)
-                    }
-                }
 
-                if (uiState.processedRequests.isNotEmpty()) {
+                    item {
+                        SectionTitle("Solicitudes pendientes")
+                    }
+
+                    if (uiState.pendingRequests.isEmpty()) {
+                        item {
+                            EmptyStateText("No hay solicitudes pendientes")
+                        }
+                    } else {
+                        items(uiState.pendingRequests, key = { it.id }) { request ->
+                            PendingRequestCard(
+                                request = request,
+                                isActionLoading = uiState.actionRequestId == request.id,
+                                onAccept = {
+                                    viewModel.respondToRequest(
+                                        branchId = branchId,
+                                        requestId = request.id,
+                                        accept = true,
+                                        onDeliveryModeEnabled = onDeliveryModeEnabled
+                                    )
+                                },
+                                onReject = {
+                                    viewModel.respondToRequest(
+                                        branchId = branchId,
+                                        requestId = request.id,
+                                        accept = false
+                                    )
+                                }
+                            )
+                        }
+                    }
+
                     item {
                         Spacer(modifier = Modifier.height(4.dp))
-                        SectionTitle("Solicitudes procesadas")
+                        SectionTitle("Choferes ya vinculados")
                     }
-                    items(uiState.processedRequests, key = { it.id }) { request ->
-                        ProcessedRequestCard(request = request)
+
+                    if (uiState.linkedDrivers.isEmpty()) {
+                        item {
+                            EmptyStateText("Aun no tienes choferes vinculados")
+                        }
+                    } else {
+                        items(uiState.linkedDrivers, key = { it.deliveryPerson.id }) { linkedDriver ->
+                            LinkedDriverCard(linkedDriver = linkedDriver)
+                        }
+                    }
+
+                    if (uiState.processedRequests.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            SectionTitle("Solicitudes procesadas")
+                        }
+                        items(uiState.processedRequests, key = { it.id }) { request ->
+                            ProcessedRequestCard(request = request)
+                        }
+                    }
+
+                    if (!uiState.branchUsesAppMessaging) {
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DeactivateOwnDeliverySection(
+                                isProcessing = uiState.isUpdatingDeliveryMode,
+                                onDeactivateClick = { showDisableDeliveryDialog = true }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (showDisableDeliveryDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDisableDeliveryDialog = false },
+            title = { Text("Desactivar delivery propio") },
+            text = {
+                Text("Se desactivara el delivery propio y la sucursal volvera a usar mensajeria de la app. Deseas continuar?")
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showDisableDeliveryDialog = false
+                        viewModel.disableOwnDeliveryForBranch(
+                            branchId = branchId,
+                            onDeliveryModeChanged = onDeliveryModeEnabled
+                        )
+                    }
+                ) {
+                    Text("Desactivar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showDisableDeliveryDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -346,6 +418,55 @@ private fun SummaryCard(
 }
 
 @Composable
+private fun DeactivateOwnDeliverySection(
+    isProcessing: Boolean,
+    onDeactivateClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Desactivar delivery propio",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "Al desactivarlo, la sucursal vuelve a usar mensajeria de la app.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onDeactivateClick,
+                enabled = !isProcessing,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                } else {
+                    Text("Desactivar ahora")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PendingRequestCard(
     request: BranchDeliveryRequest,
     isActionLoading: Boolean,
@@ -439,14 +560,6 @@ private fun LinkedDriverCard(
                 DriverMiniIdentity(linkedDriver)
                 OnlineStatusChip(isOnline = linkedDriver.deliveryPerson.isOnline)
             }
-            linkedDriver.linkedAt?.let { linkedAt ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Vinculado: ${formatDate(linkedAt)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -482,12 +595,6 @@ private fun ProcessedRequestCard(
                 }
                 StatusChip(request.status)
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Actualizado: ${formatDate(request.updatedAt)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -561,7 +668,7 @@ private fun RowScope.DriverMiniIdentity(linkedDriver: LinkedDriverSummary) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "${driver.vehicleType.toVehicleLabel()} • ${driver.totalDeliveries} entregas",
+            text = "${driver.vehicleType.toVehicleLabel()} - ${driver.totalDeliveries} entregas",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -630,19 +737,4 @@ private fun EmptyStateText(text: String) {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
-}
-
-@OptIn(kotlin.time.ExperimentalTime::class)
-private fun formatDate(rawValue: String): String {
-    return try {
-        val localDateTime = Instant.parse(rawValue)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-        val day = localDateTime.dayOfMonth.toString().padStart(2, '0')
-        val month = localDateTime.monthNumber.toString().padStart(2, '0')
-        val hour = localDateTime.hour.toString().padStart(2, '0')
-        val minute = localDateTime.minute.toString().padStart(2, '0')
-        "$day/$month/${localDateTime.year} $hour:$minute"
-    } catch (_: Exception) {
-        rawValue
-    }
 }

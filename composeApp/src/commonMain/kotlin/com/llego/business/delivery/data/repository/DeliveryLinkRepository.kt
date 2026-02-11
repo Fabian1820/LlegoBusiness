@@ -102,6 +102,31 @@ class DeliveryLinkRepository(
         }
     }
 
+    suspend fun disableOwnDeliveryForBranch(branchId: String): Result<Unit> {
+        return runCatching {
+            val token = tokenManager.getToken()
+                ?: throw IllegalStateException("No hay token de autenticacion")
+
+            val response = apolloClient.mutation(
+                UpdateBranchMutation(
+                    branchId = branchId,
+                    input = UpdateBranchInput(useAppMessaging = true).toGraphQL(),
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errorMessage = response.errors?.firstOrNull()?.message
+                    ?: "No fue posible desactivar el delivery propio"
+                throw IllegalStateException(errorMessage)
+            }
+
+            if (response.data?.updateBranch == null) {
+                throw IllegalStateException("No se recibio respuesta al actualizar la sucursal")
+            }
+        }
+    }
+
     private fun BranchLinkRequestsQuery.BranchLinkRequest.toDomain(): BranchDeliveryRequest {
         return BranchDeliveryRequest(
             id = id,

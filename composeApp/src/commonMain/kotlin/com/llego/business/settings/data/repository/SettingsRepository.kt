@@ -80,10 +80,11 @@ class SettingsRepository private constructor(
                     selectedMethods = settings.acceptedPaymentMethods,
                     existingBranchPaymentMethodIds = branch.paymentMethodIds
                 )
+                val paymentMethodIdsForUpdate = selectedPaymentMethodIds.takeIf { it.isNotEmpty() }
 
                 val input = UpdateBranchInput(
                     schedule = settings.businessHours.toBranchSchedule(),
-                    paymentMethodIds = selectedPaymentMethodIds
+                    paymentMethodIds = paymentMethodIdsForUpdate
                 )
 
                 when (val result = authManager.updateBranch(branch.id, input)) {

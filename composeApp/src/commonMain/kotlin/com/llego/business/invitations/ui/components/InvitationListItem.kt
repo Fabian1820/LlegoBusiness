@@ -2,17 +2,34 @@
 
 package com.llego.business.invitations.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llego.business.invitations.data.model.AccessStatus
 import com.llego.business.invitations.data.model.Invitation
 import com.llego.business.invitations.data.model.InvitationStatus
 import com.llego.business.invitations.data.model.InvitationType
@@ -26,6 +43,9 @@ fun InvitationListItem(
     modifier: Modifier = Modifier
 ) {
     var showRevokeDialog by remember { mutableStateOf(false) }
+    val canRevoke = onRevoke != null &&
+        invitation.status != InvitationStatus.REVOKED &&
+        (invitation.status == InvitationStatus.PENDING || invitation.accessStatus == AccessStatus.ACTIVE)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -48,7 +68,6 @@ fun InvitationListItem(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Code
                 Text(
                     text = invitation.code,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -58,7 +77,6 @@ fun InvitationListItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                // Type and target
                 Text(
                     text = when (invitation.invitationType) {
                         InvitationType.BRANCH -> "Sucursal: ${invitation.branch?.name ?: "N/A"}"
@@ -68,23 +86,24 @@ fun InvitationListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Duration
                 Text(
                     text = if (invitation.accessDurationDays != null) {
-                        "Duración: ${invitation.accessDurationDays} días"
+                        "Duracion: ${invitation.accessDurationDays} dias"
                     } else {
-                        "Duración: Indefinida"
+                        "Duracion: Indefinida"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Status
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     StatusChip(invitation.status)
+                    if (invitation.status == InvitationStatus.USED && invitation.accessStatus == AccessStatus.ACTIVE) {
+                        AccessChip("Acceso activo")
+                    }
 
                     if (invitation.status == InvitationStatus.USED && invitation.redeemer != null) {
                         Text(
@@ -95,7 +114,6 @@ fun InvitationListItem(
                     }
                 }
 
-                // Created date
                 Text(
                     text = "Creado: ${formatDate(invitation.createdAt.toString())}",
                     style = MaterialTheme.typography.bodySmall,
@@ -103,14 +121,11 @@ fun InvitationListItem(
                 )
             }
 
-            // Revoke button (only for pending invitations and if user has permission)
-            if (invitation.status == InvitationStatus.PENDING && onRevoke != null) {
-                IconButton(
-                    onClick = { showRevokeDialog = true }
-                ) {
+            if (canRevoke) {
+                IconButton(onClick = { showRevokeDialog = true }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Revocar invitación",
+                        contentDescription = "Revocar invitacion",
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -121,9 +136,15 @@ fun InvitationListItem(
     if (showRevokeDialog) {
         AlertDialog(
             onDismissRequest = { showRevokeDialog = false },
-            title = { Text("Revocar invitación") },
+            title = { Text("Revocar invitacion") },
             text = {
-                Text("¿Estás seguro de que deseas revocar este código de invitación? Esta acción no se puede deshacer.")
+                Text(
+                    if (invitation.status == InvitationStatus.USED && invitation.accessStatus == AccessStatus.ACTIVE) {
+                        "Se revocara este codigo y tambien el acceso activo otorgado. Esta accion no se puede deshacer."
+                    } else {
+                        "Se revocara este codigo de invitacion. Esta accion no se puede deshacer."
+                    }
+                )
             },
             confirmButton = {
                 TextButton(
@@ -161,6 +182,21 @@ private fun StatusChip(status: InvitationStatus) {
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             color = color
+        )
+    }
+}
+
+@Composable
+private fun AccessChip(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }

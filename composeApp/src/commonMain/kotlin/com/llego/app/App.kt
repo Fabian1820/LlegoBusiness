@@ -656,6 +656,7 @@ private fun MainBusinessFlow(
             navigator.showAddProduct -> {
                 AddProductScreen(
                     branchId = authViewModel.getCurrentBranchId(),
+                    branchTipos = currentBranch?.tipos?.toSet() ?: emptySet(),
                     onNavigateBack = {
                         navigator.showAddProduct = false
                         navigator.productToEdit = null

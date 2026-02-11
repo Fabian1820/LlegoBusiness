@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -63,13 +64,14 @@ import kotlinx.coroutines.launch
 fun ProductsScreen(
     viewModel: ProductViewModel,
     branchId: String?,
+    branchTipos: Set<BranchTipo> = emptySet(),
     onNavigateToAddProduct: (Product?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
     onNavigateToProductSearch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val productsState by viewModel.productsState.collectAsState()
-    val categories = remember { ProductCategoryProvider.getCategories() }
+    val categories = remember(branchTipos) { ProductCategoryProvider.getCategories(branchTipos) }
     val scope = rememberCoroutineScope()
 
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
@@ -80,6 +82,12 @@ fun ProductsScreen(
             viewModel.loadProducts(branchId = branchId)
         } else {
             viewModel.loadProducts()
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(categories, selectedCategoryId) {
+        if (selectedCategoryId != null && categories.none { it.id == selectedCategoryId }) {
+            selectedCategoryId = null
         }
     }
 

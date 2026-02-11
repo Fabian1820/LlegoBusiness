@@ -26,6 +26,7 @@ data class DeliveryLinkUiState(
     val branchUsesAppMessaging: Boolean = true,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
+    val isUpdatingDeliveryMode: Boolean = false,
     val actionRequestId: String? = null,
     val pendingRequests: List<BranchDeliveryRequest> = emptyList(),
     val linkedDrivers: List<LinkedDriverSummary> = emptyList(),
@@ -321,6 +322,53 @@ class DeliveryLinkViewModel(
                 errorMessage = null,
                 successMessage = null
             )
+        }
+    }
+
+    fun disableOwnDeliveryForBranch(
+        branchId: String,
+        onDeliveryModeChanged: (() -> Unit)? = null
+    ) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    isUpdatingDeliveryMode = true,
+                    errorMessage = null,
+                    successMessage = null
+                )
+            }
+
+            repository.disableOwnDeliveryForBranch(branchId)
+                .onSuccess {
+                    _uiState.update { state ->
+                        state.copy(
+                            isUpdatingDeliveryMode = false,
+                            branchUsesAppMessaging = true,
+                            successMessage = "Delivery propio desactivado. Ahora usas mensajeria de la app."
+                        )
+                    }
+
+                    onDeliveryModeChanged?.invoke()
+
+                    loadManagementData(
+                        branchId = branchId,
+                        branchUsesAppMessaging = true,
+                        isManualRefresh = true
+                    )
+                    loadEntryPoint(
+                        branchId = branchId,
+                        branchUsesAppMessaging = true
+                    )
+                }
+                .onFailure { throwable ->
+                    _uiState.update { state ->
+                        state.copy(
+                            isUpdatingDeliveryMode = false,
+                            errorMessage = throwable.message
+                                ?: "No fue posible desactivar el delivery propio"
+                        )
+                    }
+                }
         }
     }
 }

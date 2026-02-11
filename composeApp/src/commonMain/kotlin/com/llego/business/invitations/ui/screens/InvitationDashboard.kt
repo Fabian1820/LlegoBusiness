@@ -179,7 +179,11 @@ fun InvitationDashboard(
                             state = invitationsState,
                             showActiveOnly = showActiveOnly,
                             onRevokeInvitation = { invitationId ->
-                                viewModel.revokeInvitation(invitationId, businessId)
+                                viewModel.revokeInvitation(
+                                    invitationId = invitationId,
+                                    businessId = businessId,
+                                    activeOnly = showActiveOnly
+                                )
                             },
                             onRetry = {
                                 viewModel.loadInvitations(businessId, showActiveOnly)

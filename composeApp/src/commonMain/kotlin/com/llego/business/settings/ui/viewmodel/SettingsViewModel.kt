@@ -57,16 +57,26 @@ class SettingsViewModel(
 
     fun updateSettings(settings: BusinessSettings) {
         viewModelScope.launch {
+            val currentSettings = _settings.value
             val result = runCatching { repository.updateSettings(settings) }
             result.onFailure { error ->
-                _uiState.value = SettingsUiState.Error(
-                    error.message ?: "Error al actualizar configuracion"
-                )
+                if (currentSettings != null) {
+                    _uiState.value = SettingsUiState.Success(currentSettings)
+                } else {
+                    _uiState.value = SettingsUiState.Error(
+                        error.message ?: "Error al actualizar configuracion"
+                    )
+                }
                 return@launch
             }
 
             if (result.getOrDefault(false).not()) {
-                _uiState.value = SettingsUiState.Error("No se pudo actualizar la configuracion")
+                if (currentSettings != null) {
+                    _uiState.value = SettingsUiState.Success(currentSettings)
+                    loadSettings()
+                } else {
+                    _uiState.value = SettingsUiState.Error("No se pudo actualizar la configuracion")
+                }
             }
         }
     }

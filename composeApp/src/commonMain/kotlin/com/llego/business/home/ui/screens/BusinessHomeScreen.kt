@@ -259,6 +259,7 @@ fun BusinessHomeScreen(
                     ProductsScreen(
                         viewModel = productViewModel,
                         branchId = authViewModel.getCurrentBranchId(),
+                        branchTipos = currentBranch?.tipos?.toSet() ?: emptySet(),
                         onNavigateToAddProduct = onNavigateToAddProduct,
                         onNavigateToProductDetail = onNavigateToProductDetail,
                         onNavigateToProductSearch = onNavigateToProductSearch

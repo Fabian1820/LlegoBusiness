@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,7 +30,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Pantalla de Configuracion del Restaurante
- * Incluye: Cuenta y seguridad, Notificaciones, Metodos de pago, Datos y privacidad, Soporte
+ * Incluye: Notificaciones, Datos y privacidad, Soporte
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,20 +135,6 @@ fun SettingsScreen(
                             }
                         }
 
-                        // Cuenta y Seguridad
-                        item {
-                            SettingsSection(
-                                title = "Cuenta y Seguridad",
-                                icon = Icons.Default.Lock,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            ) {
-                                AccountSecuritySection(
-                                    onEmailChange = { /* TODO */ },
-                                    onPasswordChange = { /* TODO */ }
-                                )
-                            }
-                        }
-
                         // Notificaciones
                         item {
                             SettingsSection(
@@ -168,26 +153,6 @@ fun SettingsScreen(
                                         settings?.let {
                                             settingsViewModel.updateSettings(
                                                 it.copy(notifications = notifications)
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-
-                        // Metodos de Pago
-                        item {
-                            SettingsSection(
-                                title = "Metodos de Pago",
-                                icon = Icons.Default.Payment,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            ) {
-                                PaymentMethodsSection(
-                                    acceptedPaymentMethods = settings?.acceptedPaymentMethods ?: emptyList(),
-                                    onUpdate = { methods ->
-                                        settings?.let {
-                                            settingsViewModel.updateSettings(
-                                                it.copy(acceptedPaymentMethods = methods)
                                             )
                                         }
                                     }
@@ -359,15 +324,6 @@ private fun NotificationSettingsSection(
         )
 
         SettingSwitchRow(
-            label = "Mensajes de Clientes",
-            description = "Notificaciones de mensajes de clientes",
-            checked = notificationSettings.customerMessages,
-            onCheckedChange = {
-                onUpdate(notificationSettings.copy(customerMessages = it))
-            }
-        )
-
-        SettingSwitchRow(
             label = "Resumen Diario",
             description = "Recibe un resumen diario de las operaciones",
             checked = notificationSettings.dailySummary,
@@ -375,115 +331,6 @@ private fun NotificationSettingsSection(
                 onUpdate(notificationSettings.copy(dailySummary = it))
             }
         )
-    }
-}
-
-/**
- * Seccion de Metodos de Pago - Colores Llego
- */
-@Composable
-private fun PaymentMethodsSection(
-    acceptedPaymentMethods: List<PaymentMethod>,
-    onUpdate: (List<PaymentMethod>) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        PaymentMethod.values().forEach { method ->
-            val isAccepted = acceptedPaymentMethods.contains(method)
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        val updated = if (isAccepted) {
-                            acceptedPaymentMethods - method
-                        } else {
-                            acceptedPaymentMethods + method
-                        }
-                        onUpdate(updated)
-                    },
-                shape = LlegoShapes.small,
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isAccepted) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    }
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = BorderStroke(
-                    1.dp,
-                    if (isAccepted) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                    }
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isAccepted) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        ) {
-                            Icon(
-                                imageVector = when (method) {
-                                    PaymentMethod.CASH -> Icons.Default.Money
-                                    PaymentMethod.CARD -> Icons.Default.CreditCard
-                                    PaymentMethod.TRANSFER -> Icons.Default.AccountBalance
-                                    PaymentMethod.DIGITAL_WALLET -> Icons.Default.PhoneAndroid
-                                },
-                                contentDescription = null,
-                                tint = if (isAccepted) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .padding(8.dp)
-                            )
-                        }
-                        Text(
-                            text = method.getDisplayName(),
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = if (isAccepted) FontWeight.SemiBold else FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Checkbox(
-                        checked = isAccepted,
-                        onCheckedChange = { checked ->
-                            val updated = if (checked) {
-                                acceptedPaymentMethods + method
-                            } else {
-                                acceptedPaymentMethods - method
-                            }
-                            onUpdate(updated)
-                        },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary,
-                            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            checkmarkColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
-                }
-            }
-        }
     }
 }
 
