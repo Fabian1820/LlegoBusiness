@@ -36,6 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.analytics.util.PeriodFilter
 import com.llego.business.orders.data.model.TopProductStats
 import com.llego.business.orders.ui.viewmodel.DashboardStatsUiState
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,7 +123,7 @@ fun DashboardMetricsSection(
                 ) {
                     MetricCard(
                         title = "Ingresos",
-                        value = "$${"%.2f".format(statsState.stats.totalRevenue)}",
+                        value = "$${formatDecimal(statsState.stats.totalRevenue, 2)}",
                         icon = Icons.Default.AttachMoney,
                         iconColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
@@ -314,7 +317,7 @@ private fun TopProductRow(
             }
         }
         Text(
-            text = "$${"%.2f".format(product.totalRevenue)}",
+            text = "$${formatDecimal(product.totalRevenue, 2)}",
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -407,5 +410,18 @@ private fun buildConversionLabel(completed: Int, cancelled: Int): String {
     val total = completed + cancelled
     if (total <= 0) return "0%"
     val rate = (completed.toDouble() / total.toDouble()) * 100.0
-    return "${"%.1f".format(rate)}%"
+    return "${formatDecimal(rate, 1)}%"
+}
+
+private fun formatDecimal(value: Double, decimals: Int): String {
+    if (decimals <= 0) return value.roundToLong().toString()
+
+    val factor = 10.0.pow(decimals)
+    val scaled = (value * factor).roundToLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absoluteScaled = abs(scaled)
+    val integerPart = absoluteScaled / factor.toLong()
+    val fractionPart = (absoluteScaled % factor.toLong()).toString().padStart(decimals, '0')
+
+    return "$sign$integerPart.$fractionPart"
 }
