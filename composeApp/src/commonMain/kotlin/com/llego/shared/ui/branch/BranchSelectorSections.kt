@@ -72,7 +72,7 @@ internal fun BusinessSection(
     business: Business,
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
-    onEditBranch: ((Branch) -> Unit)? = null,
+    onEditBusiness: ((Business) -> Unit)? = null,
     onAddBranch: () -> Unit,
     canAddBranch: Boolean
 ) {
@@ -139,21 +139,38 @@ internal fun BusinessSection(
                     }
                 }
 
-                // Status badge
-                if (business.isActive) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE8F5E9)
-                    ) {
-                        Text(
-                            text = "Activo",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp
-                            ),
-                            color = Color(0xFF2E7D32)
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Status badge
+                    if (business.isActive) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE8F5E9)
+                        ) {
+                            Text(
+                                text = "Activo",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.sp
+                                ),
+                                color = Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+
+                    if (onEditBusiness != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(
+                            onClick = { onEditBusiness(business) },
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Editar negocio",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -211,31 +228,10 @@ internal fun BusinessSection(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     branches.forEach { branch ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            BranchRow(
-                                branch = branch,
-                                onClick = { onBranchSelected(branch) },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            if (onEditBranch != null) {
-                                IconButton(
-                                    onClick = { onEditBranch(branch) },
-                                    modifier = Modifier.size(30.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Edit,
-                                        contentDescription = "Editar sucursal",
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
+                        BranchRow(
+                            branch = branch,
+                            onClick = { onBranchSelected(branch) }
+                        )
                     }
 
                     if (canAddBranch) {

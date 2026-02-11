@@ -53,6 +53,7 @@ import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.shared.data.model.hasBranches
 import com.llego.shared.ui.business.RegisterBusinessViewModel
+import com.llego.shared.ui.branch.BusinessEditScreen
 import com.llego.shared.ui.branch.BranchSelectorScreen
 import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.screens.MapSelectionScreen
@@ -144,15 +145,21 @@ fun App(viewModels: AppViewModels) {
                     // Solo actualizar el flujo autom?tico si no estamos en modo "agregar negocio"
                     if (!canCancelBusinessRegistration) {
                         needsBusinessRegistration = shouldRegister
+                        isExploringWithoutBusiness = shouldRegister
                     }
 
                     if (shouldRegister) {
-                        canCancelBusinessRegistration = false
+                        if (!canCancelBusinessRegistration) {
+                            canCancelBusinessRegistration = false
+                        }
+                    } else {
+                        isExploringWithoutBusiness = false
                     }
 
                 } else {
                     needsBusinessRegistration = false
                     canCancelBusinessRegistration = false
+                    isExploringWithoutBusiness = false
                 }
 
 
@@ -379,7 +386,7 @@ fun App(viewModels: AppViewModels) {
                         onOpenMapSelection = openMapSelection,
                         onStartBusinessRegistration = {
                             navigator.branchCreateBusinessId = null
-                            canCancelBusinessRegistration = false
+                            canCancelBusinessRegistration = true
                             needsBusinessRegistration = true
                             isExploringWithoutBusiness = false
                         }
@@ -497,6 +504,24 @@ private fun BranchSelectionFlow(
     onStartBusinessRegistration: () -> Unit
 ) {
     when {
+        navigator.businessToEdit != null -> {
+            val business = navigator.businessToEdit!!
+            BusinessEditScreen(
+                business = business,
+                branches = branches.filter { it.businessId == business.id },
+                onNavigateBack = { navigator.businessToEdit = null },
+                onBusinessUpdated = { updatedBusiness ->
+                    navigator.businessToEdit = updatedBusiness
+                },
+                onDataChanged = {
+                    authViewModel.reloadUserData()
+                    branchSelectorViewModel.loadBusinesses()
+                },
+                onError = { _ -> },
+                authViewModel = authViewModel
+            )
+        }
+
         navigator.branchToEdit != null -> {
             BranchEditScreen(
                 branch = navigator.branchToEdit!!,
@@ -533,8 +558,8 @@ private fun BranchSelectionFlow(
                 onBranchSelected = { branch ->
                     authViewModel.setCurrentBranch(branch)
                 },
-                onEditBranch = { branch ->
-                    navigator.branchToEdit = branch
+                onEditBusiness = { business ->
+                    navigator.businessToEdit = business
                 },
                 onAddBusiness = onStartBusinessRegistration,
                 onAddBranch = { businessId ->
@@ -714,6 +739,24 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.businessToEdit != null -> {
+                val business = navigator.businessToEdit!!
+                BusinessEditScreen(
+                    business = business,
+                    branches = branches.filter { it.businessId == business.id },
+                    onNavigateBack = { navigator.businessToEdit = null },
+                    onBusinessUpdated = { updatedBusiness ->
+                        navigator.businessToEdit = updatedBusiness
+                    },
+                    onDataChanged = {
+                        authViewModel.reloadUserData()
+                        branchSelectorViewModel.loadBusinesses()
+                    },
+                    onError = { _ -> },
+                    authViewModel = authViewModel
+                )
+            }
+
             navigator.branchCreateBusinessId != null -> {
                 BranchCreateWizardScreen(
                     businessId = navigator.branchCreateBusinessId ?: "",
@@ -751,8 +794,8 @@ private fun MainBusinessFlow(
                         authViewModel.setCurrentBranch(branch)
                         navigator.showBranchesManagement = false
                     },
-                    onEditBranch = { branch ->
-                        navigator.branchToEdit = branch
+                    onEditBusiness = { business ->
+                        navigator.businessToEdit = business
                         navigator.showBranchesManagement = false
                     },
                     onAddBusiness = {

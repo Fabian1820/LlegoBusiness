@@ -123,19 +123,19 @@ fun BranchCreateWizardScreen(
         return when (step) {
             0 -> when {
                 name.isBlank() -> "El nombre de la sucursal es obligatorio."
-                phone.isBlank() -> "El telÃ©fono de la sucursal es obligatorio."
+                phone.isBlank() -> "El telefono de la sucursal es obligatorio."
                 else -> null
             }
 
             1 -> if (latitude == 0.0 && longitude == 0.0) {
-                "Selecciona la ubicaciÃ³n de la sucursal en el mapa."
+                "Selecciona la ubicacion de la sucursal en el mapa."
             } else {
                 null
             }
 
             2 -> when {
                 selectedTipos.isEmpty() -> "Selecciona al menos un tipo de sucursal."
-                selectedPaymentMethodIds.isEmpty() -> "Selecciona al menos un mÃ©todo de pago."
+                selectedPaymentMethodIds.isEmpty() -> "Selecciona al menos un metodo de pago."
                 schedule.values.none { it.isOpen } -> "Debes configurar al menos un dia abierto."
                 !useAppMessaging && selectedVehicles.isEmpty() -> "Selecciona al menos un vehiculo para delivery propio."
                 else -> null
@@ -296,8 +296,8 @@ fun BranchCreateWizardScreen(
                 when (step) {
                     0 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.Business,
-                        title = "Datos bÃ¡sicos",
-                        subtitle = "Define la informaciÃ³n principal de la nueva sucursal."
+                        title = "Datos basicos",
+                        subtitle = "Define la informacion principal de la nueva sucursal."
                     ) {
                         RequiredFieldLabel("Nombre de la sucursal")
                         Spacer(modifier = Modifier.height(8.dp))
@@ -314,7 +314,7 @@ fun BranchCreateWizardScreen(
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        RequiredFieldLabel("TelÃ©fono")
+                        RequiredFieldLabel("Telefono")
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = phone,
@@ -331,7 +331,7 @@ fun BranchCreateWizardScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = "DirecciÃ³n (opcional)",
+                            text = "Direccion (opcional)",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -341,7 +341,7 @@ fun BranchCreateWizardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                             maxLines = 3,
-                            placeholder = { Text("Calle, nÃºmero, referencia") },
+                            placeholder = { Text("Calle, numero, referencia") },
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary
@@ -393,8 +393,8 @@ fun BranchCreateWizardScreen(
 
                     1 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.LocationOn,
-                        title = "UbicaciÃ³n",
-                        subtitle = "Selecciona en el mapa dÃ³nde opera esta sucursal."
+                        title = "Ubicacion",
+                        subtitle = "Selecciona en el mapa donde opera esta sucursal."
                     ) {
                         MapLocationPickerReal(
                             latitude = latitude,
@@ -409,8 +409,8 @@ fun BranchCreateWizardScreen(
 
                     2 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.Schedule,
-                        title = "OperaciÃ³n",
-                        subtitle = "Configura tipo de servicio, horario y mÃ©todos de pago."
+                        title = "Operacion",
+                        subtitle = "Configura tipo de servicio, horario y metodos de pago."
                     ) {
                         RequiredFieldLabel("Tipos de servicio")
                         Spacer(modifier = Modifier.height(8.dp))
@@ -554,11 +554,11 @@ fun BranchCreateWizardScreen(
                                         .padding(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    ReviewRow("Negocio", "Seleccionado automÃ¡ticamente")
+                                    ReviewRow("Negocio", "Seleccionado automaticamente")
                                     ReviewRow("Nombre", name)
-                                    ReviewRow("TelÃ©fono", phone)
+                                    ReviewRow("Telefono", phone)
                                     if (address.isNotBlank()) {
-                                        ReviewRow("DirecciÃ³n", address)
+                                        ReviewRow("Direccion", address)
                                     }
                                     socialMedia?.forEach { (key, value) ->
                                         ReviewRow(
@@ -571,10 +571,10 @@ fun BranchCreateWizardScreen(
                                     if (!useAppMessaging) {
                                         ReviewRow("Vehiculos", selectedVehicles.joinToString(", ") { it.toDisplayName() })
                                     }
-                                    ReviewRow("Horario", "${schedule.values.count { it.isOpen }} dÃ­as abiertos")
+                                    ReviewRow("Horario", "${schedule.values.count { it.isOpen }} dias abiertos")
                                     ReviewRow(
                                         "Pagos",
-                                        selectedPaymentMethodNames.ifBlank { "Sin mÃ©todos seleccionados" }
+                                        selectedPaymentMethodNames.ifBlank { "Sin metodos seleccionados" }
                                     )
                                     ReviewRow("Cuentas", parseTransferAccountsInput(accountsInput).size.toString())
                                     ReviewRow("QR", parseQrPaymentsInput(qrPaymentsInput).size.toString())

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.invitations.ui.viewmodel.RedeemState
 import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.Business
 import com.llego.shared.ui.auth.AuthViewModel
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -68,7 +69,7 @@ fun BranchSelectorScreen(
     branchSelectorViewModel: BranchSelectorViewModel,
     branches: List<Branch>,
     onBranchSelected: (Branch) -> Unit,
-    onEditBranch: ((Branch) -> Unit)? = null,
+    onEditBusiness: ((Business) -> Unit)? = null,
     onAddBusiness: () -> Unit,
     onAddBranch: (String) -> Unit,
     onLogout: () -> Unit,
@@ -206,7 +207,7 @@ fun BranchSelectorScreen(
                                             business = business,
                                             branches = businessBranches,
                                             onBranchSelected = onBranchSelected,
-                                            onEditBranch = onEditBranch,
+                                            onEditBusiness = if (isOwner) onEditBusiness else null,
                                             onAddBranch = { onAddBranch(business.id) },
                                             canAddBranch = isOwner
                                         )
