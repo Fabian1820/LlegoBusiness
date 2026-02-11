@@ -37,13 +37,12 @@ fragment BranchCoreFields on BranchType {
   coverImage
   avatarUrl
   coverUrl
-  status
-  deliveryRadius
+  isActive
+  socialMedia
   coordinates {
     ...CoordinatesFields
   }
   schedule
-  facilities
   createdAt
   wallet {
     ...WalletBalanceFields
@@ -55,7 +54,7 @@ fragment BranchUpdateFields on BranchType {
   id
   businessId
   name
-  status
+  isActive
   phone
   address
   tipos
@@ -81,12 +80,11 @@ fragment BranchUpdateFields on BranchType {
   coverImage
   avatarUrl
   coverUrl
-  deliveryRadius
+  socialMedia
   coordinates {
     ...CoordinatesFields
   }
   schedule
-  facilities
   wallet {
     ...WalletBalanceFields
   }
@@ -99,7 +97,7 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   name
   address
   phone
-  status
+  isActive
   tipos
   useAppMessaging
   vehicles
@@ -120,8 +118,7 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   paymentMethodIds
   avatar
   coverImage
-  deliveryRadius
-  facilities
+  socialMedia
   coordinates {
     ...CoordinatesFields
   }

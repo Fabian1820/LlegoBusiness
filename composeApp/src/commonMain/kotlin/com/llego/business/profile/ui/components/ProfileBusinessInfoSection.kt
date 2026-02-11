@@ -34,10 +34,12 @@ import com.llego.shared.ui.theme.LlegoShapes
 @Composable
 fun BusinessInfoSection(
     business: Business?,
+    onToggleActive: (Boolean) -> Unit = {},
     onSave: (name: String, description: String, tags: List<String>) -> Unit = { _, _, _ -> }
 ) {
     var businessName by remember(business) { mutableStateOf(business?.name ?: "") }
     var description by remember(business) { mutableStateOf(business?.description ?: "") }
+    var isBusinessActive by remember(business) { mutableStateOf(business?.isActive ?: true) }
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingDescription by remember { mutableStateOf(false) }
 
@@ -181,6 +183,36 @@ fun BusinessInfoSection(
                 modifier = Modifier.clickable { isEditingDescription = true }
             )
         }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Estado del negocio",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (isBusinessActive) "Activo" else "Inactivo",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = isBusinessActive,
+                onCheckedChange = { checked ->
+                    isBusinessActive = checked
+                    onToggleActive(checked)
+                }
+            )
+        }
     }
 }
-

@@ -211,11 +211,11 @@ fun ReadOnlyField(
  * Badge de estado
  */
 @Composable
-fun StatusBadge(status: String?) {
-    val (color, text) = when(status) {
-        "active" -> MaterialTheme.colorScheme.primary to "Activa"
-        "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant to "Inactiva"
-        else -> MaterialTheme.colorScheme.secondary to "Pendiente"
+fun StatusBadge(isActive: Boolean?) {
+    val (color, text) = when (isActive) {
+        true -> MaterialTheme.colorScheme.primary to "Activa"
+        false -> MaterialTheme.colorScheme.onSurfaceVariant to "Inactiva"
+        null -> MaterialTheme.colorScheme.secondary to "Sin estado"
     }
 
     Surface(

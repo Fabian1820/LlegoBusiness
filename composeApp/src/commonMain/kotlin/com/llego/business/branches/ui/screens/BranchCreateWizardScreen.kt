@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -51,13 +53,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
+import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.shared.data.model.Branch
+import com.llego.shared.data.model.BranchVehicle
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.CreateBranchInput
 import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.business.parseQrPaymentsInput
+import com.llego.shared.ui.business.parseTransferAccountsInput
+import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.business.state.defaultBranchSchedule
 import com.llego.shared.ui.components.molecules.MapLocationPickerReal
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
@@ -91,9 +98,17 @@ fun BranchCreateWizardScreen(
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var instagram by remember { mutableStateOf("") }
+    var facebook by remember { mutableStateOf("") }
+    var whatsapp by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(23.1136) }
     var longitude by remember { mutableStateOf(-82.3666) }
     var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
+    var useAppMessaging by remember { mutableStateOf(true) }
+    var selectedVehicles by remember { mutableStateOf(setOf<BranchVehicle>()) }
+    var accountsInput by remember { mutableStateOf("") }
+    var qrPaymentsInput by remember { mutableStateOf("") }
+    var transferPhonesInput by remember { mutableStateOf("") }
     var schedule by remember { mutableStateOf(defaultBranchSchedule()) }
     var selectedPaymentMethodIds by remember { mutableStateOf(emptyList<String>()) }
 
@@ -108,20 +123,21 @@ fun BranchCreateWizardScreen(
         return when (step) {
             0 -> when {
                 name.isBlank() -> "El nombre de la sucursal es obligatorio."
-                phone.isBlank() -> "El teléfono de la sucursal es obligatorio."
+                phone.isBlank() -> "El telÃ©fono de la sucursal es obligatorio."
                 else -> null
             }
 
             1 -> if (latitude == 0.0 && longitude == 0.0) {
-                "Selecciona la ubicación de la sucursal en el mapa."
+                "Selecciona la ubicaciÃ³n de la sucursal en el mapa."
             } else {
                 null
             }
 
             2 -> when {
                 selectedTipos.isEmpty() -> "Selecciona al menos un tipo de sucursal."
-                selectedPaymentMethodIds.isEmpty() -> "Selecciona al menos un método de pago."
-                schedule.values.none { it.isOpen } -> "Debes configurar al menos un día abierto."
+                selectedPaymentMethodIds.isEmpty() -> "Selecciona al menos un mÃ©todo de pago."
+                schedule.values.none { it.isOpen } -> "Debes configurar al menos un dia abierto."
+                !useAppMessaging && selectedVehicles.isEmpty() -> "Selecciona al menos un vehiculo para delivery propio."
                 else -> null
             }
 
@@ -145,7 +161,17 @@ fun BranchCreateWizardScreen(
             schedule = schedule.toBackendSchedule(),
             tipos = selectedTipos.toList(),
             paymentMethodIds = selectedPaymentMethodIds,
-            address = address.trim().ifBlank { null }
+            address = address.trim().ifBlank { null },
+            socialMedia = buildBranchSocialMediaMap(
+                instagram = instagram,
+                facebook = facebook,
+                whatsapp = whatsapp
+            ),
+            useAppMessaging = useAppMessaging,
+            vehicles = selectedVehicles.toList(),
+            accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
+            qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
+            phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }
         )
 
         coroutineScope.launch {
@@ -270,8 +296,8 @@ fun BranchCreateWizardScreen(
                 when (step) {
                     0 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.Business,
-                        title = "Datos básicos",
-                        subtitle = "Define la información principal de la nueva sucursal."
+                        title = "Datos bÃ¡sicos",
+                        subtitle = "Define la informaciÃ³n principal de la nueva sucursal."
                     ) {
                         RequiredFieldLabel("Nombre de la sucursal")
                         Spacer(modifier = Modifier.height(8.dp))
@@ -288,7 +314,7 @@ fun BranchCreateWizardScreen(
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        RequiredFieldLabel("Teléfono")
+                        RequiredFieldLabel("TelÃ©fono")
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = phone,
@@ -305,7 +331,7 @@ fun BranchCreateWizardScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            text = "Dirección (opcional)",
+                            text = "DirecciÃ³n (opcional)",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -315,7 +341,49 @@ fun BranchCreateWizardScreen(
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                             maxLines = 3,
-                            placeholder = { Text("Calle, número, referencia") },
+                            placeholder = { Text("Calle, nÃºmero, referencia") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Redes sociales (opcional)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = instagram,
+                            onValueChange = { instagram = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("Instagram") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = facebook,
+                            onValueChange = { facebook = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("Facebook") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = whatsapp,
+                            onValueChange = { whatsapp = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("WhatsApp") },
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary
@@ -325,8 +393,8 @@ fun BranchCreateWizardScreen(
 
                     1 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.LocationOn,
-                        title = "Ubicación",
-                        subtitle = "Selecciona en el mapa dónde opera esta sucursal."
+                        title = "UbicaciÃ³n",
+                        subtitle = "Selecciona en el mapa dÃ³nde opera esta sucursal."
                     ) {
                         MapLocationPickerReal(
                             latitude = latitude,
@@ -341,8 +409,8 @@ fun BranchCreateWizardScreen(
 
                     2 -> OnboardingStepLayout(
                         stepIcon = Icons.Default.Schedule,
-                        title = "Operación",
-                        subtitle = "Configura tipo de servicio, horario y métodos de pago."
+                        title = "OperaciÃ³n",
+                        subtitle = "Configura tipo de servicio, horario y mÃ©todos de pago."
                     ) {
                         RequiredFieldLabel("Tipos de servicio")
                         Spacer(modifier = Modifier.height(8.dp))
@@ -367,12 +435,106 @@ fun BranchCreateWizardScreen(
                             onRetry = { paymentMethodsViewModel.loadPaymentMethods() },
                             layout = PaymentMethodSelectorLayout.FLOW
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Mensajeria de la app",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (useAppMessaging) "Activa" else "Externa",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Switch(
+                                checked = useAppMessaging,
+                                onCheckedChange = { useAppMessaging = it }
+                            )
+                        }
+
+                        if (!useAppMessaging) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Vehiculos de entrega",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            BranchVehiclesSelector(
+                                selectedVehicles = selectedVehicles,
+                                onSelectionChange = { selectedVehicles = it }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Cobros por transferencia (opcional)",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            text = "Cuentas: una por linea en formato numero|titular|banco",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = accountsInput,
+                            onValueChange = { accountsInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Pagos QR: uno por linea",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = qrPaymentsInput,
+                            onValueChange = { qrPaymentsInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Telefonos de transferencia: uno por linea",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = transferPhonesInput,
+                            onValueChange = { transferPhonesInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
                     }
 
                     else -> {
                         val selectedPaymentMethodNames = paymentMethodsUiState.methods
                             .filter { it.id in selectedPaymentMethodIds }
                             .joinToString(", ") { it.toDisplayName() }
+                        val socialMedia = buildBranchSocialMediaMap(
+                            instagram = instagram,
+                            facebook = facebook,
+                            whatsapp = whatsapp
+                        )
 
                         OnboardingStepLayout(
                             stepIcon = Icons.Default.CheckCircle,
@@ -392,18 +554,31 @@ fun BranchCreateWizardScreen(
                                         .padding(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    ReviewRow("Negocio", "Seleccionado automáticamente")
+                                    ReviewRow("Negocio", "Seleccionado automÃ¡ticamente")
                                     ReviewRow("Nombre", name)
-                                    ReviewRow("Teléfono", phone)
+                                    ReviewRow("TelÃ©fono", phone)
                                     if (address.isNotBlank()) {
-                                        ReviewRow("Dirección", address)
+                                        ReviewRow("DirecciÃ³n", address)
+                                    }
+                                    socialMedia?.forEach { (key, value) ->
+                                        ReviewRow(
+                                            key.replaceFirstChar { it.uppercase() },
+                                            value
+                                        )
                                     }
                                     ReviewRow("Tipos", selectedTipos.joinToString(", ") { it.toDisplayName() })
-                                    ReviewRow("Horario", "${schedule.values.count { it.isOpen }} días abiertos")
+                                    ReviewRow("Mensajeria", if (useAppMessaging) "App" else "Externa")
+                                    if (!useAppMessaging) {
+                                        ReviewRow("Vehiculos", selectedVehicles.joinToString(", ") { it.toDisplayName() })
+                                    }
+                                    ReviewRow("Horario", "${schedule.values.count { it.isOpen }} dÃ­as abiertos")
                                     ReviewRow(
                                         "Pagos",
-                                        selectedPaymentMethodNames.ifBlank { "Sin métodos seleccionados" }
+                                        selectedPaymentMethodNames.ifBlank { "Sin mÃ©todos seleccionados" }
                                     )
+                                    ReviewRow("Cuentas", parseTransferAccountsInput(accountsInput).size.toString())
+                                    ReviewRow("QR", parseQrPaymentsInput(qrPaymentsInput).size.toString())
+                                    ReviewRow("Telefonos", parseTransferPhonesInput(transferPhonesInput).size.toString())
                                 }
                             }
                         }
@@ -429,3 +604,4 @@ private fun ReviewRow(label: String, value: String) {
         )
     }
 }
+

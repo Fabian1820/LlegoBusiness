@@ -51,7 +51,6 @@ private fun BusinessCoreFields.toDomain(ownerId: String): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
@@ -71,7 +70,6 @@ private fun BusinessRoleFields.toDomain(): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = createdAt.toString(),
@@ -87,7 +85,6 @@ private fun BusinessUpdateFields.toDomain(): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        socialMedia = parseStringMap(socialMedia),
         tags = tags,
         isActive = isActive,
         createdAt = "",
@@ -126,11 +123,10 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
         managerIds = managerIds,
-        status = status,
+        isActive = isActive,
         avatar = avatar,
         coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities,
+        socialMedia = parseStringMap(socialMedia),
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
@@ -176,11 +172,10 @@ private fun BranchCoreFields.toDomain(): Branch {
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
         managerIds = managerIds,
-        status = status,
+        isActive = isActive,
         avatar = avatar,
         coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities,
+        socialMedia = parseStringMap(socialMedia),
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
@@ -226,11 +221,10 @@ private fun BranchUpdateFields.toDomain(): Branch {
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
         managerIds = managerIds,
-        status = status,
+        isActive = isActive,
         avatar = avatar,
         coverImage = coverImage,
-        deliveryRadius = deliveryRadius,
-        facilities = facilities,
+        socialMedia = parseStringMap(socialMedia),
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
@@ -280,7 +274,6 @@ fun CreateBusinessInput.toGraphQL(): GQLCreateBusinessInput {
         name = name,
         avatar = Optional.presentIfNotNull(avatar),
         description = Optional.presentIfNotNull(description),
-        socialMedia = Optional.presentIfNotNull(socialMedia),
         tags = Optional.presentIfNotNull(tags)
     )
 }
@@ -290,7 +283,6 @@ fun UpdateBusinessInput.toGraphQL(): GQLUpdateBusinessInput {
         name = Optional.presentIfNotNull(name),
         avatar = Optional.presentIfNotNull(avatar),
         description = Optional.presentIfNotNull(description),
-        socialMedia = Optional.presentIfNotNull(socialMedia),
         tags = Optional.presentIfNotNull(tags),
         isActive = Optional.presentIfNotNull(isActive)
     )
@@ -308,8 +300,8 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
-        deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities),
+        isActive = Optional.present(isActive),
+        socialMedia = Optional.presentIfNotNull(socialMedia),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
         phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
@@ -331,8 +323,8 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
-        deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities),
+        isActive = Optional.present(isActive),
+        socialMedia = Optional.presentIfNotNull(socialMedia),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
         phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
@@ -348,9 +340,8 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         address = Optional.presentIfNotNull(address),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
-        status = Optional.presentIfNotNull(status),
-        deliveryRadius = Optional.presentIfNotNull(deliveryRadius),
-        facilities = Optional.presentIfNotNull(facilities),
+        isActive = Optional.presentIfNotNull(isActive),
+        socialMedia = Optional.presentIfNotNull(socialMedia),
         managerIds = Optional.presentIfNotNull(managerIds),
         tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
         useAppMessaging = Optional.presentIfNotNull(useAppMessaging),

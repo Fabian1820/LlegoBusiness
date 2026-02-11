@@ -15,8 +15,6 @@ import com.llego.shared.data.model.*
 import com.llego.shared.ui.components.atoms.LlegoButton
 import com.llego.shared.ui.components.atoms.LlegoButtonSize
 import com.llego.shared.ui.components.atoms.LlegoTextField
-import com.llego.shared.ui.components.molecules.DeliveryRadiusPicker
-import com.llego.shared.ui.components.molecules.FacilitiesSelector
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.components.molecules.LlegoConfirmationDefaults
@@ -48,8 +46,6 @@ import kotlinx.coroutines.withTimeout
  * âœ… Upload de imÃ¡genes a S3
  * âœ… PhoneInput con cÃ³digo de paÃ­s
  * âœ… SchedulePicker interactivo
- * âœ… DeliveryRadiusPicker
- * âœ… FacilitiesSelector
  * âœ… TagsSelector mejorado
  * âœ… Pantalla de confirmaciÃ³n animada
  */
@@ -330,6 +326,63 @@ fun RegisterBusinessScreen(
                                     }
                                 )
 
+                                LlegoTextField(
+                                    value = branch.instagram,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(instagram = value) }
+                                    },
+                                    label = "Instagram (Opcional)",
+                                    placeholder = "@tu_sucursal"
+                                )
+
+                                LlegoTextField(
+                                    value = branch.facebook,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(facebook = value) }
+                                    },
+                                    label = "Facebook (Opcional)",
+                                    placeholder = "facebook.com/tu-sucursal"
+                                )
+
+                                LlegoTextField(
+                                    value = branch.whatsapp,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(whatsapp = value) }
+                                    },
+                                    label = "WhatsApp (Opcional)",
+                                    placeholder = "+53 5XXXXXXX"
+                                )
+
+                                LlegoTextField(
+                                    value = branch.transferAccounts,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(transferAccounts = value) }
+                                    },
+                                    label = "Cuentas (Opcional)",
+                                    placeholder = "numero|titular|banco (una por linea)",
+                                    singleLine = false
+                                )
+
+                                LlegoTextField(
+                                    value = branch.qrPayments,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(qrPayments = value) }
+                                    },
+                                    label = "Pagos QR (Opcional)",
+                                    placeholder = "valor QR (uno por linea)",
+                                    singleLine = false
+                                )
+
+                                LlegoTextField(
+                                    value = branch.transferPhones,
+                                    onValueChange = { value ->
+                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(transferPhones = value) }
+                                    },
+                                    label = "Telefonos de transferencia (Opcional)",
+                                    placeholder = "telefono (uno por linea)",
+                                    singleLine = false
+                                )
+
                                 MapLocationPickerReal(
                                     latitude = branch.latitude,
                                     longitude = branch.longitude,
@@ -345,13 +398,6 @@ fun RegisterBusinessScreen(
                                     schedule = branch.schedule,
                                     onScheduleChange = { schedule ->
                                         updateBranch(businessIndex, branchIndex) { current -> current.copy(schedule = schedule) }
-                                    }
-                                )
-
-                                DeliveryRadiusPicker(
-                                    radiusKm = branch.deliveryRadius,
-                                    onRadiusChange = { radius ->
-                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(deliveryRadius = radius) }
                                     }
                                 )
 
@@ -406,13 +452,6 @@ fun RegisterBusinessScreen(
                                         }
                                     )
                                 }
-
-                                FacilitiesSelector(
-                                    selectedFacilities = branch.facilities,
-                                    onFacilitiesChange = { facilities ->
-                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(facilities = facilities) }
-                                    }
-                                )
 
                                 PaymentMethodSelector(
                                     availablePaymentMethods = paymentMethodsUiState.methods,
@@ -522,9 +561,9 @@ fun RegisterBusinessScreen(
 
                 // Codigo de invitacion
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                
+
                 val redeemState by invitationViewModel.redeemState.collectAsState()
-                
+
                 com.llego.business.invitations.ui.components.InvitationCodeInput(
                     isLoading = redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Loading,
                     errorMessage = (redeemState as? com.llego.business.invitations.ui.viewmodel.RedeemState.Error)?.message,
@@ -532,14 +571,14 @@ fun RegisterBusinessScreen(
                         invitationViewModel.redeemInvitationCode(code)
                     }
                 )
-                
+
                 // Handle invitation redemption success
                 LaunchedEffect(redeemState) {
                     if (redeemState is com.llego.business.invitations.ui.viewmodel.RedeemState.Success) {
-                        
+
                         // Reload user data to get updated businessIds and branchIds
                         authViewModel.reloadUserData()
-                        
+
                         // Esperar a que se reflejen datos de negocio/sucursal (máximo 3 segundos)
                         try {
                             withTimeout(3_000L) {
@@ -550,7 +589,7 @@ fun RegisterBusinessScreen(
                         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                             // Continuar de todas formas, la navegación decidirá la pantalla adecuada
                         }
-                        
+
                         // Navigate to success (will handle branch selection if needed)
                         onRegisterSuccess()
 
@@ -558,7 +597,7 @@ fun RegisterBusinessScreen(
                         invitationViewModel.resetRedeemState()
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Bot?n de registro
@@ -622,10 +661,16 @@ fun RegisterBusinessScreen(
                                     useAppMessaging = branch.useAppMessaging,
                                     vehicles = branch.selectedVehicles.toList(),
                                     paymentMethodIds = branch.selectedPaymentMethodIds,
+                                    socialMedia = buildBranchSocialMediaMap(
+                                        instagram = branch.instagram,
+                                        facebook = branch.facebook,
+                                        whatsapp = branch.whatsapp
+                                    ),
+                                    accounts = parseTransferAccountsInput(branch.transferAccounts).takeIf { it.isNotEmpty() },
+                                    qrPayments = parseQrPaymentsInput(branch.qrPayments).takeIf { it.isNotEmpty() },
+                                    phones = parseTransferPhonesInput(branch.transferPhones).takeIf { it.isNotEmpty() },
                                     avatar = (branch.avatarState as? ImageUploadState.Success)?.s3Path,
-                                    coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path,
-                                    deliveryRadius = branch.deliveryRadius,
-                                    facilities = branch.facilities
+                                    coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path
                                 )
                             }
                             businessInput to branchesInput
@@ -678,3 +723,19 @@ fun RegisterBusinessScreen(
     }
 }
 
+private fun buildBranchSocialMediaMap(
+    instagram: String,
+    facebook: String,
+    whatsapp: String
+): Map<String, String>? {
+    val socialMedia = mutableMapOf<String, String>()
+    val instagramValue = instagram.trim()
+    val facebookValue = facebook.trim()
+    val whatsappValue = whatsapp.trim()
+
+    if (instagramValue.isNotBlank()) socialMedia["instagram"] = instagramValue
+    if (facebookValue.isNotBlank()) socialMedia["facebook"] = facebookValue
+    if (whatsappValue.isNotBlank()) socialMedia["whatsapp"] = whatsappValue
+
+    return socialMedia.takeIf { it.isNotEmpty() }
+}

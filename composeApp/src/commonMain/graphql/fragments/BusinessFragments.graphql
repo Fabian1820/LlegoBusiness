@@ -5,7 +5,6 @@ fragment BusinessCoreFields on BusinessType {
   avatar
   description
   tags
-  socialMedia
   globalRating
   isActive
   createdAt
@@ -23,7 +22,6 @@ fragment BusinessRoleFields on BusinessWithBranchesType {
   avatar
   description
   tags
-  socialMedia
   globalRating
   isActive
   createdAt
@@ -38,7 +36,6 @@ fragment BusinessUpdateFields on BusinessType {
   description
   avatar
   tags
-  socialMedia
   isActive
   globalRating
   avatarUrl

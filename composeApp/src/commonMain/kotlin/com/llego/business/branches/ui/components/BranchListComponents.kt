@@ -176,7 +176,7 @@ fun BranchCard(
             Spacer(modifier = Modifier.width(6.dp))
 
             // Status dot
-            val statusActive = branch.status == "active"
+            val statusActive = branch.isActive
             Box(
                 modifier = Modifier
                     .size(8.dp)

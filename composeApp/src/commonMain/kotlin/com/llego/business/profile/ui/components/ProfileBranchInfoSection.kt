@@ -34,17 +34,15 @@ import com.llego.shared.ui.theme.LlegoShapes
 @Composable
 fun BranchInfoSection(
     branch: Branch?,
-    onSave: (String, String, String, Double?) -> Unit = { _, _, _, _ -> }
+    onSave: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     var branchName by remember(branch) { mutableStateOf(branch?.name ?: "") }
     var branchPhone by remember(branch) { mutableStateOf(branch?.phone ?: "") }
     var branchAddress by remember(branch) { mutableStateOf(branch?.address ?: "") }
-    var deliveryRadius by remember(branch) { mutableStateOf(branch?.deliveryRadius?.toString() ?: "") }
 
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingPhone by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
-    var isEditingRadius by remember { mutableStateOf(false) }
 
     val tiposLabel = branch?.tipos
         ?.joinToString(", ") { it.toDisplayName() }
@@ -54,8 +52,7 @@ fun BranchInfoSection(
         onSave(
             branchName.trim(),
             branchPhone.trim(),
-            branchAddress.trim(),
-            deliveryRadius.toDoubleOrNull()
+            branchAddress.trim()
         )
     }
 
@@ -66,7 +63,7 @@ fun BranchInfoSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             SectionHeader(title = "Informacion de la sucursal")
-            StatusBadge(branch?.status)
+            StatusBadge(branch?.isActive)
         }
 
         EditableField(
@@ -117,21 +114,5 @@ fun BranchInfoSection(
             value = tiposLabel,
             icon = Icons.Default.Label
         )
-
-        EditableField(
-            label = "Radio de entrega (km)",
-            value = deliveryRadius,
-            onValueChange = { deliveryRadius = it },
-            isEditing = isEditingRadius,
-            onEditClick = { isEditingRadius = true },
-            onSaveClick = {
-                saveChanges()
-                isEditingRadius = false
-            },
-            onCancelClick = { deliveryRadius = branch?.deliveryRadius?.toString() ?: ""; isEditingRadius = false },
-            icon = Icons.Default.DeliveryDining,
-            placeholder = "Ej: 5.0"
-        )
     }
 }
-

@@ -22,7 +22,7 @@ query NearbyBranches(
         name
         address
         phone
-        status
+        isActive
         useAppMessaging
         vehicles
         tipos

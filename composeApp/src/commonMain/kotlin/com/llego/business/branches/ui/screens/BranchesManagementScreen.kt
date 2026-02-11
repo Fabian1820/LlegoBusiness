@@ -98,7 +98,6 @@ import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.components.molecules.DaySchedule
-import com.llego.shared.ui.components.molecules.FacilitiesSelector
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
@@ -152,7 +151,6 @@ fun BranchesManagementScreen(
                     globalRating = currentBusiness!!.globalRating,
                     avatar = currentBusiness!!.avatar,
                     description = currentBusiness!!.description,
-                    socialMedia = currentBusiness!!.socialMedia,
                     tags = currentBusiness!!.tags,
                     isActive = currentBusiness!!.isActive,
                     createdAt = currentBusiness!!.createdAt,
@@ -329,4 +327,3 @@ fun BranchesManagementScreen(
         )
     }
 }
-

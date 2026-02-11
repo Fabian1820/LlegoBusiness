@@ -4,7 +4,6 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,7 +12,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
@@ -21,10 +19,12 @@ import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.business.parseQrPaymentsInput
+import com.llego.shared.ui.business.parseTransferAccountsInput
+import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
-import com.llego.shared.ui.theme.LlegoShapes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,10 +47,15 @@ fun BranchCreateScreen(
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var instagram by remember { mutableStateOf("") }
+    var facebook by remember { mutableStateOf("") }
+    var whatsapp by remember { mutableStateOf("") }
+    var accountsInput by remember { mutableStateOf("") }
+    var qrPaymentsInput by remember { mutableStateOf("") }
+    var transferPhonesInput by remember { mutableStateOf("") }
     // Coordenadas default: La Habana, Cuba
     var branchLatitude by remember { mutableStateOf(23.1136) }
     var branchLongitude by remember { mutableStateOf(-82.3666) }
-    var deliveryRadius by remember { mutableStateOf("") }
     var managerIds by remember { mutableStateOf("") }
     var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
     var useAppMessaging by remember { mutableStateOf(true) }
@@ -68,7 +73,6 @@ fun BranchCreateScreen(
             )
         )
     }
-    var branchFacilities by remember { mutableStateOf(emptyList<String>()) }
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
@@ -180,6 +184,120 @@ fun BranchCreateScreen(
                 )
             )
 
+            Text(
+                text = "Redes sociales (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+
+            OutlinedTextField(
+                value = instagram,
+                onValueChange = { instagram = it },
+                label = { Text("Instagram") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = facebook,
+                onValueChange = { facebook = it },
+                label = { Text("Facebook") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = whatsapp,
+                onValueChange = { whatsapp = it },
+                label = { Text("WhatsApp") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Text(
+                text = "Cobros por transferencia (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Text(
+                text = "Cuentas: una por linea en formato numero|titular|banco",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = accountsInput,
+                onValueChange = { accountsInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Text(
+                text = "Pagos QR: uno por linea",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = qrPaymentsInput,
+                onValueChange = { qrPaymentsInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Text(
+                text = "Telefonos de transferencia: uno por linea",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = transferPhonesInput,
+                onValueChange = { transferPhonesInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
             // Selector de ubicacion con mapa
             MapLocationPickerReal(
                 latitude = branchLatitude,
@@ -189,22 +307,6 @@ fun BranchCreateScreen(
                     branchLongitude = lng
                 },
                 onOpenMapSelection = onOpenMapSelection
-            )
-
-            OutlinedTextField(
-                value = deliveryRadius,
-                onValueChange = { deliveryRadius = it },
-                label = { Text("Radio de entrega (km)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
             )
 
             Text(
@@ -266,11 +368,6 @@ fun BranchCreateScreen(
             SchedulePicker(
                 schedule = branchSchedule,
                 onScheduleChange = { branchSchedule = it }
-            )
-
-            FacilitiesSelector(
-                selectedFacilities = branchFacilities,
-                onFacilitiesChange = { branchFacilities = it }
             )
 
             PaymentMethodSelector(
@@ -360,8 +457,14 @@ fun BranchCreateScreen(
                             managerIds = parsedManagerIds.takeIf { it.isNotEmpty() },
                             avatar = avatarPath,
                             coverImage = coverPath,
-                            deliveryRadius = deliveryRadius.toDoubleOrNull(),
-                            facilities = branchFacilities.takeIf { it.isNotEmpty() }
+                            socialMedia = buildBranchSocialMediaMap(
+                                instagram = instagram,
+                                facebook = facebook,
+                                whatsapp = whatsapp
+                            ),
+                            accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
+                            qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
+                            phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }
                         )
 
                         when (val result = authViewModel.createBranch(input)) {
@@ -396,3 +499,17 @@ fun BranchCreateScreen(
     }
 }
 
+internal fun buildBranchSocialMediaMap(
+    instagram: String,
+    facebook: String,
+    whatsapp: String
+): Map<String, String>? {
+    val socialMedia = mutableMapOf<String, String>()
+    val instagramValue = instagram.trim()
+    val facebookValue = facebook.trim()
+    val whatsappValue = whatsapp.trim()
+    if (instagramValue.isNotBlank()) socialMedia["instagram"] = instagramValue
+    if (facebookValue.isNotBlank()) socialMedia["facebook"] = facebookValue
+    if (whatsappValue.isNotBlank()) socialMedia["whatsapp"] = whatsappValue
+    return socialMedia.takeIf { it.isNotEmpty() }
+}

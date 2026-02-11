@@ -22,6 +22,12 @@ import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.business.formatQrPaymentsInput
+import com.llego.shared.ui.business.formatTransferAccountsInput
+import com.llego.shared.ui.business.formatTransferPhonesInput
+import com.llego.shared.ui.business.parseQrPaymentsInput
+import com.llego.shared.ui.business.parseTransferAccountsInput
+import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -50,16 +56,20 @@ fun BranchEditScreen(
     var name by remember { mutableStateOf(branch.name) }
     var phone by remember { mutableStateOf(branch.phone) }
     var address by remember { mutableStateOf(branch.address.orEmpty()) }
+    var instagram by remember(branch) { mutableStateOf(branch.socialMedia?.get("instagram").orEmpty()) }
+    var facebook by remember(branch) { mutableStateOf(branch.socialMedia?.get("facebook").orEmpty()) }
+    var whatsapp by remember(branch) { mutableStateOf(branch.socialMedia?.get("whatsapp").orEmpty()) }
+    var accountsInput by remember(branch) { mutableStateOf(formatTransferAccountsInput(branch.accounts)) }
+    var qrPaymentsInput by remember(branch) { mutableStateOf(formatQrPaymentsInput(branch.qrPayments)) }
+    var transferPhonesInput by remember(branch) { mutableStateOf(formatTransferPhonesInput(branch.phones)) }
     var latitude by remember { mutableStateOf(branch.coordinates.latitude.toString()) }
     var longitude by remember { mutableStateOf(branch.coordinates.longitude.toString()) }
-    var deliveryRadius by remember { mutableStateOf(branch.deliveryRadius?.toString().orEmpty()) }
     var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
     var selectedTipos by remember { mutableStateOf(branch.tipos.toSet()) }
     var useAppMessaging by remember { mutableStateOf(branch.useAppMessaging) }
     var selectedVehicles by remember { mutableStateOf(branch.vehicles.toSet()) }
     var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
-    var branchFacilities by remember(branch) { mutableStateOf(branch.facilities) }
-    var status by remember { mutableStateOf(if (branch.status == "inactive") "inactive" else "active") }
+    var isActive by remember { mutableStateOf(branch.isActive) }
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
@@ -119,9 +129,16 @@ fun BranchEditScreen(
             val nameValue = name.trim()
             val phoneValue = phone.trim()
             val addressValue = address.trim()
+            val socialMediaValue = buildBranchSocialMediaMap(
+                instagram = instagram,
+                facebook = facebook,
+                whatsapp = whatsapp
+            ) ?: emptyMap()
+            val accountsValue = parseTransferAccountsInput(accountsInput)
+            val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput)
+            val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
             val scheduleValue = branchSchedule.toBackendSchedule()
             val parsedManagerIds = parseManagerIds(managerIds)
-            val deliveryValue = deliveryRadius.toDoubleOrNull()
 
             val input = UpdateBranchInput(
                 name = nameValue.takeIf { it != branch.name },
@@ -138,9 +155,11 @@ fun BranchEditScreen(
                 useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
                 vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
                 paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
-                status = status.takeIf { it != branch.status },
-                deliveryRadius = deliveryValue.takeIf { it != branch.deliveryRadius },
-                facilities = branchFacilities.takeIf { it != branch.facilities },
+                isActive = isActive.takeIf { it != branch.isActive },
+                socialMedia = socialMediaValue.takeIf { it != (branch.socialMedia ?: emptyMap<String, String>()) },
+                accounts = accountsValue.takeIf { it != branch.accounts },
+                qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
+                phones = transferPhonesValue.takeIf { it != branch.phones },
                 managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
                 avatar = avatarPath,
                 coverImage = coverPath
@@ -276,6 +295,143 @@ fun BranchEditScreen(
                 )
             )
 
+            Text(
+                text = "Redes sociales (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            OutlinedTextField(
+                value = instagram,
+                onValueChange = { instagram = it },
+                label = { Text("Instagram") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = facebook,
+                onValueChange = { facebook = it },
+                label = { Text("Facebook") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            OutlinedTextField(
+                value = whatsapp,
+                onValueChange = { whatsapp = it },
+                label = { Text("WhatsApp") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoShapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Billetera (solo lectura)",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                    )
+                    Text(
+                        text = "Local: ${branch.wallet.local} | USD: ${branch.wallet.usd}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Estado: ${branch.walletStatus}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Text(
+                text = "Cobros por transferencia (opcional)",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Text(
+                text = "Cuentas: una por linea en formato numero|titular|banco",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = accountsInput,
+                onValueChange = { accountsInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+            Text(
+                text = "Pagos QR: uno por linea",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = qrPaymentsInput,
+                onValueChange = { qrPaymentsInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+            Text(
+                text = "Telefonos de transferencia: uno por linea",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = transferPhonesInput,
+                onValueChange = { transferPhonesInput = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -313,22 +469,6 @@ fun BranchEditScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = deliveryRadius,
-                onValueChange = { deliveryRadius = it },
-                label = { Text("Radio de entrega (km)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
             Text(
                 text = "Tipos de servicio *",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
@@ -343,8 +483,8 @@ fun BranchEditScreen(
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
             )
             BranchStatusSelector(
-                status = status,
-                onStatusChange = { status = it }
+                isActive = isActive,
+                onStatusChange = { isActive = it }
             )
 
             Text(
@@ -399,11 +539,6 @@ fun BranchEditScreen(
             SchedulePicker(
                 schedule = branchSchedule,
                 onScheduleChange = { branchSchedule = it }
-            )
-
-            FacilitiesSelector(
-                selectedFacilities = branchFacilities,
-                onFacilitiesChange = { branchFacilities = it }
             )
 
             PaymentMethodSelector(

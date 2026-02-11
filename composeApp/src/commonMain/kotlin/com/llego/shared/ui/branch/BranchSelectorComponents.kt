@@ -163,7 +163,7 @@ internal fun BranchRow(
         Spacer(modifier = Modifier.width(6.dp))
 
         // Status dot
-        val isActive = branch.status == "active"
+        val isActive = branch.isActive
         Box(
             modifier = Modifier
                 .size(8.dp)

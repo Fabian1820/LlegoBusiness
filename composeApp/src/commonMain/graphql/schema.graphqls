@@ -428,8 +428,6 @@ type BusinessType {
 
   description: String
 
-  socialMedia: JSON
-
   tags: [String!]!
 
   isActive: Boolean!
@@ -470,8 +468,6 @@ type BusinessWithBranchesType {
 
   description: String
 
-  socialMedia: JSON
-
   tags: [String!]!
 
   isActive: Boolean!
@@ -507,15 +503,13 @@ type BranchType {
 
   managerIds: [String!]!
 
-  status: String!
+  isActive: Boolean!
 
   avatar: String
 
   coverImage: String
 
-  deliveryRadius: Float
-
-  facilities: [String!]!
+  socialMedia: JSON
 
   tipos: [BranchTipo!]!
 
@@ -787,15 +781,13 @@ type ScoredBranchType {
 
   managerIds: [String!]!
 
-  status: String!
+  isActive: Boolean!
 
   avatar: String
 
   coverImage: String
 
-  deliveryRadius: Float
-
-  facilities: [String!]!
+  socialMedia: JSON
 
   tipos: [BranchTipo!]!
 
@@ -888,15 +880,13 @@ type NearbyBranchType {
 
   managerIds: [String!]!
 
-  status: String!
+  isActive: Boolean!
 
   avatar: String
 
   coverImage: String
 
-  deliveryRadius: Float
-
-  facilities: [String!]!
+  socialMedia: JSON
 
   tipos: [BranchTipo!]!
 
@@ -2837,8 +2827,6 @@ input CreateBusinessInput {
 
   description: String = null
 
-  socialMedia: JSON = null
-
   tags: [String!] = null
 }
 
@@ -2863,9 +2851,9 @@ input RegisterBranchInput {
 
   coverImage: String = null
 
-  deliveryRadius: Float = null
+  isActive: Boolean! = true
 
-  facilities: [String!] = null
+  socialMedia: JSON = null
 
   accounts: [TransferAccountInput!] = null
 
@@ -2907,8 +2895,6 @@ input UpdateBusinessInput {
 
   description: String = null
 
-  socialMedia: JSON = null
-
   tags: [String!] = null
 
   isActive: Boolean = null
@@ -2945,9 +2931,9 @@ input CreateBranchInput {
 
   coverImage: String = null
 
-  deliveryRadius: Float = null
+  isActive: Boolean! = true
 
-  facilities: [String!] = null
+  socialMedia: JSON = null
 
   useAppMessaging: Boolean! = true
 
@@ -2971,11 +2957,9 @@ input UpdateBranchInput {
 
   schedule: JSON = null
 
-  status: String = null
+  isActive: Boolean = null
 
-  deliveryRadius: Float = null
-
-  facilities: [String!] = null
+  socialMedia: JSON = null
 
   managerIds: [String!] = null
 

@@ -34,10 +34,8 @@ import com.llego.business.profile.ui.components.ImageUploadDialog
 import com.llego.business.profile.ui.components.InvitationsCard
 import com.llego.business.profile.ui.components.ProfileSaveMessageCard
 import com.llego.business.profile.ui.components.ShareDialog
-import com.llego.business.profile.ui.components.SocialLinksSection
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.ImageUploadState
-import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.auth.AuthViewModel
@@ -62,14 +60,11 @@ fun BusinessProfileScreen(
     var saveMessage by remember { mutableStateOf<String?>(null) }
     val imageUploadViewModel = remember { ImageUploadViewModel() }
 
-    var showBranchAvatarDialog by remember { mutableStateOf(false) }
-    var showBranchCoverDialog by remember { mutableStateOf(false) }
-    var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
-    var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var showBusinessAvatarDialog by remember { mutableStateOf(false) }
+    var businessAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
 
     // Datos del negocio y sucursal
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
-    val currentBranch by authViewModel.currentBranch.collectAsState()
 
     // Mostrar mensaje de guardado
     LaunchedEffect(saveMessage) {
@@ -79,9 +74,7 @@ fun BusinessProfileScreen(
         }
     }
 
-    val branchAvatarUrl = currentBranch?.avatarUrl ?: currentBusiness?.avatarUrl
-    val branchCoverUrl = currentBranch?.coverUrl
-    val canEditBranch = currentBranch != null
+    val businessAvatarUrl = currentBusiness?.avatarUrl
 
     Scaffold(
         topBar = {
@@ -128,24 +121,13 @@ fun BusinessProfileScreen(
             // Banner y logo
             item {
                 BannerWithLogoSection(
-                    avatarUrl = branchAvatarUrl,
-                    coverUrl = branchCoverUrl,
+                    avatarUrl = businessAvatarUrl,
+                    coverUrl = null,
                     onChangeAvatar = {
-                        if (canEditBranch) {
-                            branchAvatarState = ImageUploadState.Idle
-                            showBranchAvatarDialog = true
-                        } else {
-                            saveMessage = "Selecciona una sucursal para editar imagenes"
-                        }
+                        businessAvatarState = ImageUploadState.Idle
+                        showBusinessAvatarDialog = true
                     },
-                    onChangeCover = if (canEditBranch) {
-                        {
-                            branchCoverState = ImageUploadState.Idle
-                            showBranchCoverDialog = true
-                        }
-                    } else {
-                        null
-                    }
+                    onChangeCover = null
                 )
             }
 
@@ -163,6 +145,30 @@ fun BusinessProfileScreen(
             item {
                 BusinessInfoSection(
                     business = currentBusiness,
+                    onToggleActive = { active ->
+                        currentBusiness?.let { business ->
+                            coroutineScope.launch {
+                                isSaving = true
+                                saveMessage = "Actualizando estado del negocio..."
+
+                                val input = UpdateBusinessInput(
+                                    isActive = active.takeIf { it != business.isActive }
+                                )
+
+                                when (val result = authViewModel.updateBusiness(business.id, input)) {
+                                    is BusinessResult.Success -> {
+                                        saveMessage = "OK: Estado actualizado"
+                                    }
+                                    is BusinessResult.Error -> {
+                                        saveMessage = "Error: ${result.message}"
+                                    }
+                                    else -> {}
+                                }
+
+                                isSaving = false
+                            }
+                        }
+                    },
                     onSave = { name, description, tags ->
                         currentBusiness?.let { business ->
                             coroutineScope.launch {
@@ -178,37 +184,6 @@ fun BusinessProfileScreen(
                                 when (val result = authViewModel.updateBusiness(business.id, input)) {
                                     is BusinessResult.Success -> {
                                         saveMessage = "OK: Negocio actualizado correctamente"
-                                    }
-                                    is BusinessResult.Error -> {
-                                        saveMessage = "Error: ${result.message}"
-                                    }
-                                    else -> {}
-                                }
-
-                                isSaving = false
-                            }
-                        }
-                    }
-                )
-            }
-
-            // Redes sociales
-            item {
-                SocialLinksSection(
-                    socialMedia = currentBusiness?.socialMedia,
-                    onSave = { socialMedia ->
-                        currentBusiness?.let { business ->
-                            coroutineScope.launch {
-                                isSaving = true
-                                saveMessage = "Guardando redes sociales..."
-
-                                val input = UpdateBusinessInput(
-                                    socialMedia = socialMedia.takeIf { it != business.socialMedia }
-                                )
-
-                                when (val result = authViewModel.updateBusiness(business.id, input)) {
-                                    is BusinessResult.Success -> {
-                                        saveMessage = "OK: Redes sociales actualizadas"
                                     }
                                     is BusinessResult.Error -> {
                                         saveMessage = "Error: ${result.message}"
@@ -264,25 +239,25 @@ fun BusinessProfileScreen(
 
         }
 
-        if (showBranchAvatarDialog) {
+        if (showBusinessAvatarDialog) {
             ImageUploadDialog(
-                title = "Avatar de la sucursal",
+                title = "Avatar del negocio",
                 label = "Avatar",
-                uploadState = branchAvatarState,
+                uploadState = businessAvatarState,
                 onStateChange = { state ->
-                    branchAvatarState = state
+                    businessAvatarState = state
                     if (state is ImageUploadState.Success) {
-                        currentBranch?.let { branch ->
+                        currentBusiness?.let { business ->
                             coroutineScope.launch {
                                 isSaving = true
-                                saveMessage = "Guardando avatar de la sucursal..."
+                                saveMessage = "Guardando avatar del negocio..."
 
-                                when (val result = authViewModel.updateBranch(
-                                    branch.id,
-                                    UpdateBranchInput(avatar = state.s3Path)
+                                when (val result = authViewModel.updateBusiness(
+                                    business.id,
+                                    UpdateBusinessInput(avatar = state.s3Path)
                                 )) {
                                     is BusinessResult.Success -> {
-                                        saveMessage = "OK: Avatar de sucursal actualizado"
+                                        saveMessage = "OK: Avatar de negocio actualizado"
                                     }
                                     is BusinessResult.Error -> {
                                         saveMessage = "Error: ${result.message}"
@@ -291,58 +266,16 @@ fun BusinessProfileScreen(
                                 }
 
                                 isSaving = false
-                                showBranchAvatarDialog = false
-                                branchAvatarState = ImageUploadState.Idle
+                                showBusinessAvatarDialog = false
+                                businessAvatarState = ImageUploadState.Idle
                             }
                         }
                     }
                 },
-                uploadFunction = imageUploadViewModel::uploadBranchAvatar,
+                uploadFunction = imageUploadViewModel::uploadBusinessAvatar,
                 onDismiss = {
-                    showBranchAvatarDialog = false
-                    branchAvatarState = ImageUploadState.Idle
-                }
-            )
-        }
-
-        if (showBranchCoverDialog) {
-            ImageUploadDialog(
-                title = "Portada de la sucursal",
-                label = "Portada",
-                uploadState = branchCoverState,
-                size = ImageUploadSize.LARGE,
-                onStateChange = { state ->
-                    branchCoverState = state
-                    if (state is ImageUploadState.Success) {
-                        currentBranch?.let { branch ->
-                            coroutineScope.launch {
-                                isSaving = true
-                                saveMessage = "Guardando portada de la sucursal..."
-
-                                when (val result = authViewModel.updateBranch(
-                                    branch.id,
-                                    UpdateBranchInput(coverImage = state.s3Path)
-                                )) {
-                                    is BusinessResult.Success -> {
-                                        saveMessage = "OK: Portada de sucursal actualizada"
-                                    }
-                                    is BusinessResult.Error -> {
-                                        saveMessage = "Error: ${result.message}"
-                                    }
-                                    else -> {}
-                                }
-
-                                isSaving = false
-                                showBranchCoverDialog = false
-                                branchCoverState = ImageUploadState.Idle
-                            }
-                        }
-                    }
-                },
-                uploadFunction = imageUploadViewModel::uploadBranchCover,
-                onDismiss = {
-                    showBranchCoverDialog = false
-                    branchCoverState = ImageUploadState.Idle
+                    showBusinessAvatarDialog = false
+                    businessAvatarState = ImageUploadState.Idle
                 }
             )
         }

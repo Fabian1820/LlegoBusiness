@@ -15,12 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -166,17 +164,17 @@ fun BranchDetailScreen(
                             }
                         }
 
-                        val statusColor = when (branch.status) {
-                            "active" -> MaterialTheme.colorScheme.tertiary
-                            "inactive" -> MaterialTheme.colorScheme.onSurfaceVariant
-                            else -> MaterialTheme.colorScheme.secondary
+                        val statusColor = if (branch.isActive) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         }
                         Surface(
                             shape = LlegoShapes.small,
                             color = statusColor.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = if (branch.status == "active") "Activo" else "Inactivo",
+                                text = if (branch.isActive) "Activo" else "Inactivo",
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = statusColor
@@ -243,14 +241,6 @@ fun BranchDetailScreen(
                         value = "${branch.coordinates.latitude}, ${branch.coordinates.longitude}"
                     )
 
-                    branch.deliveryRadius?.let { radius ->
-                        BranchDetailRow(
-                            icon = Icons.Default.DeliveryDining,
-                            label = "Radio de entrega",
-                            value = "$radius km"
-                        )
-                    }
-
                     BranchDetailRow(
                         icon = Icons.Default.CheckCircle,
                         label = "Mensajeria",
@@ -301,58 +291,6 @@ fun BranchDetailScreen(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = color
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (branch.facilities.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = LlegoCustomShapes.infoCard,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = "Facilidades",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            branch.facilities.forEach { facility ->
-                                Surface(
-                                    shape = LlegoShapes.small,
-                                    color = MaterialTheme.colorScheme.surfaceVariant
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Star,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = facility,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
                             }
                         }
                     }

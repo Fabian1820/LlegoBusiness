@@ -83,8 +83,7 @@ class SettingsRepository private constructor(
 
                 val input = UpdateBranchInput(
                     schedule = settings.businessHours.toBranchSchedule(),
-                    paymentMethodIds = selectedPaymentMethodIds,
-                    deliveryRadius = settings.deliverySettings.deliveryRadius
+                    paymentMethodIds = selectedPaymentMethodIds
                 )
 
                 when (val result = authManager.updateBranch(branch.id, input)) {
@@ -177,9 +176,7 @@ class SettingsRepository private constructor(
             } else {
                 previousSettings.acceptedPaymentMethods
             },
-            deliverySettings = previousSettings.deliverySettings.copy(
-                deliveryRadius = deliveryRadius ?: previousSettings.deliverySettings.deliveryRadius
-            ),
+            deliverySettings = previousSettings.deliverySettings,
             orderSettings = previousSettings.orderSettings,
             notifications = previousSettings.notifications
         )

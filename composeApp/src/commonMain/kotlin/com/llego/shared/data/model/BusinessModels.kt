@@ -22,7 +22,6 @@ data class Business(
     val globalRating: Double = 0.0,
     val avatar: String? = null,
     val description: String? = null,
-    val socialMedia: Map<String, String>? = null,  // JSON map
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
@@ -43,7 +42,6 @@ data class BusinessWithBranches(
     val globalRating: Double = 0.0,
     val avatar: String? = null,
     val description: String? = null,
-    val socialMedia: Map<String, String>? = null,  // JSON map
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
@@ -58,7 +56,6 @@ data class BusinessWithBranches(
             globalRating = globalRating,
             avatar = avatar,
             description = description,
-            socialMedia = socialMedia,
             tags = tags,
             isActive = isActive,
             createdAt = createdAt,
@@ -85,11 +82,10 @@ data class Branch(
     val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String> = emptyList(),  // IDs of accepted payment methods
     val managerIds: List<String> = emptyList(),
-    val status: String = "active",  // "active", "inactive", "pending"
+    val isActive: Boolean = true,
     val avatar: String? = null,
     val coverImage: String? = null,
-    val deliveryRadius: Double? = null,
-    val facilities: List<String> = emptyList(),
+    val socialMedia: Map<String, String>? = null,
     val accounts: List<TransferAccount> = emptyList(),
     val qrPayments: List<QrPayment> = emptyList(),
     val phones: List<TransferPhone> = emptyList(),
@@ -215,7 +211,6 @@ data class CreateBusinessInput(
     val name: String,
     val avatar: String? = null,
     val description: String? = null,
-    val socialMedia: Map<String, String>? = null,  // {"facebook": "...", "instagram": "..."}
     val tags: List<String>? = null
 )
 
@@ -228,7 +223,6 @@ data class UpdateBusinessInput(
     val name: String? = null,
     val avatar: String? = null,
     val description: String? = null,
-    val socialMedia: Map<String, String>? = null,
     val tags: List<String>? = null,
     val isActive: Boolean? = null
 )
@@ -251,8 +245,8 @@ data class RegisterBranchInput(
     val managerIds: List<String>? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
-    val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null,
+    val isActive: Boolean = true,
+    val socialMedia: Map<String, String>? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
     val phones: List<TransferPhone>? = null
@@ -277,8 +271,8 @@ data class CreateBranchInput(
     val managerIds: List<String>? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
-    val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null,
+    val isActive: Boolean = true,
+    val socialMedia: Map<String, String>? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
     val phones: List<TransferPhone>? = null
@@ -300,9 +294,8 @@ data class UpdateBranchInput(
     val address: String? = null,
     val avatar: String? = null,
     val coverImage: String? = null,
-    val status: String? = null,
-    val deliveryRadius: Double? = null,
-    val facilities: List<String>? = null,
+    val isActive: Boolean? = null,
+    val socialMedia: Map<String, String>? = null,
     val managerIds: List<String>? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,

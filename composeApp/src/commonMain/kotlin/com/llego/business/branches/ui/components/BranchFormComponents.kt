@@ -76,10 +76,9 @@ fun BranchTipoSelector(
 
 @Composable
 fun BranchStatusSelector(
-    status: String,
-    onStatusChange: (String) -> Unit
+    isActive: Boolean,
+    onStatusChange: (Boolean) -> Unit
 ) {
-    val activeSelected = status == "active"
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -88,8 +87,8 @@ fun BranchStatusSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         FilterChip(
-            selected = activeSelected,
-            onClick = { onStatusChange("active") },
+            selected = isActive,
+            onClick = { onStatusChange(true) },
             label = { Text("Activa") },
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = activeColor.copy(alpha = 0.15f),
@@ -99,15 +98,15 @@ fun BranchStatusSelector(
             ),
             border = FilterChipDefaults.filterChipBorder(
                 enabled = true,
-                selected = activeSelected,
+                selected = isActive,
                 selectedBorderColor = activeColor.copy(alpha = 0.6f),
                 borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             ),
             shape = LlegoCustomShapes.secondaryButton
         )
         FilterChip(
-            selected = !activeSelected,
-            onClick = { onStatusChange("inactive") },
+            selected = !isActive,
+            onClick = { onStatusChange(false) },
             label = { Text("Inactiva") },
             colors = FilterChipDefaults.filterChipColors(
                 selectedContainerColor = inactiveColor.copy(alpha = 0.15f),
@@ -117,7 +116,7 @@ fun BranchStatusSelector(
             ),
             border = FilterChipDefaults.filterChipBorder(
                 enabled = true,
-                selected = !activeSelected,
+                selected = !isActive,
                 selectedBorderColor = inactiveColor.copy(alpha = 0.6f),
                 borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             ),

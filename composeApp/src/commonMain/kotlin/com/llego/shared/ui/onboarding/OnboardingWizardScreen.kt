@@ -26,7 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.business.RegisterBusinessViewModel
+import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.shared.ui.business.components.BranchTipoChip
+import com.llego.shared.ui.business.parseQrPaymentsInput
+import com.llego.shared.ui.business.parseTransferAccountsInput
+import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.business.state.defaultBranchSchedule
 import com.llego.shared.ui.components.atoms.LlegoTextField
 import com.llego.shared.ui.components.molecules.*
@@ -105,6 +109,7 @@ fun OnboardingWizardScreen(
     // Step 1: Business basics
     var businessName by remember { mutableStateOf("") }
     var businessDescription by remember { mutableStateOf("") }
+    var businessTags by remember { mutableStateOf(listOf<String>()) }
 
     // Step 2: Branch basics
     var branchName by remember { mutableStateOf("") }
@@ -114,6 +119,14 @@ fun OnboardingWizardScreen(
     var countryCode by remember { mutableStateOf("+53") }
     var phoneNumber by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var instagram by remember { mutableStateOf("") }
+    var facebook by remember { mutableStateOf("") }
+    var whatsapp by remember { mutableStateOf("") }
+    var useAppMessaging by remember { mutableStateOf(true) }
+    var selectedVehicles by remember { mutableStateOf(setOf<BranchVehicle>()) }
+    var transferAccounts by remember { mutableStateOf("") }
+    var qrPayments by remember { mutableStateOf("") }
+    var transferPhones by remember { mutableStateOf("") }
 
     // Step 4: Location
     var latitude by remember { mutableStateOf(23.1136) }
@@ -158,7 +171,7 @@ fun OnboardingWizardScreen(
                 when (step) {
                     0 -> true // Ya seleccionó modo
                     1 -> businessName.isNotBlank() && selectedTipos.isNotEmpty()
-                    2 -> phoneNumber.isNotBlank()
+                    2 -> phoneNumber.isNotBlank() && (useAppMessaging || selectedVehicles.isNotEmpty())
                     3 -> locationSelected
                     4 -> schedule.values.any { it.isOpen }
                     5 -> selectedPaymentMethodIds.isNotEmpty()
@@ -173,7 +186,7 @@ fun OnboardingWizardScreen(
                     0 -> true // Ya seleccionó modo
                     1 -> businessName.isNotBlank()
                     2 -> branchName.isNotBlank() && selectedTipos.isNotEmpty()
-                    3 -> phoneNumber.isNotBlank()
+                    3 -> phoneNumber.isNotBlank() && (useAppMessaging || selectedVehicles.isNotEmpty())
                     4 -> locationSelected
                     5 -> schedule.values.any { it.isOpen }
                     6 -> selectedPaymentMethodIds.isNotEmpty()
@@ -269,11 +282,20 @@ fun OnboardingWizardScreen(
                                             registerBusinessViewModel = registerBusinessViewModel,
                                             businessName = finalBusinessName,
                                             businessDescription = businessDescription.trim(),
+                                            businessTags = businessTags,
                                             branchName = finalBranchName,
                                             selectedTipos = selectedTipos,
                                             countryCode = countryCode,
                                             phoneNumber = phoneNumber.trim(),
                                             address = address.trim(),
+                                            instagram = instagram.trim(),
+                                            facebook = facebook.trim(),
+                                            whatsapp = whatsapp.trim(),
+                                            useAppMessaging = useAppMessaging,
+                                            selectedVehicles = selectedVehicles,
+                                            transferAccounts = transferAccounts.trim(),
+                                            qrPayments = qrPayments.trim(),
+                                            transferPhones = transferPhones.trim(),
                                             latitude = latitude,
                                             longitude = longitude,
                                             schedule = schedule,
@@ -372,6 +394,10 @@ fun OnboardingWizardScreen(
                             1 -> StepSingleBranchBasics(
                                 businessName = businessName,
                                 onBusinessNameChange = { businessName = it },
+                                businessDescription = businessDescription,
+                                onBusinessDescriptionChange = { businessDescription = it },
+                                businessTags = businessTags,
+                                onBusinessTagsChange = { businessTags = it },
                                 selectedTipos = selectedTipos,
                                 onTiposChange = { selectedTipos = it },
                                 showErrors = showValidationErrors
@@ -384,6 +410,22 @@ fun OnboardingWizardScreen(
                                 onPhoneChange = { phoneNumber = it },
                                 address = address,
                                 onAddressChange = { address = it },
+                                instagram = instagram,
+                                onInstagramChange = { instagram = it },
+                                facebook = facebook,
+                                onFacebookChange = { facebook = it },
+                                whatsapp = whatsapp,
+                                onWhatsappChange = { whatsapp = it },
+                                useAppMessaging = useAppMessaging,
+                                onUseAppMessagingChange = { useAppMessaging = it },
+                                selectedVehicles = selectedVehicles,
+                                onVehiclesChange = { selectedVehicles = it },
+                                transferAccounts = transferAccounts,
+                                onTransferAccountsChange = { transferAccounts = it },
+                                qrPayments = qrPayments,
+                                onQrPaymentsChange = { qrPayments = it },
+                                transferPhones = transferPhones,
+                                onTransferPhonesChange = { transferPhones = it },
                                 showErrors = showValidationErrors
                             )
 
@@ -428,11 +470,22 @@ fun OnboardingWizardScreen(
 
                             7 -> StepReview(
                                 businessName = businessName,
-                                businessDescription = "",
+                                businessDescription = businessDescription,
+                                businessTags = businessTags,
                                 branchName = businessName, // Mismo nombre
                                 selectedTipos = selectedTipos,
                                 phone = combinePhoneNumber(countryCode, phoneNumber),
                                 address = address,
+                                socialMedia = buildBranchSocialMediaMap(
+                                    instagram = instagram,
+                                    facebook = facebook,
+                                    whatsapp = whatsapp
+                                ),
+                                useAppMessaging = useAppMessaging,
+                                selectedVehicles = selectedVehicles,
+                                accountsCount = parseTransferAccountsInput(transferAccounts).size,
+                                qrCount = parseQrPaymentsInput(qrPayments).size,
+                                transferPhonesCount = parseTransferPhonesInput(transferPhones).size,
                                 locationSelected = locationSelected,
                                 schedule = schedule,
                                 paymentMethods = paymentMethodsUiState.methods,
@@ -450,6 +503,8 @@ fun OnboardingWizardScreen(
                                 onBusinessNameChange = { businessName = it },
                                 businessDescription = businessDescription,
                                 onBusinessDescriptionChange = { businessDescription = it },
+                                businessTags = businessTags,
+                                onBusinessTagsChange = { businessTags = it },
                                 showErrors = showValidationErrors
                             )
 
@@ -468,6 +523,22 @@ fun OnboardingWizardScreen(
                                 onPhoneChange = { phoneNumber = it },
                                 address = address,
                                 onAddressChange = { address = it },
+                                instagram = instagram,
+                                onInstagramChange = { instagram = it },
+                                facebook = facebook,
+                                onFacebookChange = { facebook = it },
+                                whatsapp = whatsapp,
+                                onWhatsappChange = { whatsapp = it },
+                                useAppMessaging = useAppMessaging,
+                                onUseAppMessagingChange = { useAppMessaging = it },
+                                selectedVehicles = selectedVehicles,
+                                onVehiclesChange = { selectedVehicles = it },
+                                transferAccounts = transferAccounts,
+                                onTransferAccountsChange = { transferAccounts = it },
+                                qrPayments = qrPayments,
+                                onQrPaymentsChange = { qrPayments = it },
+                                transferPhones = transferPhones,
+                                onTransferPhonesChange = { transferPhones = it },
                                 showErrors = showValidationErrors
                             )
 
@@ -517,10 +588,21 @@ fun OnboardingWizardScreen(
                             8 -> StepReview(
                                 businessName = businessName,
                                 businessDescription = businessDescription,
+                                businessTags = businessTags,
                                 branchName = branchName,
                                 selectedTipos = selectedTipos,
                                 phone = combinePhoneNumber(countryCode, phoneNumber),
                                 address = address,
+                                socialMedia = buildBranchSocialMediaMap(
+                                    instagram = instagram,
+                                    facebook = facebook,
+                                    whatsapp = whatsapp
+                                ),
+                                useAppMessaging = useAppMessaging,
+                                selectedVehicles = selectedVehicles,
+                                accountsCount = parseTransferAccountsInput(transferAccounts).size,
+                                qrCount = parseQrPaymentsInput(qrPayments).size,
+                                transferPhonesCount = parseTransferPhonesInput(transferPhones).size,
                                 locationSelected = locationSelected,
                                 schedule = schedule,
                                 paymentMethods = paymentMethodsUiState.methods,
@@ -661,6 +743,10 @@ private fun StepModeSelection(
 private fun StepSingleBranchBasics(
     businessName: String,
     onBusinessNameChange: (String) -> Unit,
+    businessDescription: String,
+    onBusinessDescriptionChange: (String) -> Unit,
+    businessTags: List<String>,
+    onBusinessTagsChange: (List<String>) -> Unit,
     selectedTipos: Set<BranchTipo>,
     onTiposChange: (Set<BranchTipo>) -> Unit,
     showErrors: Boolean = false
@@ -691,6 +777,26 @@ private fun StepSingleBranchBasics(
                 color = MaterialTheme.colorScheme.error
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        OptionalFieldLabel("Descripcion")
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = businessDescription,
+            onValueChange = onBusinessDescriptionChange,
+            label = "",
+            placeholder = "Describe brevemente tu negocio (opcional)",
+            singleLine = false,
+            maxLines = 3
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        OptionalFieldLabel("Etiquetas")
+        Spacer(modifier = Modifier.height(8.dp))
+        TagsSelector(
+            selectedTags = businessTags,
+            onTagsChange = onBusinessTagsChange
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -783,6 +889,8 @@ private fun StepBusinessBasics(
     onBusinessNameChange: (String) -> Unit,
     businessDescription: String,
     onBusinessDescriptionChange: (String) -> Unit,
+    businessTags: List<String>,
+    onBusinessTagsChange: (List<String>) -> Unit,
     showErrors: Boolean = false
 ) {
     val hasNameError = showErrors && businessName.isBlank()
@@ -821,6 +929,15 @@ private fun StepBusinessBasics(
             placeholder = "Cuentale a tus clientes de que trata tu negocio...",
             singleLine = false,
             maxLines = 4
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OptionalFieldLabel("Etiquetas")
+        Spacer(modifier = Modifier.height(8.dp))
+        TagsSelector(
+            selectedTags = businessTags,
+            onTagsChange = onBusinessTagsChange
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -986,6 +1103,22 @@ private fun StepContact(
     onPhoneChange: (String) -> Unit,
     address: String,
     onAddressChange: (String) -> Unit,
+    instagram: String,
+    onInstagramChange: (String) -> Unit,
+    facebook: String,
+    onFacebookChange: (String) -> Unit,
+    whatsapp: String,
+    onWhatsappChange: (String) -> Unit,
+    useAppMessaging: Boolean,
+    onUseAppMessagingChange: (Boolean) -> Unit,
+    selectedVehicles: Set<BranchVehicle>,
+    onVehiclesChange: (Set<BranchVehicle>) -> Unit,
+    transferAccounts: String,
+    onTransferAccountsChange: (String) -> Unit,
+    qrPayments: String,
+    onQrPaymentsChange: (String) -> Unit,
+    transferPhones: String,
+    onTransferPhonesChange: (String) -> Unit,
     showErrors: Boolean = false
 ) {
     val hasPhoneError = showErrors && phoneNumber.isBlank()
@@ -1024,6 +1157,104 @@ private fun StepContact(
             placeholder = "Ej: Calle 23 esquina L, Vedado",
             singleLine = false,
             maxLines = 2
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        OptionalFieldLabel("Redes sociales")
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = instagram,
+            onValueChange = onInstagramChange,
+            label = "",
+            placeholder = "Instagram (opcional)",
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = facebook,
+            onValueChange = onFacebookChange,
+            label = "",
+            placeholder = "Facebook (opcional)",
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = whatsapp,
+            onValueChange = onWhatsappChange,
+            label = "",
+            placeholder = "WhatsApp (opcional)",
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Mensajeria de la app",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (useAppMessaging) "Activa" else "Externa",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Switch(
+                checked = useAppMessaging,
+                onCheckedChange = onUseAppMessagingChange
+            )
+        }
+
+        if (!useAppMessaging) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Vehiculos de entrega",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            BranchVehiclesSelector(
+                selectedVehicles = selectedVehicles,
+                onSelectionChange = onVehiclesChange
+            )
+            if (showErrors && selectedVehicles.isEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Selecciona al menos un vehiculo para delivery propio",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        OptionalFieldLabel("Cobros por transferencia")
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = transferAccounts,
+            onValueChange = onTransferAccountsChange,
+            label = "",
+            placeholder = "numero|titular|banco (una por linea)",
+            singleLine = false,
+            maxLines = 4
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = qrPayments,
+            onValueChange = onQrPaymentsChange,
+            label = "",
+            placeholder = "valor QR (uno por linea)",
+            singleLine = false,
+            maxLines = 4
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LlegoTextField(
+            value = transferPhones,
+            onValueChange = onTransferPhonesChange,
+            label = "",
+            placeholder = "telefono (uno por linea)",
+            singleLine = false,
+            maxLines = 4
         )
     }
 }
@@ -1468,10 +1699,17 @@ private fun StepImagesMultipleBranches(
 private fun StepReview(
     businessName: String,
     businessDescription: String,
+    businessTags: List<String>,
     branchName: String,
     selectedTipos: Set<BranchTipo>,
     phone: String,
     address: String,
+    socialMedia: Map<String, String>?,
+    useAppMessaging: Boolean,
+    selectedVehicles: Set<BranchVehicle>,
+    accountsCount: Int,
+    qrCount: Int,
+    transferPhonesCount: Int,
     locationSelected: Boolean,
     schedule: Map<String, DaySchedule>,
     paymentMethods: List<PaymentMethod>,
@@ -1517,6 +1755,9 @@ private fun StepReview(
             if (businessDescription.isNotBlank()) {
                 ReviewItem(label = "Descripcion", value = businessDescription)
             }
+            if (businessTags.isNotEmpty()) {
+                ReviewItem(label = "Etiquetas", value = businessTags.joinToString(", "))
+            }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -1539,6 +1780,21 @@ private fun StepReview(
             if (address.isNotBlank()) {
                 ReviewItem(label = "Direccion", value = address)
             }
+            socialMedia?.forEach { (key, value) ->
+                if (value.isNotBlank()) {
+                    ReviewItem(label = key.replaceFirstChar { it.uppercase() }, value = value)
+                }
+            }
+            ReviewItem(label = "Mensajeria", value = if (useAppMessaging) "App" else "Externa")
+            if (!useAppMessaging) {
+                ReviewItem(
+                    label = "Vehiculos",
+                    value = selectedVehicles.joinToString(", ") { it.toDisplayName() }
+                )
+            }
+            ReviewItem(label = "Cuentas", value = accountsCount.toString())
+            ReviewItem(label = "QR", value = qrCount.toString())
+            ReviewItem(label = "Telefonos", value = transferPhonesCount.toString())
             ReviewItem(
                 label = "Ubicacion",
                 value = if (locationSelected) "Seleccionada" else "No seleccionada"
@@ -1752,11 +2008,20 @@ private fun submitRegistration(
     registerBusinessViewModel: RegisterBusinessViewModel,
     businessName: String,
     businessDescription: String,
+    businessTags: List<String>,
     branchName: String,
     selectedTipos: Set<BranchTipo>,
     countryCode: String,
     phoneNumber: String,
     address: String,
+    instagram: String,
+    facebook: String,
+    whatsapp: String,
+    useAppMessaging: Boolean,
+    selectedVehicles: Set<BranchVehicle>,
+    transferAccounts: String,
+    qrPayments: String,
+    transferPhones: String,
     latitude: Double,
     longitude: Double,
     schedule: Map<String, DaySchedule>,
@@ -1768,7 +2033,8 @@ private fun submitRegistration(
     val businessInput = CreateBusinessInput(
         name = businessName,
         description = businessDescription.ifBlank { null },
-        avatar = businessAvatarUrl
+        avatar = businessAvatarUrl,
+        tags = businessTags.takeIf { it.isNotEmpty() }
     )
 
     val branchInput = RegisterBranchInput(
@@ -1779,6 +2045,16 @@ private fun submitRegistration(
         tipos = selectedTipos.toList(),
         paymentMethodIds = selectedPaymentMethodIds,
         address = address.ifBlank { null },
+        socialMedia = buildBranchSocialMediaMap(
+            instagram = instagram,
+            facebook = facebook,
+            whatsapp = whatsapp
+        ),
+        useAppMessaging = useAppMessaging,
+        vehicles = selectedVehicles.toList(),
+        accounts = parseTransferAccountsInput(transferAccounts).takeIf { it.isNotEmpty() },
+        qrPayments = parseQrPaymentsInput(qrPayments).takeIf { it.isNotEmpty() },
+        phones = parseTransferPhonesInput(transferPhones).takeIf { it.isNotEmpty() },
         avatar = branchAvatarUrl,
         coverImage = branchCoverUrl
     )
@@ -1787,4 +2063,21 @@ private fun submitRegistration(
         business = businessInput,
         branches = listOf(branchInput)
     )
+}
+
+private fun buildBranchSocialMediaMap(
+    instagram: String,
+    facebook: String,
+    whatsapp: String
+): Map<String, String>? {
+    val socialMedia = mutableMapOf<String, String>()
+    val instagramValue = instagram.trim()
+    val facebookValue = facebook.trim()
+    val whatsappValue = whatsapp.trim()
+
+    if (instagramValue.isNotBlank()) socialMedia["instagram"] = instagramValue
+    if (facebookValue.isNotBlank()) socialMedia["facebook"] = facebookValue
+    if (whatsappValue.isNotBlank()) socialMedia["whatsapp"] = whatsappValue
+
+    return socialMedia.takeIf { it.isNotEmpty() }
 }
