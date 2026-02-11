@@ -16,6 +16,8 @@ import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import kotlinx.coroutines.delay
 
+private const val ORDERS_AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
+
 /**
  * Pantalla de Pedidos con diseÃ±o moderno y profesional
  * Actualizada para usar Order y OrderStatus del nuevo modelo
@@ -36,6 +38,8 @@ fun OrdersScreen(
 
     var animateContent by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }
+    val latestUiState by rememberUpdatedState(uiState)
+    val latestPullRefreshing by rememberUpdatedState(isPullRefreshing)
 
     // Scroll to top when filters change
     LaunchedEffect(selectedFilter, selectedDateRange) {
@@ -53,6 +57,20 @@ fun OrdersScreen(
     LaunchedEffect(uiState, isPullRefreshing) {
         if (isPullRefreshing && uiState !is OrdersUiState.Loading) {
             isPullRefreshing = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // Refresco automatico cada 2 minutos mientras la pantalla esta activa.
+        while (true) {
+            delay(ORDERS_AUTO_REFRESH_INTERVAL_MS)
+            val canRefresh = latestUiState !is OrdersUiState.Loading &&
+                latestUiState !is OrdersUiState.ActionInProgress &&
+                !latestPullRefreshing
+
+            if (canRefresh) {
+                viewModel.refreshOrders()
+            }
         }
     }
 
