@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -270,11 +272,14 @@ fun BranchCreateWizardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) { step ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
+                    .navigationBarsPadding()
+                    .imePadding()
                     .padding(horizontal = 24.dp)
                     .padding(top = 16.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -584,6 +589,8 @@ fun BranchCreateWizardScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(96.dp))
             }
         }
     }
@@ -604,4 +611,3 @@ private fun ReviewRow(label: String, value: String) {
         )
     }
 }
-

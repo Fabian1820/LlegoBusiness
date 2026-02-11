@@ -51,7 +51,7 @@ private fun BusinessCoreFields.toDomain(ownerId: String): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        tags = tags,
+        tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl
@@ -70,7 +70,7 @@ private fun BusinessRoleFields.toDomain(): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        tags = tags,
+        tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl
@@ -85,7 +85,7 @@ private fun BusinessUpdateFields.toDomain(): Business {
         globalRating = globalRating,
         avatar = avatar,
         description = description,
-        tags = tags,
+        tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = "",
         avatarUrl = avatarUrl
@@ -300,7 +300,6 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
-        isActive = Optional.present(isActive),
         socialMedia = Optional.presentIfNotNull(socialMedia),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
@@ -323,7 +322,6 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         managerIds = Optional.presentIfNotNull(managerIds),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
-        isActive = Optional.present(isActive),
         socialMedia = Optional.presentIfNotNull(socialMedia),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),

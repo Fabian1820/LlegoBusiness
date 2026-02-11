@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -88,6 +90,8 @@ fun BusinessEditScreen(
     var branchIdsInProgress by remember { mutableStateOf(setOf<String>()) }
     var branchPendingDeactivate by remember { mutableStateOf<Branch?>(null) }
     var branchPendingDelete by remember { mutableStateOf<Branch?>(null) }
+    var businessPendingDelete by remember { mutableStateOf(false) }
+    var isDeletingBusiness by remember { mutableStateOf(false) }
 
     var isSavingBusiness by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -214,6 +218,62 @@ fun BusinessEditScreen(
                 else -> {}
             }
             setBranchInProgress(target.id, false)
+        }
+    }
+
+    fun deleteBusinessCompletely() {
+        if (isDeletingBusiness) return
+
+        coroutineScope.launch {
+            isDeletingBusiness = true
+            statusMessage = "Eliminando sucursales del negocio..."
+
+            val branchesSnapshot = localBranches
+            for (branch in branchesSnapshot) {
+                when (val branchResult = authViewModel.deleteBranch(branch.id)) {
+                    is BusinessResult.Success -> {
+                        if (!branchResult.data) {
+                            statusMessage = "No se pudo eliminar la sucursal ${branch.name}"
+                            onError(statusMessage ?: "")
+                            isDeletingBusiness = false
+                            return@launch
+                        }
+                    }
+
+                    is BusinessResult.Error -> {
+                        statusMessage = branchResult.message
+                        onError(branchResult.message)
+                        isDeletingBusiness = false
+                        return@launch
+                    }
+
+                    else -> Unit
+                }
+            }
+
+            statusMessage = "Desactivando negocio..."
+            when (val businessResult = authViewModel.updateBusiness(
+                businessId = originalBusiness.id,
+                input = UpdateBusinessInput(isActive = false)
+            )) {
+                is BusinessResult.Success -> {
+                    statusMessage = "Negocio eliminado: sucursales borradas y negocio desactivado."
+                    if (authViewModel.getCurrentBusinessId() == originalBusiness.id) {
+                        authViewModel.clearCurrentBranch()
+                    }
+                    onDataChanged()
+                    onNavigateBack()
+                }
+
+                is BusinessResult.Error -> {
+                    statusMessage = businessResult.message
+                    onError(businessResult.message)
+                }
+
+                else -> Unit
+            }
+
+            isDeletingBusiness = false
         }
     }
 
@@ -463,6 +523,43 @@ fun BusinessEditScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Zona de peligro",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "Esta accion elimina todas las sucursales y desactiva definitivamente este negocio.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = { businessPendingDelete = true },
+                enabled = !isDeletingBusiness,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = LlegoCustomShapes.secondaryButton
+            ) {
+                if (isDeletingBusiness) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Eliminar negocio completo")
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -507,6 +604,33 @@ fun BusinessEditScreen(
             },
             dismissButton = {
                 TextButton(onClick = { branchPendingDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (businessPendingDelete) {
+        AlertDialog(
+            onDismissRequest = { businessPendingDelete = false },
+            title = { Text("Eliminar negocio completo") },
+            text = {
+                Text(
+                    "Se eliminaran todas las sucursales de \"${originalBusiness.name}\" y el negocio quedara desactivado. Esta accion no se puede deshacer."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        businessPendingDelete = false
+                        deleteBusinessCompletely()
+                    }
+                ) {
+                    Text("Eliminar todo", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { businessPendingDelete = false }) {
                     Text("Cancelar")
                 }
             }

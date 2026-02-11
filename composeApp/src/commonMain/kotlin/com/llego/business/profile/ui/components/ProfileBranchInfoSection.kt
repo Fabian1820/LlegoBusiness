@@ -44,10 +44,6 @@ fun BranchInfoSection(
     var isEditingPhone by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
 
-    val tiposLabel = branch?.tipos
-        ?.joinToString(", ") { it.toDisplayName() }
-        .orEmpty()
-
     val saveChanges = {
         onSave(
             branchName.trim(),
@@ -107,12 +103,6 @@ fun BranchInfoSection(
             onCancelClick = { branchAddress = branch?.address ?: ""; isEditingAddress = false },
             icon = Icons.Default.LocationOn,
             placeholder = "Agregar direccion"
-        )
-
-        ReadOnlyField(
-            label = "Tipos",
-            value = tiposLabel,
-            icon = Icons.Default.Label
         )
     }
 }

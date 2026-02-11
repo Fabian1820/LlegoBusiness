@@ -64,6 +64,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
+    businessId: String = "",
     onNavigateBack: () -> Unit = {},
     onNavigateToProfile: () -> Unit,
     onNavigateToInvitations: () -> Unit = {},
@@ -274,6 +275,7 @@ fun BusinessHomeScreen(
                 "statistics" -> {
                     StatisticsScreen(
                         ordersViewModel = ordersViewModel,
+                        businessId = businessId,
                         embeddedInHome = true
                     )
                 }

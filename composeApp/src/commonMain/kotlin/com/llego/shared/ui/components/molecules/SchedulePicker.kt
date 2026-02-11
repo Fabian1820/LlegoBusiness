@@ -1,50 +1,57 @@
-package com.llego.shared.ui.components.molecules
+﻿package com.llego.shared.ui.components.molecules
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import kotlinx.serialization.Serializable
 
 /**
- * Modelo para un rango de horario
+ * Modelo para un rango de horario.
  */
+@Serializable
 data class TimeRange(
-    val start: String, // Formato: "HH:mm" (ej: "09:00")
-    val end: String    // Formato: "HH:mm" (ej: "18:00")
+    val start: String,
+    val end: String
 )
 
 /**
- * Modelo para el horario de un día
+ * Modelo para el horario de un dia.
  */
+@Serializable
 data class DaySchedule(
     val isOpen: Boolean = true,
     val timeRanges: List<TimeRange> = listOf(TimeRange("09:00", "18:00"))
 )
 
 /**
- * Picker interactivo de horarios para la semana
- *
- * Permite configurar:
- * - Días abiertos/cerrados
- * - Múltiples rangos de horario por día (ej: 9-13, 16-20)
- * - Copiar horario a otros días
- *
- * El resultado se convierte a Map<String, List<String>> para el backend
- *
- * @param schedule Horario actual por día de la semana
- * @param onScheduleChange Callback cuando cambia el horario
- * @param modifier Modificador opcional
+ * Picker interactivo de horarios (solo modo avanzado).
  */
 @Composable
 fun SchedulePicker(
@@ -53,10 +60,6 @@ fun SchedulePicker(
     modifier: Modifier = Modifier,
     showHeader: Boolean = true
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-
-    // Días de la semana
     val daysOfWeek = listOf(
         "mon" to "Lunes",
         "tue" to "Martes",
@@ -67,7 +70,6 @@ fun SchedulePicker(
         "sun" to "Domingo"
     )
 
-    var showDetailedPicker by remember { mutableStateOf(false) }
     var expandedDay by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -75,256 +77,38 @@ fun SchedulePicker(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (showHeader) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = null,
-                        tint = primaryColor
-                    )
-                    Text(
-                        text = "Horario de Atención",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = primaryColor
-                        )
-                    )
-                }
-
-                TextButton(
-                    onClick = { showDetailedPicker = !showDetailedPicker }
-                ) {
-                    Text(if (showDetailedPicker) "Modo Simple" else "Modo Avanzado")
-                }
-            }
-
-        }
-
-        if (!showDetailedPicker) {
-            // Modo simple: Un horario general
-            SimpleModeSchedule(
-                schedule = schedule,
-                onScheduleChange = onScheduleChange,
-                daysOfWeek = daysOfWeek
-            )
-        } else {
-            // Modo avanzado: Configuración por día
-            AdvancedModeSchedule(
-                schedule = schedule,
-                onScheduleChange = onScheduleChange,
-                daysOfWeek = daysOfWeek,
-                expandedDay = expandedDay,
-                onExpandDay = { expandedDay = it }
-            )
-        }
-    }
-}
-
-/**
- * Modo simple: Configuración por grupos de días
- */
-@Composable
-private fun SimpleModeSchedule(
-    schedule: Map<String, DaySchedule>,
-    onScheduleChange: (Map<String, DaySchedule>) -> Unit,
-    daysOfWeek: List<Pair<String, String>>
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Grupo 1: Lunes a Viernes
-        DayGroupSchedule(
-            groupTitle = "Lunes a Viernes",
-            dayKeys = listOf("mon", "tue", "wed", "thu", "fri"),
-            schedule = schedule,
-            onScheduleChange = onScheduleChange,
-            defaultStart = "09:00",
-            defaultEnd = "18:00"
-        )
-
-        HorizontalDivider()
-
-        // Grupo 2: Sábado
-        DayGroupSchedule(
-            groupTitle = "Sábado",
-            dayKeys = listOf("sat"),
-            schedule = schedule,
-            onScheduleChange = onScheduleChange,
-            defaultStart = "10:00",
-            defaultEnd = "14:00"
-        )
-
-        HorizontalDivider()
-
-        // Grupo 3: Domingo
-        DayGroupSchedule(
-            groupTitle = "Domingo",
-            dayKeys = listOf("sun"),
-            schedule = schedule,
-            onScheduleChange = onScheduleChange,
-            defaultStart = "10:00",
-            defaultEnd = "14:00"
-        )
-    }
-}
-
-/**
- * Componente para configurar un grupo de días con el mismo horario
- */
-@Composable
-private fun DayGroupSchedule(
-    groupTitle: String,
-    dayKeys: List<String>,
-    schedule: Map<String, DaySchedule>,
-    onScheduleChange: (Map<String, DaySchedule>) -> Unit,
-    defaultStart: String,
-    defaultEnd: String
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
-    // Determinar si el grupo está abierto
-    val isGroupOpen = dayKeys.any { schedule[it]?.isOpen == true }
-
-    // Obtener horario del primer día abierto del grupo
-    val firstOpenDay = dayKeys.firstOrNull { schedule[it]?.isOpen == true }
-    val currentRange = firstOpenDay?.let { schedule[it]?.timeRanges?.firstOrNull() }
-
-    var startTime by remember(currentRange) {
-        mutableStateOf(currentRange?.start ?: defaultStart)
-    }
-    var endTime by remember(currentRange) {
-        mutableStateOf(currentRange?.end ?: defaultEnd)
-    }
-    var isOpen by remember(isGroupOpen) {
-        mutableStateOf(isGroupOpen)
-    }
-
-    // Aplicar cambios automáticamente
-    val applyChanges = {
-        val newSchedule = schedule.toMutableMap()
-        dayKeys.forEach { key ->
-            newSchedule[key] = if (isOpen) {
-                DaySchedule(
-                    isOpen = true,
-                    timeRanges = listOf(TimeRange(startTime, endTime))
+                Icon(
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
                 )
-            } else {
-                DaySchedule(isOpen = false, timeRanges = emptyList())
-            }
-        }
-        onScheduleChange(newSchedule)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOpen) {
-                primaryColor.copy(alpha = 0.06f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            }
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = if (isOpen) {
-                primaryColor.copy(alpha = 0.3f)
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Header con título y switch
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = groupTitle,
+                    text = "Horario de Atencion",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
-                )
-
-                Switch(
-                    checked = isOpen,
-                    onCheckedChange = { newIsOpen ->
-                        isOpen = newIsOpen
-                        applyChanges()
-                    }
-                )
-            }
-
-            // Selector de horario (solo visible si está abierto)
-            AnimatedVisibility(visible = isOpen) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = startTime,
-                        onValueChange = { newStart ->
-                            startTime = newStart
-                            applyChanges()
-                        },
-                        label = { Text("Apertura") },
-                        placeholder = { Text("09:00") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Text(
-                        text = "a",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = endTime,
-                        onValueChange = { newEnd ->
-                            endTime = newEnd
-                            applyChanges()
-                        },
-                        label = { Text("Cierre") },
-                        placeholder = { Text("18:00") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            // Estado de cierre
-            if (!isOpen) {
-                Text(
-                    text = "Cerrado",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
             }
         }
+
+        AdvancedModeSchedule(
+            schedule = schedule,
+            onScheduleChange = onScheduleChange,
+            daysOfWeek = daysOfWeek,
+            expandedDay = expandedDay,
+            onExpandDay = { expandedDay = it }
+        )
     }
 }
 
 /**
- * Modo avanzado: Configuración detallada por día
+ * Modo avanzado: configuracion detallada por dia.
  */
 @Composable
 private fun AdvancedModeSchedule(
@@ -355,7 +139,7 @@ private fun AdvancedModeSchedule(
 }
 
 /**
- * Card de configuración para un día específico
+ * Card de configuracion para un dia especifico.
  */
 @Composable
 private fun DayScheduleCard(
@@ -366,8 +150,6 @@ private fun DayScheduleCard(
     onExpandToggle: () -> Unit,
     onScheduleChange: (DaySchedule) -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onExpandToggle
@@ -375,7 +157,6 @@ private fun DayScheduleCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header del día
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -414,7 +195,6 @@ private fun DayScheduleCard(
                 )
             }
 
-            // Detalles expandibles
             AnimatedVisibility(visible = isExpanded && daySchedule.isOpen) {
                 Column(
                     modifier = Modifier.padding(top = 12.dp),
@@ -466,7 +246,6 @@ private fun DayScheduleCard(
                         }
                     }
 
-                    // Botón agregar rango (máximo 5 rangos por día)
                     if (daySchedule.timeRanges.size < 5) {
                         OutlinedButton(
                             onClick = {
@@ -481,12 +260,11 @@ private fun DayScheduleCard(
                         }
                     }
 
-                    // Mensaje informativo si alcanzó el límite
                     if (daySchedule.timeRanges.size >= 5) {
                         Text(
-                            text = "✓ Máximo 5 rangos horarios por día",
+                            text = "Maximo 5 rangos horarios por dia",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = primaryColor
+                                color = MaterialTheme.colorScheme.primary
                             )
                         )
                     }
@@ -497,7 +275,7 @@ private fun DayScheduleCard(
 }
 
 /**
- * Convierte el schedule de DaySchedule a formato del backend
+ * Convierte el schedule de DaySchedule a formato del backend.
  */
 fun Map<String, DaySchedule>.toBackendSchedule(): Map<String, List<String>> {
     val normalized = normalizeScheduleKeys()
@@ -511,7 +289,7 @@ fun Map<String, DaySchedule>.toBackendSchedule(): Map<String, List<String>> {
 }
 
 /**
- * Convierte el schedule del backend a DaySchedule
+ * Convierte el schedule del backend a DaySchedule.
  */
 fun Map<String, List<String>>.toDaySchedule(): Map<String, DaySchedule> {
     val normalized = mutableMapOf<String, List<String>>()

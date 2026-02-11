@@ -43,28 +43,34 @@ fun BannerWithLogoSection(
             .fillMaxWidth()
             .height(240.dp)
     ) {
-        // Banner de fondo - Imagen o gradiente
+        // Base fallback: gradiente + icono para evitar pantalla en blanco cuando la imagen falla
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                modifier = Modifier.size(42.dp)
+            )
+        }
+
         if (!coverUrl.isNullOrEmpty()) {
-            // Mostrar imagen de portada desde el backend
             NetworkImage(
                 url = coverUrl,
                 contentDescription = "Portada del negocio",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
-            )
-        } else {
-            // Fallback: gradiente por defecto
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
             )
         }
 
@@ -105,24 +111,23 @@ fun BannerWithLogoSection(
                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
             ) {
+                // Fallback por defecto (si no hay URL o falla la carga remota)
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        imageVector = Icons.Default.Store,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
                 if (!avatarUrl.isNullOrEmpty()) {
-                    // Mostrar avatar desde el backend
                     NetworkImage(
                         url = avatarUrl,
                         contentDescription = "Logo del negocio",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-                } else {
-                    // Fallback: icono por defecto
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.Default.Store,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
                 }
             }
 
@@ -148,4 +153,3 @@ fun BannerWithLogoSection(
     }
     Spacer(modifier = Modifier.height(48.dp))
 }
-

@@ -205,7 +205,7 @@ fun TagsSelector(
         // L?mite de tags
         if (selectedTags.size >= 10) {
             Text(
-                text = "?? M?ximo 10 tags alcanzado",
+                text = "Máximo 10 tags alcanzado",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.error
                 )
@@ -295,8 +295,8 @@ private fun getSuggestedTags(): List<String> {
         "para llevar",
         "familiar",
         "premium",
-        "econ?mico",
-        "r?pido",
+        "económico",
+        "rápido",
         "local",
         "recomendado",
         "nuevo",

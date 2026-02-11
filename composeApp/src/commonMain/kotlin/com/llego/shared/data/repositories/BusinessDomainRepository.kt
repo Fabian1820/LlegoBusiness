@@ -246,7 +246,7 @@ internal class BusinessDomainRepository(
                         globalRating = businessFields.globalRating,
                         avatar = businessFields.avatar,
                         description = businessFields.description,
-                        tags = businessFields.tags,
+                        tags = businessFields.tags ?: emptyList(),
                         isActive = businessFields.isActive,
                         createdAt = businessFields.createdAt.toString(),
                         avatarUrl = businessFields.avatarUrl,
@@ -307,7 +307,7 @@ internal class BusinessDomainRepository(
                         globalRating = core.globalRating,
                         avatar = core.avatar,
                         description = core.description,
-                        tags = core.tags,
+                        tags = core.tags ?: emptyList(),
                         isActive = core.isActive,
                         createdAt = core.createdAt.toString(),
                         avatarUrl = core.avatarUrl

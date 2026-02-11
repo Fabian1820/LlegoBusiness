@@ -1,0 +1,14 @@
+query DashboardStats($businessId: String!, $period: DashboardPeriod!, $jwt: String!) {
+  dashboardStats(businessId: $businessId, period: $period, jwt: $jwt) {
+    totalRevenue
+    completedOrders
+    cancelledOrders
+    topProducts {
+      productId
+      name
+      imageUrl
+      totalQuantity
+      totalRevenue
+    }
+  }
+}

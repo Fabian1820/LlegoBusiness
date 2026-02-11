@@ -47,19 +47,42 @@ data class OrderStats(
      */
     val completionRate: Double
         get() = if (totalOrders > 0) completedOrders.toDouble() / totalOrders else 0.0
-    
+
     /**
      * Tasa de cancelación (pedidos cancelados / total)
      */
     val cancellationRate: Double
         get() = if (totalOrders > 0) cancelledOrders.toDouble() / totalOrders else 0.0
-    
+
     /**
      * Pedidos activos (total - completados - cancelados)
      */
     val activeOrders: Int
         get() = totalOrders - completedOrders - cancelledOrders
 }
+
+/**
+ * Producto destacado en dashboard.
+ */
+@Serializable
+data class TopProductStats(
+    val productId: String,
+    val name: String,
+    val imageUrl: String? = null,
+    val totalQuantity: Int,
+    val totalRevenue: Double
+)
+
+/**
+ * Estadisticas del dashboard por periodo.
+ */
+@Serializable
+data class DashboardStats(
+    val totalRevenue: Double,
+    val completedOrders: Int,
+    val cancelledOrders: Int,
+    val topProducts: List<TopProductStats>
+)
 
 /**
  * Tracking de pedido alineado con backend OrderTrackingType

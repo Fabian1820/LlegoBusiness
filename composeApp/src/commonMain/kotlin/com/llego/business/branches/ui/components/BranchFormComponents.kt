@@ -32,9 +32,10 @@ fun BranchTipoSelector(
         BranchTipo.CAFE
     )
 
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         options.forEach { tipo ->
             val selected = tipo in selectedTipos

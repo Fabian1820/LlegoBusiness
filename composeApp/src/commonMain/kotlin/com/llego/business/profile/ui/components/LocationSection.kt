@@ -1,11 +1,5 @@
 package com.llego.business.profile.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +31,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,7 +47,6 @@ import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.theme.LlegoShapes
 import kotlin.math.abs
 import kotlin.math.roundToLong
-import kotlinx.coroutines.delay
 
 /**
  * Seccion de mapa de ubicacion
@@ -184,160 +176,143 @@ private fun FullScreenMapDialog(
     onDismiss: () -> Unit,
     hasLocationChange: Boolean
 ) {
-    var contentVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { contentVisible = true }
-
-    LaunchedEffect(contentVisible) {
-        if (!contentVisible) {
-            delay(180)
-            onDismiss()
-        }
-    }
-
     Dialog(
-        onDismissRequest = { contentVisible = false },
+        onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        AnimatedVisibility(
-            visible = contentVisible,
-            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200)),
-            exit = fadeOut(tween(180)) + scaleOut(targetScale = 0.98f, animationSpec = tween(180))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Box(
+            // Mapa fullscreen edge-to-edge
+            BusinessLocationMap(
+                latitude = latitude,
+                longitude = longitude,
+                onLocationSelected = onLocationChange,
+                modifier = Modifier.fillMaxSize(),
+                isInteractive = true
+            )
+
+            // Overlay: Boton cerrar en la esquina superior izquierda
+            Surface(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .statusBarsPadding()
+                    .padding(16.dp)
+                    .align(Alignment.TopStart),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                shadowElevation = 4.dp
             ) {
-                // Mapa fullscreen edge-to-edge
-                BusinessLocationMap(
-                    latitude = latitude,
-                    longitude = longitude,
-                    onLocationSelected = onLocationChange,
-                    modifier = Modifier.fillMaxSize(),
-                    isInteractive = true
-                )
-
-                // Overlay: Boton cerrar en la esquina superior izquierda
-                Surface(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(16.dp)
-                        .align(Alignment.TopStart),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 4.dp
-                ) {
-                    IconButton(onClick = { contentVisible = false }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            "Volver",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                // Overlay: Titulo en el centro superior
-                Surface(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(top = 20.dp)
-                        .align(Alignment.TopCenter),
-                    shape = LlegoShapes.medium,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 4.dp
-                ) {
-                    Text(
-                        text = "Seleccionar ubicacion",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        "Volver",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+            }
 
-                // Overlay: Bottom bar con coordenadas y botones
-                Surface(
+            // Overlay: Titulo en el centro superior
+            Surface(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(top = 20.dp)
+                    .align(Alignment.TopCenter),
+                shape = LlegoShapes.medium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                shadowElevation = 4.dp
+            ) {
+                Text(
+                    text = "Seleccionar ubicacion",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Overlay: Bottom bar con coordenadas y botones
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+                shadowElevation = 8.dp,
+                shape = LlegoCustomShapes.modal
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                    shadowElevation = 8.dp,
-                    shape = LlegoCustomShapes.modal
+                        .navigationBarsPadding()
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    // Coordenadas
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LlegoShapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        // Coordenadas
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = LlegoShapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = "${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Icon(
+                                Icons.Default.LocationOn,
+                                null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "${formatCoordinate(latitude)}, ${formatCoordinate(longitude)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Botones
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onReset,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = LlegoCustomShapes.secondaryButton,
+                            enabled = hasLocationChange,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Restaurar")
                         }
 
-                        // Botones
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        Button(
+                            onClick = {
+                                onConfirm()
+                                onDismiss()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = LlegoCustomShapes.primaryButton,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            OutlinedButton(
-                                onClick = onReset,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                shape = LlegoCustomShapes.secondaryButton,
-                                enabled = hasLocationChange,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                )
-                            ) {
-                                Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Restaurar")
-                            }
-
-                            Button(
-                                onClick = {
-                                    onConfirm()
-                                    contentVisible = false
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                shape = LlegoCustomShapes.primaryButton,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                )
-                            ) {
-                                Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Guardar")
-                            }
+                            Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Guardar")
                         }
                     }
                 }

@@ -596,6 +596,7 @@ private fun MainBusinessFlow(
 ) {
     val scope = rememberCoroutineScope()
     val productsState by productViewModel.productsState.collectAsState()
+    val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val branches by authViewModel.branches.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val deliveryEntryPointState by deliveryLinkViewModel.uiState.collectAsState()
@@ -733,8 +734,10 @@ private fun MainBusinessFlow(
             }
 
             navigator.showStatistics -> {
+                val currentBusiness by authViewModel.currentBusiness.collectAsState()
                 StatisticsScreen(
                     ordersViewModel = ordersViewModel,
+                    businessId = currentBusiness?.id.orEmpty(),
                     onNavigateBack = { navigator.showStatistics = false }
                 )
             }
@@ -855,20 +858,13 @@ private fun MainBusinessFlow(
 
             navigator.showInvitations -> {
                 val currentBusiness by authViewModel.currentBusiness.collectAsState()
-                val invitationCurrentBranch by authViewModel.currentBranch.collectAsState()
 
                 if (currentBusiness != null) {
                     InvitationDashboard(
                         viewModel = invitationViewModel,
-                        deliveryLinkViewModel = deliveryLinkViewModel,
                         businessId = currentBusiness!!.id,
                         businessName = currentBusiness!!.name,
                         branches = branches.map { it.id to it.name },
-                        allBranches = branches,
-                        currentBranchId = invitationCurrentBranch?.id,
-                        currentBranchName = invitationCurrentBranch?.name,
-                        currentBranchUsesAppMessaging = invitationCurrentBranch?.useAppMessaging ?: true,
-                        onBranchDeliveryModeUpdated = { authViewModel.reloadUserData() },
                         onNavigateBack = { navigator.showInvitations = false }
                     )
                 }
@@ -920,6 +916,7 @@ private fun MainBusinessFlow(
                     onShowConfirmation = { type, orderNumber ->
                         navigator.showConfirmation(type, orderNumber)
                     },
+                    businessId = currentBusiness?.id.orEmpty(),
                     ordersViewModel = ordersViewModel,
                     productViewModel = productViewModel,
                     settingsViewModel = settingsViewModel

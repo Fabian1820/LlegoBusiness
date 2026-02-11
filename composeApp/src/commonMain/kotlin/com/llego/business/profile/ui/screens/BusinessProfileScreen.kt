@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchStatusSelector
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
-import com.llego.business.branches.util.parseManagerIds
 import com.llego.business.profile.ui.components.BannerWithLogoSection
 import com.llego.business.profile.ui.components.BranchInfoSection
 import com.llego.business.profile.ui.components.BranchScheduleSection
@@ -98,7 +97,6 @@ fun BusinessProfileScreen(
     var useAppMessaging by remember(currentBranch?.id) { mutableStateOf(currentBranch?.useAppMessaging ?: true) }
     var selectedVehicles by remember(currentBranch?.id) { mutableStateOf(currentBranch?.vehicles?.toSet() ?: emptySet()) }
     var socialMedia by remember(currentBranch?.id) { mutableStateOf(currentBranch?.socialMedia ?: emptyMap()) }
-    var managerIds by remember(currentBranch?.id) { mutableStateOf(currentBranch?.managerIds?.joinToString(", ").orEmpty()) }
     var accountsInput by remember(currentBranch?.id) { mutableStateOf(formatTransferAccountsInput(currentBranch?.accounts ?: emptyList())) }
     var qrPaymentsInput by remember(currentBranch?.id) { mutableStateOf(formatQrPaymentsInput(currentBranch?.qrPayments ?: emptyList())) }
     var transferPhonesInput by remember(currentBranch?.id) { mutableStateOf(formatTransferPhonesInput(currentBranch?.phones ?: emptyList())) }
@@ -165,7 +163,6 @@ fun BusinessProfileScreen(
         val accountsValue = parseTransferAccountsInput(accountsInput)
         val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput)
         val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
-        val parsedManagerIds = parseManagerIds(managerIds)
 
         val input = UpdateBranchInput(
             name = name.trim().takeIf { it != branch.name },
@@ -186,7 +183,6 @@ fun BusinessProfileScreen(
             vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
             isActive = isActive.takeIf { it != branch.isActive },
             socialMedia = socialMediaValue.takeIf { it != (branch.socialMedia ?: emptyMap<String, String>()) },
-            managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
             accounts = accountsValue.takeIf { it != branch.accounts },
             qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
             phones = transferPhonesValue.takeIf { it != branch.phones },
@@ -458,7 +454,7 @@ fun BusinessProfileScreen(
 
             item {
                 ProfileSectionCard {
-                    SectionHeader(title = "Cobros y administracion")
+                    SectionHeader(title = "Cobros")
 
                     Text(
                         text = "Cuentas para transferencias",
@@ -509,23 +505,6 @@ fun BusinessProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        )
-                    )
-
-                    Text(
-                        text = "IDs de managers",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    OutlinedTextField(
-                        value = managerIds,
-                        onValueChange = { managerIds = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = { Text("id1, id2, id3") },
                         shape = LlegoCustomShapes.inputField,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,

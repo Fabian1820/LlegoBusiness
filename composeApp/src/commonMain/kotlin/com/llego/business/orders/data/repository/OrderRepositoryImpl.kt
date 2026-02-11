@@ -8,6 +8,7 @@ import com.llego.business.orders.data.mappers.toGraphQL
 import com.llego.business.orders.data.mappers.toPartialDomain
 import com.llego.business.orders.data.model.*
 import com.llego.multiplatform.graphql.BranchOrdersQuery
+import com.llego.multiplatform.graphql.DashboardStatsQuery
 import com.llego.multiplatform.graphql.PendingBranchOrdersQuery
 import com.llego.multiplatform.graphql.GetOrderQuery
 import com.llego.multiplatform.graphql.OrderStatsQuery
@@ -23,6 +24,7 @@ import com.llego.multiplatform.graphql.BranchOrderUpdatedSubscription
 import com.llego.multiplatform.graphql.type.UpdateOrderStatusInput
 import com.llego.multiplatform.graphql.type.ModifyOrderItemsInput
 import com.llego.multiplatform.graphql.type.AddOrderCommentInput
+import com.llego.multiplatform.graphql.type.DashboardPeriod
 import com.llego.multiplatform.graphql.type.OrderItemInput as GraphQLOrderItemInput
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
@@ -33,7 +35,7 @@ import kotlinx.coroutines.flow.catch
 
 /**
  * ImplementaciÃ³n del repositorio de pedidos usando Apollo GraphQL Client
- * 
+ *
  * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 11.1
  */
 class OrderRepositoryImpl(
@@ -103,7 +105,7 @@ class OrderRepositoryImpl(
     override suspend fun getPendingBranchOrders(branchId: String): Result<List<Order>> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.query(
                 PendingBranchOrdersQuery(
                     branchId = branchId,
@@ -131,7 +133,7 @@ class OrderRepositoryImpl(
     override suspend fun getOrder(orderId: String): Result<Order?> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.query(
                 GetOrderQuery(
                     id = orderId,
@@ -163,7 +165,7 @@ class OrderRepositoryImpl(
     ): Result<OrderStats?> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.query(
                 OrderStatsQuery(
                     fromDate = fromDate,
@@ -186,6 +188,34 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun getDashboardStats(
+        businessId: String,
+        period: DashboardStatsPeriod
+    ): Result<DashboardStats?> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
+
+            val response = apolloClient.query(
+                DashboardStatsQuery(
+                    businessId = businessId,
+                    period = period.toGraphQL(),
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener dashboard"))
+            } else {
+                val stats = response.data?.dashboardStats?.toDomain()
+                Result.success(stats)
+            }
+        } catch (e: ApolloException) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado: ${e.message}"))
+        }
+    }
+
 
     // ==================== MUTATIONS ====================
 
@@ -196,7 +226,7 @@ class OrderRepositoryImpl(
     override suspend fun acceptOrder(orderId: String, estimatedMinutes: Int): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.mutation(
                 AcceptOrderMutation(
                     orderId = orderId,
@@ -229,7 +259,7 @@ class OrderRepositoryImpl(
     override suspend fun rejectOrder(orderId: String, reason: String): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.mutation(
                 RejectOrderMutation(
                     orderId = orderId,
@@ -298,7 +328,7 @@ class OrderRepositoryImpl(
     ): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.mutation(
                 UpdateOrderStatusMutation(
                     input = UpdateOrderStatusInput(
@@ -334,7 +364,7 @@ class OrderRepositoryImpl(
     override suspend fun markOrderReady(orderId: String): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.mutation(
                 MarkOrderReadyMutation(
                     orderId = orderId,
@@ -370,14 +400,14 @@ class OrderRepositoryImpl(
     ): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val graphqlItems = items.map { item ->
                 GraphQLOrderItemInput(
                     productId = item.productId,
                     quantity = item.quantity
                 )
             }
-            
+
             val response = apolloClient.mutation(
                 ModifyOrderItemsMutation(
                     input = ModifyOrderItemsInput(
@@ -413,7 +443,7 @@ class OrderRepositoryImpl(
     override suspend fun addOrderComment(orderId: String, message: String): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
-            
+
             val response = apolloClient.mutation(
                 AddOrderCommentMutation(
                     input = AddOrderCommentInput(
@@ -488,5 +518,8 @@ class OrderRepositoryImpl(
     }
 }
 
-
-
+private fun DashboardStatsPeriod.toGraphQL(): DashboardPeriod = when (this) {
+    DashboardStatsPeriod.TODAY -> DashboardPeriod.TODAY
+    DashboardStatsPeriod.WEEK -> DashboardPeriod.WEEK
+    DashboardStatsPeriod.MONTH -> DashboardPeriod.MONTH
+}

@@ -1,4 +1,4 @@
-package com.llego.business.analytics.ui.screens
+﻿package com.llego.business.analytics.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutCubic
@@ -22,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.business.analytics.ui.components.ChartsSection
 import com.llego.business.analytics.ui.components.DashboardMetricsSection
 import com.llego.business.analytics.ui.components.PeriodSelector
 import com.llego.business.analytics.ui.components.TopProductsSection
@@ -38,23 +38,42 @@ import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import kotlinx.coroutines.delay
 
 /**
- * Pantalla de Estadisticas del Restaurante
- * Dashboard con metricas principales y graficos
+ * Pantalla de estadisticas del negocio.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
     ordersViewModel: OrdersViewModel,
+    businessId: String,
     onNavigateBack: () -> Unit = {},
     embeddedInHome: Boolean = false
 ) {
     var animateContent by remember { mutableStateOf(false) }
-    var selectedPeriod by remember { mutableStateOf<PeriodFilter>(PeriodFilter.DAY) }
+    var selectedPeriod by remember { mutableStateOf(PeriodFilter.DAY) }
+    val dashboardState by ordersViewModel.dashboardStatsState.collectAsState()
 
-    // Animacion de entrada
     LaunchedEffect(Unit) {
         delay(100)
         animateContent = true
+    }
+
+    LaunchedEffect(businessId, selectedPeriod) {
+        if (businessId.isNotBlank()) {
+            ordersViewModel.loadDashboardStats(
+                businessId = businessId,
+                period = selectedPeriod.toDashboardPeriod()
+            )
+        }
+    }
+
+    val retryLoad = {
+        if (businessId.isNotBlank()) {
+            ordersViewModel.loadDashboardStats(
+                businessId = businessId,
+                period = selectedPeriod.toDashboardPeriod(),
+                forceRefresh = true
+            )
+        }
     }
 
     val content: @Composable (PaddingValues) -> Unit = { paddingValues ->
@@ -83,24 +102,17 @@ fun StatisticsScreen(
 
                 item {
                     DashboardMetricsSection(
-                        ordersViewModel = ordersViewModel,
+                        statsState = dashboardState,
                         period = selectedPeriod,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
-                item {
-                    ChartsSection(
-                        ordersViewModel = ordersViewModel,
-                        period = selectedPeriod,
+                        onRetry = retryLoad,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
                 item {
                     TopProductsSection(
-                        ordersViewModel = ordersViewModel,
-                        period = selectedPeriod,
+                        statsState = dashboardState,
+                        onRetry = retryLoad,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }

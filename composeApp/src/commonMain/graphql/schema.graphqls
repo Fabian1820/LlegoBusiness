@@ -52,12 +52,12 @@ type Query {
   """
   Buscar sucursales con scoring por cercanía (paginado)
   """
-  searchBranches(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, radiusKm: Float = null, jwt: String = null): BranchConnection!
+  searchBranches(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, productCategoryId: String = null, radiusKm: Float = null, jwt: String = null): BranchConnection!
 
   """
   Buscar sucursales cercanas por coordenadas (paginado)
   """
-  nearbyBranches(longitude: Float!, latitude: Float!, first: Int = null, after: String = null, radiusKm: Float! = 5, onlyActive: Boolean! = true, tipo: BranchTipo = null, jwt: String = null): NearbyBranchConnection!
+  nearbyBranches(longitude: Float!, latitude: Float!, first: Int = null, after: String = null, radiusKm: Float! = 5, onlyActive: Boolean! = true, tipo: BranchTipo = null, productCategoryId: String = null, jwt: String = null): NearbyBranchConnection!
 
   """
   Obtener ubicación de una sucursal desde MongoDB
@@ -82,7 +82,7 @@ type Query {
   """
   Buscar productos con scoring por cercanía (paginado)
   """
-  searchProducts(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, branchTipo: BranchTipo = null, radiusKm: Float = null, jwt: String = null): ProductConnection!
+  searchProducts(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, branchTipo: BranchTipo = null, categoryId: String = null, radiusKm: Float = null, jwt: String = null): ProductConnection!
 
   """
   Lista de categorías con subcategorías
@@ -155,9 +155,39 @@ type Query {
   myCurrentDelivery(jwt: String!): OrderType
 
   """
+  Historial de pedidos del repartidor autenticado
+  """
+  myDeliveries(jwt: String!, status: OrderStatusEnum = null, page: Int! = 1, pageSize: Int! = 20): [OrderType!]!
+
+  """
+  Estadísticas del repartidor autenticado
+  """
+  myDeliveryStats(jwt: String!): DeliveryPersonStatsType!
+
+  """
+  Mis solicitudes de vinculación a sucursales
+  """
+  myBranchLinkRequests(jwt: String!, status: DeliveryRequestStatusEnum = null): [BranchDeliveryRequestType!]!
+
+  """
+  Solicitudes de vinculación a una sucursal (para managers)
+  """
+  branchLinkRequests(branchId: String!, jwt: String!, status: DeliveryRequestStatusEnum = null): [BranchDeliveryRequestType!]!
+
+  """
   Estadísticas de pedidos
   """
   orderStats(fromDate: DateTime!, toDate: DateTime!, jwt: String!, branchId: String = null): OrderStatsType!
+
+  """
+  Estimar precio de envío antes de crear el pedido. Usa la ubicación guardada del usuario autenticado.
+  """
+  estimateDeliveryFee(branchId: String!, jwt: String!, subtotal: Float! = 0): DeliveryFeeEstimateType!
+
+  """
+  Estadísticas del dashboard: ingresos, pedidos completados/rechazados y productos más vendidos por período (today, week, month)
+  """
+  dashboardStats(businessId: String!, period: DashboardPeriod!, jwt: String!): DashboardStatsType!
 
   """
   Get business type configurations (supports incremental sync)
@@ -312,7 +342,7 @@ type Query {
   """
   Get personalized feed with multiple sections
   """
-  getFeed(first: Int! = 10, radiusKm: Float = null, sections: [String!] = null, jwt: String = null): FeedResponse!
+  getFeed(branchTipo: String!, first: Int! = 10, radiusKm: Float = null, sections: [String!] = null, productCategoryId: String = null, jwt: String = null): FeedResponse!
 
   """
   Get all tutorials
@@ -388,6 +418,12 @@ type UserType {
 
   walletStatus: String!
 
+  isPro: Boolean!
+
+  location: JSON
+
+  aiConsultasLimit: JSON
+
   """
   URL firmada del avatar del usuario
   """
@@ -415,6 +451,16 @@ The `Float` scalar type represents signed double-precision fractional values as 
 """
 scalar Float
 
+"""
+The `Boolean` scalar type represents `true` or `false`.
+"""
+scalar Boolean
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON
+
 type BusinessType {
   id: String!
 
@@ -428,7 +474,7 @@ type BusinessType {
 
   description: String
 
-  tags: [String!]!
+  tags: [String!]
 
   isActive: Boolean!
 
@@ -439,16 +485,6 @@ type BusinessType {
   """
   avatarUrl: String
 }
-
-"""
-The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
-"""
-scalar JSON
-
-"""
-The `Boolean` scalar type represents `true` or `false`.
-"""
-scalar Boolean
 
 """
 The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
@@ -468,7 +504,7 @@ type BusinessWithBranchesType {
 
   description: String
 
-  tags: [String!]!
+  tags: [String!]
 
   isActive: Boolean!
 
@@ -1350,6 +1386,8 @@ type OrderType {
 
   deliveryFee: Float!
 
+  deliveryMode: String!
+
   total: Float!
 
   currency: String!
@@ -1368,6 +1406,8 @@ type OrderType {
 
   deliveryPersonId: String
 
+  deliveryZoneId: String
+
   estimatedDeliveryTime: DateTime
 
   paymentId: String
@@ -1375,6 +1415,18 @@ type OrderType {
   currentPaymentAttemptId: String
 
   paidAt: DateTime
+
+  assignedAt: DateTime
+
+  pickedUpAt: DateTime
+
+  completedAt: DateTime
+
+  deliveryDistanceKm: Float
+
+  deliveryDurationMin: Int
+
+  deliveryEarnings: Float
 
   rating: Int
 
@@ -1394,6 +1446,11 @@ type OrderType {
   Delivery address
   """
   deliveryAddress: DeliveryAddressType!
+
+  """
+  Pickup address (branch location)
+  """
+  pickupAddress: PickupAddressType
 
   """
   Order timeline
@@ -1519,6 +1576,15 @@ type DeliveryAddressType {
   coordinates: CoordinatesType!
 }
 
+type PickupAddressType {
+  street: String
+
+  """
+  Pickup coordinates
+  """
+  coordinates: CoordinatesType!
+}
+
 type OrderTimelineType {
   status: OrderStatusEnum!
 
@@ -1600,6 +1666,56 @@ type OrderTrackingType {
   routePolyline: String
 }
 
+type DeliveryPersonStatsType {
+  totalDeliveries: Int!
+
+  totalEarnings: Float!
+
+  totalDistanceKm: Float!
+
+  avgDurationMin: Float!
+
+  avgRating: Float!
+}
+
+type BranchDeliveryRequestType {
+  id: String!
+
+  deliveryPersonId: String!
+
+  branchId: String!
+
+  status: DeliveryRequestStatusEnum!
+
+  message: String
+
+  respondedBy: String
+
+  respondedAt: DateTime
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+
+  """
+  Detalles de la sucursal
+  """
+  branch: BranchType
+
+  """
+  Detalles del repartidor
+  """
+  deliveryPerson: DeliveryPersonType
+}
+
+enum DeliveryRequestStatusEnum {
+  PENDING
+
+  ACCEPTED
+
+  REJECTED
+}
+
 type OrderStatsType {
   totalOrders: Int!
 
@@ -1612,6 +1728,52 @@ type OrderStatsType {
   averageOrderValue: Float!
 
   averageDeliveryTime: Int!
+}
+
+type DeliveryFeeEstimateType {
+  deliveryFee: Float!
+
+  currency: String!
+
+  distanceKm: Float!
+
+  zoneName: String
+
+  h3Index: String
+
+  branchId: String!
+
+  branchName: String!
+}
+
+type DashboardStatsType {
+  totalRevenue: Float!
+
+  completedOrders: Int!
+
+  cancelledOrders: Int!
+
+  topProducts: [TopProductType!]!
+}
+
+type TopProductType {
+  productId: String!
+
+  name: String!
+
+  imageUrl: String!
+
+  totalQuantity: Int!
+
+  totalRevenue: Float!
+}
+
+enum DashboardPeriod {
+  TODAY
+
+  WEEK
+
+  MONTH
 }
 
 type BusinessTypeConfigType {
@@ -2476,9 +2638,9 @@ type Mutation {
   rateOrder(orderId: String!, rating: Int!, jwt: String!, comment: String = null): OrderType!
 
   """
-  Aceptar pedido
+  Aceptar pedido. Si se proporciona deliveryFee, el branch establece manualmente el precio de envío.
   """
-  acceptOrder(orderId: String!, estimatedMinutes: Int!, jwt: String!): OrderType!
+  acceptOrder(orderId: String!, estimatedMinutes: Int!, jwt: String!, deliveryFee: Float = null): OrderType!
 
   """
   Rechazar pedido
@@ -2524,6 +2686,21 @@ type Mutation {
   Asignar repartidor manualmente
   """
   assignDeliveryPerson(input: AssignDeliveryPersonInput!, jwt: String!): OrderType!
+
+  """
+  Solicitar vinculación a una sucursal como repartidor
+  """
+  requestBranchLink(input: RequestBranchLinkInput!, jwt: String!): BranchDeliveryRequestType!
+
+  """
+  Responder a una solicitud de vinculación (manager)
+  """
+  respondBranchLinkRequest(input: RespondBranchLinkInput!, jwt: String!): BranchDeliveryRequestType!
+
+  """
+  Cancelar solicitud de vinculación propia
+  """
+  cancelBranchLinkRequest(requestId: String!, jwt: String!): Boolean!
 
   """
   Forzar cambio de estado (admin)
@@ -2851,8 +3028,6 @@ input RegisterBranchInput {
 
   coverImage: String = null
 
-  isActive: Boolean! = true
-
   socialMedia: JSON = null
 
   accounts: [TransferAccountInput!] = null
@@ -2930,8 +3105,6 @@ input CreateBranchInput {
   avatar: String = null
 
   coverImage: String = null
-
-  isActive: Boolean! = true
 
   socialMedia: JSON = null
 
@@ -3094,6 +3267,18 @@ input AssignDeliveryPersonInput {
   deliveryPersonId: String!
 
   estimatedMinutes: Int = null
+}
+
+input RequestBranchLinkInput {
+  branchId: String!
+
+  message: String = null
+}
+
+input RespondBranchLinkInput {
+  requestId: String!
+
+  accept: Boolean!
 }
 
 type DeviceTokenType {
@@ -3828,52 +4013,6 @@ directive @specifiedBy ("The URL that specifies the behavior of this scalar." ur
 Indicates an Input Object is a OneOf Input Object.
 """
 directive @oneOf on INPUT_OBJECT
-
-enum DeliveryRequestStatusEnum {
-  PENDING
-
-  ACCEPTED
-
-  REJECTED
-}
-
-type BranchDeliveryRequestType {
-  id: String!
-
-  deliveryPersonId: String!
-
-  branchId: String!
-
-  status: DeliveryRequestStatusEnum!
-
-  message: String
-
-  respondedBy: String
-
-  respondedAt: DateTime
-
-  createdAt: DateTime!
-
-  updatedAt: DateTime!
-
-  branch: BranchType
-
-  deliveryPerson: DeliveryPersonType
-}
-
-input RespondBranchLinkInput {
-  requestId: String!
-
-  accept: Boolean!
-}
-
-extend type Query {
-  branchLinkRequests(branchId: String!, status: DeliveryRequestStatusEnum = null, jwt: String!): [BranchDeliveryRequestType!]!
-}
-
-extend type Mutation {
-  respondBranchLinkRequest(input: RespondBranchLinkInput!, jwt: String!): BranchDeliveryRequestType!
-}
 
 schema {
   query: Query

@@ -10,6 +10,8 @@ import com.llego.business.orders.data.model.OrderComment
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
 import com.llego.business.orders.data.model.OrderStatus
+import com.llego.business.orders.data.model.DashboardStats
+import com.llego.business.orders.data.repository.DashboardStatsPeriod
 import com.llego.business.orders.data.repository.OrderItemInput
 import com.llego.business.orders.data.repository.OrderRepository
 import com.llego.business.orders.data.repository.OrderRepositoryImpl
@@ -54,6 +56,9 @@ class OrdersViewModel(
     val currentBranchId: StateFlow<String?> = _currentBranchId.asStateFlow()
 
     private val _availableBranchIds = MutableStateFlow<List<String>>(emptyList())
+    private val _dashboardStatsState = MutableStateFlow<DashboardStatsUiState>(DashboardStatsUiState.Idle)
+    val dashboardStatsState: StateFlow<DashboardStatsUiState> = _dashboardStatsState.asStateFlow()
+    private var lastDashboardRequest: Pair<String, DashboardStatsPeriod>? = null
 
     val filteredOrders: StateFlow<List<Order>> = combine(
         _orders,
@@ -602,6 +607,41 @@ class OrdersViewModel(
     fun loadMenuItems(branchId: String? = null) {
         // Intentionally no-op for now.
     }
+
+    fun loadDashboardStats(
+        businessId: String,
+        period: DashboardStatsPeriod,
+        forceRefresh: Boolean = false
+    ) {
+        if (businessId.isBlank()) {
+            _dashboardStatsState.value = DashboardStatsUiState.Error("Negocio no seleccionado")
+            return
+        }
+
+        val currentRequest = businessId to period
+        if (!forceRefresh && lastDashboardRequest == currentRequest && _dashboardStatsState.value is DashboardStatsUiState.Success) {
+            return
+        }
+
+        viewModelScope.launch {
+            _dashboardStatsState.value = DashboardStatsUiState.Loading
+            val result = repository.getDashboardStats(businessId, period)
+            result
+                .onSuccess { stats ->
+                    if (stats == null) {
+                        _dashboardStatsState.value = DashboardStatsUiState.Error("No se recibieron estadisticas")
+                    } else {
+                        lastDashboardRequest = currentRequest
+                        _dashboardStatsState.value = DashboardStatsUiState.Success(stats)
+                    }
+                }
+                .onFailure { error ->
+                    _dashboardStatsState.value = DashboardStatsUiState.Error(
+                        error.message ?: "Error al obtener estadisticas"
+                    )
+                }
+        }
+    }
 }
 
 sealed class OrdersUiState {
@@ -610,6 +650,13 @@ sealed class OrdersUiState {
     data class Error(val message: String) : OrdersUiState()
     data class ActionInProgress(val orderId: String) : OrdersUiState()
     data class ActionError(val message: String) : OrdersUiState()
+}
+
+sealed class DashboardStatsUiState {
+    data object Idle : DashboardStatsUiState()
+    data object Loading : DashboardStatsUiState()
+    data class Success(val stats: DashboardStats) : DashboardStatsUiState()
+    data class Error(val message: String) : DashboardStatsUiState()
 }
 
 enum class DateRangeFilter(val displayName: String) {

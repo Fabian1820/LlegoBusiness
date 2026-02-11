@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ fun OrdersScreen(
     val ordersListState = rememberLazyListState()
 
     var animateContent by remember { mutableStateOf(false) }
+    var isPullRefreshing by remember { mutableStateOf(false) }
 
     // Scroll to top when filters change
     LaunchedEffect(selectedFilter, selectedDateRange) {
@@ -48,23 +50,51 @@ fun OrdersScreen(
         animateContent = true
     }
 
-    Box(
+    LaunchedEffect(uiState, isPullRefreshing) {
+        if (isPullRefreshing && uiState !is OrdersUiState.Loading) {
+            isPullRefreshing = false
+        }
+    }
+
+    val refreshFromGesture = {
+        if (uiState !is OrdersUiState.Loading && !isPullRefreshing) {
+            isPullRefreshing = true
+            viewModel.refreshOrders()
+        }
+    }
+
+    PullToRefreshBox(
+        isRefreshing = isPullRefreshing,
+        onRefresh = refreshFromGesture,
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
         when (val currentState = uiState) {
             is OrdersUiState.Loading -> {
-                // Requirements: 2.7 - Mostrar indicador de carga durante queries
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                if (filteredOrders.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    OrdersContent(
+                        animateContent = animateContent,
+                        filteredOrders = filteredOrders,
+                        selectedFilter = selectedFilter,
+                        selectedDateRange = selectedDateRange,
+                        ordersListState = ordersListState,
+                        onNavigateToOrderDetail = onNavigateToOrderDetail,
+                        actionInProgressOrderId = null,
+                        onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
+                        onStatusSelected = { viewModel.setFilter(it) },
+                        onStatusCleared = { viewModel.clearFilter() }
+                    )
                 }
             }
             is OrdersUiState.Error -> {
-                // Requirements: 2.8 - Mostrar error con opciÃ³n de reintentar
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -144,4 +174,3 @@ fun OrdersScreen(
         }
     }
 }
-
