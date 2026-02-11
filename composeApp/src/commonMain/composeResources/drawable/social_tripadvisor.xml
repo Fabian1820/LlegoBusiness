@@ -1,0 +1,66 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Fondo blanco redondeado -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M77,0h358A77,77 0,0 1,512 77v358A77,77 0,0 1,435 512H77A77,77 0,0 1,0 435V77A77,77 0,0 1,77 0z" />
+
+    <!-- Ola amarilla superior -->
+    <path
+        android:fillColor="#FFFCC40F"
+        android:strokeColor="#FF000A12"
+        android:strokeWidth="17"
+        android:pathData="M93,202a195,151 0,0 1,326 0v56H93z" />
+
+    <!-- Ojo izquierdo: círculo externo negro -->
+    <path
+        android:fillColor="#FF000A12"
+        android:pathData="M159,257m-97,0a97,97 0,1 1,194 0a97,97 0,1 1,-194 0" />
+    <!-- Ojo izquierdo: anillo blanco -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M159,257m-78,0a78,78 0,1 1,156 0a78,78 0,1 1,-156 0" />
+    <!-- Ojo izquierdo: pupila negra -->
+    <path
+        android:fillColor="#FF000A12"
+        android:pathData="M159,257m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+    <!-- Ojo izquierdo: reflejo blanco -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M159,257m-33,0a33,33 0,1 1,66 0a33,33 0,1 1,-66 0" />
+    <!-- Ojo izquierdo: punto naranja -->
+    <path
+        android:fillColor="#FFEF6A45"
+        android:pathData="M159,257m-17,0a17,17 0,1 1,34 0a17,17 0,1 1,-34 0" />
+
+    <!-- Ojo derecho: círculo externo negro -->
+    <path
+        android:fillColor="#FF000A12"
+        android:pathData="M353,257m-97,0a97,97 0,1 1,194 0a97,97 0,1 1,-194 0" />
+    <!-- Ojo derecho: anillo blanco -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M353,257m-78,0a78,78 0,1 1,156 0a78,78 0,1 1,-156 0" />
+    <!-- Ojo derecho: pupila negra -->
+    <path
+        android:fillColor="#FF000A12"
+        android:pathData="M353,257m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+    <!-- Ojo derecho: reflejo blanco -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M353,257m-33,0a33,33 0,1 1,66 0a33,33 0,1 1,-66 0" />
+    <!-- Ojo derecho: punto verde -->
+    <path
+        android:fillColor="#FF00B087"
+        android:pathData="M353,257m-17,0a17,17 0,1 1,34 0a17,17 0,1 1,-34 0" />
+
+    <!-- Flecha del pico entre los ojos -->
+    <path
+        android:fillColor="#FF000A12"
+        android:pathData="M254,257h-33v45l31,47" />
+
+</vector>

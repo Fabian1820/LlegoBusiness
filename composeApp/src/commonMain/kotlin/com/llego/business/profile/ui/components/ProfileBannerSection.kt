@@ -2,12 +2,14 @@
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,121 +37,158 @@ import com.llego.shared.ui.theme.LlegoShapes
 fun BannerWithLogoSection(
     avatarUrl: String? = null,
     coverUrl: String? = null,
+    branchName: String? = null,
     onChangeAvatar: () -> Unit = {},
-    onChangeCover: (() -> Unit)? = null
+    onChangeCover: (() -> Unit)? = null,
+    onNavigateBack: (() -> Unit)? = null
 ) {
+    val avatarInitial = branchName?.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(240.dp)
+            .height(200.dp)
     ) {
-        // Base fallback: gradiente + icono para evitar pantalla en blanco cuando la imagen falla
+        // Fondo fallback con color de la app
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+
+        if (!coverUrl.isNullOrEmpty()) {
+            NetworkImage(
+                url = coverUrl,
+                contentDescription = "Portada de la sucursal",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        // Gradiente overlay de abajo hacia arriba
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            MaterialTheme.colorScheme.surface
+                            androidx.compose.ui.graphics.Color.Transparent,
+                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.38f)
                         )
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.Image,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
-                modifier = Modifier.size(42.dp)
-            )
-        }
+                )
+        )
 
-        if (!coverUrl.isNullOrEmpty()) {
-            NetworkImage(
-                url = coverUrl,
-                contentDescription = "Portada del negocio",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-
-        // Boton para cambiar portada - solo mostrar si onChangeCover no es null
+        // Botón editar portada — esquina inferior derecha
         if (onChangeCover != null) {
-            IconButton(
-                onClick = onChangeCover,
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 12.dp, bottom = 10.dp)
                     .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        CircleShape
+                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.31f),
+                        androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                     )
+                    .clickable { onChangeCover() }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Cambiar portada",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "Editar",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = androidx.compose.ui.graphics.Color.White
                 )
             }
         }
 
-        // Logo circular
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 20.dp, bottom = 20.dp)
-                .offset(y = 48.dp)
-        ) {
+        // Botón back — esquina superior izquierda, superpuesto sobre portada
+        if (onNavigateBack != null) {
             Surface(
-                modifier = Modifier.size(96.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp,
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                // Fallback por defecto (si no hay URL o falla la carga remota)
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        imageVector = Icons.Default.Store,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-
-                if (!avatarUrl.isNullOrEmpty()) {
-                    NetworkImage(
-                        url = avatarUrl,
-                        contentDescription = "Logo del negocio",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-
-            // Boton para cambiar avatar
-            IconButton(
-                onClick = onChangeAvatar,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(28.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        CircleShape
-                    )
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp, top = 8.dp),
+                shape = CircleShape,
+                shadowElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surface
             ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Cambiar logo",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(14.dp)
-                )
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
-    Spacer(modifier = Modifier.height(48.dp))
+
+    // Avatar + badge de cámara, solapando la portada
+    Box(
+        modifier = Modifier
+            .padding(start = 20.dp)
+            .offset(y = (-36).dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(100.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 2.dp,
+            border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface)
+        ) {
+            if (!avatarUrl.isNullOrEmpty()) {
+                NetworkImage(
+                    url = avatarUrl,
+                    contentDescription = "Avatar de la sucursal",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Fallback con inicial del nombre
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                ) {
+                    Text(
+                        text = avatarInitial,
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    )
+                }
+            }
+        }
+
+        // Badge de cámara
+        IconButton(
+            onClick = onChangeAvatar,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(32.dp)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                .then(
+                    Modifier.border(
+                        2.dp,
+                        MaterialTheme.colorScheme.surface,
+                        CircleShape
+                    )
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Default.CameraAlt,
+                contentDescription = "Cambiar avatar",
+                tint = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }

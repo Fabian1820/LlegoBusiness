@@ -70,9 +70,8 @@ internal fun AppTipsSection() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
             text = "¿Por qué Llego Business?",
@@ -84,15 +83,18 @@ internal fun AppTipsSection() {
 
         TipItem(
             icon = Icons.Default.Store,
-            text = "Gestiona tu negocio desde cualquier lugar"
+            text = "Gestiona tu negocio desde cualquier lugar",
+            showDivider = true
         )
         TipItem(
             icon = Icons.Default.Notifications,
-            text = "Recibe pedidos en tiempo real"
+            text = "Recibe pedidos en tiempo real",
+            showDivider = true
         )
         TipItem(
             icon = Icons.Default.TrendingUp,
-            text = "Aumenta tus ventas con delivery"
+            text = "Aumenta tus ventas con delivery",
+            showDivider = true
         )
         TipItem(
             icon = Icons.Default.Support,
@@ -100,32 +102,49 @@ internal fun AppTipsSection() {
         )
 
         HorizontalDivider(
-            modifier = Modifier.fillMaxWidth(0.6f),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+            modifier = Modifier.fillMaxWidth(0.7f),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
         )
     }
 }
 
 @Composable
-private fun TipItem(icon: ImageVector, text: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
+private fun TipItem(
+    icon: ImageVector,
+    text: String,
+    showDivider: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Start
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.95f),
+                textAlign = TextAlign.Start
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f)
+            )
+        }
     }
 }
 

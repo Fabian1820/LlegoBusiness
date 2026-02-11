@@ -9,7 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,9 +28,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +48,7 @@ import com.llego.business.profile.ui.components.BranchInfoSection
 import com.llego.business.profile.ui.components.BranchScheduleSection
 import com.llego.business.profile.ui.components.ImageUploadDialog
 import com.llego.business.profile.ui.components.LocationMapSection
+import com.llego.business.profile.ui.components.ProfileFieldWithInput
 import com.llego.business.profile.ui.components.ProfileSaveMessageCard
 import com.llego.business.profile.ui.components.ProfileSectionCard
 import com.llego.business.profile.ui.components.SectionHeader
@@ -93,13 +99,39 @@ fun BusinessProfileScreen(
     var longitude by remember(currentBranch?.id) { mutableStateOf(currentBranch?.coordinates?.longitude ?: 0.0) }
     var branchSchedule by remember(currentBranch?.id) { mutableStateOf(currentBranch?.schedule ?: emptyMap()) }
     var selectedTipos by remember(currentBranch?.id) { mutableStateOf(currentBranch?.tipos?.toSet() ?: emptySet()) }
-    var selectedPaymentMethodIds by remember(currentBranch?.id) { mutableStateOf(currentBranch?.paymentMethodIds ?: emptyList()) }
+    var selectedPaymentMethodIds by remember(currentBranch?.id) {
+        mutableStateOf(
+            currentBranch?.paymentMethodIds ?: emptyList()
+        )
+    }
     var useAppMessaging by remember(currentBranch?.id) { mutableStateOf(currentBranch?.useAppMessaging ?: true) }
-    var selectedVehicles by remember(currentBranch?.id) { mutableStateOf(currentBranch?.vehicles?.toSet() ?: emptySet()) }
+    var selectedVehicles by remember(currentBranch?.id) {
+        mutableStateOf(
+            currentBranch?.vehicles?.toSet() ?: emptySet()
+        )
+    }
     var socialMedia by remember(currentBranch?.id) { mutableStateOf(currentBranch?.socialMedia ?: emptyMap()) }
-    var accountsInput by remember(currentBranch?.id) { mutableStateOf(formatTransferAccountsInput(currentBranch?.accounts ?: emptyList())) }
-    var qrPaymentsInput by remember(currentBranch?.id) { mutableStateOf(formatQrPaymentsInput(currentBranch?.qrPayments ?: emptyList())) }
-    var transferPhonesInput by remember(currentBranch?.id) { mutableStateOf(formatTransferPhonesInput(currentBranch?.phones ?: emptyList())) }
+    var accountsInput by remember(currentBranch?.id) {
+        mutableStateOf(
+            formatTransferAccountsInput(
+                currentBranch?.accounts ?: emptyList()
+            )
+        )
+    }
+    var qrPaymentsInput by remember(currentBranch?.id) {
+        mutableStateOf(
+            formatQrPaymentsInput(
+                currentBranch?.qrPayments ?: emptyList()
+            )
+        )
+    }
+    var transferPhonesInput by remember(currentBranch?.id) {
+        mutableStateOf(
+            formatTransferPhonesInput(
+                currentBranch?.phones ?: emptyList()
+            )
+        )
+    }
     var isActive by remember(currentBranch?.id) { mutableStateOf(currentBranch?.isActive ?: true) }
 
     LaunchedEffect(currentBranch?.id) {
@@ -213,31 +245,7 @@ fun BusinessProfileScreen(
     }
 
     if (currentBranch == null) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Perfil de sucursal",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { paddingValues ->
+        Scaffold(containerColor = MaterialTheme.colorScheme.background) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -246,6 +254,16 @@ fun BusinessProfileScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        "Volver",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     text = "No hay sucursal seleccionada",
                     style = MaterialTheme.typography.bodyLarge,
@@ -257,57 +275,42 @@ fun BusinessProfileScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Perfil de sucursal",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+        containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            androidx.compose.material3.ExtendedFloatingActionButton(
+                onClick = { saveBranchChanges() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = androidx.compose.ui.graphics.Color.White
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(end = 8.dp),
+                        strokeWidth = 2.dp,
+                        color = androidx.compose.ui.graphics.Color.White
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = { saveBranchChanges() },
-                        enabled = !isSaving && !isUploading
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(end = 4.dp),
-                                strokeWidth = 2.dp
-                            )
-                        }
-                        Text("Guardar")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                }
+                Text(
+                    text = "Guardar cambios",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+            }
+        }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 BannerWithLogoSection(
                     avatarUrl = branchPreview?.avatarUrl,
                     coverUrl = branchPreview?.coverUrl,
+                    branchName = branchPreview?.name,
                     onChangeAvatar = { showAvatarDialog = true },
-                    onChangeCover = { showCoverDialog = true }
+                    onChangeCover = { showCoverDialog = true },
+                    onNavigateBack = onNavigateBack
                 )
             }
 
@@ -333,7 +336,10 @@ fun BusinessProfileScreen(
 
             item {
                 ProfileSectionCard {
-                    SectionHeader(title = "Estado y billetera")
+                    SectionHeader(
+                        title = "Estado y billetera",
+                        sectionIcon = Icons.Default.AccountBalance
+                    )
 
                     Text(
                         text = "Estado de sucursal",
@@ -391,24 +397,37 @@ fun BusinessProfileScreen(
 
             item {
                 ProfileSectionCard {
-                    SectionHeader(title = "Operacion")
-
-                    Text(
-                        text = "Tipos de servicio",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    BranchTipoSelector(
-                        selectedTipos = selectedTipos,
-                        onSelectionChange = { selectedTipos = it }
+                    SectionHeader(
+                        title = "Operación",
+                        sectionIcon = Icons.Default.Build
                     )
 
-                    PaymentMethodSelector(
-                        availablePaymentMethods = paymentMethodsUiState.methods,
-                        selectedPaymentMethodIds = selectedPaymentMethodIds,
-                        onSelectionChange = { selectedPaymentMethodIds = it },
-                        isLoading = paymentMethodsUiState.isLoading,
-                        layout = PaymentMethodSelectorLayout.FLOW
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Tipos de servicio",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        BranchTipoSelector(
+                            selectedTipos = selectedTipos,
+                            onSelectionChange = { selectedTipos = it }
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Métodos de pago",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        PaymentMethodSelector(
+                            availablePaymentMethods = paymentMethodsUiState.methods,
+                            selectedPaymentMethodIds = selectedPaymentMethodIds,
+                            onSelectionChange = { selectedPaymentMethodIds = it },
+                            isLoading = paymentMethodsUiState.isLoading,
+                            layout = PaymentMethodSelectorLayout.FLOW
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -420,8 +439,8 @@ fun BusinessProfileScreen(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "Mensajeria de la app",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                                text = "Mensajería de la app",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                             )
                             Text(
                                 text = if (useAppMessaging) {
@@ -429,7 +448,7 @@ fun BusinessProfileScreen(
                                 } else {
                                     "La sucursal gestiona su propio canal"
                                 },
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -440,76 +459,47 @@ fun BusinessProfileScreen(
                     }
 
                     if (!useAppMessaging) {
-                        Text(
-                            text = "Vehiculos de delivery",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                        )
-                        BranchVehiclesSelector(
-                            selectedVehicles = selectedVehicles,
-                            onSelectionChange = { selectedVehicles = it }
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Vehículos de delivery",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            BranchVehiclesSelector(
+                                selectedVehicles = selectedVehicles,
+                                onSelectionChange = { selectedVehicles = it }
+                            )
+                        }
                     }
                 }
             }
 
             item {
                 ProfileSectionCard {
-                    SectionHeader(title = "Cobros")
+                    SectionHeader(
+                        title = "Cobros",
+                        sectionIcon = Icons.Default.CreditCard
+                    )
 
-                    Text(
-                        text = "Cuentas para transferencias",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    Text(
-                        text = "Una por linea: numero|titular|banco",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
+                    ProfileFieldWithInput(
+                        label = "Cuentas para transferencias",
+                        hint = "numero|titular|banco (una por línea)",
                         value = accountsInput,
-                        onValueChange = { accountsInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        )
+                        onValueChange = { accountsInput = it }
                     )
 
-                    Text(
-                        text = "Pagos QR (uno por linea)",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    OutlinedTextField(
+                    ProfileFieldWithInput(
+                        label = "Pagos QR",
+                        hint = "Uno por línea",
                         value = qrPaymentsInput,
-                        onValueChange = { qrPaymentsInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        )
+                        onValueChange = { qrPaymentsInput = it }
                     )
 
-                    Text(
-                        text = "Telefonos de transferencia (uno por linea)",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    OutlinedTextField(
+                    ProfileFieldWithInput(
+                        label = "Teléfonos de transferencia",
+                        hint = "Uno por línea",
                         value = transferPhonesInput,
-                        onValueChange = { transferPhonesInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = LlegoCustomShapes.inputField,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        )
+                        onValueChange = { transferPhonesInput = it }
                     )
                 }
             }

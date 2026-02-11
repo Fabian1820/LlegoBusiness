@@ -320,9 +320,9 @@ fun LoginScreen(
                                     }
                                 )
 
-                                Spacer(modifier = Modifier.height(56.dp))
+                                Spacer(modifier = Modifier.height(48.dp))
                                 AppTipsSection()
-                                Spacer(modifier = Modifier.height(30.dp))
+                                Spacer(modifier = Modifier.height(24.dp))
                                 ClickableText(
                                     text = termsText,
                                     style = MaterialTheme.typography.bodySmall.copy(

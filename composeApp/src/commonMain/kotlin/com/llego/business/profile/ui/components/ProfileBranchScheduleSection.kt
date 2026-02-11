@@ -52,7 +52,8 @@ fun BranchScheduleSection(
 
     ProfileSectionCard {
         SectionHeader(
-            title = "Horarios de atencion",
+            title = "Horario de atención",
+            sectionIcon = Icons.Default.Schedule,
             isEditing = isEditing,
             onEditClick = {
                 if (isEditing) {
@@ -74,15 +75,12 @@ fun BranchScheduleSection(
             if (backendSchedule.isEmpty()) {
                 Text(
                     text = "Sin horarios configurados",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             } else {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                ) {
+                Column {
                     dayNames.forEach { (key, label) ->
                         val daySchedule = scheduleForDisplay[key]
                         val hoursText = if (daySchedule == null || !daySchedule.isOpen) {
@@ -92,21 +90,23 @@ fun BranchScheduleSection(
                         }
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = hoursText,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = if (hoursText == "Cerrado") {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 } else {
-                                    MaterialTheme.colorScheme.onSurface
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                                 }
                             )
                         }

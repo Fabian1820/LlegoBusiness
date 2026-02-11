@@ -7,17 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +38,7 @@ import com.llego.shared.ui.theme.LlegoShapes
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.social_facebook
 import llegobusiness.composeapp.generated.resources.social_instagram
-import llegobusiness.composeapp.generated.resources.social_whatsapp
+import llegobusiness.composeapp.generated.resources.social_tripadvisor
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -54,156 +51,112 @@ fun SocialLinksSection(
 ) {
     var instagram by remember(socialMedia) { mutableStateOf(socialMedia?.get("instagram") ?: "") }
     var facebook by remember(socialMedia) { mutableStateOf(socialMedia?.get("facebook") ?: "") }
-    var whatsapp by remember(socialMedia) { mutableStateOf(socialMedia?.get("whatsapp") ?: "") }
+    var tripadvisor by remember(socialMedia) { mutableStateOf(socialMedia?.get("tripadvisor") ?: "") }
     var isEditing by remember { mutableStateOf(false) }
 
     ProfileSectionCard {
         SectionHeader(
             title = "Redes sociales",
+            sectionIcon = Icons.Default.Share,
+            sectionIconTint = Color(0xFF1976D2),
             isEditing = isEditing,
             onEditClick = {
                 if (isEditing) {
                     val updated = mutableMapOf<String, String>()
                     val instagramValue = instagram.trim()
                     val facebookValue = facebook.trim()
-                    val whatsappValue = whatsapp.trim()
+                    val tripadvisorValue = tripadvisor.trim()
                     if (instagramValue.isNotEmpty()) updated["instagram"] = instagramValue
                     if (facebookValue.isNotEmpty()) updated["facebook"] = facebookValue
-                    if (whatsappValue.isNotEmpty()) updated["whatsapp"] = whatsappValue
+                    if (tripadvisorValue.isNotEmpty()) updated["tripadvisor"] = tripadvisorValue
                     onSave(updated)
                 }
                 isEditing = !isEditing
             }
         )
 
-        if (isEditing) {
-            OutlinedTextField(
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SocialRow(
+                icon = Res.drawable.social_instagram,
                 value = instagram,
-                onValueChange = { instagram = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Instagram") },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.social_instagram),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.Unspecified
-                    )
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                shape = LlegoCustomShapes.inputField
+                placeholder = "@usuario",
+                isEditing = isEditing,
+                onValueChange = { instagram = it }
             )
-            OutlinedTextField(
+            SocialRow(
+                icon = Res.drawable.social_facebook,
                 value = facebook,
-                onValueChange = { facebook = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Facebook") },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.social_facebook),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.Unspecified
-                    )
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                shape = LlegoCustomShapes.inputField
+                placeholder = "Página de Facebook",
+                isEditing = isEditing,
+                onValueChange = { facebook = it }
             )
-            OutlinedTextField(
-                value = whatsapp,
-                onValueChange = { whatsapp = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("WhatsApp") },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.social_whatsapp),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.Unspecified
-                    )
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                shape = LlegoCustomShapes.inputField
+            SocialRow(
+                icon = Res.drawable.social_tripadvisor,
+                value = tripadvisor,
+                placeholder = "Perfil de TripAdvisor",
+                isEditing = isEditing,
+                onValueChange = { tripadvisor = it }
             )
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SocialLinkButton(
-                    label = "Instagram",
-                    value = instagram,
-                    icon = Res.drawable.social_instagram,
-                    onClick = { /* TODO: Abrir Instagram */ }
-                )
-                SocialLinkButton(
-                    label = "Facebook",
-                    value = facebook,
-                    icon = Res.drawable.social_facebook,
-                    onClick = { /* TODO: Abrir Facebook */ }
-                )
-                SocialLinkButton(
-                    label = "WhatsApp",
-                    value = whatsapp,
-                    icon = Res.drawable.social_whatsapp,
-                    onClick = { /* TODO: Abrir WhatsApp */ }
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun SocialLinkButton(
-    label: String,
-    value: String,
+private fun SocialRow(
     icon: DrawableResource,
-    onClick: () -> Unit
+    value: String,
+    placeholder: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit
 ) {
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = LlegoCustomShapes.secondaryButton,
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(28.dp),
             tint = Color.Unspecified
         )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+
+        if (isEditing) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(8.dp)
             )
+        } else {
             Text(
                 text = value.ifEmpty { "No configurado" },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                color = if (value.isEmpty()) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -293,7 +246,9 @@ fun TagsSection(
                 items(currentTags) { tag ->
                     TagChip(
                         text = tag,
-                        onRemove = if (isEditing) {{ currentTags = currentTags - tag }} else null
+                        onRemove = if (isEditing) {
+                            { currentTags = currentTags - tag }
+                        } else null
                     )
                 }
             }

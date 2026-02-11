@@ -58,7 +58,10 @@ fun BranchInfoSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SectionHeader(title = "Informacion de la sucursal")
+            SectionHeader(
+                title = "Información de la sucursal",
+                sectionIcon = Icons.Default.Store
+            )
             StatusBadge(branch?.isActive)
         }
 

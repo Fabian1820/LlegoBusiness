@@ -65,7 +65,7 @@ fun LocationMapSection(
     var resetOnDismiss by remember { mutableStateOf(true) }
 
     val hasLocationChange = abs(selectedLatitude - originalLatitude) > 0.000001 ||
-        abs(selectedLongitude - originalLongitude) > 0.000001
+            abs(selectedLongitude - originalLongitude) > 0.000001
 
     val onLocationSelected: (Double, Double) -> Unit = { lat, lng ->
         selectedLatitude = lat
@@ -104,7 +104,8 @@ fun LocationMapSection(
 
     ProfileSectionCard {
         SectionHeader(
-            title = "Ubicacion del negocio",
+            title = "Ubicación",
+            sectionIcon = Icons.Default.LocationOn,
             trailing = {
                 IconButton(
                     onClick = openFullScreenMap,
