@@ -1,6 +1,7 @@
-﻿package com.llego.business.orders.ui.screens
+package com.llego.business.orders.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -10,6 +11,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.ui.components.OrdersContent
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
@@ -17,6 +19,7 @@ import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import kotlinx.coroutines.delay
 
 private const val ORDERS_AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
+private const val ORDERS_PULL_REFRESH_THRESHOLD_PX = 120f
 
 /**
  * Pantalla de Pedidos con diseÃ±o moderno y profesional
@@ -38,8 +41,14 @@ fun OrdersScreen(
 
     var animateContent by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }
+    var gesturePullDistance by remember { mutableStateOf(0f) }
     val latestUiState by rememberUpdatedState(uiState)
     val latestPullRefreshing by rememberUpdatedState(isPullRefreshing)
+    val canTriggerGestureRefresh = uiState !is OrdersUiState.Loading &&
+        uiState !is OrdersUiState.ActionInProgress &&
+        !isPullRefreshing
+    val isAtTop = filteredOrders.isEmpty() ||
+        (ordersListState.firstVisibleItemIndex == 0 && ordersListState.firstVisibleItemScrollOffset == 0)
 
     // Scroll to top when filters change
     LaunchedEffect(selectedFilter, selectedDateRange) {
@@ -86,6 +95,29 @@ fun OrdersScreen(
         onRefresh = refreshFromGesture,
         modifier = modifier
             .fillMaxSize()
+            .pointerInput(canTriggerGestureRefresh, isAtTop) {
+                detectVerticalDragGestures(
+                    onVerticalDrag = { _, dragAmount ->
+                        if (!canTriggerGestureRefresh || !isAtTop) return@detectVerticalDragGestures
+
+                        if (dragAmount > 0f) {
+                            gesturePullDistance += dragAmount
+                            if (gesturePullDistance >= ORDERS_PULL_REFRESH_THRESHOLD_PX) {
+                                refreshFromGesture()
+                                gesturePullDistance = 0f
+                            }
+                        } else if (dragAmount < 0f) {
+                            gesturePullDistance = 0f
+                        }
+                    },
+                    onDragEnd = {
+                        gesturePullDistance = 0f
+                    },
+                    onDragCancel = {
+                        gesturePullDistance = 0f
+                    }
+                )
+            }
             .background(MaterialTheme.colorScheme.background)
     ) {
         when (val currentState = uiState) {

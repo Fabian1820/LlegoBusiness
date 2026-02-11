@@ -463,26 +463,6 @@ fun App(viewModels: AppViewModels) {
     }
 }
 
-private fun resolveDeliveryManagementBranch(
-    allBranches: List<com.llego.shared.data.model.Branch>,
-    currentBranchId: String?,
-    pendingBranchIds: Set<String>,
-    suggestedBranchId: String?
-): com.llego.shared.data.model.Branch? {
-    val current = allBranches.firstOrNull { it.id == currentBranchId }
-    if (current != null && (!current.useAppMessaging || current.id in pendingBranchIds)) {
-        return current
-    }
-
-    if (!suggestedBranchId.isNullOrBlank()) {
-        allBranches.firstOrNull { it.id == suggestedBranchId }?.let { return it }
-    }
-
-    allBranches.firstOrNull { it.id in pendingBranchIds }?.let { return it }
-    allBranches.firstOrNull { !it.useAppMessaging }?.let { return it }
-    return current ?: allBranches.firstOrNull()
-}
-
 @Composable
 private fun AuthFlow(authViewModel: AuthViewModel) {
     LoginScreen(
@@ -601,11 +581,17 @@ private fun MainBusinessFlow(
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val deliveryEntryPointState by deliveryLinkViewModel.uiState.collectAsState()
 
-    LaunchedEffect(branches, currentBranch?.id) {
-        if (branches.isNotEmpty()) {
-            deliveryLinkViewModel.loadEntryPointForBranches(
-                branches = branches,
-                currentBranchId = currentBranch?.id
+    LaunchedEffect(currentBranch?.id, currentBranch?.useAppMessaging) {
+        val branch = currentBranch
+        if (branch != null) {
+            deliveryLinkViewModel.loadEntryPoint(
+                branchId = branch.id,
+                branchUsesAppMessaging = branch.useAppMessaging
+            )
+        } else {
+            deliveryLinkViewModel.loadEntryPoint(
+                branchId = null,
+                branchUsesAppMessaging = true
             )
         }
     }
@@ -818,13 +804,7 @@ private fun MainBusinessFlow(
             }
 
             navigator.showDeliveryManagement -> {
-                val targetBranch = resolveDeliveryManagementBranch(
-                    allBranches = branches,
-                    currentBranchId = currentBranch?.id,
-                    pendingBranchIds = deliveryEntryPointState.pendingRequestBranchIds,
-                    suggestedBranchId = deliveryEntryPointState.suggestedEntryBranchId
-                )
-
+                val targetBranch = currentBranch
                 if (targetBranch != null) {
                     DeliveryLinkManagementScreen(
                         viewModel = deliveryLinkViewModel,
@@ -878,20 +858,13 @@ private fun MainBusinessFlow(
             }
 
             else -> {
-                val hasOwnDeliveryInBusiness = branches.any { !it.useAppMessaging }
-                val canOpenDeliveryManagement = branches.isNotEmpty() && (
-                        hasOwnDeliveryInBusiness ||
-                                deliveryEntryPointState.hasPendingRequests ||
-                                deliveryEntryPointState.entryPointQueryFailed
-                        )
-
                 BusinessHomeScreen(
                     authViewModel = authViewModel,
                     onNavigateBack = onNavigateBackToBranchSelector,
                     onNavigateToProfile = { navigator.showProfile = true },
                     onNavigateToInvitations = { navigator.showInvitations = true },
                     onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },
-                    showDeliveryManagementAction = canOpenDeliveryManagement,
+                    showDeliveryManagementAction = true,
                     deliveryPendingRequestsCount = deliveryEntryPointState.pendingRequestCount,
                     selectedTabIndex = navigator.selectedHomeTabIndex,
                     onTabSelected = {

@@ -8,6 +8,7 @@ import com.llego.multiplatform.graphql.GetMyBusinessesWithBranchesQuery
 import com.llego.multiplatform.graphql.RegisterBusinessMutation
 import com.llego.multiplatform.graphql.RegisterMultipleBusinessesMutation
 import com.llego.multiplatform.graphql.UpdateBusinessMutation
+import com.llego.multiplatform.graphql.DeleteBusinessMutation
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.mappers.mapBranchTipo
 import com.llego.shared.data.mappers.mapBranchVehicle
@@ -160,6 +161,47 @@ internal class BusinessDomainRepository(
             BusinessResult.Error(e.message ?: "Error de conexion al actualizar negocio", "APOLLO_ERROR")
         } catch (e: Exception) {
             BusinessResult.Error(e.message ?: "Error desconocido al actualizar negocio", "UNKNOWN_ERROR")
+        }
+    }
+
+    suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                DeleteBusinessMutation(
+                    businessId = businessId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val error = response.errors?.firstOrNull()?.message ?: "No se pudo eliminar el negocio"
+                return BusinessResult.Error(error, "DELETE_FAILED")
+            }
+
+            val deleted = response.data?.deleteBusiness ?: false
+            if (!deleted) {
+                return BusinessResult.Error("No se pudo eliminar el negocio", "DELETE_FAILED")
+            }
+
+            state.setBusinesses(state.businesses.value.filterNot { it.id == businessId })
+
+            if (state.currentBusiness.value?.id == businessId) {
+                state.setCurrentBusiness(state.businesses.value.firstOrNull())
+            }
+
+            state.setBranches(state.branches.value.filterNot { it.businessId == businessId })
+            if (state.currentBranch.value?.businessId == businessId) {
+                state.setCurrentBranch(state.branches.value.firstOrNull())
+            }
+
+            BusinessResult.Success(true)
+        } catch (e: ApolloException) {
+            BusinessResult.Error(e.message ?: "Error de conexion al eliminar negocio", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            BusinessResult.Error(e.message ?: "Error desconocido al eliminar negocio", "UNKNOWN_ERROR")
         }
     }
 

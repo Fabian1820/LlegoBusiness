@@ -153,6 +153,10 @@ class AuthManager(private val tokenManager: TokenManager) {
         return businessRepository.updateBusiness(businessId, input)
     }
 
+    suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
+        return businessRepository.deleteBusiness(businessId)
+    }
+
     // ============= BRANCH OPERATIONS =============
 
     /**

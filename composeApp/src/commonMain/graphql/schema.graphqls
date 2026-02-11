@@ -2573,6 +2573,11 @@ type Mutation {
   updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
 
   """
+  Elimina un negocio junto a sus sucursales
+  """
+  deleteBusiness(businessId: String!, jwt: String = null): Boolean!
+
+  """
   Registrar múltiples negocios con sus sucursales en una sola operación
   """
   registerMultipleBusinesses(businessesInput: [RegisterBusinessWithBranchesInput!]!, jwt: String = null): [BusinessType!]!

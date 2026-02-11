@@ -52,6 +52,10 @@ class BusinessRepository(
         return businessDomainRepository.updateBusiness(businessId, input)
     }
 
+    suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
+        return businessDomainRepository.deleteBusiness(businessId)
+    }
+
     suspend fun getBusinessesWithBranches(): BusinessResult<List<BusinessWithBranches>> {
         return businessDomainRepository.getBusinessesWithBranches()
     }

@@ -1,0 +1,3 @@
+mutation DeleteBusiness($businessId: String!, $jwt: String) {
+  deleteBusiness(businessId: $businessId, jwt: $jwt)
+}

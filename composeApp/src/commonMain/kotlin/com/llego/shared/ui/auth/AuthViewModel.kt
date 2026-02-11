@@ -52,6 +52,7 @@ expect class AuthViewModel() : ViewModel {
     fun getCurrentUser(): User?
     suspend fun updateUser(input: UpdateUserInput): AuthResult<User>
     suspend fun updateBusiness(businessId: String, input: UpdateBusinessInput): BusinessResult<Business>
+    suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean>
     suspend fun updateBranch(branchId: String, input: UpdateBranchInput): BusinessResult<Branch>
     suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch>
     suspend fun deleteBranch(branchId: String): BusinessResult<Boolean>

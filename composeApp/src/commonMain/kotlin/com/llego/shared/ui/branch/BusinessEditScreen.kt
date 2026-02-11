@@ -226,38 +226,17 @@ fun BusinessEditScreen(
 
         coroutineScope.launch {
             isDeletingBusiness = true
-            statusMessage = "Eliminando sucursales del negocio..."
-
-            val branchesSnapshot = localBranches
-            for (branch in branchesSnapshot) {
-                when (val branchResult = authViewModel.deleteBranch(branch.id)) {
-                    is BusinessResult.Success -> {
-                        if (!branchResult.data) {
-                            statusMessage = "No se pudo eliminar la sucursal ${branch.name}"
-                            onError(statusMessage ?: "")
-                            isDeletingBusiness = false
-                            return@launch
-                        }
-                    }
-
-                    is BusinessResult.Error -> {
-                        statusMessage = branchResult.message
-                        onError(branchResult.message)
+            statusMessage = "Eliminando negocio..."
+            when (val businessResult = authViewModel.deleteBusiness(originalBusiness.id)) {
+                is BusinessResult.Success -> {
+                    if (!businessResult.data) {
+                        statusMessage = "No se pudo eliminar el negocio"
+                        onError(statusMessage ?: "")
                         isDeletingBusiness = false
                         return@launch
                     }
 
-                    else -> Unit
-                }
-            }
-
-            statusMessage = "Desactivando negocio..."
-            when (val businessResult = authViewModel.updateBusiness(
-                businessId = originalBusiness.id,
-                input = UpdateBusinessInput(isActive = false)
-            )) {
-                is BusinessResult.Success -> {
-                    statusMessage = "Negocio eliminado: sucursales borradas y negocio desactivado."
+                    statusMessage = "Negocio eliminado correctamente"
                     if (authViewModel.getCurrentBusinessId() == originalBusiness.id) {
                         authViewModel.clearCurrentBranch()
                     }
@@ -530,7 +509,7 @@ fun BusinessEditScreen(
                 color = MaterialTheme.colorScheme.error
             )
             Text(
-                text = "Esta accion elimina todas las sucursales y desactiva definitivamente este negocio.",
+                text = "Esta accion elimina definitivamente el negocio y todas sus sucursales.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -616,7 +595,7 @@ fun BusinessEditScreen(
             title = { Text("Eliminar negocio completo") },
             text = {
                 Text(
-                    "Se eliminaran todas las sucursales de \"${originalBusiness.name}\" y el negocio quedara desactivado. Esta accion no se puede deshacer."
+                    "Se eliminara definitivamente \"${originalBusiness.name}\" junto a todas sus sucursales. Esta accion no se puede deshacer."
                 )
             },
             confirmButton = {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 data class DeliveryLinkUiState(
+    val activeBranchId: String? = null,
     val isEntryPointLoading: Boolean = false,
     val entryPointQueryFailed: Boolean = false,
     val pendingRequestCount: Int = 0,
@@ -167,10 +168,16 @@ class DeliveryLinkViewModel(
     ) {
         viewModelScope.launch {
             _uiState.update { state ->
+                val isBranchChanged = state.activeBranchId != branchId
                 state.copy(
+                    activeBranchId = branchId,
                     isLoading = !isManualRefresh,
                     isRefreshing = isManualRefresh,
                     branchUsesAppMessaging = branchUsesAppMessaging,
+                    pendingRequestCount = if (isBranchChanged) 0 else state.pendingRequestCount,
+                    pendingRequests = if (isBranchChanged) emptyList() else state.pendingRequests,
+                    linkedDrivers = if (isBranchChanged) emptyList() else state.linkedDrivers,
+                    processedRequests = if (isBranchChanged) emptyList() else state.processedRequests,
                     errorMessage = null
                 )
             }
@@ -211,6 +218,10 @@ class DeliveryLinkViewModel(
                         state.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            pendingRequestCount = 0,
+                            pendingRequests = emptyList(),
+                            linkedDrivers = emptyList(),
+                            processedRequests = emptyList(),
                             errorMessage = throwable.message ?: "No fue posible cargar la gestion de choferes"
                         )
                     }

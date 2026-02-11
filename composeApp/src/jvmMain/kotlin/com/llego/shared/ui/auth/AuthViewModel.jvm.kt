@@ -272,6 +272,10 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         return authManager.updateBusiness(businessId, input)
     }
 
+    actual suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
+        return authManager.deleteBusiness(businessId)
+    }
+
     actual suspend fun updateBranch(
         branchId: String,
         input: UpdateBranchInput
