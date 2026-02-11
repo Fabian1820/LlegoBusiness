@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -46,6 +46,7 @@ import com.llego.business.home.config.HomeTabConfig
 import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.orders.ui.screens.ConfirmationType
 import com.llego.business.orders.ui.screens.OrdersScreen
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
@@ -65,7 +66,7 @@ fun BusinessHomeScreen(
     authViewModel: AuthViewModel,
     onNavigateBack: () -> Unit = {},
     onNavigateToProfile: () -> Unit,
-    onNavigateToStatistics: () -> Unit = {},
+    onNavigateToInvitations: () -> Unit = {},
     onNavigateToDeliveryManagement: () -> Unit = {},
     showDeliveryManagementAction: Boolean = false,
     deliveryPendingRequestsCount: Int = 0,
@@ -136,10 +137,10 @@ fun BusinessHomeScreen(
                         }
                     }
 
-                    IconButton(onClick = onNavigateToStatistics) {
+                    IconButton(onClick = onNavigateToInvitations) {
                         Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = "Estadisticas",
+                            imageVector = Icons.Default.CardGiftcard,
+                            contentDescription = "Codigos de invitacion",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp)
                         )
@@ -267,6 +268,13 @@ fun BusinessHomeScreen(
                     WalletScreen(
                         onNavigateBack = { },
                         branchId = currentBranch?.id
+                    )
+                }
+
+                "statistics" -> {
+                    StatisticsScreen(
+                        ordersViewModel = ordersViewModel,
+                        embeddedInHome = true
                     )
                 }
 

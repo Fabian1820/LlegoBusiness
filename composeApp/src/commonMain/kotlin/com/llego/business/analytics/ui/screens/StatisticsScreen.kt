@@ -45,7 +45,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun StatisticsScreen(
     ordersViewModel: OrdersViewModel,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    embeddedInHome: Boolean = false
 ) {
     var animateContent by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf<PeriodFilter>(PeriodFilter.DAY) }
@@ -56,34 +57,7 @@ fun StatisticsScreen(
         animateContent = true
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Estadisticas",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    val content: @Composable (PaddingValues) -> Unit = { paddingValues ->
         AnimatedVisibility(
             visible = animateContent,
             enter = fadeIn(animationSpec = tween(600)) +
@@ -99,7 +73,6 @@ fun StatisticsScreen(
                 contentPadding = PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Selector de periodo
                 item {
                     PeriodSelector(
                         selectedPeriod = selectedPeriod,
@@ -108,7 +81,6 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Dashboard principal - Metricas clave
                 item {
                     DashboardMetricsSection(
                         ordersViewModel = ordersViewModel,
@@ -117,7 +89,6 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Graficos
                 item {
                     ChartsSection(
                         ordersViewModel = ordersViewModel,
@@ -126,7 +97,6 @@ fun StatisticsScreen(
                     )
                 }
 
-                // Productos mas vendidos
                 item {
                     TopProductsSection(
                         ordersViewModel = ordersViewModel,
@@ -134,8 +104,42 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
-
             }
+        }
+    }
+
+    if (embeddedInHome) {
+        content(PaddingValues(0.dp))
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Estadisticas",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background
+        ) { paddingValues ->
+            content(paddingValues)
         }
     }
 }

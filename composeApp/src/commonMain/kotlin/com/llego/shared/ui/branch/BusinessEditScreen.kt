@@ -55,6 +55,7 @@ import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.components.molecules.TagsSelector
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import kotlinx.coroutines.launch
@@ -77,7 +78,7 @@ fun BusinessEditScreen(
     var originalBusiness by remember(business.id) { mutableStateOf(business) }
     var name by remember(business.id) { mutableStateOf(business.name) }
     var description by remember(business.id) { mutableStateOf(business.description.orEmpty()) }
-    var tagsInput by remember(business.id) { mutableStateOf(business.tags.joinToString(", ")) }
+    var selectedTags by remember(business.id) { mutableStateOf(business.tags) }
     var isActive by remember(business.id) { mutableStateOf(business.isActive) }
     var avatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
 
@@ -94,18 +95,10 @@ fun BusinessEditScreen(
     val avatarPath = (avatarState as? ImageUploadState.Success)?.s3Path
     val isUploadingAvatar = avatarState is ImageUploadState.Uploading
 
-    fun parseTags(value: String): List<String> {
-        return value
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-    }
-
     fun saveBusiness() {
         val nameValue = name.trim()
         val descriptionValue = description.trim()
-        val tagsValue = parseTags(tagsInput)
+        val tagsValue = selectedTags
 
         if (nameValue.isBlank()) {
             statusMessage = "El nombre del negocio es obligatorio"
@@ -144,7 +137,7 @@ fun BusinessEditScreen(
                     originalBusiness = updated
                     name = updated.name
                     description = updated.description.orEmpty()
-                    tagsInput = updated.tags.joinToString(", ")
+                    selectedTags = updated.tags
                     isActive = updated.isActive
                     avatarState = ImageUploadState.Idle
                     statusMessage = "Negocio actualizado correctamente"
@@ -314,17 +307,12 @@ fun BusinessEditScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text(
-                            text = "Calificacion global: ${originalBusiness.globalRating}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     Text(
-                        text = "ID: ${originalBusiness.id}",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Calificacion global: ${originalBusiness.globalRating}",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
                 }
             }
 
@@ -364,18 +352,10 @@ fun BusinessEditScreen(
                 )
             )
 
-            OutlinedTextField(
-                value = tagsInput,
-                onValueChange = { tagsInput = it },
-                label = { Text("Etiquetas (separadas por coma)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 3,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                )
+            TagsSelector(
+                selectedTags = selectedTags,
+                onTagsChange = { selectedTags = it },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Row(

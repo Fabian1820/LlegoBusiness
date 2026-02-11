@@ -205,7 +205,7 @@ fun App(viewModels: AppViewModels) {
 
             if (!hasRestoredHomeState) {
                 val savedTab = viewModels.tokenManager.getLastHomeTabIndex()
-                    ?.coerceIn(0, 3)
+                    ?.coerceIn(0, 4)
                     ?: 0
                 navigator.resetForNewSession(homeTabIndex = savedTab)
                 hasRestoredHomeState = true
@@ -877,8 +877,7 @@ private fun MainBusinessFlow(
             navigator.showProfile -> {
                 BusinessProfileScreen(
                     authViewModel = authViewModel,
-                    onNavigateBack = { navigator.showProfile = false },
-                    onNavigateToInvitations = { navigator.showInvitations = true }
+                    onNavigateBack = { navigator.showProfile = false }
                 )
             }
 
@@ -894,7 +893,7 @@ private fun MainBusinessFlow(
                     authViewModel = authViewModel,
                     onNavigateBack = onNavigateBackToBranchSelector,
                     onNavigateToProfile = { navigator.showProfile = true },
-                    onNavigateToStatistics = { navigator.showStatistics = true },
+                    onNavigateToInvitations = { navigator.showInvitations = true },
                     onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },
                     showDeliveryManagementAction = canOpenDeliveryManagement,
                     deliveryPendingRequestsCount = deliveryEntryPointState.pendingRequestCount,
