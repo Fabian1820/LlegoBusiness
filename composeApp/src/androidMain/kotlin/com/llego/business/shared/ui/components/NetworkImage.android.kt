@@ -1,17 +1,12 @@
 package com.llego.business.shared.ui.components
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 
 @Composable
 actual fun NetworkImage(
@@ -20,32 +15,17 @@ actual fun NetworkImage(
     modifier: Modifier,
     contentScale: ContentScale
 ) {
-    var imageBitmap by remember(url) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
-    
-    LaunchedEffect(url) {
-        if (url.isNotEmpty()) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val connection = URL(url).openConnection() as HttpURLConnection
-                    connection.doInput = true
-                    connection.connect()
-                    val input = connection.inputStream
-                    val bitmap = BitmapFactory.decodeStream(input)
-                    imageBitmap = bitmap?.asImageBitmap()
-                } catch (e: Exception) {
-                }
-            }
-        }
-    }
+    val context = LocalPlatformContext.current
 
-    if (imageBitmap != null) {
-        Image(
-            bitmap = imageBitmap!!,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = contentScale
-        )
-    } else {
-        Box(modifier = modifier)
-    }
+    AsyncImage(
+        model = ImageRequest.Builder(context)
+            .data(url)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .networkCachePolicy(CachePolicy.ENABLED)
+            .build(),
+        contentDescription = contentDescription,
+        modifier = modifier,
+        contentScale = contentScale
+    )
 }
