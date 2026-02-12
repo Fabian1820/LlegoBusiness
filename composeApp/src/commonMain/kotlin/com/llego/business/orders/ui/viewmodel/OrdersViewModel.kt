@@ -139,23 +139,38 @@ class OrdersViewModel(
         viewModelScope.launch {
             _uiState.value = OrdersUiState.Loading
             val dateRange = _selectedDateRange.value.getDateRange()
+            val allOrders = mutableListOf<Order>()
+            var fetchOffset = 0
+            var shouldContinue = true
 
-            when (val result = repository.getBranchOrders(
-                branchId = branchId,
-                status = _selectedFilter.value,
-                fromDate = dateRange?.first,
-                toDate = dateRange?.second,
-                limit = pageSize,
-                offset = currentOffset
-            )) {
-                is OrdersResult.Success -> {
-                    _orders.value = result.orders
-                    hasMore = result.hasMore
-                    _uiState.value = OrdersUiState.Success
+            while (shouldContinue) {
+                when (val result = repository.getBranchOrders(
+                    branchId = branchId,
+                    status = _selectedFilter.value,
+                    fromDate = dateRange?.first,
+                    toDate = dateRange?.second,
+                    limit = pageSize,
+                    offset = fetchOffset
+                )) {
+                    is OrdersResult.Success -> {
+                        allOrders += result.orders
+                        val receivedOrders = result.orders.isNotEmpty()
+                        shouldContinue = result.hasMore && receivedOrders
+                        fetchOffset += pageSize
+                    }
+                    is OrdersResult.Error -> {
+                        _uiState.value = OrdersUiState.Error(result.message)
+                        shouldContinue = false
+                        allOrders.clear()
+                    }
                 }
-                is OrdersResult.Error -> {
-                    _uiState.value = OrdersUiState.Error(result.message)
-                }
+            }
+
+            if (_uiState.value !is OrdersUiState.Error) {
+                _orders.value = allOrders
+                currentOffset = 0
+                hasMore = false
+                _uiState.value = OrdersUiState.Success
             }
         }
     }

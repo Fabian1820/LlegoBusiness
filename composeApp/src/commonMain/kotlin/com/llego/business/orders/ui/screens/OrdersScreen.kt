@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 
 private const val ORDERS_AUTO_REFRESH_INTERVAL_MS = 2 * 60 * 1000L
 private const val ORDERS_PULL_REFRESH_THRESHOLD_PX = 120f
+private const val ORDERS_LOCAL_PAGE_SIZE = 20
 
 /**
  * Pantalla de Pedidos con diseÃ±o moderno y profesional
@@ -29,6 +30,7 @@ private const val ORDERS_PULL_REFRESH_THRESHOLD_PX = 120f
 @Composable
 fun OrdersScreen(
     viewModel: OrdersViewModel,
+    searchQuery: String = "",
     onNavigateToOrderDetail: (String) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -42,18 +44,44 @@ fun OrdersScreen(
     var animateContent by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }
     var gesturePullDistance by remember { mutableStateOf(0f) }
+    var visibleItemsByFilter by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     val latestUiState by rememberUpdatedState(uiState)
     val latestPullRefreshing by rememberUpdatedState(isPullRefreshing)
+    val paginationKey = "${selectedDateRange.name}_${selectedFilter?.name ?: "ALL"}"
+    val normalizedSearchQuery = searchQuery.trim().lowercase()
+    val searchedOrders = if (normalizedSearchQuery.isBlank()) {
+        filteredOrders
+    } else {
+        filteredOrders.filter { order ->
+            order.orderNumber.contains(normalizedSearchQuery, ignoreCase = true) ||
+                order.items.any { item ->
+                    item.name.contains(normalizedSearchQuery, ignoreCase = true)
+                }
+        }
+    }
+    val visibleCount = visibleItemsByFilter[paginationKey] ?: ORDERS_LOCAL_PAGE_SIZE
+    val paginatedOrders = if (normalizedSearchQuery.isBlank()) {
+        searchedOrders.take(visibleCount)
+    } else {
+        searchedOrders
+    }
+    val canLoadMore = normalizedSearchQuery.isBlank() && paginatedOrders.size < searchedOrders.size
     val canTriggerGestureRefresh = uiState !is OrdersUiState.Loading &&
         uiState !is OrdersUiState.ActionInProgress &&
         !isPullRefreshing
-    val isAtTop = filteredOrders.isEmpty() ||
+    val isAtTop = paginatedOrders.isEmpty() ||
         (ordersListState.firstVisibleItemIndex == 0 && ordersListState.firstVisibleItemScrollOffset == 0)
 
     // Scroll to top when filters change
-    LaunchedEffect(selectedFilter, selectedDateRange) {
-        if (filteredOrders.isNotEmpty()) {
+    LaunchedEffect(selectedFilter, selectedDateRange, searchQuery) {
+        if (paginatedOrders.isNotEmpty()) {
             ordersListState.animateScrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(paginationKey) {
+        if (!visibleItemsByFilter.containsKey(paginationKey)) {
+            visibleItemsByFilter = visibleItemsByFilter + (paginationKey to ORDERS_LOCAL_PAGE_SIZE)
         }
     }
 
@@ -122,7 +150,7 @@ fun OrdersScreen(
     ) {
         when (val currentState = uiState) {
             is OrdersUiState.Loading -> {
-                if (filteredOrders.isEmpty()) {
+                if (paginatedOrders.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -132,10 +160,17 @@ fun OrdersScreen(
                 } else {
                     OrdersContent(
                         animateContent = animateContent,
-                        filteredOrders = filteredOrders,
+                        filteredOrders = paginatedOrders,
                         selectedFilter = selectedFilter,
                         selectedDateRange = selectedDateRange,
                         ordersListState = ordersListState,
+                        searchQuery = searchQuery,
+                        canLoadMore = canLoadMore,
+                        onLoadMore = {
+                            val updatedCount = (visibleItemsByFilter[paginationKey]
+                                ?: ORDERS_LOCAL_PAGE_SIZE) + ORDERS_LOCAL_PAGE_SIZE
+                            visibleItemsByFilter = visibleItemsByFilter + (paginationKey to updatedCount)
+                        },
                         onNavigateToOrderDetail = onNavigateToOrderDetail,
                         actionInProgressOrderId = null,
                         onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
@@ -175,10 +210,17 @@ fun OrdersScreen(
                 // Mostrar contenido con overlay de carga
                 OrdersContent(
                     animateContent = animateContent,
-                    filteredOrders = filteredOrders,
+                    filteredOrders = paginatedOrders,
                     selectedFilter = selectedFilter,
                     selectedDateRange = selectedDateRange,
                     ordersListState = ordersListState,
+                    searchQuery = searchQuery,
+                    canLoadMore = canLoadMore,
+                    onLoadMore = {
+                        val updatedCount = (visibleItemsByFilter[paginationKey]
+                            ?: ORDERS_LOCAL_PAGE_SIZE) + ORDERS_LOCAL_PAGE_SIZE
+                        visibleItemsByFilter = visibleItemsByFilter + (paginationKey to updatedCount)
+                    },
                     onNavigateToOrderDetail = onNavigateToOrderDetail,
                     actionInProgressOrderId = currentState.orderId,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
@@ -190,10 +232,17 @@ fun OrdersScreen(
                 // Requirements: 5.7 - Mostrar error de acciÃ³n
                 OrdersContent(
                     animateContent = animateContent,
-                    filteredOrders = filteredOrders,
+                    filteredOrders = paginatedOrders,
                     selectedFilter = selectedFilter,
                     selectedDateRange = selectedDateRange,
                     ordersListState = ordersListState,
+                    searchQuery = searchQuery,
+                    canLoadMore = canLoadMore,
+                    onLoadMore = {
+                        val updatedCount = (visibleItemsByFilter[paginationKey]
+                            ?: ORDERS_LOCAL_PAGE_SIZE) + ORDERS_LOCAL_PAGE_SIZE
+                        visibleItemsByFilter = visibleItemsByFilter + (paginationKey to updatedCount)
+                    },
                     onNavigateToOrderDetail = onNavigateToOrderDetail,
                     actionInProgressOrderId = null,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
@@ -210,10 +259,17 @@ fun OrdersScreen(
             is OrdersUiState.Success -> {
                 OrdersContent(
                     animateContent = animateContent,
-                    filteredOrders = filteredOrders,
+                    filteredOrders = paginatedOrders,
                     selectedFilter = selectedFilter,
                     selectedDateRange = selectedDateRange,
                     ordersListState = ordersListState,
+                    searchQuery = searchQuery,
+                    canLoadMore = canLoadMore,
+                    onLoadMore = {
+                        val updatedCount = (visibleItemsByFilter[paginationKey]
+                            ?: ORDERS_LOCAL_PAGE_SIZE) + ORDERS_LOCAL_PAGE_SIZE
+                        visibleItemsByFilter = visibleItemsByFilter + (paginationKey to updatedCount)
+                    },
                     onNavigateToOrderDetail = onNavigateToOrderDetail,
                     actionInProgressOrderId = null,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },

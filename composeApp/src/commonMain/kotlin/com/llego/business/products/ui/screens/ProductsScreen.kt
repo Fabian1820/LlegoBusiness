@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -60,14 +59,17 @@ import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import kotlinx.coroutines.launch
 
+private const val PRODUCTS_LOCAL_PAGE_SIZE = 20
+private const val ALL_PRODUCTS_CATEGORY_KEY = "__all__"
+
 @Composable
 fun ProductsScreen(
     viewModel: ProductViewModel,
     branchId: String?,
     branchTipos: Set<BranchTipo> = emptySet(),
+    searchQuery: String = "",
     onNavigateToAddProduct: (Product?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
-    onNavigateToProductSearch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val productsState by viewModel.productsState.collectAsState()
@@ -76,6 +78,7 @@ fun ProductsScreen(
 
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<Product?>(null) }
+    var visibleItemsByCategory by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
@@ -98,6 +101,29 @@ fun ProductsScreen(
 
     val filteredProducts = products.filter { product ->
         selectedCategoryId == null || product.categoryId == selectedCategoryId
+    }
+    val normalizedSearchQuery = searchQuery.trim().lowercase()
+    val searchedProducts = if (normalizedSearchQuery.isBlank()) {
+        filteredProducts
+    } else {
+        filteredProducts.filter { product ->
+            product.name.contains(normalizedSearchQuery, ignoreCase = true) ||
+                product.description.contains(normalizedSearchQuery, ignoreCase = true)
+        }
+    }
+    val categoryKey = selectedCategoryId ?: ALL_PRODUCTS_CATEGORY_KEY
+    val visibleCount = visibleItemsByCategory[categoryKey] ?: PRODUCTS_LOCAL_PAGE_SIZE
+    val paginatedProducts = if (normalizedSearchQuery.isBlank()) {
+        searchedProducts.take(visibleCount)
+    } else {
+        searchedProducts
+    }
+    val canLoadMore = normalizedSearchQuery.isBlank() && paginatedProducts.size < searchedProducts.size
+
+    androidx.compose.runtime.LaunchedEffect(categoryKey) {
+        if (!visibleItemsByCategory.containsKey(categoryKey)) {
+            visibleItemsByCategory = visibleItemsByCategory + (categoryKey to PRODUCTS_LOCAL_PAGE_SIZE)
+        }
     }
 
     Box(
@@ -172,19 +198,25 @@ fun ProductsScreen(
                     }
                 }
                 is ProductsResult.Success -> {
-                    if (filteredProducts.isEmpty()) {
+                    if (paginatedProducts.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("No hay productos para mostrar")
+                            Text(
+                                text = if (normalizedSearchQuery.isBlank()) {
+                                    "No hay productos para mostrar"
+                                } else {
+                                    "No hay resultados para \"$searchQuery\""
+                                }
+                            )
                         }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(filteredProducts, key = { it.id }) { product ->
+                            items(paginatedProducts, key = { it.id }) { product ->
                                 ProductRow(
                                     product = product,
                                     onEdit = { onNavigateToAddProduct(product) },
@@ -201,6 +233,24 @@ fun ProductsScreen(
                                     onViewDetail = { onNavigateToProductDetail(product) }
                                 )
                             }
+                            if (canLoadMore) {
+                                item {
+                                    Button(
+                                        onClick = {
+                                            val updatedCount = (visibleItemsByCategory[categoryKey]
+                                                ?: PRODUCTS_LOCAL_PAGE_SIZE) + PRODUCTS_LOCAL_PAGE_SIZE
+                                            visibleItemsByCategory = visibleItemsByCategory + (
+                                                categoryKey to updatedCount
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp)
+                                    ) {
+                                        Text("Cargar mas")
+                                    }
+                                }
+                            }
                             item { Spacer(modifier = Modifier.height(96.dp)) }
                         }
                     }
@@ -215,13 +265,6 @@ fun ProductsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.End
         ) {
-            FloatingActionButton(
-                onClick = onNavigateToProductSearch,
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Search, contentDescription = "Buscar productos")
-            }
             FloatingActionButton(
                 onClick = { onNavigateToAddProduct(null) },
                 containerColor = MaterialTheme.colorScheme.primary,

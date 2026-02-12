@@ -884,9 +884,6 @@ private fun MainBusinessFlow(
                         navigator.productToView = product
                         navigator.showProductDetail = true
                     },
-                    onNavigateToProductSearch = {
-                        navigator.showProductSearch = true
-                    },
                     onShowConfirmation = { type, orderNumber ->
                         navigator.showConfirmation(type, orderNumber)
                     },

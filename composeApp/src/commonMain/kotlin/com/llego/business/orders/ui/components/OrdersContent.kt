@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,6 +60,9 @@ fun OrdersContent(
     selectedFilter: OrderStatus?,
     selectedDateRange: DateRangeFilter,
     ordersListState: LazyListState,
+    searchQuery: String,
+    canLoadMore: Boolean,
+    onLoadMore: () -> Unit,
     onNavigateToOrderDetail: (String) -> Unit,
     actionInProgressOrderId: String?,
     onDateRangeSelected: (DateRangeFilter) -> Unit,
@@ -83,7 +87,10 @@ fun OrdersContent(
                     onStatusCleared = onStatusCleared,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-                EmptyOrdersView(hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY)
+                EmptyOrdersView(
+                    hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY || searchQuery.isNotBlank(),
+                    hasSearchQuery = searchQuery.isNotBlank()
+                )
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -106,6 +113,18 @@ fun OrdersContent(
                             isActionInProgress = order.id == actionInProgressOrderId,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                    }
+                    if (canLoadMore) {
+                        item {
+                            Button(
+                                onClick = onLoadMore,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                Text("Cargar mas")
+                            }
+                        }
                     }
                 }
 
@@ -329,7 +348,7 @@ fun OrderCard(
  * Vista cuando no hay pedidos
  */
 @Composable
-fun EmptyOrdersView(hasFilter: Boolean) {
+fun EmptyOrdersView(hasFilter: Boolean, hasSearchQuery: Boolean = false) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -347,7 +366,7 @@ fun EmptyOrdersView(hasFilter: Boolean) {
             )
             Text(
                 text = if (hasFilter) {
-                    "No hay pedidos con este filtro"
+                    if (hasSearchQuery) "No hay pedidos que coincidan con tu busqueda" else "No hay pedidos con este filtro"
                 } else {
                     "No hay pedidos activos"
                 },
@@ -356,7 +375,7 @@ fun EmptyOrdersView(hasFilter: Boolean) {
             )
             Text(
                 text = if (hasFilter) {
-                    "Prueba ajustando los filtros"
+                    if (hasSearchQuery) "Prueba con otro termino de busqueda" else "Prueba ajustando los filtros"
                 } else {
                     "Los nuevos pedidos apareceran aqui"
                 },

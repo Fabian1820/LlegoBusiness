@@ -37,6 +37,10 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
     authViewModel: AuthViewModel,
+    onNavigateToDeliveryManagement: () -> Unit = {},
+    onNavigateToInvitations: () -> Unit = {},
+    showDeliveryManagementButton: Boolean = true,
+    pendingDeliveryRequestsCount: Int = 0,
     onNavigateBack: () -> Unit = {}
 ) {
     var animateContent by remember { mutableStateOf(false) }
@@ -132,6 +136,35 @@ fun SettingsScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            }
+                        }
+
+                        item {
+                            SettingsSection(
+                                title = "Gestion",
+                                icon = Icons.Default.Dashboard,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            ) {
+                                if (showDeliveryManagementButton) {
+                                    val deliverySubtitle = if (pendingDeliveryRequestsCount > 0) {
+                                        "Administra vinculos de delivery propio ($pendingDeliveryRequestsCount pendientes)"
+                                    } else {
+                                        "Administra vinculos de delivery propio"
+                                    }
+                                    SettingsRow(
+                                        title = "Choferes asociados",
+                                        subtitle = deliverySubtitle,
+                                        icon = Icons.Default.DeliveryDining,
+                                        onClick = onNavigateToDeliveryManagement
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
+                                SettingsRow(
+                                    title = "Codigos de invitacion",
+                                    subtitle = "Crea y administra accesos al negocio",
+                                    icon = Icons.Default.CardGiftcard,
+                                    onClick = onNavigateToInvitations
+                                )
                             }
                         }
 
@@ -348,19 +381,6 @@ private fun DataPrivacySection() {
             subtitle = "Consulta los terminos de servicio",
             icon = Icons.Default.Description,
             onClick = { /* TODO */ }
-        )
-        SettingsRow(
-            title = "Exportar Datos",
-            subtitle = "Descarga una copia de tus datos",
-            icon = Icons.Default.Download,
-            onClick = { /* TODO */ }
-        )
-        SettingsRow(
-            title = "Eliminar Cuenta",
-            subtitle = "Elimina permanentemente tu cuenta",
-            icon = Icons.Default.Delete,
-            onClick = { /* TODO */ },
-            isDestructive = true
         )
     }
 }
