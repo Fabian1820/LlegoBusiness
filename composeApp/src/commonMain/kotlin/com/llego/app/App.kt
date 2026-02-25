@@ -60,6 +60,7 @@ import com.llego.shared.ui.screens.MapSelectionScreen
 import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
+import com.llego.shared.ui.components.atoms.LoadingOverlay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -278,54 +279,12 @@ fun App(viewModels: AppViewModels) {
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 isAuthenticated && isResolvingBusiness && !needsBusinessRegistration -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.foundation.layout.Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            androidx.compose.foundation.layout.Spacer(
-                                modifier = Modifier.height(16.dp)
-                            )
-                            androidx.compose.material3.Text(
-                                text = if (needsBusinessRegistration) {
-                                    "Preparando registro..."
-                                } else {
-                                    "Cargando tu negocio..."
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
+                    LoadingOverlay(message = "Cargando")
                 }
 
                 // Caso 0: Carga inicial - Mostrar splash screen unificada
                 isCheckingSession || (!initialLoadComplete && isAuthenticated) -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        androidx.compose.foundation.layout.Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            androidx.compose.foundation.layout.Spacer(
-                                modifier = Modifier.height(16.dp)
-                            )
-                            androidx.compose.material3.Text(
-                                text = "Cargando...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
+                    LoadingOverlay(message = "Cargando")
                 }
 
                 // Caso 1: Usuario autenticado SIN negocio o agregando negocio → Wizard de registro

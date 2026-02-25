@@ -35,7 +35,7 @@ import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
 import llegobusiness.composeapp.generated.resources.Res
-import llegobusiness.composeapp.generated.resources.logo
+import llegobusiness.composeapp.generated.resources.iconbussines
 import llegobusiness.composeapp.generated.resources.onboarding_branch
 import llegobusiness.composeapp.generated.resources.onboarding_business
 import llegobusiness.composeapp.generated.resources.onboarding_start
@@ -330,7 +330,7 @@ private fun WelcomePageLayout() {
                     )
             )
             Image(
-                painter = painterResource(Res.drawable.logo),
+                painter = painterResource(Res.drawable.iconbussines),
                 contentDescription = "Logo Llego",
                 modifier = Modifier.size(110.dp),
                 contentScale = ContentScale.Fit

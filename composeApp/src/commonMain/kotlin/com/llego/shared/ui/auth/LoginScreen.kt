@@ -62,6 +62,7 @@ import com.llego.shared.data.auth.rememberAppleSignInHelper
 import com.llego.shared.data.auth.rememberGoogleSignInHelper
 import com.llego.shared.ui.auth.components.AppTipsSection
 import com.llego.shared.ui.auth.components.SocialButtons
+import com.llego.shared.ui.components.atoms.LoadingOverlay
 import kotlinx.coroutines.delay
 
 /**
@@ -82,6 +83,10 @@ fun LoginScreen(
     var headerVisible by remember { mutableStateOf(false) }
     var cardVisible by remember { mutableStateOf(false) }
     var oauthError by remember { mutableStateOf<String?>(null) }
+    var isAuthenticating by remember { mutableStateOf(false) }
+    
+    // Mostrar loading desde que inicia autenticación hasta que se complete la navegación
+    val showLoading = isAuthenticating || (uiState.isAuthenticated && uiState.user != null)
 
     val headerOffsetY by animateFloatAsState(
         targetValue = if (headerVisible) 0f else -300f,
@@ -113,15 +118,24 @@ fun LoginScreen(
     // - currentBranch: si el usuario tiene una sucursal seleccionada
 
     // Si el usuario esta autenticado, notificamos al padre
+    // pero mantenemos el loading visible
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated && uiState.user != null) {
             onLoginSuccess()
         }
     }
+    
+    // Resetear el estado de autenticación si hay error
+    LaunchedEffect(uiState.error, loginError, oauthError) {
+        if (uiState.error != null || loginError != null || oauthError != null) {
+            isAuthenticating = false
+        }
+    }
 
-    BoxWithConstraints(
-        modifier = modifier.fillMaxSize()
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
+        ) {
         val authError = remember(oauthError, loginError, uiState.error) {
             val rawError = oauthError ?: loginError ?: uiState.error
             rawError?.toFriendlyAuthErrorMessage()
@@ -287,12 +301,14 @@ fun LoginScreen(
 
                                 SocialButtons(
                                     onGoogleClick = {
+                                        isAuthenticating = true
                                         googleSignInHelper.signIn(
                                             onSuccess = { idToken, nonce ->
                                                 oauthError = null
                                                 viewModel.loginWithGoogle(idToken, nonce)
                                             },
                                             onError = { errorMessage ->
+                                                isAuthenticating = false
                                                 if (errorMessage.isUserAuthCancellation()) {
                                                     oauthError = null
                                                     viewModel.clearLoginError()
@@ -303,12 +319,14 @@ fun LoginScreen(
                                         )
                                     },
                                     onAppleClick = {
+                                        isAuthenticating = true
                                         appleSignInHelper.signIn(
                                             onSuccess = { identityToken, nonce ->
                                                 oauthError = null
                                                 viewModel.loginWithApple(identityToken, nonce)
                                             },
                                             onError = { errorMessage ->
+                                                isAuthenticating = false
                                                 if (errorMessage.isUserAuthCancellation()) {
                                                     oauthError = null
                                                     viewModel.clearLoginError()
@@ -354,6 +372,12 @@ fun LoginScreen(
                     }
                 }
             }
+        }
+        }
+        
+        // Overlay de carga encima del contenido
+        if (showLoading) {
+            LoadingOverlay(message = "Cargando")
         }
     }
 }
