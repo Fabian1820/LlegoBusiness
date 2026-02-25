@@ -26,11 +26,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +63,10 @@ import com.llego.shared.ui.auth.AuthViewModel
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
+import androidx.compose.foundation.Image
+import llegobusiness.composeapp.generated.resources.Res
+import llegobusiness.composeapp.generated.resources.iconbussines
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun BranchSelectorScreen(
@@ -167,7 +171,9 @@ fun BranchSelectorScreen(
             }
         }
     ) { padding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = branchSelectorState.isRefreshing,
+            onRefresh = { branchSelectorViewModel.refreshBusinesses() },
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -338,20 +344,11 @@ private fun BranchSelectorTopBar(
                 TopAppBar(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                modifier = Modifier.size(40.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Business,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
+                            Image(
+                                painter = painterResource(Res.drawable.iconbussines),
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "Mis Negocios",

@@ -245,11 +245,15 @@ internal class BranchDomainRepository(
         val current = state.currentBranch.value
 
         // Si ya hay una sucursal seleccionada en la sesion actual, mantenerla
-        // si sigue existiendo en la lista. De lo contrario, siempre forzar
-        // al usuario a elegir manualmente via BranchSelectorScreen.
+        // si sigue existiendo en la lista. Si no, intentar restaurar la ultima
+        // sucursal seleccionada desde TokenManager. Si tampoco existe, dejar null
+        // para forzar al usuario a elegir via BranchSelectorScreen.
+        val lastSavedBranchId = tokenManager.getLastSelectedBranchId()
+
         val resolvedBranch = when {
             branchesList.isEmpty() -> null
             current != null -> branchesList.firstOrNull { it.id == current.id }
+            lastSavedBranchId != null -> branchesList.firstOrNull { it.id == lastSavedBranchId }
             else -> null
         }
 

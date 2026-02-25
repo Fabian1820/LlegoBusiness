@@ -80,13 +80,14 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
                 when (result) {
                     is AuthResult.Success -> {
+                        // Mantener isLoading=true mientras cargamos datos de negocio
                         _uiState.value = _uiState.value.copy(
-                            isLoading = false,
                             isAuthenticated = true,
                             user = result.data,
                             error = null
                         )
                         loadBusinessData()
+                        _uiState.value = _uiState.value.copy(isLoading = false)
                     }
 
                     is AuthResult.Error -> {
@@ -149,15 +150,13 @@ actual class AuthViewModel actual constructor() : ViewModel() {
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
 
-                    // Cargar datos de negocio y sucursales
                     loadBusinessData()
-
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 
@@ -184,15 +183,13 @@ actual class AuthViewModel actual constructor() : ViewModel() {
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
 
-                    // Cargar datos de negocio y sucursales
                     loadBusinessData()
-
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 
@@ -219,15 +216,13 @@ actual class AuthViewModel actual constructor() : ViewModel() {
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
 
-                    // Cargar datos de negocio y sucursales
                     loadBusinessData()
-
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 
@@ -244,10 +239,6 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         }
     }
 
-    /**
-     * Autenticaci?n directa con JWT del backend (para Android Apple Sign-In OAuth flow)
-     * En iOS no se usa este m?todo, Apple Sign-In usa el SDK nativo
-     */
     actual fun authenticateWithToken(token: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -258,12 +249,12 @@ actual class AuthViewModel actual constructor() : ViewModel() {
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
                     loadBusinessData()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 

@@ -61,7 +61,6 @@ import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -101,11 +100,9 @@ fun App(viewModels: AppViewModels) {
         var hasRestoredHomeState by remember { mutableStateOf(false) }
         val openMapSelection = navigator::openMapSelection
 
-        // Estado para controlar la carga inicial (verificaciÃ³n de sesiÃ³n)
+        // Estado para controlar la carga inicial (verificacion de sesion + datos de negocio)
         var isCheckingSession by remember { mutableStateOf(true) }
-        var isResolvingBusiness by remember { mutableStateOf(false) }
         var initialLoadComplete by remember { mutableStateOf(false) }
-        var authError by remember { mutableStateOf<String?>(null) }
 
         // Estado para confirmaciÃ³n de cambio de sucursal - Requirements: 12.4
         var branchSwitchConfirmation by remember { mutableStateOf<BranchSwitchConfirmationData?>(null) }
@@ -123,27 +120,25 @@ fun App(viewModels: AppViewModels) {
         val currentBranch by authViewModel.currentBranch.collectAsState()
         val branches by authViewModel.branches.collectAsState()
 
-        // Observar estado de autenticaciÃ³n
+        // Observar estado de autenticacion
+        // isLoading ahora se mantiene true hasta que sesion + datos de negocio esten listos
         LaunchedEffect(authViewModel) {
             authViewModel.uiState.collect { uiState ->
 
                 isAuthenticated = uiState.isAuthenticated
-                authError = uiState.error
                 val user = uiState.user
 
-                // La sesiÃ³n ya fue verificada (exitosa o fallida)
+                // La sesion ya fue verificada y datos cargados (exitosa o fallida)
                 if (!uiState.isLoading) {
                     isCheckingSession = false
                     initialLoadComplete = true
                 }
 
                 if (user != null) {
-                    // Verificar si el usuario tiene un negocio registrado O acceso a sucursales (vía código de invitación)
                     val hasBusiness = user.hasBusiness()
                     val hasBranches = user.hasBranches()
                     val shouldRegister = !hasBusiness && !hasBranches
 
-                    // Solo actualizar el flujo autom?tico si no estamos en modo "agregar negocio"
                     if (!canCancelBusinessRegistration) {
                         needsBusinessRegistration = shouldRegister
                         isExploringWithoutBusiness = shouldRegister
@@ -162,35 +157,6 @@ fun App(viewModels: AppViewModels) {
                     canCancelBusinessRegistration = false
                     isExploringWithoutBusiness = false
                 }
-
-
-            }
-        }
-
-        // OPTIMIZADO: Eliminar delay artificial y resolver basado en datos reales
-        LaunchedEffect(isAuthenticated, currentBusiness, branches, authError, needsBusinessRegistration) {
-            if (!isAuthenticated) {
-                isResolvingBusiness = false
-                initialLoadComplete = true
-                return@LaunchedEffect
-            }
-
-            if (needsBusinessRegistration) {
-                isResolvingBusiness = false
-                return@LaunchedEffect
-            }
-
-            if (!authError.isNullOrBlank()) {
-                isResolvingBusiness = false
-                return@LaunchedEffect
-            }
-
-            // Mostrar loading solo si estamos autenticados pero aún no tenemos datos
-            if (initialLoadComplete && currentBusiness == null && branches.isEmpty()) {
-                isResolvingBusiness = true
-            } else if (currentBusiness != null || branches.isNotEmpty()) {
-                // Tenemos datos, ocultar loading
-                isResolvingBusiness = false
             }
         }
 
@@ -278,11 +244,7 @@ fun App(viewModels: AppViewModels) {
 
         Box(modifier = Modifier.fillMaxSize()) {
             when {
-                isAuthenticated && isResolvingBusiness && !needsBusinessRegistration -> {
-                    LoadingOverlay(message = "Cargando")
-                }
-
-                // Caso 0: Carga inicial - Mostrar splash screen unificada
+                // Caso 0: Carga inicial - sesion + datos de negocio/sucursales
                 isCheckingSession || (!initialLoadComplete && isAuthenticated) -> {
                     LoadingOverlay(message = "Cargando")
                 }

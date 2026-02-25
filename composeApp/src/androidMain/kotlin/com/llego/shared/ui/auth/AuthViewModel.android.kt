@@ -123,15 +123,18 @@ actual class AuthViewModel : ViewModel {
 
                 when (result) {
                     is AuthResult.Success -> {
+                        // Mantener isLoading=true mientras cargamos datos de negocio/sucursales
                         _uiState.value = _uiState.value.copy(
-                            isLoading = false,
                             isAuthenticated = true,
                             user = result.data,
                             error = null
                         )
 
-                        // Cargar datos de negocio y sucursales
+                        // Cargar datos de negocio y sucursales (isLoading se mantiene true)
                         loadBusinessData()
+
+                        // Solo ahora que todo cargo, quitar loading
+                        _uiState.value = _uiState.value.copy(isLoading = false)
                     }
 
                     is AuthResult.Error -> {
@@ -236,96 +239,15 @@ actual class AuthViewModel : ViewModel {
 
             when (result) {
                 is AuthResult.Success -> {
+                    // Mantener isLoading=true mientras cargamos datos de negocio
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
 
-                    // Cargar datos de negocio y sucursales
                     loadBusinessData()
-
-                    clearLoginForm()
-                }
-
-                is AuthResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.message
-                    )
-                    _loginError.value = result.message
-                }
-
-                else -> {
-                    // AuthResult.Loading - no deber?a llegar aqu?
-                }
-            }
-        }
-    }
-
-    actual fun loginWithGoogle(idToken: String, nonce: String?) {
-        ensureInitialized()
-
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            _loginError.value = null
-
-            val result = authManager.loginWithGoogle(idToken, nonce)
-
-            when (result) {
-                is AuthResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isAuthenticated = true,
-                        user = result.data,
-                        error = null
-                    )
-
-                    // Cargar datos de negocio y sucursales
-                    loadBusinessData()
-
-                    clearLoginForm()
-                }
-
-                is AuthResult.Error -> {
-                    Log.e(TAG, "loginWithGoogle: ERROR - ${result.message}")
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.message
-                    )
-                    _loginError.value = result.message
-                }
-
-                else -> {
-                    Log.w(TAG, "loginWithGoogle: resultado inesperado")
-                }
-            }
-        }
-    }
-
-    actual fun loginWithApple(identityToken: String, nonce: String?) {
-        ensureInitialized()
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            _loginError.value = null
-
-            val result = authManager.loginWithApple(identityToken, nonce)
-
-            when (result) {
-                is AuthResult.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isAuthenticated = true,
-                        user = result.data,
-                        error = null
-                    )
-
-                    // Cargar datos de negocio y sucursales
-                    loadBusinessData()
-
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 
@@ -342,13 +264,79 @@ actual class AuthViewModel : ViewModel {
         }
     }
 
-    /**
-     * Autenticaci?n directa con JWT del backend (para Android Apple Sign-In OAuth flow)
-     * El token ya viene validado del backend, solo se guarda y se obtiene el usuario
-     */
-    actual fun authenticateWithToken(token: String) {
+    actual fun loginWithGoogle(idToken: String, nonce: String?) {
         ensureInitialized()
 
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            _loginError.value = null
+
+            val result = authManager.loginWithGoogle(idToken, nonce)
+
+            when (result) {
+                is AuthResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isAuthenticated = true,
+                        user = result.data,
+                        error = null
+                    )
+
+                    loadBusinessData()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    clearLoginForm()
+                }
+
+                is AuthResult.Error -> {
+                    Log.e(TAG, "loginWithGoogle: ERROR - ${result.message}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                    _loginError.value = result.message
+                }
+
+                else -> {}
+            }
+        }
+    }
+
+    actual fun loginWithApple(identityToken: String, nonce: String?) {
+        ensureInitialized()
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            _loginError.value = null
+
+            val result = authManager.loginWithApple(identityToken, nonce)
+
+            when (result) {
+                is AuthResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isAuthenticated = true,
+                        user = result.data,
+                        error = null
+                    )
+
+                    loadBusinessData()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    clearLoginForm()
+                }
+
+                is AuthResult.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                    _loginError.value = result.message
+                }
+
+                else -> {}
+            }
+        }
+    }
+
+    actual fun authenticateWithToken(token: String) {
+        ensureInitialized()
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -359,15 +347,13 @@ actual class AuthViewModel : ViewModel {
             when (result) {
                 is AuthResult.Success -> {
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false,
                         isAuthenticated = true,
                         user = result.data,
                         error = null
                     )
 
-                    // Cargar datos de negocio y sucursales
                     loadBusinessData()
-
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     clearLoginForm()
                 }
 
