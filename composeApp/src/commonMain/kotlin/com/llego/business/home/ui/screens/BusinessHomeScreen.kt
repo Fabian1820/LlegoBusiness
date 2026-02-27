@@ -89,10 +89,13 @@ fun BusinessHomeScreen(
     onTabSelected: (Int) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (Product?) -> Unit = {},
+    onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit = {},
     onNavigateToProductDetail: (Product) -> Unit = {},
+    onNavigateToComboDetail: (com.llego.shared.data.model.Combo) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
     ordersViewModel: OrdersViewModel,
     productViewModel: ProductViewModel,
+    comboViewModel: com.llego.business.products.ui.viewmodel.ComboViewModel,
     settingsViewModel: SettingsViewModel
 ) {
     val tabs = HomeTabsProvider.getTabs()
@@ -353,11 +356,14 @@ fun BusinessHomeScreen(
                 "products" -> {
                     ProductsScreen(
                         viewModel = productViewModel,
+                        comboViewModel = comboViewModel,
                         branchId = authViewModel.getCurrentBranchId(),
                         branchTipos = currentBranch?.tipos?.toSet() ?: emptySet(),
                         searchQuery = productsSearchQuery,
                         onNavigateToAddProduct = onNavigateToAddProduct,
-                        onNavigateToProductDetail = onNavigateToProductDetail
+                        onNavigateToAddCombo = onNavigateToAddCombo,
+                        onNavigateToProductDetail = onNavigateToProductDetail,
+                        onNavigateToComboDetail = onNavigateToComboDetail
                     )
                 }
 

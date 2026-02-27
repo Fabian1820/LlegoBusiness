@@ -22,23 +22,73 @@ class BranchSelectorViewModel(
     private val repository: BusinessRepository = BusinessRepository(tokenManager = TokenManager())
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(BranchSelectorUiState())
+    private val _uiState = MutableStateFlow(BranchSelectorUiState(isLoading = true))
     val uiState: StateFlow<BranchSelectorUiState> = _uiState.asStateFlow()
+    private var activeUserId: String? = null
+    private var requestVersion: Int = 0
 
-    fun loadBusinesses() {
-        if (_uiState.value.isLoading) {
+    private fun nextRequestVersion(): Int {
+        requestVersion += 1
+        return requestVersion
+    }
+
+    private fun isStaleRequest(version: Int, userId: String?): Boolean {
+        return version != requestVersion || userId != activeUserId
+    }
+
+    fun onAuthUserChanged(userId: String?) {
+        if (userId == activeUserId) {
+            return
+        }
+
+        activeUserId = userId
+        nextRequestVersion() // Invalida requests en vuelo del usuario previo.
+
+        if (userId == null) {
+            _uiState.value = BranchSelectorUiState()
+            return
+        }
+
+        _uiState.value = BranchSelectorUiState(isLoading = true)
+        loadBusinesses(forceLoading = true)
+    }
+
+    fun clearState() {
+        activeUserId = null
+        nextRequestVersion()
+        _uiState.value = BranchSelectorUiState()
+    }
+
+    fun loadBusinesses(forceLoading: Boolean = false) {
+        if (activeUserId == null) {
+            return
+        }
+
+        if (_uiState.value.isLoading && !forceLoading) {
             return
         }
 
         val hasExistingData = _uiState.value.businessesWithBranches.isNotEmpty()
+        val shouldShowLoading = forceLoading || !hasExistingData
+        val requestId = nextRequestVersion()
+        val requestUserId = activeUserId
 
         viewModelScope.launch {
-            // Solo mostrar loading si no hay datos previos (primera carga)
-            if (!hasExistingData) {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            // En cambio de usuario limpiamos datos previos para evitar mostrar negocios de otra cuenta.
+            if (shouldShowLoading) {
+                _uiState.value = _uiState.value.copy(
+                    businessesWithBranches = if (forceLoading) emptyList() else _uiState.value.businessesWithBranches,
+                    isLoading = true,
+                    isRefreshing = false,
+                    error = null
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(error = null)
             }
+
             when (val result = repository.getBusinessesWithBranches()) {
                 is BusinessResult.Success -> {
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
                     _uiState.value = BranchSelectorUiState(
                         businessesWithBranches = result.data,
                         isLoading = false,
@@ -46,27 +96,38 @@ class BranchSelectorViewModel(
                     )
                 }
                 is BusinessResult.Error -> {
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         error = result.message
                     )
                 }
                 else -> {
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
+                    _uiState.value = _uiState.value.copy(isLoading = false, isRefreshing = false)
                 }
             }
         }
     }
 
     fun refreshBusinesses() {
+        if (activeUserId == null) {
+            return
+        }
+
         if (_uiState.value.isRefreshing || _uiState.value.isLoading) {
             return
         }
+
+        val requestId = nextRequestVersion()
+        val requestUserId = activeUserId
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
             when (val result = repository.getBusinessesWithBranches()) {
                 is BusinessResult.Success -> {
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
                     _uiState.value = _uiState.value.copy(
                         businessesWithBranches = result.data,
                         isRefreshing = false,
@@ -74,12 +135,14 @@ class BranchSelectorViewModel(
                     )
                 }
                 is BusinessResult.Error -> {
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
                     _uiState.value = _uiState.value.copy(
                         isRefreshing = false,
                         error = result.message
                     )
                 }
                 else -> {
+                    if (isStaleRequest(requestId, requestUserId)) return@launch
                     _uiState.value = _uiState.value.copy(isRefreshing = false)
                 }
             }

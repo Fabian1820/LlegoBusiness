@@ -1,0 +1,8 @@
+mutation UpdateCombo($input: UpdateComboInput!, $jwt: String) {
+  updateCombo(input: $input, jwt: $jwt) {
+    id
+    name
+    finalPrice
+    availability
+  }
+}

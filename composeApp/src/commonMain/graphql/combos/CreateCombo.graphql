@@ -1,0 +1,8 @@
+mutation CreateCombo($input: CreateComboInput!, $jwt: String) {
+  createCombo(input: $input, jwt: $jwt) {
+    id
+    name
+    finalPrice
+    availability
+  }
+}

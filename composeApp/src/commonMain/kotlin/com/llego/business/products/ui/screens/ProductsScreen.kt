@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
@@ -65,26 +66,34 @@ private const val ALL_PRODUCTS_CATEGORY_KEY = "__all__"
 @Composable
 fun ProductsScreen(
     viewModel: ProductViewModel,
+    comboViewModel: ComboViewModel,
     branchId: String?,
     branchTipos: Set<BranchTipo> = emptySet(),
     searchQuery: String = "",
     onNavigateToAddProduct: (Product?) -> Unit,
+    onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
+    onNavigateToComboDetail: (com.llego.shared.data.model.Combo) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val productsState by viewModel.productsState.collectAsState()
+    val combosState by comboViewModel.combosState.collectAsState()
     val categories = remember(branchTipos) { ProductCategoryProvider.getCategories(branchTipos) }
     val scope = rememberCoroutineScope()
 
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<Product?>(null) }
+    var deleteComboCandidate by remember { mutableStateOf<com.llego.shared.data.model.Combo?>(null) }
     var visibleItemsByCategory by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var showCreateDialog by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
             viewModel.loadProducts(branchId = branchId)
+            comboViewModel.loadCombos(branchId = branchId)
         } else {
             viewModel.loadProducts()
+            comboViewModel.loadCombos()
         }
     }
 
@@ -96,6 +105,11 @@ fun ProductsScreen(
 
     val products = when (val state = productsState) {
         is ProductsResult.Success -> state.products
+        else -> emptyList()
+    }
+
+    val combos = when (val state = combosState) {
+        is com.llego.shared.data.model.CombosResult.Success -> state.combos
         else -> emptyList()
     }
 
@@ -111,6 +125,16 @@ fun ProductsScreen(
                 product.description.contains(normalizedSearchQuery, ignoreCase = true)
         }
     }
+    
+    val searchedCombos = if (normalizedSearchQuery.isBlank()) {
+        combos
+    } else {
+        combos.filter { combo ->
+            combo.name.contains(normalizedSearchQuery, ignoreCase = true) ||
+                combo.description.contains(normalizedSearchQuery, ignoreCase = true)
+        }
+    }
+    
     val categoryKey = selectedCategoryId ?: ALL_PRODUCTS_CATEGORY_KEY
     val visibleCount = visibleItemsByCategory[categoryKey] ?: PRODUCTS_LOCAL_PAGE_SIZE
     val paginatedProducts = if (normalizedSearchQuery.isBlank()) {
@@ -198,7 +222,7 @@ fun ProductsScreen(
                     }
                 }
                 is ProductsResult.Success -> {
-                    if (paginatedProducts.isEmpty()) {
+                    if (paginatedProducts.isEmpty() && searchedCombos.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -216,6 +240,23 @@ fun ProductsScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // Mostrar combos primero
+                            items(searchedCombos, key = { "combo_${it.id}" }) { combo ->
+                                ComboRow(
+                                    combo = combo,
+                                    onEdit = { onNavigateToAddCombo(combo) },
+                                    onDelete = { deleteComboCandidate = combo },
+                                    onToggleAvailability = { availability ->
+                                        scope.launch {
+                                            comboViewModel.toggleAvailability(combo.id, availability)
+                                            comboViewModel.loadCombos(branchId = branchId)
+                                        }
+                                    },
+                                    onViewDetail = { onNavigateToComboDetail(combo) }
+                                )
+                            }
+                            
+                            // Luego mostrar productos
                             items(paginatedProducts, key = { it.id }) { product ->
                                 ProductRow(
                                     product = product,
@@ -266,12 +307,36 @@ fun ProductsScreen(
             horizontalAlignment = Alignment.End
         ) {
             FloatingActionButton(
-                onClick = { onNavigateToAddProduct(null) },
+                onClick = { showCreateDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar producto")
+                Icon(Icons.Default.Add, contentDescription = "Agregar producto o combo")
             }
+        }
+
+        if (showCreateDialog) {
+            AlertDialog(
+                onDismissRequest = { showCreateDialog = false },
+                title = { Text("Crear nuevo") },
+                text = { Text("¿Qué deseas crear?") },
+                confirmButton = {
+                    Button(onClick = {
+                        showCreateDialog = false
+                        onNavigateToAddProduct(null)
+                    }) {
+                        Text("Producto")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = {
+                        showCreateDialog = false
+                        onNavigateToAddCombo(null)
+                    }) {
+                        Text("Combo")
+                    }
+                }
+            )
         }
 
         deleteCandidate?.let { product ->
@@ -297,6 +362,35 @@ fun ProductsScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { deleteCandidate = null }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+
+        deleteComboCandidate?.let { combo ->
+            AlertDialog(
+                onDismissRequest = { deleteComboCandidate = null },
+                title = { Text("Eliminar combo") },
+                text = { Text("Confirmas eliminar \"${combo.name}\"?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                comboViewModel.deleteComboBlocking(combo.id)
+                                comboViewModel.loadCombos(branchId = branchId)
+                            }
+                            deleteComboCandidate = null
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deleteComboCandidate = null }) {
                         Text("Cancelar")
                     }
                 }
@@ -440,4 +534,174 @@ private fun formatPrice(price: Double): String {
     val intPart = rounded.toInt()
     val decimalPart = ((rounded - intPart) * 100).toInt()
     return "${intPart}.${decimalPart.toString().padStart(2, '0')}"
+}
+
+
+@Composable
+private fun ComboRow(
+    combo: com.llego.shared.data.model.Combo,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleAvailability: (Boolean) -> Unit,
+    onViewDetail: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val imageUrl = combo.imageUrl ?: combo.image
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = LlegoCustomShapes.productCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onViewDetail() }
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(LlegoCustomShapes.infoCard)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = combo.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (combo.representativeProducts.isNotEmpty()) {
+                    // Mostrar composición de productos representativos
+                    val firstProduct = combo.representativeProducts.first()
+                    AsyncImage(
+                        model = firstProduct.imageUrl,
+                        contentDescription = combo.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = combo.name,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "COMBO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                if (combo.description.isNotBlank()) {
+                    Text(
+                        text = combo.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (combo.savings > 0) {
+                    Text(
+                        text = "Ahorro: ${formatPrice(combo.savings)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        if (combo.basePrice != combo.finalPrice) {
+                            Text(
+                                text = formatPrice(combo.basePrice),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                )
+                            )
+                        }
+                        Text(
+                            text = formatPrice(combo.finalPrice),
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Editar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onToggleAvailability(!combo.availability) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                if (combo.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = "Cambiar disponibilidad",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

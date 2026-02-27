@@ -1,0 +1,3 @@
+mutation DeleteCombo($comboId: String!, $jwt: String) {
+  deleteCombo(comboId: $comboId, jwt: $jwt)
+}

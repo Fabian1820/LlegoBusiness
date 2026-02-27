@@ -121,8 +121,8 @@ fun BranchSelectorScreen(
         } ?: false
     }
 
-    LaunchedEffect(Unit) {
-        branchSelectorViewModel.loadBusinesses()
+    LaunchedEffect(currentUserId) {
+        branchSelectorViewModel.onAuthUserChanged(currentUserId)
     }
 
     LaunchedEffect(redeemState) {
@@ -256,6 +256,7 @@ fun BranchSelectorScreen(
                 TextButton(
                     onClick = {
                         showLogoutDialog = false
+                        branchSelectorViewModel.clearState()
                         onLogout()
                     }
                 ) {

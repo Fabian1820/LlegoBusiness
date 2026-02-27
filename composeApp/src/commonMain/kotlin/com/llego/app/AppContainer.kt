@@ -7,6 +7,7 @@ import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
@@ -14,6 +15,7 @@ import com.llego.shared.data.repositories.AuthRepository
 import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.data.repositories.PaymentMethodsRepository
 import com.llego.shared.data.repositories.ProductRepository
+import com.llego.shared.data.repositories.ComboRepository
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.branch.BranchSelectorViewModel
 import com.llego.shared.ui.business.RegisterBusinessViewModel
@@ -42,6 +44,9 @@ class AppContainer(
     val productRepository: ProductRepository by lazy {
         ProductRepository(tokenManager = tokenManager)
     }
+    val comboRepository: ComboRepository by lazy {
+        ComboRepository(tokenManager = tokenManager)
+    }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy {
         PaymentMethodsRepository(tokenManager = tokenManager)
     }
@@ -58,6 +63,8 @@ class AppContainer(
     fun createOrdersViewModel(): OrdersViewModel = OrdersViewModel(tokenManager)
 
     fun createProductViewModel(): ProductViewModel = ProductViewModel(tokenManager)
+
+    fun createComboViewModel(): ComboViewModel = ComboViewModel(tokenManager)
 
     fun createSettingsViewModel(): SettingsViewModel = SettingsViewModel(tokenManager)
 
@@ -82,6 +89,7 @@ class AppContainer(
             auth = authViewModel,
             orders = createOrdersViewModel(),
             products = createProductViewModel(),
+            combos = createComboViewModel(),
             settings = createSettingsViewModel(),
             registerBusiness = createRegisterBusinessViewModel(),
             invitations = createInvitationViewModel(),

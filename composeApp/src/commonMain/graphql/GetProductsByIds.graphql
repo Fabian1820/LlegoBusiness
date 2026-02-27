@@ -1,5 +1,5 @@
-query GetProductsByIds($ids: [String!]) {
-  products(ids: $ids) {
+query GetProductsByIds($ids: [String!], $first: Int = 100) {
+  products(ids: $ids, first: $first) {
     edges {
       node {
         id

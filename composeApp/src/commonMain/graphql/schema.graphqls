@@ -105,6 +105,21 @@ type Query {
   productCategory(id: String!): ProductCategoryType
 
   """
+  Obtener un combo por ID
+  """
+  combo(comboId: String!): ComboType
+
+  """
+  Obtener todos los combos de una sucursal
+  """
+  combosByBranch(branchId: String!, availableOnly: Boolean! = true): [ComboType!]!
+
+  """
+  Obtener todos los combos
+  """
+  allCombos(availableOnly: Boolean! = false): [ComboType!]!
+
+  """
   Semantic vector search across products, branches, or businesses. Returns enriched results from Qdrant + MongoDB.
   """
   semanticSearch(query: String!, collection: SemanticSearchCollection!, limit: Int! = 10, jwt: String = null): SemanticSearchResultType!
@@ -195,9 +210,9 @@ type Query {
   businessTypeConfigs(lastSyncAt: DateTime = null): [BusinessTypeConfigType!]!
 
   """
-  Obtener todos los métodos de pago disponibles
+  Obtener todos los métodos de pago disponibles. Si se provee branchId, retorna solo los aceptados por ese branch.
   """
-  paymentMethods(jwt: String = null): [PaymentMethodType!]!
+  paymentMethods(branchId: String = null, jwt: String = null): [PaymentMethodType!]!
 
   """
   Obtener método de pago por ID
@@ -375,6 +390,11 @@ type Query {
   tutorialsByTags(tags: [String!]!): [TutorialType!]!
 
   """
+  Buscar transferencias pendientes por transfer_id y/o teléfono
+  """
+  findPendingTransfers(jwt: String!, transferId: String = null, phone: String = null): [ShortcutTransferType!]!
+
+  """
   Saludo de ejemplo
   """
   hello(jwt: String = null): String!
@@ -424,6 +444,10 @@ type UserType {
 
   aiConsultasLimit: JSON
 
+  savedAddresses: [SavedAddressType!]!
+
+  defaultAddressId: String
+
   """
   URL firmada del avatar del usuario
   """
@@ -460,6 +484,32 @@ scalar Boolean
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
 """
 scalar JSON
+
+type SavedAddressType {
+  id: String!
+
+  label: String!
+
+  street: String!
+
+  city: String
+
+  reference: String
+
+  addressType: String!
+
+  buildingName: String
+
+  floor: String
+
+  apartment: String
+
+  deliveryInstructions: String
+
+  latitude: Float!
+
+  longitude: Float!
+}
 
 type BusinessType {
   id: String!
@@ -541,6 +591,8 @@ type BranchType {
 
   isActive: Boolean!
 
+  status: String
+
   avatar: String
 
   coverImage: String
@@ -560,6 +612,8 @@ type BranchType {
   qrPayments: [QrPaymentType!]!
 
   phones: [TransferPhoneType!]!
+
+  deliveryRadius: Float
 
   createdAt: DateTime!
 
@@ -819,6 +873,8 @@ type ScoredBranchType {
 
   isActive: Boolean!
 
+  status: String
+
   avatar: String
 
   coverImage: String
@@ -838,6 +894,8 @@ type ScoredBranchType {
   qrPayments: [QrPaymentType!]!
 
   phones: [TransferPhoneType!]!
+
+  deliveryRadius: Float
 
   createdAt: DateTime!
 
@@ -918,6 +976,8 @@ type NearbyBranchType {
 
   isActive: Boolean!
 
+  status: String
+
   avatar: String
 
   coverImage: String
@@ -937,6 +997,8 @@ type NearbyBranchType {
   qrPayments: [QrPaymentType!]!
 
   phones: [TransferPhoneType!]!
+
+  deliveryRadius: Float
 
   createdAt: DateTime!
 
@@ -1058,6 +1120,111 @@ type SubcategoryType {
   name: String!
 
   imageUrl: String!
+}
+
+type ComboType {
+  id: String!
+
+  branchId: String!
+
+  name: String!
+
+  description: String!
+
+  image: String
+
+  slots: [ComboSlotType!]!
+
+  discountType: DiscountType!
+
+  discountValue: Float!
+
+  currency: String!
+
+  availability: Boolean!
+
+  categoryId: String
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+
+  """
+  Presigned URL for combo image (optional)
+  """
+  imageUrl: String
+
+  """
+  Representative products for frontend composition (one per slot)
+  """
+  representativeProducts: [ProductType!]!
+
+  """
+  Base price with default selections (before discount)
+  """
+  basePrice: Float!
+
+  """
+  Final price with discount applied
+  """
+  finalPrice: Float!
+
+  """
+  Amount saved with discount
+  """
+  savings: Float!
+
+  """
+  Branch associated with this combo
+  """
+  branch: BranchType
+}
+
+type ComboSlotType {
+  id: String!
+
+  name: String!
+
+  description: String
+
+  options: [ComboOptionType!]!
+
+  minSelections: Int!
+
+  maxSelections: Int!
+
+  isRequired: Boolean!
+
+  displayOrder: Int!
+}
+
+type ComboOptionType {
+  productId: String!
+
+  isDefault: Boolean!
+
+  priceAdjustment: Float!
+
+  availableModifiers: [ComboModifierType!]!
+
+  """
+  Product details
+  """
+  product: ProductType
+}
+
+type ComboModifierType {
+  name: String!
+
+  priceAdjustment: Float!
+}
+
+enum DiscountType {
+  NONE
+
+  PERCENTAGE
+
+  FIXED
 }
 
 type SemanticSearchResultType {
@@ -1570,10 +1737,30 @@ type DeliveryAddressType {
 
   reference: String
 
+  addressType: AddressTypeEnum!
+
+  buildingName: String
+
+  floor: String
+
+  apartment: String
+
+  deliveryInstructions: String
+
   """
   Delivery coordinates
   """
   coordinates: CoordinatesType!
+}
+
+enum AddressTypeEnum {
+  HOUSE
+
+  APARTMENT
+
+  OFFICE
+
+  OTHER
 }
 
 type PickupAddressType {
@@ -1921,6 +2108,11 @@ type PaymentAttemptType {
   Stripe client secret for UI
   """
   stripeClientSecret: String
+
+  """
+  User indicated their transfer sends SMS (enables Shortcut auto-confirm)
+  """
+  sendsSmsNotification: Boolean!
 
   """
   Proof/receipt URL
@@ -2516,6 +2708,48 @@ enum AppTarget {
   BOTH
 }
 
+type ShortcutTransferType {
+  """
+  Transfer record ID
+  """
+  id: String!
+
+  """
+  Bank transfer ID from SMS
+  """
+  transferId: String!
+
+  """
+  Transfer amount
+  """
+  amount: Float!
+
+  """
+  Phone that received the SMS
+  """
+  phone: String
+
+  """
+  Transfer date from SMS
+  """
+  date: DateTime
+
+  """
+  Whether this transfer has been used
+  """
+  activated: Boolean!
+
+  """
+  When it was activated
+  """
+  activatedAt: DateTime
+
+  """
+  When the record was created
+  """
+  createdAt: DateTime!
+}
+
 type Mutation {
   """
   Register a new user
@@ -2563,6 +2797,26 @@ type Mutation {
   updateLocation(input: UpdateLocationInput!, jwt: String = null): UserType!
 
   """
+  Guardar una nueva dirección de entrega en el perfil
+  """
+  addSavedAddress(input: SavedAddressInput!, jwt: String = null): UserType!
+
+  """
+  Editar una dirección guardada en el perfil
+  """
+  updateSavedAddress(input: UpdateSavedAddressInput!, jwt: String = null): UserType!
+
+  """
+  Eliminar una dirección guardada del perfil
+  """
+  removeSavedAddress(addressId: String!, jwt: String = null): UserType!
+
+  """
+  Establecer la dirección de entrega por defecto
+  """
+  setDefaultAddress(addressId: String!, jwt: String = null): UserType!
+
+  """
   Registrar un nuevo negocio con al menos una sucursal
   """
   registerBusiness(businessInput: CreateBusinessInput!, branchesInput: [RegisterBranchInput!]!, jwt: String = null): BusinessType!
@@ -2573,14 +2827,14 @@ type Mutation {
   updateBusiness(businessId: String!, input: UpdateBusinessInput!, jwt: String = null): BusinessType!
 
   """
-  Elimina un negocio junto a sus sucursales
-  """
-  deleteBusiness(businessId: String!, jwt: String = null): Boolean!
-
-  """
   Registrar múltiples negocios con sus sucursales en una sola operación
   """
   registerMultipleBusinesses(businessesInput: [RegisterBusinessWithBranchesInput!]!, jwt: String = null): [BusinessType!]!
+
+  """
+  Eliminar un negocio y todas sus sucursales
+  """
+  deleteBusiness(businessId: String!, jwt: String = null): Boolean!
 
   """
   Crear una nueva sucursal
@@ -2611,6 +2865,26 @@ type Mutation {
   Eliminar un producto
   """
   deleteProduct(productId: String!, jwt: String = null): Boolean!
+
+  """
+  Crear un nuevo combo
+  """
+  createCombo(input: CreateComboInput!, jwt: String = null): ComboType!
+
+  """
+  Actualizar un combo existente
+  """
+  updateCombo(input: UpdateComboInput!, jwt: String = null): ComboType!
+
+  """
+  Eliminar un combo
+  """
+  deleteCombo(comboId: String!, jwt: String = null): Boolean!
+
+  """
+  Cambiar disponibilidad de un combo
+  """
+  toggleComboAvailability(comboId: String!, availability: Boolean!, jwt: String = null): ComboType!
 
   """
   Crear nuevo pedido
@@ -2750,7 +3024,7 @@ type Mutation {
   """
   Iniciar un pago para un pedido
   """
-  initiatePayment(orderId: String!, paymentMethodId: String!, jwt: String!, includeDeliveryFee: Boolean! = true): InitiatePaymentResult!
+  initiatePayment(orderId: String!, paymentMethodId: String!, jwt: String!, includeDeliveryFee: Boolean! = true, sendsSmsNotification: Boolean! = false): InitiatePaymentResult!
 
   """
   Confirmar que el cliente envió el pago (para métodos manuales)
@@ -2776,6 +3050,11 @@ type Mutation {
   Solicitar reembolso de un pago
   """
   requestRefund(paymentAttemptId: String!, reason: String!, jwt: String!): PaymentAttemptType!
+
+  """
+  Confirmar automáticamente un pago por transferencia usando el sistema de Shortcut Transfers. Busca por el teléfono del perfil del usuario; si no hay coincidencia, el cliente puede proveer el ID de transferencia.
+  """
+  confirmTransferByShortcut(paymentAttemptId: String!, jwt: String!, transferId: String = null): PaymentAttemptType!
 
   """
   Cancelar un intento de pago pendiente
@@ -3002,6 +3281,60 @@ input UpdateLocationInput {
   latitude: Float!
 }
 
+input SavedAddressInput {
+  label: String!
+
+  street: String!
+
+  latitude: Float!
+
+  longitude: Float!
+
+  city: String = null
+
+  reference: String = null
+
+  addressType: String! = "house"
+
+  buildingName: String = null
+
+  floor: String = null
+
+  apartment: String = null
+
+  deliveryInstructions: String = null
+
+  setAsDefault: Boolean! = false
+}
+
+input UpdateSavedAddressInput {
+  addressId: String!
+
+  label: String = null
+
+  street: String = null
+
+  latitude: Float = null
+
+  longitude: Float = null
+
+  city: String = null
+
+  reference: String = null
+
+  addressType: String = null
+
+  buildingName: String = null
+
+  floor: String = null
+
+  apartment: String = null
+
+  deliveryInstructions: String = null
+
+  setAsDefault: Boolean = null
+}
+
 input CreateBusinessInput {
   name: String!
 
@@ -3198,6 +3531,76 @@ input UpdateProductInput {
   image: String = null
 }
 
+input CreateComboInput {
+  branchId: String!
+
+  name: String!
+
+  description: String!
+
+  image: String = null
+
+  slots: [ComboSlotInput!]!
+
+  discountType: DiscountType! = NONE
+
+  discountValue: Float! = 0
+
+  categoryId: String = null
+}
+
+input ComboSlotInput {
+  name: String!
+
+  description: String = null
+
+  options: [ComboOptionInput!]!
+
+  minSelections: Int! = 1
+
+  maxSelections: Int! = 1
+
+  isRequired: Boolean! = true
+
+  displayOrder: Int! = 0
+}
+
+input ComboOptionInput {
+  productId: String!
+
+  isDefault: Boolean! = false
+
+  priceAdjustment: Float! = 0
+
+  availableModifiers: [ComboModifierInput!]! = []
+}
+
+input ComboModifierInput {
+  name: String!
+
+  priceAdjustment: Float! = 0
+}
+
+input UpdateComboInput {
+  comboId: String!
+
+  name: String = null
+
+  description: String = null
+
+  image: String = null
+
+  slots: [ComboSlotInput!] = null
+
+  discountType: DiscountType = null
+
+  discountValue: Float = null
+
+  availability: Boolean = null
+
+  categoryId: String = null
+}
+
 input CreateOrderInput {
   branchId: String!
 
@@ -3230,6 +3633,26 @@ input DeliveryAddressInput {
   city: String = null
 
   reference: String = null
+
+  addressType: AddressTypeInput! = HOUSE
+
+  buildingName: String = null
+
+  floor: String = null
+
+  apartment: String = null
+
+  deliveryInstructions: String = null
+}
+
+enum AddressTypeInput {
+  HOUSE
+
+  APARTMENT
+
+  OFFICE
+
+  OTHER
 }
 
 input AddOrderCommentInput {

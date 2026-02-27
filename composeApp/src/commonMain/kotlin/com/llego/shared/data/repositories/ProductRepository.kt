@@ -29,23 +29,25 @@ class ProductRepository(
      * @param branchId ID de la sucursal (opcional)
      * @param categoryId ID de la categoría (opcional)
      * @param availableOnly Solo productos disponibles (default: false)
+     * @param first Límite de productos a obtener (default: 100)
      */
     suspend fun getProducts(
         branchId: String? = null,
         categoryId: String? = null,
-        availableOnly: Boolean = false
+        availableOnly: Boolean = false,
+        first: Int = 100
     ): ProductsResult {
         return try {
-            val response = client.query(
-                GetProductsQuery(
-                    branchId = Optional.presentIfNotNull(branchId),
-                    categoryId = Optional.presentIfNotNull(categoryId),
-                    availableOnly = Optional.present(availableOnly)
-                )
-            ).execute()
+            val query = GetProductsQuery(
+                branchId = Optional.presentIfNotNull(branchId),
+                categoryId = Optional.presentIfNotNull(categoryId),
+                availableOnly = Optional.present(availableOnly),
+                first = Optional.present(first)
+            )
+            
+            val response = client.query(query).execute()
 
             if (response.data != null) {
-                // Extraer los nodos de la estructura paginada edges[].node
                 val products = response.data!!.products.edges.map { it.node.toDomain() }
                 ProductsResult.Success(products)
             } else {
@@ -61,12 +63,14 @@ class ProductRepository(
     /**
      * Obtiene productos por IDs específicos
      * @param ids Lista de IDs de productos
+     * @param first Límite de productos a obtener (default: 100)
      */
-    suspend fun getProductsByIds(ids: List<String>): ProductsResult {
+    suspend fun getProductsByIds(ids: List<String>, first: Int = 100): ProductsResult {
         return try {
             val response = client.query(
                 GetProductsByIdsQuery(
-                    ids = Optional.present(ids)
+                    ids = Optional.present(ids),
+                    first = Optional.present(first)
                 )
             ).execute()
 

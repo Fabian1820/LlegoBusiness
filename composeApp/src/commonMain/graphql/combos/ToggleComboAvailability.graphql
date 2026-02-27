@@ -1,0 +1,6 @@
+mutation ToggleComboAvailability($comboId: String!, $availability: Boolean!, $jwt: String) {
+  toggleComboAvailability(comboId: $comboId, availability: $availability, jwt: $jwt) {
+    id
+    availability
+  }
+}

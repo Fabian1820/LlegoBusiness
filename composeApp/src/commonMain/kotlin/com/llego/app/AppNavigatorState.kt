@@ -24,6 +24,10 @@ class AppNavigatorState {
     var showProductDetail by mutableStateOf(false)
     var productToView by mutableStateOf<Product?>(null)
     var showProductSearch by mutableStateOf(false)
+    var showAddCombo by mutableStateOf(false)
+    var comboToEdit by mutableStateOf<com.llego.shared.data.model.Combo?>(null)
+    var showComboDetail by mutableStateOf(false)
+    var comboToView by mutableStateOf<com.llego.shared.data.model.Combo?>(null)
     var showOrderDetail by mutableStateOf(false)
     var selectedOrderId by mutableStateOf<String?>(null)
     var selectedHomeTabIndex by mutableIntStateOf(0)
@@ -79,6 +83,10 @@ class AppNavigatorState {
         showProductDetail = false
         productToView = null
         showProductSearch = false
+        showAddCombo = false
+        comboToEdit = null
+        showComboDetail = false
+        comboToView = null
         showOrderDetail = false
         selectedOrderId = null
         selectedHomeTabIndex = homeTabIndex

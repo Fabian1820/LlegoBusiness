@@ -24,18 +24,21 @@ class ProductViewModel(
 
     /**
      * Carga todos los productos o productos filtrados.
+     * @param first Límite de productos a cargar (default: 100)
      */
     fun loadProducts(
         branchId: String? = null,
         categoryId: String? = null,
-        availableOnly: Boolean = false
+        availableOnly: Boolean = false,
+        first: Int = 100
     ) {
         viewModelScope.launch {
             _productsState.value = ProductsResult.Loading
             _productsState.value = repository.getProducts(
                 branchId = branchId,
                 categoryId = categoryId,
-                availableOnly = availableOnly
+                availableOnly = availableOnly,
+                first = first
             )
         }
     }

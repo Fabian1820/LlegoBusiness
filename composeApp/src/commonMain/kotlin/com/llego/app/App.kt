@@ -24,7 +24,9 @@ import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.shared.data.auth.TokenManager
 import com.llego.business.home.ui.screens.BusinessHomeScreen
 import com.llego.business.products.ui.screens.AddProductScreen
+import com.llego.business.products.ui.screens.AddComboScreen
 import com.llego.business.products.ui.screens.ProductDetailScreen
+import com.llego.business.products.ui.screens.ComboDetailScreen
 import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
@@ -47,6 +49,7 @@ import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
@@ -77,6 +80,7 @@ data class AppViewModels(
     val auth: AuthViewModel,
     val orders: OrdersViewModel,
     val products: ProductViewModel,
+    val combos: com.llego.business.products.ui.viewmodel.ComboViewModel,
     val settings: SettingsViewModel,
     val registerBusiness: RegisterBusinessViewModel,
     val invitations: InvitationViewModel,
@@ -113,6 +117,7 @@ fun App(viewModels: AppViewModels) {
         val subscriptionManager = remember { SubscriptionManager.getInstance() }
         val ordersViewModel = viewModels.orders
         val productViewModel = viewModels.products
+        val comboViewModel = viewModels.combos
         val settingsViewModel = viewModels.settings
 
         // Observar currentBusiness, currentBranch y branches
@@ -127,6 +132,7 @@ fun App(viewModels: AppViewModels) {
 
                 isAuthenticated = uiState.isAuthenticated
                 val user = uiState.user
+                viewModels.branchSelector.onAuthUserChanged(user?.id)
 
                 // La sesion ya fue verificada y datos cargados (exitosa o fallida)
                 if (!uiState.isLoading) {
@@ -279,6 +285,7 @@ fun App(viewModels: AppViewModels) {
                         authViewModel = authViewModel,
                         ordersViewModel = ordersViewModel,
                         productViewModel = productViewModel,
+                        comboViewModel = comboViewModel,
                         settingsViewModel = settingsViewModel,
                         branchesManagementViewModel = viewModels.branchesManagement,
                         branchSelectorViewModel = viewModels.branchSelector,
@@ -482,6 +489,7 @@ private fun MainBusinessFlow(
     authViewModel: AuthViewModel,
     ordersViewModel: OrdersViewModel,
     productViewModel: ProductViewModel,
+    comboViewModel: ComboViewModel,
     settingsViewModel: SettingsViewModel,
     branchesManagementViewModel: BranchesManagementViewModel,
     branchSelectorViewModel: BranchSelectorViewModel,
@@ -570,6 +578,35 @@ private fun MainBusinessFlow(
                         navigator.showProductDetail = false
                         navigator.productToView = null
                         navigator.showAddProduct = true
+                    }
+                )
+            }
+
+            navigator.showAddCombo -> {
+                AddComboScreen(
+                    viewModel = comboViewModel,
+                    productViewModel = productViewModel,
+                    branchId = authViewModel.getCurrentBranchId() ?: "",
+                    combo = navigator.comboToEdit,
+                    onNavigateBack = {
+                        navigator.showAddCombo = false
+                        navigator.comboToEdit = null
+                    }
+                )
+            }
+
+            navigator.showComboDetail && navigator.comboToView != null -> {
+                ComboDetailScreen(
+                    combo = navigator.comboToView!!,
+                    onNavigateBack = {
+                        navigator.showComboDetail = false
+                        navigator.comboToView = null
+                    },
+                    onEdit = {
+                        navigator.comboToEdit = navigator.comboToView
+                        navigator.showComboDetail = false
+                        navigator.comboToView = null
+                        navigator.showAddCombo = true
                     }
                 )
             }
@@ -801,9 +838,17 @@ private fun MainBusinessFlow(
                         navigator.productToEdit = product
                         navigator.showAddProduct = true
                     },
+                    onNavigateToAddCombo = { combo ->
+                        navigator.comboToEdit = combo
+                        navigator.showAddCombo = true
+                    },
                     onNavigateToProductDetail = { product ->
                         navigator.productToView = product
                         navigator.showProductDetail = true
+                    },
+                    onNavigateToComboDetail = { combo ->
+                        navigator.comboToView = combo
+                        navigator.showComboDetail = true
                     },
                     onShowConfirmation = { type, orderNumber ->
                         navigator.showConfirmation(type, orderNumber)
@@ -811,6 +856,7 @@ private fun MainBusinessFlow(
                     businessId = currentBusiness?.id.orEmpty(),
                     ordersViewModel = ordersViewModel,
                     productViewModel = productViewModel,
+                    comboViewModel = comboViewModel,
                     settingsViewModel = settingsViewModel
                 )
             }

@@ -15,6 +15,7 @@ import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
@@ -45,6 +46,9 @@ class MainActivity : ComponentActivity() {
     }
     private val productViewModel: ProductViewModel by viewModels {
         appViewModelFactory { appContainer.createProductViewModel() }
+    }
+    private val comboViewModel: com.llego.business.products.ui.viewmodel.ComboViewModel by viewModels {
+        appViewModelFactory { appContainer.createComboViewModel() }
     }
     private val settingsViewModel: SettingsViewModel by viewModels {
         appViewModelFactory { appContainer.createSettingsViewModel() }
@@ -88,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     auth = authViewModel,
                     orders = ordersViewModel,
                     products = productViewModel,
+                    combos = comboViewModel,
                     settings = settingsViewModel,
                     registerBusiness = registerBusinessViewModel,
                     invitations = invitationViewModel,
