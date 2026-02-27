@@ -51,10 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -78,7 +78,8 @@ fun ProductsScreen(
 ) {
     val productsState by viewModel.productsState.collectAsState()
     val combosState by comboViewModel.combosState.collectAsState()
-    val categories = remember(branchTipos) { ProductCategoryProvider.getCategories(branchTipos) }
+    val productCategoriesState by viewModel.productCategoriesState.collectAsState()
+    val categories: List<ProductCategory> = productCategoriesState.categories
     val scope = rememberCoroutineScope()
 
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
@@ -95,6 +96,10 @@ fun ProductsScreen(
             viewModel.loadProducts()
             comboViewModel.loadCombos()
         }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(branchTipos) {
+        viewModel.loadProductCategories(branchTipos = branchTipos)
     }
 
     androidx.compose.runtime.LaunchedEffect(categories, selectedCategoryId) {
@@ -116,6 +121,7 @@ fun ProductsScreen(
     val filteredProducts = products.filter { product ->
         selectedCategoryId == null || product.categoryId == selectedCategoryId
     }
+    val categoryNameById = categories.associate { it.id to it.name }
     val normalizedSearchQuery = searchQuery.trim().lowercase()
     val searchedProducts = if (normalizedSearchQuery.isBlank()) {
         filteredProducts
@@ -125,7 +131,7 @@ fun ProductsScreen(
                 product.description.contains(normalizedSearchQuery, ignoreCase = true)
         }
     }
-    
+
     val searchedCombos = if (normalizedSearchQuery.isBlank()) {
         combos
     } else {
@@ -134,7 +140,7 @@ fun ProductsScreen(
                 combo.description.contains(normalizedSearchQuery, ignoreCase = true)
         }
     }
-    
+
     val categoryKey = selectedCategoryId ?: ALL_PRODUCTS_CATEGORY_KEY
     val visibleCount = visibleItemsByCategory[categoryKey] ?: PRODUCTS_LOCAL_PAGE_SIZE
     val paginatedProducts = if (normalizedSearchQuery.isBlank()) {
@@ -181,7 +187,7 @@ fun ProductsScreen(
                     FilterChip(
                         selected = selectedCategoryId == category.id,
                         onClick = { selectedCategoryId = category.id },
-                        label = { Text(category.displayName) },
+                        label = { Text(category.name) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                             selectedLabelColor = MaterialTheme.colorScheme.primary,
@@ -255,11 +261,12 @@ fun ProductsScreen(
                                     onViewDetail = { onNavigateToComboDetail(combo) }
                                 )
                             }
-                            
+
                             // Luego mostrar productos
                             items(paginatedProducts, key = { it.id }) { product ->
                                 ProductRow(
                                     product = product,
+                                    categoryNameById = categoryNameById,
                                     onEdit = { onNavigateToAddProduct(product) },
                                     onDelete = { deleteCandidate = product },
                                     onToggleAvailability = { availability ->
@@ -402,6 +409,7 @@ fun ProductsScreen(
 @Composable
 private fun ProductRow(
     product: Product,
+    categoryNameById: Map<String, String>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
@@ -409,7 +417,7 @@ private fun ProductRow(
     modifier: Modifier = Modifier
 ) {
     val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
-    val categoryName = ProductCategoryProvider.getCategoryDisplayName(product.categoryId)
+    val categoryName = categoryNameById[product.categoryId] ?: product.categoryId ?: "Sin categoria"
 
     Card(
         modifier = modifier.fillMaxWidth(),

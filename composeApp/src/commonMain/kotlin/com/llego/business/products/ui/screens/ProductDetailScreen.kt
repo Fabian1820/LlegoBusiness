@@ -39,7 +39,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.llego.business.products.config.ProductCategoryProvider
 import com.llego.shared.data.model.Product
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
@@ -50,6 +49,7 @@ import com.llego.shared.ui.theme.LlegoCustomShapes
 @Composable
 fun ProductDetailScreen(
     product: Product,
+    categoryNameById: Map<String, String> = emptyMap(),
     onNavigateBack: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
@@ -182,7 +182,9 @@ fun ProductDetailScreen(
                     }
                     DetailRow(
                         label = "Categoria",
-                        value = ProductCategoryProvider.getCategoryDisplayName(product.categoryId),
+                        value = categoryNameById[product.categoryId]
+                            ?: product.categoryId
+                            ?: "Sin categoria",
                         icon = Icons.Default.Category
                     )
                     DetailRow(

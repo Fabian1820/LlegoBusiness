@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,11 +53,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.llego.business.home.config.HomeTabConfig
 import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
@@ -104,7 +109,9 @@ fun BusinessHomeScreen(
 
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
-    val businessName = currentBusiness?.name ?: "Mi negocio"
+    val topBarTitle = currentBranch?.name ?: currentBusiness?.name ?: "Mi negocio"
+    val branchAvatarUrl = currentBranch?.avatarUrl?.takeIf { it.isNotBlank() }
+        ?: currentBranch?.avatar?.takeIf { it.isNotBlank() }
 
     var isSearchMode by remember { mutableStateOf(false) }
     var ordersSearchQuery by remember { mutableStateOf("") }
@@ -219,7 +226,7 @@ fun BusinessHomeScreen(
                             },
                             title = {
                                 Text(
-                                    businessName,
+                                    topBarTitle,
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                                 )
                             },
@@ -236,12 +243,24 @@ fun BusinessHomeScreen(
                                 }
 
                                 IconButton(onClick = onNavigateToProfile) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountCircle,
-                                        contentDescription = "Perfil",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                                    if (!branchAvatarUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = branchAvatarUrl,
+                                            contentDescription = "Perfil de la sucursal",
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .offset(y = 0.5.dp)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = "Perfil",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(

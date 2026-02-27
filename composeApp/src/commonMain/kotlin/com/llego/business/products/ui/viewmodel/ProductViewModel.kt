@@ -3,12 +3,20 @@ package com.llego.business.products.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class ProductCategoriesUiState(
+    val isLoading: Boolean = false,
+    val categories: List<ProductCategory> = emptyList(),
+    val error: String? = null
+)
 
 /**
  * ViewModel para gestionar productos usando GraphQL.
@@ -21,6 +29,9 @@ class ProductViewModel(
 
     private val _productsState = MutableStateFlow<ProductsResult>(ProductsResult.Loading)
     val productsState: StateFlow<ProductsResult> = _productsState.asStateFlow()
+    private val _productCategoriesState = MutableStateFlow(ProductCategoriesUiState())
+    val productCategoriesState: StateFlow<ProductCategoriesUiState> = _productCategoriesState.asStateFlow()
+    private var lastLoadedBranchTipos: Set<BranchTipo> = emptySet()
 
     /**
      * Carga todos los productos o productos filtrados.
@@ -58,6 +69,39 @@ class ProductViewModel(
      */
     fun refresh() {
         loadProducts()
+    }
+
+    fun loadProductCategories(branchTipos: Set<BranchTipo>, force: Boolean = false) {
+        val normalizedTipos = branchTipos.toSet()
+        if (!force &&
+            normalizedTipos == lastLoadedBranchTipos &&
+            _productCategoriesState.value.categories.isNotEmpty()
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            _productCategoriesState.value = _productCategoriesState.value.copy(
+                isLoading = true,
+                error = null
+            )
+
+            repository.getProductCategories(normalizedTipos)
+                .onSuccess { categories ->
+                    lastLoadedBranchTipos = normalizedTipos
+                    _productCategoriesState.value = ProductCategoriesUiState(
+                        isLoading = false,
+                        categories = categories,
+                        error = null
+                    )
+                }
+                .onFailure { throwable ->
+                    _productCategoriesState.value = _productCategoriesState.value.copy(
+                        isLoading = false,
+                        error = throwable.message ?: "No se pudieron cargar las categorías"
+                    )
+                }
+        }
     }
 
     // ============= CRUD OPERATIONS =============

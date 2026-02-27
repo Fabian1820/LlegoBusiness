@@ -3,13 +3,16 @@ package com.llego.shared.data.repositories
 import com.apollographql.apollo.exception.ApolloException
 import com.llego.multiplatform.graphql.GetProductsByIdsQuery
 import com.llego.multiplatform.graphql.GetProductsQuery
+import com.llego.multiplatform.graphql.GetProductCategoriesQuery
 import com.llego.multiplatform.graphql.CreateProductMutation
 import com.llego.multiplatform.graphql.UpdateProductMutation
 import com.llego.multiplatform.graphql.DeleteProductMutation
 import com.llego.multiplatform.graphql.type.CreateProductInput
 import com.llego.multiplatform.graphql.type.UpdateProductInput
 import com.llego.shared.data.mappers.toDomain
+import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.Product
+import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.network.GraphQLClient
 import com.apollographql.apollo.api.Optional
@@ -44,7 +47,7 @@ class ProductRepository(
                 availableOnly = Optional.present(availableOnly),
                 first = Optional.present(first)
             )
-            
+
             val response = client.query(query).execute()
 
             if (response.data != null) {
@@ -88,6 +91,41 @@ class ProductRepository(
         }
     }
 
+    suspend fun getProductCategories(branchTipos: Set<BranchTipo>): Result<List<ProductCategory>> {
+        return try {
+            val branchTypes = if (branchTipos.isEmpty()) {
+                listOf<String?>(null)
+            } else {
+                branchTipos.map { it.name }.sorted()
+            }
+
+            val categories = mutableListOf<ProductCategory>()
+            for (branchType in branchTypes) {
+                val response = client.query(
+                    GetProductCategoriesQuery(
+                        branchType = Optional.presentIfNotNull(branchType)
+                    )
+                ).execute()
+
+                if (response.hasErrors()) {
+                    val errorMessage = response.errors?.joinToString(", ") { it.message }
+                    return Result.failure(Exception(errorMessage ?: "Error al obtener categorías"))
+                }
+
+                val fetched = response.data?.productCategories?.map { it.toDomain() } ?: emptyList()
+                categories += fetched
+            }
+
+            Result.success(
+                categories
+                    .distinctBy { it.id }
+                    .sortedBy { it.name.lowercase() }
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // ============= CRUD OPERATIONS =============
 
     /**
@@ -101,7 +139,7 @@ class ProductRepository(
      * @param businessId ID del negocio (opcional si se pasa branchId)
      * @param weight Peso del producto (opcional - si es null, el backend asigna "" como default)
      * @param categoryId ID de la categoría (opcional)
-     * 
+     *
      * Nota: El parámetro weight es opcional. Si se pasa null, el backend asignará
      * un valor por defecto (""). El campo weight en el modelo Product siempre será
      * no-nullable ya que el backend garantiza un valor.
@@ -161,7 +199,7 @@ class ProductRepository(
      * @param availability Nueva disponibilidad (opcional)
      * @param categoryId Nuevo ID de categoría (opcional)
      * @param image Nuevo path de imagen (opcional)
-     * 
+     *
      * Nota: Todos los campos son opcionales. Si un campo es null, no se actualiza
      * y el backend mantiene el valor actual. Para campos opcionales en el schema
      * (como categoryId), pasar null explícitamente puede remover el valor.

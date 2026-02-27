@@ -134,7 +134,7 @@ fun BranchSelectorScreen(
                 }
             } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
             }
-            branchSelectorViewModel.loadBusinesses()
+            branchSelectorViewModel.loadBusinesses(forceLoading = true)
             invitationViewModel.resetRedeemState()
         }
     }

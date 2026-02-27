@@ -92,6 +92,11 @@ fun OnboardingWizardScreen(
     val haptic = LocalHapticFeedback.current
     val registerUiState by registerBusinessViewModel.uiState.collectAsState()
 
+    // Asegura que al abrir el wizard no se reutilice un estado previo de registro exitoso.
+    LaunchedEffect(Unit) {
+        registerBusinessViewModel.resetState()
+    }
+
     // ── Wizard Mode State ───────────────────────────────────
     var wizardMode by remember { mutableStateOf(WizardMode.NOT_SELECTED) }
     var currentStep by remember { mutableStateOf(0) }
@@ -207,6 +212,7 @@ fun OnboardingWizardScreen(
             delay(2200)
             authViewModel.reloadUserData()
             delay(600)
+            registerBusinessViewModel.resetState()
             onSuccess()
         }
     }

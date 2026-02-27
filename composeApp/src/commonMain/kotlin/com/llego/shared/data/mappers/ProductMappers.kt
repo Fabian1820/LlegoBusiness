@@ -1,9 +1,11 @@
 package com.llego.shared.data.mappers
 
 import com.llego.multiplatform.graphql.CreateProductMutation
+import com.llego.multiplatform.graphql.GetProductCategoriesQuery
 import com.llego.multiplatform.graphql.GetProductsByIdsQuery
 import com.llego.multiplatform.graphql.GetProductsQuery
 import com.llego.multiplatform.graphql.UpdateProductMutation
+import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.Product
 
 /**
@@ -99,5 +101,16 @@ internal fun UpdateProductMutation.UpdateProduct.toDomain(): Product {
         categoryId = categoryId,
         createdAt = createdAt.toString(),
         imageUrl = imageUrl           // String! -> String (no nullable)
+    )
+}
+
+internal fun GetProductCategoriesQuery.ProductCategory.toDomain(): ProductCategory {
+    return ProductCategory(
+        id = id,
+        branchType = branchType,
+        name = name,
+        iconIos = iconIos,
+        iconWeb = iconWeb,
+        iconAndroid = iconAndroid
     )
 }

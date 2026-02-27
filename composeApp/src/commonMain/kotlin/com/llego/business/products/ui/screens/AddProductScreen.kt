@@ -43,10 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.llego.business.products.config.ProductCategoryProvider
-import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.Product
+import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.extractFilename
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
@@ -60,7 +59,7 @@ import com.llego.shared.ui.upload.ImageUploadViewModel
  * @property name Nombre del producto (requerido)
  * @property description Descripción del producto (requerido)
  * @property price Precio del producto (requerido)
- * @property categoryId ID de la categoría del producto (requerido)
+ * @property categoryId ID de la categoría del producto (opcional)
  * @property weight Peso del producto (opcional - el backend asigna "" como default si es null)
  * @property currency Código de moneda del producto (requerido - default "USD")
  * @property imagePath Ruta S3 de la imagen del producto (requerido)
@@ -84,13 +83,12 @@ data class ProductFormData(
 @Composable
 fun AddProductScreen(
     branchId: String?,
-    branchTipos: Set<BranchTipo> = emptySet(),
+    categories: List<ProductCategory> = emptyList(),
     onNavigateBack: () -> Unit,
     onSave: (ProductFormData) -> Unit,
     existingProduct: Product? = null,
     modifier: Modifier = Modifier
 ) {
-    val categories = remember(branchTipos) { ProductCategoryProvider.getCategories(branchTipos) }
     val imageUploadViewModel = remember { ImageUploadViewModel() }
 
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
@@ -102,12 +100,6 @@ fun AddProductScreen(
     var isAvailable by remember { mutableStateOf(existingProduct?.availability ?: true) }
 
     var showCategoryDropdown by remember { mutableStateOf(false) }
-
-    androidx.compose.runtime.LaunchedEffect(categories, selectedCategoryId) {
-        if (selectedCategoryId != null && categories.none { it.id == selectedCategoryId }) {
-            selectedCategoryId = null
-        }
-    }
 
     val initialImageState = remember(existingProduct) {
         existingProduct?.let { product ->
@@ -130,7 +122,6 @@ fun AddProductScreen(
     val isSaveEnabled = branchId != null &&
         name.isNotBlank() &&
         priceValue != null &&
-        selectedCategoryId != null &&
         currency.isNotBlank() &&
         !imagePath.isNullOrBlank()
     val textFieldColors = OutlinedTextFieldDefaults.colors(
@@ -299,10 +290,10 @@ fun AddProductScreen(
                             onExpandedChange = { showCategoryDropdown = it }
                         ) {
                             OutlinedTextField(
-                                value = categories.find { it.id == selectedCategoryId }?.displayName ?: "",
+                                value = categories.find { it.id == selectedCategoryId }?.name ?: "",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Categoria *") },
+                                label = { Text("Categoria (opcional)") },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryDropdown)
                                 },
@@ -318,7 +309,7 @@ fun AddProductScreen(
                             ) {
                                 categories.forEach { category ->
                                     DropdownMenuItem(
-                                        text = { Text(category.displayName) },
+                                        text = { Text(category.name) },
                                         onClick = {
                                             selectedCategoryId = category.id
                                             showCategoryDropdown = false

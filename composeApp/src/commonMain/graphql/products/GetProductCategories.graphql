@@ -1,0 +1,10 @@
+query GetProductCategories($branchType: String) {
+  productCategories(branchType: $branchType) {
+    id
+    branchType
+    name
+    iconIos
+    iconWeb
+    iconAndroid
+  }
+}

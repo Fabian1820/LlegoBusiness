@@ -66,6 +66,14 @@ import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
 import kotlinx.coroutines.launch
 
+private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
+
+private fun normalizeCategoryId(raw: String?): String? {
+    val value = raw?.trim().orEmpty()
+    if (value.isBlank()) return null
+    return if (mongoObjectIdRegex.matches(value)) value else null
+}
+
 /**
  * Estado de la pantalla pre-autenticacion.
  * Controla que pantalla se muestra antes de que el usuario inicie sesion.
@@ -261,6 +269,8 @@ fun App(viewModels: AppViewModels) {
                         registerBusinessViewModel = viewModels.registerBusiness,
                         authViewModel = authViewModel,
                         onSuccess = {
+                            viewModels.registerBusiness.resetState()
+                            viewModels.branchSelector.loadBusinesses(forceLoading = true)
                             needsBusinessRegistration = false
                             canCancelBusinessRegistration = false
                             isExploringWithoutBusiness = false
@@ -314,6 +324,7 @@ fun App(viewModels: AppViewModels) {
                         onOpenMapSelection = openMapSelection,
                         onStartBusinessRegistration = {
                             navigator.branchCreateBusinessId = null
+                            viewModels.registerBusiness.resetState()
                             canCancelBusinessRegistration = true
                             needsBusinessRegistration = true
                             isExploringWithoutBusiness = false
@@ -332,6 +343,7 @@ fun App(viewModels: AppViewModels) {
                         onOpenMapSelection = openMapSelection,
                         onStartBusinessRegistration = {
                             navigator.branchCreateBusinessId = null
+                            viewModels.registerBusiness.resetState()
                             canCancelBusinessRegistration = true
                             needsBusinessRegistration = true
                         }
@@ -423,7 +435,7 @@ private fun BranchSelectionFlow(
                 },
                 onDataChanged = {
                     authViewModel.reloadUserData()
-                    branchSelectorViewModel.loadBusinesses()
+                    branchSelectorViewModel.loadBusinesses(forceLoading = true)
                 },
                 onError = { _ -> },
                 authViewModel = authViewModel
@@ -437,7 +449,7 @@ private fun BranchSelectionFlow(
                 onSuccess = { _ ->
                     navigator.branchToEdit = null
                     authViewModel.reloadUserData()
-                    branchSelectorViewModel.loadBusinesses()
+                    branchSelectorViewModel.loadBusinesses(forceLoading = true)
                 },
                 onError = { _ -> },
                 authViewModel = authViewModel
@@ -451,7 +463,7 @@ private fun BranchSelectionFlow(
                 onSuccess = { _ ->
                     navigator.branchCreateBusinessId = null
                     authViewModel.reloadUserData()
-                    branchSelectorViewModel.loadBusinesses()
+                    branchSelectorViewModel.loadBusinesses(forceLoading = true)
                 },
                 onError = { _ -> },
                 authViewModel = authViewModel,
@@ -505,10 +517,14 @@ private fun MainBusinessFlow(
 ) {
     val scope = rememberCoroutineScope()
     val productsState by productViewModel.productsState.collectAsState()
+    val productCategoriesState by productViewModel.productCategoriesState.collectAsState()
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val branches by authViewModel.branches.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val deliveryEntryPointState by deliveryLinkViewModel.uiState.collectAsState()
+    val categoryNameById = remember(productCategoriesState.categories) {
+        productCategoriesState.categories.associate { it.id to it.name }
+    }
 
     LaunchedEffect(currentBranch?.id, currentBranch?.useAppMessaging) {
         val branch = currentBranch
@@ -523,6 +539,12 @@ private fun MainBusinessFlow(
                 branchUsesAppMessaging = true
             )
         }
+    }
+
+    LaunchedEffect(currentBranch?.tipos) {
+        productViewModel.loadProductCategories(
+            branchTipos = currentBranch?.tipos?.toSet() ?: emptySet()
+        )
     }
 
     Box(modifier = Modifier) {
@@ -569,6 +591,7 @@ private fun MainBusinessFlow(
             navigator.showProductDetail && navigator.productToView != null -> {
                 ProductDetailScreen(
                     product = navigator.productToView!!,
+                    categoryNameById = categoryNameById,
                     onNavigateBack = {
                         navigator.showProductDetail = false
                         navigator.productToView = null
@@ -614,7 +637,7 @@ private fun MainBusinessFlow(
             navigator.showAddProduct -> {
                 AddProductScreen(
                     branchId = authViewModel.getCurrentBranchId(),
-                    branchTipos = currentBranch?.tipos?.toSet() ?: emptySet(),
+                    categories = productCategoriesState.categories,
                     onNavigateBack = {
                         navigator.showAddProduct = false
                         navigator.productToEdit = null
@@ -636,13 +659,13 @@ private fun MainBusinessFlow(
                             val result = if (navigator.productToEdit == null) {
                                 productViewModel.createProductWithImagePath(
                                     name = form.name,
-                                    description = form.description,
+                                    description = form.description.ifBlank { form.name },
                                     price = form.price,
                                     imagePath = form.imagePath ?: "",
                                     branchId = currentBranchId,
                                     currency = form.currency,
                                     weight = form.weight,
-                                    categoryId = form.categoryId
+                                    categoryId = normalizeCategoryId(form.categoryId)
                                 )
                             } else {
                                 productViewModel.updateProductWithImagePath(
@@ -653,7 +676,7 @@ private fun MainBusinessFlow(
                                     currency = form.currency,
                                     weight = form.weight,
                                     availability = form.availability,
-                                    categoryId = form.categoryId,
+                                    categoryId = normalizeCategoryId(form.categoryId),
                                     imagePath = form.imagePath
                                 )
                             }
@@ -698,7 +721,7 @@ private fun MainBusinessFlow(
                     },
                     onDataChanged = {
                         authViewModel.reloadUserData()
-                        branchSelectorViewModel.loadBusinesses()
+                        branchSelectorViewModel.loadBusinesses(forceLoading = true)
                     },
                     onError = { _ -> },
                     authViewModel = authViewModel
@@ -712,7 +735,7 @@ private fun MainBusinessFlow(
                     onSuccess = { _ ->
                         navigator.branchCreateBusinessId = null
                         authViewModel.reloadUserData()
-                        branchSelectorViewModel.loadBusinesses()
+                        branchSelectorViewModel.loadBusinesses(forceLoading = true)
                     },
                     onError = { _ -> },
                     authViewModel = authViewModel,
@@ -727,7 +750,7 @@ private fun MainBusinessFlow(
                     onSuccess = { _ ->
                         navigator.branchToEdit = null
                         authViewModel.reloadUserData()
-                        branchSelectorViewModel.loadBusinesses()
+                        branchSelectorViewModel.loadBusinesses(forceLoading = true)
                     },
                     onError = { _ -> },
                     authViewModel = authViewModel
