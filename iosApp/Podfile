@@ -14,6 +14,14 @@ end
 
 # Configuración post-install para evitar warnings
 post_install do |installer|
+  readlink_fix_old = 'source="$(readlink "${source}")"'
+  readlink_fix_new = <<~'SCRIPT'.strip
+    source="$(readlink "${source}")"
+    if [[ "$source" != /* ]]; then
+      source="$(dirname "${BUILT_PRODUCTS_DIR}/$1")/${source}"
+    fi
+  SCRIPT
+
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
@@ -30,6 +38,9 @@ post_install do |installer|
       target.build_phases.each do |phase|
         if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
           phase.shell_script = source_command + phase.shell_script
+          if phase.shell_script.include?(readlink_fix_old)
+            phase.shell_script = phase.shell_script.gsub(readlink_fix_old, readlink_fix_new)
+          end
         end
       end
     end

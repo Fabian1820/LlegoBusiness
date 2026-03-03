@@ -1,15 +1,25 @@
+# IntelliJ / Android Studio
+.idea/
 *.iml
-.kotlin
-.gradle
+
+# macOS / OS files
+.DS_Store
+
+# Gradle / Kotlin
+.gradle/
+.gradle-user-home/
+.kotlin/
 **/build/
-xcuserdata
 !src/**/build/
 local.properties
-.idea
-.DS_Store
-captures
-.externalNativeBuild
-.cxx
+
+# Android
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Xcode user data
+xcuserdata/
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
@@ -17,12 +27,14 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 
-# CocoaPods
+# CocoaPods / iOS generated artifacts
 iosApp/Pods/
-iosApp/Podfile.lock
 iosApp/*.xcworkspace/
 iosApp/.symlinks/
 *.podspec
+
+# Ruby / Bundler (local gems)
+iosApp/vendor/
 
 # Windows artifacts
 nul
