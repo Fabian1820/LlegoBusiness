@@ -1,6 +1,7 @@
 package com.llego.business.products.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,17 +17,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.shared.data.model.Combo
+import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
+import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.upload.ImageUploadViewModel
-import com.llego.shared.data.model.ImageUploadState
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 // Modelo temporal para slots en edición
@@ -66,7 +73,8 @@ fun AddComboScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
     val productsState by productViewModel.productsState.collectAsState()
     val imageUploadViewModel = remember { ImageUploadViewModel() }
 
@@ -81,12 +89,10 @@ fun AddComboScreen(
     var isCreatingNewSlot by remember { mutableStateOf(false) }
     var editingSlotIndex by remember { mutableStateOf<Int?>(null) }
 
-    // Cargar productos al iniciar
     LaunchedEffect(branchId) {
         productViewModel.loadProducts(branchId = branchId)
     }
 
-    // Inicializar slots desde combo existente
     LaunchedEffect(combo) {
         if (combo != null && slots.isEmpty()) {
             slots = combo.slots.map { slot ->
@@ -104,7 +110,6 @@ fun AddComboScreen(
                     }.toMutableList()
                 )
             }
-            // Inicializar estado de imagen si existe
             if (combo.image != null) {
                 comboImageState = ImageUploadState.Success(
                     localUri = combo.image,
@@ -119,220 +124,386 @@ fun AddComboScreen(
         is ProductsResult.Success -> state.products
         else -> emptyList()
     }
-    
-    // Obtener path de imagen desde el estado
+
     val imagePath = (comboImageState as? ImageUploadState.Success)?.s3Path
+    val canSave = !isLoading && name.isNotBlank() && slots.isNotEmpty()
+
+    fun saveCombo() {
+        scope.launch {
+            isLoading = true
+            errorMessage = null
+
+            try {
+                val discountVal = discountValue.toDoubleOrNull() ?: 0.0
+
+                val slotsData = slots.map { slot ->
+                    mapOf(
+                        "name" to slot.name,
+                        "minSelections" to slot.minSelections,
+                        "maxSelections" to slot.maxSelections,
+                        "options" to slot.options.map { option ->
+                            mapOf(
+                                "productId" to option.productId,
+                                "isDefault" to option.isDefault,
+                                "priceAdjustment" to option.priceAdjustment
+                            )
+                        }
+                    )
+                }
+
+                if (combo == null) {
+                    viewModel.createComboWithImagePath(
+                        branchId = branchId,
+                        name = name,
+                        description = description,
+                        imagePath = imagePath,
+                        discountType = discountType,
+                        discountValue = discountVal,
+                        slots = slotsData
+                    )
+                } else {
+                    viewModel.updateComboWithImagePath(
+                        comboId = combo.id,
+                        name = name,
+                        description = description,
+                        imagePath = imagePath,
+                        discountType = discountType,
+                        discountValue = discountVal,
+                        slots = slotsData
+                    )
+                }
+
+                onNavigateBack()
+            } catch (e: Exception) {
+                errorMessage = e.message ?: "Error desconocido"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(if (combo == null) "Crear Combo" else "Editar Combo") },
+                title = {
+                    Text(
+                        text = if (combo == null) "Crear combo" else "Editar combo",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
+        },
+        bottomBar = {
+            if (!isKeyboardVisible) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 4.dp,
+                    tonalElevation = 0.dp,
+                    shape = LlegoCustomShapes.bottomSheet
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onNavigateBack,
+                            modifier = Modifier.weight(1f),
+                            shape = LlegoCustomShapes.secondaryButton
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Button(
+                            onClick = { saveCombo() },
+                            modifier = Modifier.weight(1f),
+                            enabled = canSave,
+                            shape = LlegoCustomShapes.primaryButton
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(if (combo == null) "Crear combo" else "Guardar cambios")
+                            }
+                        }
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Nombre
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nombre del combo") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Descripción
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Descripción") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5
-            )
-
-            // Imagen
-            ImageUploadPreview(
-                label = "Imagen del combo (opcional)",
-                uploadState = comboImageState,
-                onStateChange = { comboImageState = it },
-                uploadFunction = imageUploadViewModel::uploadProductImage,
-                size = ImageUploadSize.LARGE,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Tipo de descuento
-            Text("Tipo de descuento", style = MaterialTheme.typography.titleSmall)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                FilterChip(
-                    selected = discountType == "PERCENTAGE",
-                    onClick = { discountType = "PERCENTAGE" },
-                    label = { Text("Porcentaje") },
-                    modifier = Modifier.weight(1f)
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nombre del combo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField
                 )
-                FilterChip(
-                    selected = discountType == "FIXED",
-                    onClick = { discountType = "FIXED" },
-                    label = { Text("Cantidad fija") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
-            // Valor del descuento
-            OutlinedTextField(
-                value = discountValue,
-                onValueChange = { discountValue = it },
-                label = { Text(if (discountType == "PERCENTAGE") "Descuento (%)" else "Descuento (monto)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Sección de slots - Inline sin diálogos
-            Text(
-                "Slots del combo",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descripcion") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    shape = LlegoCustomShapes.inputField
                 )
-            )
-            
-            Text(
-                "Los slots son grupos de productos entre los que el cliente puede elegir",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
-            // Slots existentes
-            slots.forEachIndexed { index, slot ->
-                SlotInlineCard(
-                    slot = slot,
-                    availableProducts = availableProducts,
-                    isExpanded = editingSlotIndex == index,
-                    onToggleExpand = {
-                        editingSlotIndex = if (editingSlotIndex == index) null else index
-                    },
-                    onDelete = {
-                        slots = slots.toMutableList().apply { removeAt(index) }
-                        if (editingSlotIndex == index) editingSlotIndex = null
-                    },
-                    onUpdate = {
-                        slots = slots.toList()
-                    }
-                )
-            }
-
-            // Formulario para crear nuevo slot
-            if (isCreatingNewSlot) {
-                NewSlotInlineForm(
-                    availableProducts = availableProducts,
-                    onCancel = { isCreatingNewSlot = false },
-                    onCreate = { newSlot ->
-                        slots = slots + newSlot
-                        isCreatingNewSlot = false
-                    }
-                )
-            } else {
-                // Botón para agregar nuevo slot
-                OutlinedButton(
-                    onClick = { isCreatingNewSlot = true },
+                ImageUploadPreview(
+                    label = "Imagen del combo (opcional)",
+                    uploadState = comboImageState,
+                    onStateChange = { comboImageState = it },
+                    uploadFunction = imageUploadViewModel::uploadProductImage,
+                    size = ImageUploadSize.LARGE,
+                    showSuccessFileName = false,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Agregar Slot")
-                }
-            }
-
-            // Mensaje de error
-            errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
                 )
-            }
 
-            // Botón de guardar
-            Button(
-                onClick = {
-                    scope.launch {
-                        isLoading = true
-                        errorMessage = null
-                        
-                        try {
-                            val discountVal = discountValue.toDoubleOrNull() ?: 0.0
-                            
-                            // Convertir slots a formato Map para el repositorio
-                            val slotsData = slots.map { slot ->
-                                mapOf(
-                                    "name" to slot.name,
-                                    "minSelections" to slot.minSelections,
-                                    "maxSelections" to slot.maxSelections,
-                                    "options" to slot.options.map { option ->
-                                        mapOf(
-                                            "productId" to option.productId,
-                                            "isDefault" to option.isDefault,
-                                            "priceAdjustment" to option.priceAdjustment
-                                        )
-                                    }
-                                )
-                            }
-                            
-                            if (combo == null) {
-                                viewModel.createComboWithImagePath(
-                                    branchId = branchId,
-                                    name = name,
-                                    description = description,
-                                    imagePath = imagePath,
-                                    discountType = discountType,
-                                    discountValue = discountVal,
-                                    slots = slotsData
-                                )
-                            } else {
-                                viewModel.updateComboWithImagePath(
-                                    comboId = combo.id,
-                                    name = name,
-                                    description = description,
-                                    imagePath = imagePath,
-                                    discountType = discountType,
-                                    discountValue = discountVal,
-                                    slots = slotsData
-                                )
-                            }
-                            
-                            onNavigateBack()
-                        } catch (e: Exception) {
-                            errorMessage = e.message ?: "Error desconocido"
-                        } finally {
-                            isLoading = false
+                Text("Tipo de descuento", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DiscountTypeButton(
+                        selected = discountType == "PERCENTAGE",
+                        label = "%",
+                        onClick = { discountType = "PERCENTAGE" },
+                        modifier = Modifier.weight(1f)
+                    )
+                    DiscountTypeButton(
+                        selected = discountType == "FIXED",
+                        label = "Cant. fija",
+                        onClick = { discountType = "FIXED" },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = discountValue,
+                    onValueChange = { discountValue = it },
+                    label = { Text(if (discountType == "PERCENTAGE") "Descuento (%)" else "Descuento (monto)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = LlegoCustomShapes.inputField
+                )
+
+                Text(
+                    "Slots del combo",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                Text(
+                    "Los slots son grupos de productos entre los que el cliente puede elegir",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                slots.forEachIndexed { index, slot ->
+                    SlotInlineCard(
+                        slot = slot,
+                        availableProducts = availableProducts,
+                        isExpanded = editingSlotIndex == index,
+                        onToggleExpand = {
+                            editingSlotIndex = if (editingSlotIndex == index) null else index
+                        },
+                        onDelete = {
+                            slots = slots.toMutableList().apply { removeAt(index) }
+                            if (editingSlotIndex == index) editingSlotIndex = null
+                        },
+                        onUpdate = {
+                            slots = slots.toList()
                         }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && name.isNotBlank() && slots.isNotEmpty()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+
+                if (isCreatingNewSlot) {
+                    NewSlotInlineForm(
+                        availableProducts = availableProducts,
+                        onCancel = { isCreatingNewSlot = false },
+                        onCreate = { newSlot ->
+                            slots = slots + newSlot
+                            isCreatingNewSlot = false
+                        }
                     )
                 } else {
-                    Text(if (combo == null) "Crear Combo" else "Guardar Cambios")
+                    OutlinedButton(
+                        onClick = { isCreatingNewSlot = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LlegoCustomShapes.secondaryButton
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Agregar slot")
+                    }
+                }
+
+                errorMessage?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DiscountTypeButton(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(38.dp),
+            shape = LlegoCustomShapes.inputField,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text(label, maxLines = 1)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(38.dp),
+            shape = LlegoCustomShapes.inputField,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text(label, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun CompactProductSelectionCard(
+    product: Product,
+    selected: Boolean,
+    onClick: () -> Unit,
+    trailingContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image.takeIf { it.isNotBlank() }
+    val containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val titleColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.76f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(72.dp),
+        shape = LlegoCustomShapes.inputField,
+        colors = CardDefaults.cardColors(containerColor = containerColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(LlegoCustomShapes.infoCard)
+                    .background(
+                        if (selected) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = product.name.take(1).ifBlank { "?" }.uppercase(),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = titleColor
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = product.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                    ),
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${product.currency} ${product.price}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = subtitleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            trailingContent()
         }
     }
 }
@@ -463,16 +634,20 @@ private fun NewSlotInlineForm(
         if (searchQuery.isBlank()) {
             availableProducts
         } else {
-            availableProducts.filter { 
-                it.name.contains(searchQuery, ignoreCase = true) 
+            availableProducts.filter {
+                it.name.contains(searchQuery, ignoreCase = true)
             }
         }
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+        ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -538,7 +713,7 @@ private fun NewSlotInlineForm(
             ) {
                 OutlinedTextField(
                     value = minSel,
-                    onValueChange = { 
+                    onValueChange = {
                         if (it.isEmpty() || it.all { c -> c.isDigit() }) {
                             minSel = it
                         }
@@ -553,7 +728,7 @@ private fun NewSlotInlineForm(
                 )
                 OutlinedTextField(
                     value = maxSel,
-                    onValueChange = { 
+                    onValueChange = {
                         if (it.isEmpty() || it.all { c -> c.isDigit() }) {
                             maxSel = it
                         }
@@ -630,59 +805,40 @@ private fun NewSlotInlineForm(
             ) {
                 filteredProducts.take(5).forEach { product ->
                     val isSelected = selectedProducts.contains(product.id)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedProducts = if (isSelected) {
-                                    selectedProducts - product.id
-                                } else {
-                                    selectedProducts + product.id
-                                }
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
+                    CompactProductSelectionCard(
+                        product = product,
+                        selected = isSelected,
+                        onClick = {
+                            selectedProducts = if (isSelected) {
+                                selectedProducts - product.id
                             } else {
-                                MaterialTheme.colorScheme.surface
+                                selectedProducts + product.id
                             }
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    product.name,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                                    ),
-                                    color = if (isSelected) {
+                        },
+                        trailingContent = {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null,
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = if (isSelected) {
                                         MaterialTheme.colorScheme.onPrimary
                                     } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    }
-                                )
-                                Text(
-                                    "${product.currency} ${product.price}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                                        MaterialTheme.colorScheme.primary
+                                    },
+                                    checkmarkColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    },
+                                    uncheckedColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f)
                                     } else {
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                 )
-                            }
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null
                             )
                         }
-                    }
+                    )
                 }
 
                 if (filteredProducts.size > 5) {
@@ -727,9 +883,9 @@ private fun NewSlotInlineForm(
                         onCreate(newSlot)
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = slotName.isNotBlank() && 
+                    enabled = slotName.isNotBlank() &&
                              selectedProducts.isNotEmpty() &&
-                             minSel.toIntOrNull() != null && 
+                             minSel.toIntOrNull() != null &&
                              maxSel.toIntOrNull() != null &&
                              (minSel.toIntOrNull() ?: 0) <= (maxSel.toIntOrNull() ?: 0)
                 ) {
@@ -756,8 +912,8 @@ private fun SlotInlineCard(
         if (searchQuery.isBlank()) {
             availableProducts
         } else {
-            availableProducts.filter { 
-                it.name.contains(searchQuery, ignoreCase = true) 
+            availableProducts.filter {
+                it.name.contains(searchQuery, ignoreCase = true)
             }
         }
     }
@@ -897,49 +1053,28 @@ private fun SlotInlineCard(
                 val availableToAdd = filteredProducts.filter { !currentProductIds.contains(it.id) }
 
                 availableToAdd.take(3).forEach { product ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                slot.options.add(
-                                    OptionEdit(
-                                        productId = product.id,
-                                        productName = product.name,
-                                        isDefault = slot.options.isEmpty(),
-                                        priceAdjustment = 0.0
-                                    )
+                    CompactProductSelectionCard(
+                        product = product,
+                        selected = false,
+                        onClick = {
+                            slot.options.add(
+                                OptionEdit(
+                                    productId = product.id,
+                                    productName = product.name,
+                                    isDefault = slot.options.isEmpty(),
+                                    priceAdjustment = 0.0
                                 )
-                                onUpdate()
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    product.name,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    "${product.currency} ${product.price}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            )
+                            onUpdate()
+                        },
+                        trailingContent = {
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = "Agregar",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                    }
+                    )
                 }
 
                 if (availableToAdd.size > 3) {

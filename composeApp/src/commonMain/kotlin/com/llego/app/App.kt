@@ -137,6 +137,38 @@ fun App(viewModels: AppViewModels) {
         val currentBranch by authViewModel.currentBranch.collectAsState()
         val branches by authViewModel.branches.collectAsState()
 
+        val shouldHandleNativeBack =
+            navigator.canConsumeBackPress() ||
+                (!isAuthenticated && preAuthScreen == PreAuthScreen.LOGIN) ||
+                (isAuthenticated && needsBusinessRegistration && !isExploringWithoutBusiness) ||
+                (isAuthenticated && !needsBusinessRegistration && currentBranch != null)
+
+        PlatformBackHandler(enabled = shouldHandleNativeBack) {
+            if (navigator.consumeBackPress()) {
+                return@PlatformBackHandler
+            }
+
+            when {
+                !isAuthenticated && preAuthScreen == PreAuthScreen.LOGIN -> {
+                    preAuthScreen = PreAuthScreen.ONBOARDING
+                }
+
+                isAuthenticated && needsBusinessRegistration && !isExploringWithoutBusiness -> {
+                    if (canCancelBusinessRegistration) {
+                        needsBusinessRegistration = false
+                        canCancelBusinessRegistration = false
+                        isExploringWithoutBusiness = false
+                    } else {
+                        authViewModel.logout()
+                    }
+                }
+
+                isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
+                    authViewModel.clearCurrentBranch()
+                }
+            }
+        }
+
         // Observar estado de autenticacion
         // isLoading ahora se mantiene true hasta que sesion + datos de negocio esten listos
         LaunchedEffect(authViewModel) {
