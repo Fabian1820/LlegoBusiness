@@ -1,0 +1,3 @@
+mutation DeleteVariantList($variantListId: String!, $jwt: String) {
+  deleteVariantList(variantListId: $variantListId, jwt: $jwt)
+}

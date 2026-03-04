@@ -2,6 +2,8 @@ package com.llego.shared.data.upload
 
 import com.llego.shared.data.model.ImageUploadResponse
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.model.ShowcaseDetectionResponse
+import com.llego.shared.data.model.ShowcaseDetectionResult
 import com.llego.shared.data.network.BackendConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -43,7 +45,8 @@ class JvmImageUploadService : ImageUploadService {
     private suspend fun uploadImage(
         endpoint: String,
         filePath: String,
-        token: String?
+        token: String?,
+        fileField: String = "image"
     ): ImageUploadResult {
         return try {
             val file = File(filePath)
@@ -54,7 +57,7 @@ class JvmImageUploadService : ImageUploadService {
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl$endpoint",
                 formData = formData {
-                    append("image", file.readBytes(), Headers.build {
+                    append(fileField, file.readBytes(), Headers.build {
                         append(HttpHeaders.ContentType, "image/*")
                         append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
                     })
@@ -76,8 +79,56 @@ class JvmImageUploadService : ImageUploadService {
         }
     }
 
+    private suspend fun detectFromShowcase(
+        filePath: String,
+        token: String?
+    ): ShowcaseDetectionResult {
+        return try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                return ShowcaseDetectionResult.Error("El archivo no existe: $filePath")
+            }
+
+            val response = client.submitFormWithBinaryData(
+                url = "$baseUrl/products/detect-from-showcase",
+                formData = formData {
+                    append("file", file.readBytes(), Headers.build {
+                        append(HttpHeaders.ContentType, "image/*")
+                        append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
+                    })
+                }
+            ) {
+                if (token != null) {
+                    header("Authorization", "Bearer $token")
+                }
+            }
+
+            if (response.status.isSuccess()) {
+                val payload: ShowcaseDetectionResponse = response.body()
+                ShowcaseDetectionResult.Success(payload.products)
+            } else {
+                ShowcaseDetectionResult.Error(
+                    "Error ${response.status.value}: ${response.status.description}"
+                )
+            }
+        } catch (e: Exception) {
+            ShowcaseDetectionResult.Error("Error al detectar productos: ${e.message}")
+        }
+    }
+
     override suspend fun uploadProductImage(filePath: String, token: String?): ImageUploadResult {
         return uploadImage("/upload/product/image", filePath, token)
+    }
+
+    override suspend fun uploadShowcaseImage(filePath: String, token: String?): ImageUploadResult {
+        return uploadImage("/upload/showcase/image", filePath, token, fileField = "image")
+    }
+
+    override suspend fun detectProductsFromShowcase(
+        filePath: String,
+        token: String?
+    ): ShowcaseDetectionResult {
+        return detectFromShowcase(filePath, token)
     }
 
     override suspend fun uploadUserAvatar(filePath: String, token: String?): ImageUploadResult {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -45,13 +46,32 @@ class SettingsViewModel(
 
     fun loadSettings() {
         viewModelScope.launch {
-            _uiState.value = SettingsUiState.Loading
-            runCatching { repository.getSettings() }
-                .onFailure { error ->
-                    _uiState.value = SettingsUiState.Error(
-                        error.message ?: "Error al cargar configuracion"
-                    )
+            val previousSettings = _settings.value
+            if (previousSettings == null) {
+                _uiState.value = SettingsUiState.Loading
+            }
+
+            var lastError: Throwable? = null
+            repeat(3) { attempt ->
+                val result = runCatching { repository.getSettings() }
+                if (result.isSuccess) {
+                    return@launch
                 }
+
+                lastError = result.exceptionOrNull()
+                if (attempt < 2) {
+                    delay((attempt + 1) * 250L)
+                }
+            }
+
+            val fallback = _settings.value ?: previousSettings
+            if (fallback != null) {
+                _uiState.value = SettingsUiState.Success(fallback)
+            } else {
+                _uiState.value = SettingsUiState.Error(
+                    lastError?.message ?: "Error al cargar configuracion"
+                )
+            }
         }
     }
 

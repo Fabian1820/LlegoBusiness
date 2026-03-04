@@ -4,10 +4,10 @@ import kotlinx.serialization.Serializable
 
 /**
  * Estado de modificación de un pedido.
- * 
+ *
  * Usa OrderItem del modelo local que contiene MenuItem con precio.
- * El lineTotal se calcula como price * quantity en cada OrderItem.subtotal.
- * 
+ * El lineTotal se calcula como finalPrice * quantity en cada OrderItem.
+ *
  * Requirements: 6.7 - Recalcular y mostrar el nuevo total en tiempo real durante la edición
  */
 @Serializable
@@ -64,10 +64,10 @@ data class OrderModificationState(
 
     /**
      * Calcula el lineTotal de un item específico.
-     * lineTotal = price * quantity
+     * lineTotal = finalPrice * quantity
      */
     fun getItemLineTotal(item: OrderItem): Double {
-        return item.price * item.quantity
+        return item.finalPrice * item.quantity
     }
 
     /**
@@ -75,18 +75,18 @@ data class OrderModificationState(
      * Útil para validar que newTotal está correctamente calculado.
      */
     fun calculateTotal(): Double {
-        return modifiedItems.sumOf { it.price * it.quantity }
+        return modifiedItems.sumOf { it.finalPrice * it.quantity }
     }
 
     companion object {
         /**
          * Crea un estado de modificación inicial desde una lista de OrderItem.
-         * 
+         *
          * @param items Lista de items del pedido
          * @param originalTotal Total original del pedido (puede incluir delivery fee, descuentos, etc.)
          */
         fun fromItems(items: List<OrderItem>, originalTotal: Double): OrderModificationState {
-            val calculatedTotal = items.sumOf { it.price * it.quantity }
+            val calculatedTotal = items.sumOf { it.finalPrice * it.quantity }
             return OrderModificationState(
                 originalItems = items,
                 modifiedItems = items,

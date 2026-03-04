@@ -8,26 +8,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,10 +48,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchStatusSelector
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.profile.ui.components.BannerWithLogoSection
 import com.llego.business.profile.ui.components.BranchInfoSection
 import com.llego.business.profile.ui.components.BranchScheduleSection
@@ -58,6 +69,8 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
+import com.llego.shared.data.model.VariantList
+import com.llego.shared.data.model.VariantOptionDraft
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
 import com.llego.shared.ui.business.formatTransferAccountsInput
@@ -73,10 +86,17 @@ import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private data class VariantOptionEditorState(
+    val id: String? = null,
+    val name: String = "",
+    val priceAdjustment: String = "0"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusinessProfileScreen(
     authViewModel: AuthViewModel,
+    productViewModel: ProductViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -84,9 +104,11 @@ fun BusinessProfileScreen(
     val imageUploadViewModel = remember { ImageUploadViewModel() }
     val paymentMethodsViewModel = remember { PaymentMethodsViewModel() }
     val paymentMethodsUiState by paymentMethodsViewModel.uiState.collectAsState()
+    val variantListsUiState by productViewModel.variantListsState.collectAsState()
 
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
+    var variantMessage by remember { mutableStateOf<String?>(null) }
     var showAvatarDialog by remember { mutableStateOf(false) }
     var showCoverDialog by remember { mutableStateOf(false) }
     var avatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
@@ -134,9 +156,17 @@ fun BusinessProfileScreen(
     }
     var isActive by remember(currentBranch?.id) { mutableStateOf(currentBranch?.isActive ?: true) }
 
+    var showVariantEditor by remember { mutableStateOf(false) }
+    var editingVariantList by remember { mutableStateOf<VariantList?>(null) }
+    var variantName by remember { mutableStateOf("") }
+    var variantDescription by remember { mutableStateOf("") }
+    var variantOptions by remember { mutableStateOf(listOf(VariantOptionEditorState())) }
+    var variantOperationLoading by remember { mutableStateOf(false) }
+
     LaunchedEffect(currentBranch?.id) {
         if (currentBranch != null) {
             paymentMethodsViewModel.loadPaymentMethods()
+            productViewModel.loadVariantLists(currentBranch!!.id, force = true)
         }
     }
 
@@ -144,6 +174,15 @@ fun BusinessProfileScreen(
         if (!saveMessage.isNullOrBlank()) {
             delay(3000)
             saveMessage = null
+        }
+    }
+
+    LaunchedEffect(variantMessage, showVariantEditor) {
+        if (!variantMessage.isNullOrBlank() && !showVariantEditor) {
+            delay(3000)
+            if (!showVariantEditor) {
+                variantMessage = null
+            }
         }
     }
 
@@ -241,6 +280,101 @@ fun BusinessProfileScreen(
                 else -> {}
             }
             isSaving = false
+        }
+    }
+
+    fun openVariantEditor(variantList: VariantList?) {
+        variantMessage = null
+        editingVariantList = variantList
+        variantName = variantList?.name.orEmpty()
+        variantDescription = variantList?.description.orEmpty()
+        variantOptions = if (variantList != null) {
+            variantList.options.map {
+                VariantOptionEditorState(
+                    id = it.id,
+                    name = it.name,
+                    priceAdjustment = it.priceAdjustment.toString()
+                )
+            }
+        } else {
+            listOf(VariantOptionEditorState())
+        }
+        showVariantEditor = true
+    }
+
+    fun validateVariantEditor(): String? {
+        if (variantName.isBlank()) return "El nombre de la lista es obligatorio."
+        if (variantOptions.isEmpty()) return "Debes agregar al menos una opcion."
+        if (variantOptions.any { it.name.isBlank() || it.priceAdjustment.toDoubleOrNull() == null }) {
+            return "Cada opcion necesita nombre y ajuste de precio valido."
+        }
+        return null
+    }
+
+    fun saveVariantList() {
+        val branch = currentBranch ?: return
+        val validationError = validateVariantEditor()
+        if (validationError != null) {
+            variantMessage = validationError
+            return
+        }
+
+        val normalizedOptions = variantOptions.map {
+            VariantOptionDraft(
+                id = it.id,
+                name = it.name.trim(),
+                priceAdjustment = it.priceAdjustment.toDoubleOrNull() ?: 0.0
+            )
+        }
+
+        coroutineScope.launch {
+            variantOperationLoading = true
+            variantMessage = null
+            val result = if (editingVariantList == null) {
+                productViewModel.createVariantList(
+                    branchId = branch.id,
+                    name = variantName.trim(),
+                    description = variantDescription.trim().ifBlank { null },
+                    options = normalizedOptions
+                )
+            } else {
+                productViewModel.updateVariantList(
+                    branchId = branch.id,
+                    variantListId = editingVariantList!!.id,
+                    name = variantName.trim(),
+                    description = variantDescription.trim().ifBlank { null },
+                    options = normalizedOptions
+                )
+            }
+
+            result.onSuccess {
+                variantMessage = if (editingVariantList == null) {
+                    "Lista de variantes creada."
+                } else {
+                    "Lista de variantes actualizada."
+                }
+                showVariantEditor = false
+            }.onFailure { throwable ->
+                val errorMessage = throwable.message ?: "No se pudo guardar la lista de variantes."
+                variantMessage = errorMessage
+            }
+
+            variantOperationLoading = false
+        }
+    }
+
+    fun deleteVariantList(variantListId: String) {
+        val branch = currentBranch ?: return
+        coroutineScope.launch {
+            variantOperationLoading = true
+            productViewModel.deleteVariantList(branch.id, variantListId)
+                .onSuccess {
+                    variantMessage = "Lista de variantes eliminada."
+                }
+                .onFailure {
+                    variantMessage = it.message ?: "No se pudo eliminar la lista."
+                }
+            variantOperationLoading = false
         }
     }
 
@@ -477,6 +611,126 @@ fun BusinessProfileScreen(
             item {
                 ProfileSectionCard {
                     SectionHeader(
+                        title = "Listas de Variantes",
+                        sectionIcon = Icons.Default.Store
+                    )
+
+                    Text(
+                        text = "Crea listas como Tamaños o Extras y asignalas luego a productos de esta sucursal.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { openVariantEditor(null) },
+                            enabled = !variantOperationLoading
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null
+                            )
+                            Text("Nueva lista")
+                        }
+
+                        if (variantListsUiState.isLoading || variantOperationLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(4.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+
+                    if (!variantMessage.isNullOrBlank()) {
+                        Text(
+                            text = variantMessage.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    if (!variantListsUiState.error.isNullOrBlank()) {
+                        Text(
+                            text = variantListsUiState.error.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    if (variantListsUiState.variantLists.isEmpty()) {
+                        Text(
+                            text = "Aun no hay listas de variantes creadas.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            variantListsUiState.variantLists.forEach { variantList ->
+                                ProfileSectionCard {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = variantList.name,
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                                            )
+                                            variantList.description?.takeIf { it.isNotBlank() }?.let {
+                                                Text(
+                                                    text = it,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Text(
+                                                text = variantList.options.joinToString(", ") { option ->
+                                                    "${option.name} (${option.priceAdjustment})"
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Row {
+                                            IconButton(
+                                                onClick = { openVariantEditor(variantList) },
+                                                enabled = !variantOperationLoading
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "Editar lista"
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = { deleteVariantList(variantList.id) },
+                                                enabled = !variantOperationLoading
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Eliminar lista",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                ProfileSectionCard {
+                    SectionHeader(
                         title = "Cobros",
                         sectionIcon = Icons.Default.CreditCard
                     )
@@ -504,6 +758,136 @@ fun BusinessProfileScreen(
                 }
             }
         }
+    }
+
+    if (showVariantEditor) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!variantOperationLoading) {
+                    variantMessage = null
+                    showVariantEditor = false
+                }
+            },
+            title = {
+                Text(if (editingVariantList == null) "Nueva lista de variantes" else "Editar lista de variantes")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!variantMessage.isNullOrBlank()) {
+                        Text(
+                            text = variantMessage.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = variantName,
+                        onValueChange = { variantName = it },
+                        label = { Text("Nombre *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    OutlinedTextField(
+                        value = variantDescription,
+                        onValueChange = { variantDescription = it },
+                        label = { Text("Descripción (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 2,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+
+                    Text(
+                        text = "Opciones",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+
+                    variantOptions.forEachIndexed { index, option ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = option.name,
+                                onValueChange = { value ->
+                                    variantOptions = variantOptions.mapIndexed { optionIndex, item ->
+                                        if (optionIndex == index) item.copy(name = value) else item
+                                    }
+                                },
+                                label = { Text("Nombre") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = option.priceAdjustment,
+                                onValueChange = { value ->
+                                    if (value.isEmpty() || value.toDoubleOrNull() != null) {
+                                        variantOptions = variantOptions.mapIndexed { optionIndex, item ->
+                                            if (optionIndex == index) item.copy(priceAdjustment = value) else item
+                                        }
+                                    }
+                                },
+                                label = { Text("Ajuste") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            IconButton(
+                                onClick = {
+                                    variantOptions = variantOptions.filterIndexed { optionIndex, _ ->
+                                        optionIndex != index
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Eliminar opción"
+                                )
+                            }
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { variantOptions = variantOptions + VariantOptionEditorState() }
+                    ) {
+                        Text("Agregar opción")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { saveVariantList() },
+                    enabled = !variantOperationLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (variantOperationLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 8.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        variantMessage = null
+                        showVariantEditor = false
+                    },
+                    enabled = !variantOperationLoading
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     if (showAvatarDialog) {

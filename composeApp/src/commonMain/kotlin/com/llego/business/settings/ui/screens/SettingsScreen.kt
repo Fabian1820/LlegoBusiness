@@ -227,6 +227,7 @@ fun SettingsScreen(
                     }
                 }
                 is SettingsUiState.Error -> {
+                    val message = (uiState as SettingsUiState.Error).message
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -237,11 +238,25 @@ fun SettingsScreen(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             )
                         ) {
-                            Text(
-                                text = "Error al cargar la configuracion",
+                            Column(
                                 modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Error al cargar la configuracion",
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                if (message.isNotBlank()) {
+                                    Text(
+                                        text = message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Button(onClick = { settingsViewModel.loadSettings() }) {
+                                    Text("Reintentar")
+                                }
+                            }
                         }
                     }
                 }

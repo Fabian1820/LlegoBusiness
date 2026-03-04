@@ -143,9 +143,10 @@ fun OrderItemsSection(items: List<OrderItem>) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (item.imageUrl.isNotBlank()) {
+                    val itemImageUrl = item.imageUrl
+                    if (!itemImageUrl.isNullOrBlank()) {
                         NetworkImage(
-                            url = item.imageUrl,
+                            url = itemImageUrl,
                             contentDescription = item.name,
                             modifier = Modifier
                                 .size(52.dp)
@@ -190,16 +191,40 @@ fun OrderItemsSection(items: List<OrderItem>) {
                                     )
                                 }
                             }
+                            if (!item.itemType.equals("PRODUCT", ignoreCase = true)) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = item.itemType.uppercase(),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
                         }
                         Text(
                             text = "Cantidad: ${item.quantity}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        item.requestDescription?.takeIf { it.isNotBlank() }?.let { description ->
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     Text(
-                        text = "$${formatDouble("%.2f", item.lineTotal)}",
+                        text = if (item.isShowcase && item.lineTotal <= 0.0) {
+                            "Por confirmar"
+                        } else {
+                            "$${formatDouble("%.2f", item.lineTotal)}"
+                        },
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )

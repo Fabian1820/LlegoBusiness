@@ -12,6 +12,7 @@ query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolea
         image
         availability
         categoryId
+        variantListIds
         createdAt
         imageUrl
       }

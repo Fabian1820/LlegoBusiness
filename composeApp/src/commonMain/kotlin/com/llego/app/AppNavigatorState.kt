@@ -20,6 +20,7 @@ class AppNavigatorState {
     var showInvitations by mutableStateOf(false)
     var showDeliveryManagement by mutableStateOf(false)
     var showAddProduct by mutableStateOf(false)
+    var showAddShowcase by mutableStateOf(false)
     var productToEdit by mutableStateOf<Product?>(null)
     var showProductDetail by mutableStateOf(false)
     var productToView by mutableStateOf<Product?>(null)
@@ -79,6 +80,7 @@ class AppNavigatorState {
         showInvitations = false
         showDeliveryManagement = false
         showAddProduct = false
+        showAddShowcase = false
         productToEdit = null
         showProductDetail = false
         productToView = null

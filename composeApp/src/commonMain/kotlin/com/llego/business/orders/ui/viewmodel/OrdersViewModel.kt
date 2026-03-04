@@ -352,6 +352,16 @@ class OrdersViewModel(
 
     fun enterEditMode(order: Order) {
         if (!order.isEditable || order.status != OrderStatus.PENDING_ACCEPTANCE) return
+        val hasUnsupportedItems = order.items.any {
+            !it.itemType.equals("PRODUCT", ignoreCase = true) &&
+                !it.itemType.equals("SHOWCASE", ignoreCase = true)
+        }
+        if (hasUnsupportedItems) {
+            _uiState.value = OrdersUiState.ActionError(
+                "Este pedido contiene combos y no se puede editar desde esta version."
+            )
+            return
+        }
 
         _modificationState.value = OrderModificationState.fromItems(
             items = order.items,
@@ -363,20 +373,20 @@ class OrdersViewModel(
         _modificationState.value = null
     }
 
-    fun modifyItemQuantity(productId: String, newQuantity: Int) {
+    fun modifyItemQuantity(itemId: String, newQuantity: Int) {
         val state = _modificationState.value ?: return
         val quantity = newQuantity.coerceAtLeast(1)
 
         val updatedItems = state.modifiedItems.map { item ->
-            if (item.productId == productId) item.copy(quantity = quantity) else item
+            if (item.itemId == itemId) item.copy(quantity = quantity) else item
         }
 
         updateModificationState(state, updatedItems)
     }
 
-    fun removeItem(productId: String) {
+    fun removeItem(itemId: String) {
         val state = _modificationState.value ?: return
-        val updatedItems = state.modifiedItems.filterNot { it.productId == productId }
+        val updatedItems = state.modifiedItems.filterNot { it.itemId == itemId }
         updateModificationState(state, updatedItems)
     }
 
@@ -385,9 +395,13 @@ class OrdersViewModel(
         val safeQuantity = quantity.coerceAtLeast(1)
 
         val newItem = OrderItem(
+            itemId = "new_${productId}_${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
+            itemType = "PRODUCT",
             productId = productId,
             name = name,
             price = price,
+            basePrice = price,
+            finalPrice = price,
             quantity = safeQuantity,
             imageUrl = imageUrl,
             wasModifiedByStore = true
@@ -402,14 +416,27 @@ class OrdersViewModel(
 
     fun applyModification(orderId: String, reason: String = "Modificado por el negocio") {
         val state = _modificationState.value ?: return
+        val unsupportedItem = state.modifiedItems.firstOrNull {
+            !it.itemType.equals("PRODUCT", ignoreCase = true) &&
+                !it.itemType.equals("SHOWCASE", ignoreCase = true)
+        }
+        if (unsupportedItem != null) {
+            _uiState.value = OrdersUiState.ActionError(
+                "No se pueden modificar items tipo ${unsupportedItem.itemType}."
+            )
+            return
+        }
 
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
 
             val itemInputs = state.modifiedItems.map { item ->
                 OrderItemInput(
+                    quantity = item.quantity,
+                    itemType = item.itemType,
                     productId = item.productId,
-                    quantity = item.quantity
+                    showcaseId = if (item.isShowcase) item.itemId else null,
+                    description = item.requestDescription
                 )
             }
 
@@ -426,7 +453,7 @@ class OrdersViewModel(
     }
 
     private fun updateModificationState(state: OrderModificationState, items: List<OrderItem>) {
-        val newTotal = items.sumOf { it.lineTotal }
+        val newTotal = items.sumOf { it.finalPrice * it.quantity }
         val hasChanges = items != state.originalItems
 
         _modificationState.value = state.copy(

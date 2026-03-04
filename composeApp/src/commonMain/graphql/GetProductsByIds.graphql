@@ -12,6 +12,7 @@ query GetProductsByIds($ids: [String!], $first: Int = 100) {
         image
         availability
         categoryId
+        variantListIds
         createdAt
         imageUrl
       }

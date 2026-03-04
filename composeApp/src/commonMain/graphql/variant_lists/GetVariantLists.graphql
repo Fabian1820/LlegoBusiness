@@ -1,0 +1,15 @@
+query GetVariantLists($branchId: String!, $jwt: String) {
+  variantLists(branchId: $branchId, jwt: $jwt) {
+    id
+    branchId
+    name
+    description
+    options {
+      id
+      name
+      priceAdjustment
+    }
+    createdAt
+    updatedAt
+  }
+}

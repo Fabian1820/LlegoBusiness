@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,8 +26,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PostAdd
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,12 +62,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchVehicle
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.VariantOptionDraft
 import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.parseQrPaymentsInput
@@ -78,6 +86,18 @@ import com.llego.shared.ui.onboarding.components.RequiredFieldLabel
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import kotlinx.coroutines.launch
 
+private data class VariantOptionDraftUi(
+    val id: String? = null,
+    val name: String = "",
+    val priceAdjustment: String = "0"
+)
+
+private data class VariantListDraftUi(
+    val name: String = "",
+    val description: String = "",
+    val options: List<VariantOptionDraftUi> = listOf(VariantOptionDraftUi())
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BranchCreateWizardScreen(
@@ -86,6 +106,7 @@ fun BranchCreateWizardScreen(
     onSuccess: (Branch) -> Unit,
     onError: (String) -> Unit,
     authViewModel: AuthViewModel,
+    productViewModel: ProductViewModel,
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit = { _, _, _, _ -> }
 ) {
     val paymentMethodsViewModel = remember { PaymentMethodsViewModel() }
@@ -113,8 +134,9 @@ fun BranchCreateWizardScreen(
     var transferPhonesInput by remember { mutableStateOf("") }
     var schedule by remember { mutableStateOf(defaultBranchSchedule()) }
     var selectedPaymentMethodIds by remember { mutableStateOf(emptyList<String>()) }
+    var variantLists by remember { mutableStateOf(listOf<VariantListDraftUi>()) }
 
-    val totalSteps = 4
+    val totalSteps = 5
     val isLastStep = currentStep == totalSteps - 1
 
     LaunchedEffect(Unit) {
@@ -141,6 +163,21 @@ fun BranchCreateWizardScreen(
                 schedule.values.none { it.isOpen } -> "Debes configurar al menos un dia abierto."
                 !useAppMessaging && selectedVehicles.isEmpty() -> "Selecciona al menos un vehiculo para delivery propio."
                 else -> null
+            }
+
+            3 -> {
+                val invalidList = variantLists.firstOrNull { draft ->
+                    draft.name.isBlank() ||
+                        draft.options.isEmpty() ||
+                        draft.options.any { option ->
+                            option.name.isBlank() || option.priceAdjustment.toDoubleOrNull() == null
+                        }
+                }
+                if (invalidList != null) {
+                    "Revisa las listas de variantes: nombre y opciones con precio valido son obligatorios."
+                } else {
+                    null
+                }
             }
 
             else -> null
@@ -178,7 +215,54 @@ fun BranchCreateWizardScreen(
 
         coroutineScope.launch {
             when (val result = authViewModel.createBranch(input)) {
-                is BusinessResult.Success -> onSuccess(result.data)
+                is BusinessResult.Success -> {
+                    val createdBranch = result.data
+                    val variantErrors = mutableListOf<String>()
+                    variantLists.forEach { draft ->
+                        val normalizedName = draft.name.trim()
+                        if (normalizedName.isBlank()) return@forEach
+
+                        val normalizedOptions = draft.options.mapNotNull { option ->
+                            val optionName = option.name.trim()
+                            val optionPrice = option.priceAdjustment.toDoubleOrNull()
+                            if (optionName.isBlank() || optionPrice == null) {
+                                null
+                            } else {
+                                VariantOptionDraft(
+                                    id = option.id,
+                                    name = optionName,
+                                    priceAdjustment = optionPrice
+                                )
+                            }
+                        }
+
+                        if (normalizedOptions.isEmpty()) {
+                            return@forEach
+                        }
+
+                        val createResult = productViewModel.createVariantList(
+                            branchId = createdBranch.id,
+                            name = normalizedName,
+                            description = draft.description.trim().ifBlank { null },
+                            options = normalizedOptions
+                        )
+
+                        if (createResult.isFailure) {
+                            variantErrors += normalizedName
+                        }
+                    }
+
+                    if (variantErrors.isNotEmpty()) {
+                        statusMessage = "Sucursal creada, pero no se pudieron crear estas listas: ${
+                            variantErrors.joinToString(", ")
+                        }"
+                        onError(
+                            statusMessage ?: "No se pudieron crear algunas listas de variantes."
+                        )
+                    }
+
+                    onSuccess(createdBranch)
+                }
                 is BusinessResult.Error -> {
                     statusMessage = result.message
                     onError(result.message)
@@ -531,6 +615,225 @@ fun BranchCreateWizardScreen(
                         )
                     }
 
+                    3 -> OnboardingStepLayout(
+                        stepIcon = Icons.Default.Tune,
+                        title = "Listas de Variantes",
+                        subtitle = "Opcional: crea listas reutilizables (tamano, extras, ingredientes) para asignarlas luego a productos."
+                    ) {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.Top
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Cada lista se usa en muchos productos de esta sucursal. Ejemplo: una lista \"Tamanos\" con Pequeno/Mediano/Grande.",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                variantLists = variantLists + VariantListDraftUi()
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PostAdd,
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Agregar lista")
+                        }
+
+                        if (variantLists.isEmpty()) {
+                            Text(
+                                text = "Puedes omitir este paso y administrar las listas despues desde el perfil de sucursal.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            variantLists.forEachIndexed { listIndex, listDraft ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Lista ${listIndex + 1}",
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    variantLists = variantLists.filterIndexed { index, _ ->
+                                                        index != listIndex
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = "Eliminar lista",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+
+                                        OutlinedTextField(
+                                            value = listDraft.name,
+                                            onValueChange = { value ->
+                                                variantLists = variantLists.mapIndexed { index, item ->
+                                                    if (index == listIndex) item.copy(name = value) else item
+                                                }
+                                            },
+                                            label = { Text("Nombre de la lista *") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = listDraft.description,
+                                            onValueChange = { value ->
+                                                variantLists = variantLists.mapIndexed { index, item ->
+                                                    if (index == listIndex) item.copy(description = value) else item
+                                                }
+                                            },
+                                            label = { Text("Descripcion (opcional)") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            maxLines = 2,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        Text(
+                                            text = "Opciones",
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                                        )
+
+                                        listDraft.options.forEachIndexed { optionIndex, option ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                            ) {
+                                                OutlinedTextField(
+                                                    value = option.name,
+                                                    onValueChange = { value ->
+                                                        variantLists = variantLists.mapIndexed { index, item ->
+                                                            if (index != listIndex) {
+                                                                item
+                                                            } else {
+                                                                item.copy(
+                                                                    options = item.options.mapIndexed { optIndex, optItem ->
+                                                                        if (optIndex == optionIndex) {
+                                                                            optItem.copy(name = value)
+                                                                        } else {
+                                                                            optItem
+                                                                        }
+                                                                    }
+                                                                )
+                                                            }
+                                                        }
+                                                    },
+                                                    label = { Text("Nombre *") },
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true,
+                                                    shape = RoundedCornerShape(10.dp)
+                                                )
+                                                OutlinedTextField(
+                                                    value = option.priceAdjustment,
+                                                    onValueChange = { value ->
+                                                        if (value.isEmpty() || value.toDoubleOrNull() != null) {
+                                                            variantLists = variantLists.mapIndexed { index, item ->
+                                                                if (index != listIndex) {
+                                                                    item
+                                                                } else {
+                                                                    item.copy(
+                                                                        options = item.options.mapIndexed { optIndex, optItem ->
+                                                                            if (optIndex == optionIndex) {
+                                                                                optItem.copy(priceAdjustment = value)
+                                                                            } else {
+                                                                                optItem
+                                                                            }
+                                                                        }
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    label = { Text("Ajuste") },
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true,
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                )
+                                                IconButton(
+                                                    onClick = {
+                                                        variantLists = variantLists.mapIndexed { index, item ->
+                                                            if (index == listIndex) {
+                                                                item.copy(
+                                                                    options = item.options.filterIndexed { idx, _ ->
+                                                                        idx != optionIndex
+                                                                    }
+                                                                )
+                                                            } else {
+                                                                item
+                                                            }
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = "Eliminar opcion"
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        TextButton(
+                                            onClick = {
+                                                variantLists = variantLists.mapIndexed { index, item ->
+                                                    if (index == listIndex) {
+                                                        item.copy(options = item.options + VariantOptionDraftUi())
+                                                    } else {
+                                                        item
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Text("Agregar opcion")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     else -> {
                         val selectedPaymentMethodNames = paymentMethodsUiState.methods
                             .filter { it.id in selectedPaymentMethodIds }
@@ -581,6 +884,7 @@ fun BranchCreateWizardScreen(
                                         "Pagos",
                                         selectedPaymentMethodNames.ifBlank { "Sin metodos seleccionados" }
                                     )
+                                    ReviewRow("Listas de variantes", variantLists.size.toString())
                                     ReviewRow("Cuentas", parseTransferAccountsInput(accountsInput).size.toString())
                                     ReviewRow("QR", parseQrPaymentsInput(qrPaymentsInput).size.toString())
                                     ReviewRow("Telefonos", parseTransferPhonesInput(transferPhonesInput).size.toString())

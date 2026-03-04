@@ -169,11 +169,11 @@ fun OrderDetailScreen(
             order = currentOrder,
             state = modificationState!!,
             isSaving = isActionInProgress,
-            onChangeQuantity = { productId, quantity ->
-                ordersViewModel.modifyItemQuantity(productId, quantity)
+            onChangeQuantity = { itemId, quantity ->
+                ordersViewModel.modifyItemQuantity(itemId, quantity)
             },
-            onRemoveItem = { productId ->
-                ordersViewModel.removeItem(productId)
+            onRemoveItem = { itemId ->
+                ordersViewModel.removeItem(itemId)
             },
             onSave = { reason ->
                 ordersViewModel.applyModification(currentOrder.id, reason.ifBlank { "Modificado por el negocio" })
@@ -227,14 +227,14 @@ private fun EditOrderItemsDialog(
                             item = item,
                             onDecrease = {
                                 if (item.quantity > 1) {
-                                    onChangeQuantity(item.productId, item.quantity - 1)
+                                    onChangeQuantity(item.itemId, item.quantity - 1)
                                 }
                             },
                             onIncrease = {
-                                onChangeQuantity(item.productId, item.quantity + 1)
+                                onChangeQuantity(item.itemId, item.quantity + 1)
                             },
                             onRemove = {
-                                onRemoveItem(item.productId)
+                                onRemoveItem(item.itemId)
                             }
                         )
                     }
@@ -299,9 +299,10 @@ private fun EditableOrderItemRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (item.imageUrl.isNotBlank()) {
+                val itemImageUrl = item.imageUrl
+                if (!itemImageUrl.isNullOrBlank()) {
                     NetworkImage(
-                        url = item.imageUrl,
+                        url = itemImageUrl,
                         contentDescription = item.name,
                         modifier = Modifier
                             .size(48.dp)
@@ -330,7 +331,7 @@ private fun EditableOrderItemRow(
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                     Text(
-                        text = "$${formatDouble("%.2f", item.price)} c/u",
+                        text = "$${formatDouble("%.2f", item.finalPrice)} c/u",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

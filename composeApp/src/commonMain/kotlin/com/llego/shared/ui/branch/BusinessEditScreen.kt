@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,8 @@ fun BusinessEditScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val imageUploadViewModel = remember { ImageUploadViewModel() }
+    val authUiState by authViewModel.uiState.collectAsState()
+    val currentUserId = authUiState.user?.id
 
     var originalBusiness by remember(business.id) { mutableStateOf(business) }
     var name by remember(business.id) { mutableStateOf(business.name) }
@@ -98,6 +101,7 @@ fun BusinessEditScreen(
 
     val avatarPath = (avatarState as? ImageUploadState.Success)?.s3Path
     val isUploadingAvatar = avatarState is ImageUploadState.Uploading
+    val isOwner = currentUserId != null && currentUserId == originalBusiness.ownerId
 
     fun saveBusiness() {
         val nameValue = name.trim()
@@ -223,6 +227,11 @@ fun BusinessEditScreen(
 
     fun deleteBusinessCompletely() {
         if (isDeletingBusiness) return
+        if (!isOwner) {
+            statusMessage = "Solo el propietario puede eliminar este negocio"
+            onError(statusMessage ?: "")
+            return
+        }
 
         coroutineScope.launch {
             isDeletingBusiness = true
@@ -245,8 +254,13 @@ fun BusinessEditScreen(
                 }
 
                 is BusinessResult.Error -> {
-                    statusMessage = businessResult.message
-                    onError(businessResult.message)
+                    val backendMessage = businessResult.message
+                    statusMessage = if (backendMessage.contains("autoriz", ignoreCase = true)) {
+                        "No autorizado para eliminar este negocio. Verifica que estés usando la cuenta propietaria."
+                    } else {
+                        backendMessage
+                    }
+                    onError(statusMessage ?: backendMessage)
                 }
 
                 else -> Unit
@@ -513,29 +527,44 @@ fun BusinessEditScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Button(
-                onClick = { businessPendingDelete = true },
-                enabled = !isDeletingBusiness,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                shape = LlegoCustomShapes.secondaryButton
-            ) {
-                if (isDeletingBusiness) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onError
+            if (isOwner) {
+                Button(
+                    onClick = { businessPendingDelete = true },
+                    enabled = !isDeletingBusiness,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    shape = LlegoCustomShapes.secondaryButton
+                ) {
+                    if (isDeletingBusiness) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Eliminar negocio completo")
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.infoCard,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                ) {
+                    Text(
+                        text = "Solo la cuenta propietaria del negocio puede eliminarlo.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Eliminar negocio completo")
                 }
             }
 

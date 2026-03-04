@@ -8,6 +8,7 @@ mutation UpdateProduct($productId: String!, $input: UpdateProductInput!, $jwt: S
     weight
     branchId
     categoryId
+    variantListIds
     image
     imageUrl
     availability

@@ -101,6 +101,7 @@ internal fun BusinessSection(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BusinessAvatar(
@@ -112,7 +113,9 @@ internal fun BusinessSection(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Column {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             text = business.name,
                             style = MaterialTheme.typography.titleMedium.copy(

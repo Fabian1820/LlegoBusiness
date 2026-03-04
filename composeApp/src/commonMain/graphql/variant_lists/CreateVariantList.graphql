@@ -1,0 +1,15 @@
+mutation CreateVariantList($input: CreateVariantListInput!, $jwt: String) {
+  createVariantList(input: $input, jwt: $jwt) {
+    id
+    branchId
+    name
+    description
+    options {
+      id
+      name
+      priceAdjustment
+    }
+    createdAt
+    updatedAt
+  }
+}

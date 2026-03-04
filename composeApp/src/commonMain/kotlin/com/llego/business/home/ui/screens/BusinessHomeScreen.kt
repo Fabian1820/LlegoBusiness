@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -65,6 +66,7 @@ import com.llego.business.home.config.HomeTabConfig
 import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
 import com.llego.business.products.ui.viewmodel.ProductViewModel
+import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.analytics.ui.screens.StatisticsScreen
 import com.llego.business.orders.ui.screens.ConfirmationType
 import com.llego.business.orders.ui.screens.OrdersScreen
@@ -94,6 +96,7 @@ fun BusinessHomeScreen(
     onTabSelected: (Int) -> Unit = {},
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (Product?) -> Unit = {},
+    onNavigateToAddShowcase: () -> Unit = {},
     onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit = {},
     onNavigateToProductDetail: (Product) -> Unit = {},
     onNavigateToComboDetail: (com.llego.shared.data.model.Combo) -> Unit = {},
@@ -101,6 +104,7 @@ fun BusinessHomeScreen(
     ordersViewModel: OrdersViewModel,
     productViewModel: ProductViewModel,
     comboViewModel: com.llego.business.products.ui.viewmodel.ComboViewModel,
+    showcaseViewModel: ShowcaseViewModel,
     settingsViewModel: SettingsViewModel
 ) {
     val tabs = HomeTabsProvider.getTabs()
@@ -123,6 +127,12 @@ fun BusinessHomeScreen(
         }
     }
 
+    LaunchedEffect(selectedTabId, currentBranch?.id) {
+        if (selectedTabId == "settings" && currentBranch?.id != null) {
+            settingsViewModel.loadSettings()
+        }
+    }
+
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
@@ -141,6 +151,7 @@ fun BusinessHomeScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.background) {
                 AnimatedContent(
@@ -275,17 +286,17 @@ fun BusinessHomeScreen(
         },
         bottomBar = {
             if (!isKeyboardVisible) {
-                Surface(shadowElevation = 6.dp, tonalElevation = 0.dp) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                        )
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.fillMaxWidth(),
-                            windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-                        ) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                    )
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    ) {
                             val pendingCount = ordersViewModel.getPendingOrdersCount()
 
                             tabs.forEachIndexed { index, tab ->
@@ -348,19 +359,21 @@ fun BusinessHomeScreen(
                                     )
                                 )
                             }
-                        }
                     }
+                }
                 }
             }
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier.padding(
-                start = paddingValues.calculateStartPadding(layoutDirection),
-                top = paddingValues.calculateTopPadding(),
-                end = paddingValues.calculateEndPadding(layoutDirection),
-                bottom = paddingValues.calculateBottomPadding()
-            )
+            modifier = Modifier
+                .padding(
+                    start = paddingValues.calculateStartPadding(layoutDirection),
+                    top = paddingValues.calculateTopPadding(),
+                    end = paddingValues.calculateEndPadding(layoutDirection),
+                    bottom = paddingValues.calculateBottomPadding()
+                )
+                .imePadding()
         ) {
             when (tabs[selectedTabIndex].id) {
                 "orders" -> {
@@ -376,10 +389,12 @@ fun BusinessHomeScreen(
                     ProductsScreen(
                         viewModel = productViewModel,
                         comboViewModel = comboViewModel,
+                        showcaseViewModel = showcaseViewModel,
                         branchId = authViewModel.getCurrentBranchId(),
                         branchTipos = currentBranch?.tipos?.toSet() ?: emptySet(),
                         searchQuery = productsSearchQuery,
                         onNavigateToAddProduct = onNavigateToAddProduct,
+                        onNavigateToAddShowcase = onNavigateToAddShowcase,
                         onNavigateToAddCombo = onNavigateToAddCombo,
                         onNavigateToProductDetail = onNavigateToProductDetail,
                         onNavigateToComboDetail = onNavigateToComboDetail

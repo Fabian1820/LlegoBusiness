@@ -16,6 +16,7 @@ import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
+import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.AppleSignInHelper
 import com.llego.shared.data.auth.TokenManager
@@ -50,6 +51,9 @@ class MainActivity : ComponentActivity() {
     private val comboViewModel: com.llego.business.products.ui.viewmodel.ComboViewModel by viewModels {
         appViewModelFactory { appContainer.createComboViewModel() }
     }
+    private val showcaseViewModel: ShowcaseViewModel by viewModels {
+        appViewModelFactory { appContainer.createShowcaseViewModel() }
+    }
     private val settingsViewModel: SettingsViewModel by viewModels {
         appViewModelFactory { appContainer.createSettingsViewModel() }
     }
@@ -75,13 +79,13 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar TokenManager con contexto para persistencia
         TokenManager.initialize(applicationContext)
-        
+
         // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
         ImageUploadServiceFactory.initialize(applicationContext)
 
         // Inicializar composition root
         appContainer = AppContainer()
-        
+
         // Manejar deep link inicial (si la app fue abierta desde un deep link)
         handleAppleAuthDeepLink(intent)
 
@@ -93,6 +97,7 @@ class MainActivity : ComponentActivity() {
                     orders = ordersViewModel,
                     products = productViewModel,
                     combos = comboViewModel,
+                    showcases = showcaseViewModel,
                     settings = settingsViewModel,
                     registerBusiness = registerBusinessViewModel,
                     invitations = invitationViewModel,
@@ -103,35 +108,35 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-    
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Manejar deep link cuando la app ya estÃ¡ abierta
         handleAppleAuthDeepLink(intent)
     }
-    
+
     /**
      * Procesa el deep link de Apple Auth callback
      * llegobusiness://auth/callback?token=xxx o llegobusiness://auth/callback?error=xxx
-     * 
+     *
      * El token que llega es el JWT final del backend, no un identity token de Apple.
      * Por eso usamos authenticateWithToken() en lugar de loginWithApple()
      */
     private fun handleAppleAuthDeepLink(intent: Intent?) {
         val uri = intent?.data
-        
+
         if (uri == null) return
-        
+
         // Verificar que es nuestro deep link
         if (uri.scheme != "llegobusiness" || uri.host != "auth") {
             return
         }
-        
+
         val token = uri.getQueryParameter("token")
         val error = uri.getQueryParameter("error")
         val message = uri.getQueryParameter("message")
-        
-        
+
+
         when {
             !token.isNullOrEmpty() -> {
                 // El token es el JWT del backend, usamos authenticateWithToken
@@ -152,5 +157,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-

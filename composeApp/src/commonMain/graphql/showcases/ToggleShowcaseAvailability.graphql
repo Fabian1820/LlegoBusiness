@@ -1,0 +1,6 @@
+mutation ToggleShowcaseAvailability($showcaseId: String!, $isActive: Boolean!, $jwt: String) {
+  toggleShowcaseAvailability(showcaseId: $showcaseId, isActive: $isActive, jwt: $jwt) {
+    id
+    isActive
+  }
+}

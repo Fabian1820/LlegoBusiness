@@ -20,8 +20,11 @@ sealed class OrdersResult {
  * Input para modificar items de un pedido
  */
 data class OrderItemInput(
-    val productId: String,
-    val quantity: Int
+    val quantity: Int,
+    val itemType: String = "PRODUCT",
+    val productId: String? = null,
+    val showcaseId: String? = null,
+    val description: String? = null
 )
 
 enum class DashboardStatsPeriod {

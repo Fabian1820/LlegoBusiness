@@ -26,7 +26,7 @@ import com.llego.shared.data.model.*
 // ============= BUSINESS MAPPERS (GraphQL -> Domain) =============
 
 fun GetBusinessesQuery.Business.toDomain(): Business =
-    businessCoreFields.toDomain(ownerId = "")
+    businessCoreFields.toDomain()
 
 fun GetMyBusinessesQuery.GetMyBusiness.toDomain(): Business =
     businessRoleFields.toDomain()
@@ -38,12 +38,12 @@ fun GetBusinessQuery.Business.toDomain(): Business =
     businessOwnedFields.toDomain()
 
 fun RegisterBusinessMutation.RegisterBusiness.toDomain(): Business =
-    businessCoreFields.toDomain(ownerId = "")
+    businessCoreFields.toDomain()
 
 fun UpdateBusinessMutation.UpdateBusiness.toDomain(): Business =
     businessUpdateFields.toDomain()
 
-private fun BusinessCoreFields.toDomain(ownerId: String): Business {
+private fun BusinessCoreFields.toDomain(): Business {
     return Business(
         id = id,
         name = name,
@@ -59,7 +59,7 @@ private fun BusinessCoreFields.toDomain(ownerId: String): Business {
 }
 
 private fun BusinessOwnedFields.toDomain(): Business {
-    return businessCoreFields.toDomain(ownerId = businessCoreFields.ownerId)
+    return businessCoreFields.toDomain()
 }
 
 private fun BusinessRoleFields.toDomain(): Business {
@@ -81,13 +81,13 @@ private fun BusinessUpdateFields.toDomain(): Business {
     return Business(
         id = id,
         name = name,
-        ownerId = "",
+        ownerId = ownerId,
         globalRating = globalRating,
         avatar = avatar,
         description = description,
         tags = tags ?: emptyList(),
         isActive = isActive,
-        createdAt = "",
+        createdAt = createdAt.toString(),
         avatarUrl = avatarUrl
     )
 }

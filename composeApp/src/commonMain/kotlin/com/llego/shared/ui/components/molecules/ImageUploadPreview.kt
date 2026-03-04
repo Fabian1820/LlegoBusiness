@@ -39,6 +39,7 @@ fun ImageUploadPreview(
     onStateChange: (ImageUploadState) -> Unit,
     uploadFunction: suspend (filePath: String) -> ImageUploadResult,
     size: ImageUploadSize = ImageUploadSize.MEDIUM,
+    showSuccessFileName: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -60,16 +61,16 @@ fun ImageUploadPreview(
                     .height(size.height)
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable(enabled = uploadState is ImageUploadState.Idle || 
+                    .clickable(enabled = uploadState is ImageUploadState.Idle ||
                                         uploadState is ImageUploadState.Success ||
                                         uploadState is ImageUploadState.Error) {
                         imagePickerController.pickImage { selectedUri ->
                             val filename = selectedUri.extractFilename()
                             onStateChange(ImageUploadState.Selected(selectedUri, filename))
-                            
+
                             scope.launch {
                                 onStateChange(ImageUploadState.Uploading(selectedUri, filename))
-                                
+
                                 try {
                                     when (val result = uploadFunction(selectedUri)) {
                                         is ImageUploadResult.Success -> {
@@ -142,8 +143,13 @@ fun ImageUploadPreview(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        val successText = if (showSuccessFileName) {
+                            uploadState.filename
+                        } else {
+                            "Imagen cargada"
+                        }
                         Icon(Icons.Default.CheckCircle, null, Modifier.size(14.dp), tint = Color(0xFF4CAF50))
-                        Text(uploadState.filename, style = MaterialTheme.typography.bodySmall, color = Color(0xFF4CAF50), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(successText, style = MaterialTheme.typography.bodySmall, color = Color(0xFF4CAF50), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     is ImageUploadState.Error -> Text(
                         text = "Error - Toca para reintentar",

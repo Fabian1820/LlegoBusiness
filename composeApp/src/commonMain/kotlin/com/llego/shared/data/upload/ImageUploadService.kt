@@ -1,6 +1,7 @@
 package com.llego.shared.data.upload
 
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.model.ShowcaseDetectionResult
 
 /**
  * Servicio multiplataforma para subir imágenes a diferentes endpoints REST
@@ -22,6 +23,22 @@ interface ImageUploadService {
         filePath: String,
         token: String?
     ): ImageUploadResult
+
+    /**
+     * Sube una imagen de vitrina.
+     */
+    suspend fun uploadShowcaseImage(
+        filePath: String,
+        token: String?
+    ): ImageUploadResult
+
+    /**
+     * Detecta productos sugeridos desde una foto de vitrina.
+     */
+    suspend fun detectProductsFromShowcase(
+        filePath: String,
+        token: String?
+    ): ShowcaseDetectionResult
 
     /**
      * Sube un avatar de usuario

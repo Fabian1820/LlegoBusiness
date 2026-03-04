@@ -1,4 +1,4 @@
-package com.llego.business.orders.data.model
+﻿package com.llego.business.orders.data.model
 
 import kotlinx.serialization.Serializable
 
@@ -7,21 +7,28 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class OrderItem(
-    val productId: String,
+    val itemId: String,
+    val itemType: String,
+    val productId: String? = null,
     val name: String,
     val price: Double,
+    val basePrice: Double = price,
+    val finalPrice: Double = price,
     val quantity: Int,
-    val imageUrl: String,
+    val imageUrl: String? = null,
+    val requestDescription: String? = null,
     val wasModifiedByStore: Boolean = false
 ) {
     /**
-     * Total de línea calculado (price * quantity)
+     * Total de linea calculado (finalPrice * quantity)
      */
-    val lineTotal: Double get() = price * quantity
+    val lineTotal: Double get() = finalPrice * quantity
+
+    val isShowcase: Boolean get() = itemType.equals("SHOWCASE", ignoreCase = true)
 }
 
 /**
- * Dirección de entrega alineada con backend DeliveryAddressType
+ * DirecciÃ³n de entrega alineada con backend DeliveryAddressType
  */
 @Serializable
 data class DeliveryAddress(
@@ -95,3 +102,4 @@ data class OrderDiscount(
     val amount: Double,
     val type: DiscountType
 )
+

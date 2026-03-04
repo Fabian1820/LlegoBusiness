@@ -26,6 +26,7 @@ import com.llego.multiplatform.graphql.type.ModifyOrderItemsInput
 import com.llego.multiplatform.graphql.type.AddOrderCommentInput
 import com.llego.multiplatform.graphql.type.DashboardPeriod
 import com.llego.multiplatform.graphql.type.OrderItemInput as GraphQLOrderItemInput
+import com.llego.multiplatform.graphql.type.OrderItemTypeInput as GraphQLOrderItemTypeInput
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
 import kotlinx.coroutines.flow.Flow
@@ -402,9 +403,20 @@ class OrderRepositoryImpl(
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
 
             val graphqlItems = items.map { item ->
+                val graphqlItemType = when (item.itemType.uppercase()) {
+                    "SHOWCASE" -> GraphQLOrderItemTypeInput.SHOWCASE
+                    "PRODUCT" -> GraphQLOrderItemTypeInput.PRODUCT
+                    else -> throw IllegalArgumentException(
+                        "Tipo de item no soportado para modificacion: ${item.itemType}"
+                    )
+                }
+
                 GraphQLOrderItemInput(
-                    productId = item.productId,
-                    quantity = item.quantity
+                    quantity = item.quantity,
+                    itemType = Optional.present(graphqlItemType),
+                    productId = Optional.presentIfNotNull(item.productId),
+                    showcaseId = Optional.presentIfNotNull(item.showcaseId),
+                    description = Optional.presentIfNotNull(item.description)
                 )
             }
 

@@ -5,6 +5,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.llego.shared.data.model.ImageUploadResponse
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.model.ShowcaseDetectionResponse
+import com.llego.shared.data.model.ShowcaseDetectionResult
 import com.llego.shared.data.network.BackendConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -92,7 +94,7 @@ class AndroidImageUploadService(
             null
         }
     }
-    
+
     /**
      * Obtiene el nombre del archivo desde un content URI
      */
@@ -117,7 +119,8 @@ class AndroidImageUploadService(
     private suspend fun uploadImage(
         endpoint: String,
         filePath: String,
-        token: String?
+        token: String?,
+        fileField: String = "image"
     ): ImageUploadResult {
         return try {
 
@@ -131,8 +134,7 @@ class AndroidImageUploadService(
             val response = client.submitFormWithBinaryData(
                 url = "$baseUrl$endpoint",
                 formData = formData {
-                    // FastAPI espera: name="image", filename presente, Content-Type del archivo
-                    append("image", bytes, Headers.build {
+                    append(fileField, bytes, Headers.build {
                         append(HttpHeaders.ContentType, mimeType)
                         append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                     })
@@ -158,8 +160,56 @@ class AndroidImageUploadService(
         }
     }
 
+    private suspend fun detectFromShowcase(
+        filePath: String,
+        token: String?
+    ): ShowcaseDetectionResult {
+        return try {
+            val (bytes, filename) = readFileBytes(filePath)
+                ?: return ShowcaseDetectionResult.Error("No se pudo leer el archivo: $filePath")
+
+            val mimeType = getMimeType(filename)
+
+            val response = client.submitFormWithBinaryData(
+                url = "$baseUrl/products/detect-from-showcase",
+                formData = formData {
+                    append("file", bytes, Headers.build {
+                        append(HttpHeaders.ContentType, mimeType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
+                    })
+                }
+            ) {
+                if (token != null) {
+                    header("Authorization", "Bearer $token")
+                }
+            }
+
+            if (response.status.isSuccess()) {
+                val payload: ShowcaseDetectionResponse = response.body()
+                ShowcaseDetectionResult.Success(payload.products)
+            } else {
+                ShowcaseDetectionResult.Error(
+                    "Error ${response.status.value}: ${response.status.description}"
+                )
+            }
+        } catch (e: Exception) {
+            ShowcaseDetectionResult.Error("Error al detectar productos: ${e.message}")
+        }
+    }
+
     override suspend fun uploadProductImage(filePath: String, token: String?): ImageUploadResult {
         return uploadImage("/upload/product/image", filePath, token)
+    }
+
+    override suspend fun uploadShowcaseImage(filePath: String, token: String?): ImageUploadResult {
+        return uploadImage("/upload/showcase/image", filePath, token, fileField = "image")
+    }
+
+    override suspend fun detectProductsFromShowcase(
+        filePath: String,
+        token: String?
+    ): ShowcaseDetectionResult {
+        return detectFromShowcase(filePath, token)
     }
 
     override suspend fun uploadUserAvatar(filePath: String, token: String?): ImageUploadResult {
@@ -185,7 +235,7 @@ class AndroidImageUploadService(
  */
 actual object ImageUploadServiceFactory {
     private var appContext: Context? = null
-    
+
     /**
      * Inicializa el factory con el contexto de la aplicación
      * Debe llamarse una vez al inicio de la app (en Application o MainActivity)
@@ -193,7 +243,7 @@ actual object ImageUploadServiceFactory {
     fun initialize(context: Context) {
         appContext = context.applicationContext
     }
-    
+
     actual fun create(): ImageUploadService {
         val context = appContext
             ?: throw IllegalStateException("ImageUploadServiceFactory no inicializado. Llama a initialize(context) primero.")

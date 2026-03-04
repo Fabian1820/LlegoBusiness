@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,12 +51,22 @@ import com.llego.shared.ui.theme.LlegoCustomShapes
 fun ProductDetailScreen(
     product: Product,
     categoryNameById: Map<String, String> = emptyMap(),
+    variantListNameById: Map<String, String> = emptyMap(),
     onNavigateBack: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
     val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
+    val associatedVariantIds = product.variantListIds.distinct()
+    val associatedVariantNames = associatedVariantIds.mapNotNull { variantListNameById[it] }
+    val variantAssociationSummary = when {
+        associatedVariantIds.isEmpty() -> "No asociadas"
+        associatedVariantNames.isNotEmpty() -> {
+            "Sí (${associatedVariantIds.size}): ${associatedVariantNames.joinToString(", ")}"
+        }
+        else -> "Sí (${associatedVariantIds.size})"
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -182,9 +193,7 @@ fun ProductDetailScreen(
                     }
                     DetailRow(
                         label = "Categoria",
-                        value = categoryNameById[product.categoryId]
-                            ?: product.categoryId
-                            ?: "Sin categoria",
+                        value = product.categoryId?.let { categoryNameById[it] } ?: "Sin categoria",
                         icon = Icons.Default.Category
                     )
                     DetailRow(
@@ -200,6 +209,11 @@ fun ProductDetailScreen(
                         label = "Disponibilidad",
                         value = if (product.availability) "Disponible" else "No disponible",
                         icon = Icons.Default.ToggleOn
+                    )
+                    DetailRow(
+                        label = "Listas de variantes",
+                        value = variantAssociationSummary,
+                        icon = Icons.Default.Tune
                     )
                 }
             }

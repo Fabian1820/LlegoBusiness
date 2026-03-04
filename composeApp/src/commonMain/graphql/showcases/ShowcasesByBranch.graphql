@@ -1,0 +1,20 @@
+query ShowcasesByBranch($branchId: String!, $activeOnly: Boolean! = false, $jwt: String) {
+  showcasesByBranch(branchId: $branchId, activeOnly: $activeOnly, jwt: $jwt) {
+    id
+    branchId
+    title
+    image
+    description
+    isActive
+    imageUrl
+    createdAt
+    updatedAt
+    items {
+      id
+      name
+      description
+      price
+      availability
+    }
+  }
+}

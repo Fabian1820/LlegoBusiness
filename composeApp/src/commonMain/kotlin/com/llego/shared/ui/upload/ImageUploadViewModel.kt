@@ -3,6 +3,7 @@ package com.llego.shared.ui.upload
 import androidx.lifecycle.ViewModel
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.ImageUploadResult
+import com.llego.shared.data.model.ShowcaseDetectionResult
 import com.llego.shared.data.upload.ImageUploadService
 import com.llego.shared.data.upload.ImageUploadServiceFactory
 
@@ -14,6 +15,16 @@ class ImageUploadViewModel(
     suspend fun uploadProductImage(filePath: String): ImageUploadResult {
         val token = tokenManager.getToken()
         return service.uploadProductImage(filePath, token)
+    }
+
+    suspend fun uploadShowcaseImage(filePath: String): ImageUploadResult {
+        val token = tokenManager.getToken()
+        return service.uploadShowcaseImage(filePath, token)
+    }
+
+    suspend fun detectProductsFromShowcase(filePath: String): ShowcaseDetectionResult {
+        val token = tokenManager.getToken()
+        return service.detectProductsFromShowcase(filePath, token)
     }
 
     suspend fun uploadUserAvatar(filePath: String): ImageUploadResult {

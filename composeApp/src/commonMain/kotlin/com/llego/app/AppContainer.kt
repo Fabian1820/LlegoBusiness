@@ -8,6 +8,7 @@ import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
+import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.network.GraphQLClient
@@ -66,6 +67,8 @@ class AppContainer(
 
     fun createComboViewModel(): ComboViewModel = ComboViewModel(tokenManager)
 
+    fun createShowcaseViewModel(): ShowcaseViewModel = ShowcaseViewModel(tokenManager)
+
     fun createSettingsViewModel(): SettingsViewModel = SettingsViewModel(tokenManager)
 
     fun createRegisterBusinessViewModel(): RegisterBusinessViewModel =
@@ -90,6 +93,7 @@ class AppContainer(
             orders = createOrdersViewModel(),
             products = createProductViewModel(),
             combos = createComboViewModel(),
+            showcases = createShowcaseViewModel(),
             settings = createSettingsViewModel(),
             registerBusiness = createRegisterBusinessViewModel(),
             invitations = createInvitationViewModel(),

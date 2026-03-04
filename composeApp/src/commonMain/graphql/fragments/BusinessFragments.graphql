@@ -33,11 +33,13 @@ fragment BusinessRoleFields on BusinessWithBranchesType {
 fragment BusinessUpdateFields on BusinessType {
   id
   name
+  ownerId
   description
   avatar
   tags
   isActive
   globalRating
+  createdAt
   avatarUrl
 }
 

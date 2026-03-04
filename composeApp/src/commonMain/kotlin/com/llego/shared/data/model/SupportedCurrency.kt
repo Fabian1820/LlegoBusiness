@@ -9,10 +9,9 @@ enum class SupportedCurrency(
     val symbol: String,
     val displayName: String
 ) {
-    USD("USD", "$", "Dólar estadounidense"),
+    USD("USD", "$", "Dolar estadounidense"),
     CUP("CUP", "$", "Peso cubano"),
-    EUR("EUR", "€", "Euro"),
-    MLC("MLC", "$", "Moneda libremente convertible");
+    EUR("EUR", "\u20AC", "Euro");
 
     companion object {
         /**

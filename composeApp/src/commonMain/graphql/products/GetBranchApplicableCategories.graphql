@@ -1,0 +1,13 @@
+query GetBranchApplicableCategories($branchId: String!, $jwt: String) {
+  branch(id: $branchId, jwt: $jwt) {
+    id
+    applicableCategories {
+      id
+      name
+      branchType
+      iconIos
+      iconWeb
+      iconAndroid
+    }
+  }
+}

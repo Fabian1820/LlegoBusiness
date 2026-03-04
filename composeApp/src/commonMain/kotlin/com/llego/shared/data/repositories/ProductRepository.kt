@@ -1,19 +1,29 @@
 package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.exception.ApolloException
+import com.llego.multiplatform.graphql.CreateVariantListMutation
+import com.llego.multiplatform.graphql.DeleteVariantListMutation
 import com.llego.multiplatform.graphql.GetProductsByIdsQuery
 import com.llego.multiplatform.graphql.GetProductsQuery
 import com.llego.multiplatform.graphql.GetProductCategoriesQuery
+import com.llego.multiplatform.graphql.GetBranchApplicableCategoriesQuery
+import com.llego.multiplatform.graphql.GetVariantListsQuery
 import com.llego.multiplatform.graphql.CreateProductMutation
+import com.llego.multiplatform.graphql.UpdateVariantListMutation
 import com.llego.multiplatform.graphql.UpdateProductMutation
 import com.llego.multiplatform.graphql.DeleteProductMutation
 import com.llego.multiplatform.graphql.type.CreateProductInput
+import com.llego.multiplatform.graphql.type.CreateVariantListInput
 import com.llego.multiplatform.graphql.type.UpdateProductInput
+import com.llego.multiplatform.graphql.type.UpdateVariantListInput
+import com.llego.multiplatform.graphql.type.VariantOptionInput
 import com.llego.shared.data.mappers.toDomain
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.data.model.VariantList
+import com.llego.shared.data.model.VariantOptionDraft
 import com.llego.shared.data.network.GraphQLClient
 import com.apollographql.apollo.api.Optional
 import com.llego.shared.data.auth.TokenManager
@@ -126,6 +136,159 @@ class ProductRepository(
         }
     }
 
+    suspend fun getApplicableCategoriesByBranch(branchId: String): Result<List<ProductCategory>> {
+        return try {
+            val token = tokenManager.getToken()
+            val response = client.query(
+                GetBranchApplicableCategoriesQuery(
+                    branchId = branchId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errorMessage = response.errors?.joinToString(", ") { it.message }
+                Result.failure(Exception(errorMessage ?: "Error al obtener categorias de la sucursal"))
+            } else {
+                val categories = response.data?.branch?.applicableCategories
+                    ?.map { it.toDomain() }
+                    ?: emptyList()
+                Result.success(categories.sortedBy { it.name.lowercase() })
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getVariantLists(branchId: String): Result<List<VariantList>> {
+        return try {
+            val token = tokenManager.getToken()
+            val response = client.query(
+                GetVariantListsQuery(
+                    branchId = branchId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val errorMessage = response.errors?.joinToString(", ") { it.message }
+                Result.failure(Exception(errorMessage ?: "Error al obtener listas de variantes"))
+            } else {
+                val variantLists = response.data?.variantLists?.map { it.toDomain() } ?: emptyList()
+                Result.success(variantLists)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createVariantList(
+        branchId: String,
+        name: String,
+        description: String?,
+        options: List<VariantOptionDraft>
+    ): Result<VariantList> {
+        return try {
+            val token = tokenManager.getToken()
+            val response = client.mutation(
+                CreateVariantListMutation(
+                    input = CreateVariantListInput(
+                        branchId = branchId,
+                        name = name,
+                        description = Optional.presentIfNotNull(description),
+                        options = options.map { option ->
+                            VariantOptionInput(
+                                id = Optional.presentIfNotNull(option.id),
+                                name = option.name,
+                                priceAdjustment = Optional.present(option.priceAdjustment)
+                            )
+                        }
+                    ),
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val message = response.errors
+                    ?.joinToString(" | ") { it.message }
+                    ?: "Error al crear lista de variantes"
+                Result.failure(Exception(message))
+            } else {
+                val created = response.data?.createVariantList
+                    ?: return Result.failure(Exception("Respuesta vacia al crear lista de variantes"))
+                Result.success(created.toDomain())
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateVariantList(
+        variantListId: String,
+        name: String? = null,
+        description: String? = null,
+        options: List<VariantOptionDraft>? = null
+    ): Result<VariantList> {
+        return try {
+            val token = tokenManager.getToken()
+            val response = client.mutation(
+                UpdateVariantListMutation(
+                    input = UpdateVariantListInput(
+                        variantListId = variantListId,
+                        name = Optional.presentIfNotNull(name),
+                        description = Optional.presentIfNotNull(description),
+                        options = Optional.presentIfNotNull(
+                            options?.map { option ->
+                                VariantOptionInput(
+                                    id = Optional.presentIfNotNull(option.id),
+                                    name = option.name,
+                                    priceAdjustment = Optional.present(option.priceAdjustment)
+                                )
+                            }
+                        )
+                    ),
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val message = response.errors
+                    ?.joinToString(" | ") { it.message }
+                    ?: "Error al actualizar lista de variantes"
+                Result.failure(Exception(message))
+            } else {
+                val updated = response.data?.updateVariantList
+                    ?: return Result.failure(Exception("Respuesta vacia al actualizar lista de variantes"))
+                Result.success(updated.toDomain())
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteVariantList(variantListId: String): Result<Boolean> {
+        return try {
+            val token = tokenManager.getToken()
+            val response = client.mutation(
+                DeleteVariantListMutation(
+                    variantListId = variantListId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                val message = response.errors
+                    ?.joinToString(" | ") { it.message }
+                    ?: "Error al eliminar lista de variantes"
+                Result.failure(Exception(message))
+            } else {
+                Result.success(response.data?.deleteVariantList == true)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // ============= CRUD OPERATIONS =============
 
     /**
@@ -153,7 +316,8 @@ class ProductRepository(
         branchId: String? = null,
         businessId: String? = null,
         weight: String? = null,
-        categoryId: String? = null
+        categoryId: String? = null,
+        variantListIds: List<String>? = null
     ): ProductsResult {
         return try {
             val token = tokenManager.getToken()
@@ -169,7 +333,8 @@ class ProductRepository(
                         businessId = Optional.presentIfNotNull(businessId),
                         currency = Optional.present(currency),
                         weight = Optional.presentIfNotNull(weight),
-                        categoryId = Optional.presentIfNotNull(categoryId)
+                        categoryId = Optional.presentIfNotNull(categoryId),
+                        variantListIds = Optional.presentIfNotNull(variantListIds)
                     ),
                     jwt = Optional.presentIfNotNull(token)
                 )
@@ -213,7 +378,8 @@ class ProductRepository(
         weight: String? = null,
         availability: Boolean? = null,
         categoryId: String? = null,
-        image: String? = null
+        image: String? = null,
+        variantListIds: List<String>? = null
     ): ProductsResult {
         return try {
             val token = tokenManager.getToken()
@@ -229,7 +395,8 @@ class ProductRepository(
                         weight = Optional.presentIfNotNull(weight),
                         availability = Optional.presentIfNotNull(availability),
                         categoryId = Optional.presentIfNotNull(categoryId),
-                        image = Optional.presentIfNotNull(image)
+                        image = Optional.presentIfNotNull(image),
+                        variantListIds = Optional.presentIfNotNull(variantListIds)
                     ),
                     jwt = Optional.presentIfNotNull(token)
                 )

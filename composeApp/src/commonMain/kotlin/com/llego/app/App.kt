@@ -24,6 +24,7 @@ import com.llego.shared.ui.theme.LlegoBusinessTheme
 import com.llego.shared.data.auth.TokenManager
 import com.llego.business.home.ui.screens.BusinessHomeScreen
 import com.llego.business.products.ui.screens.AddProductScreen
+import com.llego.business.products.ui.screens.AddShowcaseScreen
 import com.llego.business.products.ui.screens.AddComboScreen
 import com.llego.business.products.ui.screens.ProductDetailScreen
 import com.llego.business.products.ui.screens.ComboDetailScreen
@@ -50,6 +51,7 @@ import com.llego.shared.data.model.ProductsResult
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
+import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
@@ -89,6 +91,7 @@ data class AppViewModels(
     val orders: OrdersViewModel,
     val products: ProductViewModel,
     val combos: com.llego.business.products.ui.viewmodel.ComboViewModel,
+    val showcases: ShowcaseViewModel,
     val settings: SettingsViewModel,
     val registerBusiness: RegisterBusinessViewModel,
     val invitations: InvitationViewModel,
@@ -126,6 +129,7 @@ fun App(viewModels: AppViewModels) {
         val ordersViewModel = viewModels.orders
         val productViewModel = viewModels.products
         val comboViewModel = viewModels.combos
+        val showcaseViewModel = viewModels.showcases
         val settingsViewModel = viewModels.settings
 
         // Observar currentBusiness, currentBranch y branches
@@ -296,6 +300,7 @@ fun App(viewModels: AppViewModels) {
                         ordersViewModel = ordersViewModel,
                         productViewModel = productViewModel,
                         comboViewModel = comboViewModel,
+                        showcaseViewModel = showcaseViewModel,
                         settingsViewModel = settingsViewModel,
                         branchesManagementViewModel = viewModels.branchesManagement,
                         branchSelectorViewModel = viewModels.branchSelector,
@@ -319,6 +324,7 @@ fun App(viewModels: AppViewModels) {
                         navigator = navigator,
                         authViewModel = authViewModel,
                         branches = branches,
+                        productViewModel = viewModels.products,
                         branchSelectorViewModel = viewModels.branchSelector,
                         invitationViewModel = viewModels.invitations,
                         onOpenMapSelection = openMapSelection,
@@ -338,6 +344,7 @@ fun App(viewModels: AppViewModels) {
                         navigator = navigator,
                         authViewModel = authViewModel,
                         branches = branches,
+                        productViewModel = viewModels.products,
                         branchSelectorViewModel = viewModels.branchSelector,
                         invitationViewModel = viewModels.invitations,
                         onOpenMapSelection = openMapSelection,
@@ -418,6 +425,7 @@ private fun BranchSelectionFlow(
     navigator: AppNavigatorState,
     authViewModel: AuthViewModel,
     branches: List<com.llego.shared.data.model.Branch>,
+    productViewModel: ProductViewModel,
     branchSelectorViewModel: BranchSelectorViewModel,
     invitationViewModel: InvitationViewModel,
     onOpenMapSelection: (String, Double, Double, (Double, Double) -> Unit) -> Unit,
@@ -467,6 +475,7 @@ private fun BranchSelectionFlow(
                 },
                 onError = { _ -> },
                 authViewModel = authViewModel,
+                productViewModel = productViewModel,
                 onOpenMapSelection = onOpenMapSelection
             )
         }
@@ -502,6 +511,7 @@ private fun MainBusinessFlow(
     ordersViewModel: OrdersViewModel,
     productViewModel: ProductViewModel,
     comboViewModel: ComboViewModel,
+    showcaseViewModel: ShowcaseViewModel,
     settingsViewModel: SettingsViewModel,
     branchesManagementViewModel: BranchesManagementViewModel,
     branchSelectorViewModel: BranchSelectorViewModel,
@@ -518,12 +528,16 @@ private fun MainBusinessFlow(
     val scope = rememberCoroutineScope()
     val productsState by productViewModel.productsState.collectAsState()
     val productCategoriesState by productViewModel.productCategoriesState.collectAsState()
+    val variantListsState by productViewModel.variantListsState.collectAsState()
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val branches by authViewModel.branches.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val deliveryEntryPointState by deliveryLinkViewModel.uiState.collectAsState()
     val categoryNameById = remember(productCategoriesState.categories) {
         productCategoriesState.categories.associate { it.id to it.name }
+    }
+    val variantListNameById = remember(variantListsState.variantLists) {
+        variantListsState.variantLists.associate { it.id to it.name }
     }
 
     LaunchedEffect(currentBranch?.id, currentBranch?.useAppMessaging) {
@@ -541,10 +555,17 @@ private fun MainBusinessFlow(
         }
     }
 
-    LaunchedEffect(currentBranch?.tipos) {
+    LaunchedEffect(currentBranch?.id, currentBranch?.tipos) {
         productViewModel.loadProductCategories(
+            branchId = currentBranch?.id,
             branchTipos = currentBranch?.tipos?.toSet() ?: emptySet()
         )
+    }
+
+    LaunchedEffect(currentBranch?.id) {
+        currentBranch?.id?.let { branchId ->
+            productViewModel.loadVariantLists(branchId = branchId)
+        }
     }
 
     Box(modifier = Modifier) {
@@ -592,6 +613,7 @@ private fun MainBusinessFlow(
                 ProductDetailScreen(
                     product = navigator.productToView!!,
                     categoryNameById = categoryNameById,
+                    variantListNameById = variantListNameById,
                     onNavigateBack = {
                         navigator.showProductDetail = false
                         navigator.productToView = null
@@ -638,6 +660,17 @@ private fun MainBusinessFlow(
                 AddProductScreen(
                     branchId = authViewModel.getCurrentBranchId(),
                     categories = productCategoriesState.categories,
+                    variantLists = variantListsState.variantLists,
+                    variantListsLoading = variantListsState.isLoading,
+                    variantListsError = variantListsState.error,
+                    onCreateVariantList = { branchId, name, description, options ->
+                        productViewModel.createVariantList(
+                            branchId = branchId,
+                            name = name,
+                            description = description,
+                            options = options
+                        )
+                    },
                     onNavigateBack = {
                         navigator.showAddProduct = false
                         navigator.productToEdit = null
@@ -665,7 +698,8 @@ private fun MainBusinessFlow(
                                     branchId = currentBranchId,
                                     currency = form.currency,
                                     weight = form.weight,
-                                    categoryId = normalizeCategoryId(form.categoryId)
+                                    categoryId = normalizeCategoryId(form.categoryId),
+                                    variantListIds = form.variantListIds.takeIf { it.isNotEmpty() }
                                 )
                             } else {
                                 productViewModel.updateProductWithImagePath(
@@ -677,7 +711,8 @@ private fun MainBusinessFlow(
                                     weight = form.weight,
                                     availability = form.availability,
                                     categoryId = normalizeCategoryId(form.categoryId),
-                                    imagePath = form.imagePath
+                                    imagePath = form.imagePath,
+                                    variantListIds = form.variantListIds
                                 )
                             }
 
@@ -698,6 +733,19 @@ private fun MainBusinessFlow(
                         }
                     },
                     existingProduct = navigator.productToEdit
+                )
+            }
+
+            navigator.showAddShowcase -> {
+                AddShowcaseScreen(
+                    viewModel = showcaseViewModel,
+                    branchId = authViewModel.getCurrentBranchId(),
+                    onNavigateBack = {
+                        navigator.showAddShowcase = false
+                        authViewModel.getCurrentBranchId()?.let { branchId ->
+                            showcaseViewModel.loadShowcases(branchId, activeOnly = false)
+                        }
+                    }
                 )
             }
 
@@ -739,6 +787,7 @@ private fun MainBusinessFlow(
                     },
                     onError = { _ -> },
                     authViewModel = authViewModel,
+                    productViewModel = productViewModel,
                     onOpenMapSelection = onOpenMapSelection
                 )
             }
@@ -835,6 +884,7 @@ private fun MainBusinessFlow(
             navigator.showProfile -> {
                 BusinessProfileScreen(
                     authViewModel = authViewModel,
+                    productViewModel = productViewModel,
                     onNavigateBack = { navigator.showProfile = false }
                 )
             }
@@ -861,6 +911,9 @@ private fun MainBusinessFlow(
                         navigator.productToEdit = product
                         navigator.showAddProduct = true
                     },
+                    onNavigateToAddShowcase = {
+                        navigator.showAddShowcase = true
+                    },
                     onNavigateToAddCombo = { combo ->
                         navigator.comboToEdit = combo
                         navigator.showAddCombo = true
@@ -880,6 +933,7 @@ private fun MainBusinessFlow(
                     ordersViewModel = ordersViewModel,
                     productViewModel = productViewModel,
                     comboViewModel = comboViewModel,
+                    showcaseViewModel = showcaseViewModel,
                     settingsViewModel = settingsViewModel
                 )
             }

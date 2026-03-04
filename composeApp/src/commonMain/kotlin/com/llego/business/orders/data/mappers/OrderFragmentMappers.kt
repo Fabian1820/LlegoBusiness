@@ -212,20 +212,30 @@ internal fun OrderCommentsUpdateFields.toPartialDomain(): Order = Order(
 )
 
 private fun OrderItemFields.toDomain(): OrderItem = OrderItem(
-    productId = productId,
+    itemId = itemId,
+    itemType = itemType,
+    productId = productId.takeIf { it.isNotBlank() },
     name = name,
     price = price,
+    basePrice = basePrice,
+    finalPrice = finalPrice,
     quantity = quantity,
     imageUrl = imageUrl,
+    requestDescription = requestDescription,
     wasModifiedByStore = wasModifiedByStore
 )
 
 private fun OrderItemPendingFields.toDomain(): OrderItem = OrderItem(
-    productId = productId,
+    itemId = itemId,
+    itemType = itemType,
+    productId = productId.takeIf { it.isNotBlank() },
     name = name,
     price = price,
+    basePrice = basePrice,
+    finalPrice = finalPrice,
     quantity = quantity,
-    imageUrl = imageUrl
+    imageUrl = imageUrl,
+    requestDescription = requestDescription
 )
 
 private fun OrderDiscountFields.toDomain(): OrderDiscount = OrderDiscount(

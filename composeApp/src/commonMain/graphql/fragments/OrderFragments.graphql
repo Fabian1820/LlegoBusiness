@@ -1,19 +1,29 @@
 fragment OrderItemFields on OrderItemType {
+  itemId
+  itemType
   productId
   name
   price
+  basePrice
+  finalPrice
   quantity
   imageUrl
+  requestDescription
   wasModifiedByStore
   lineTotal
 }
 
 fragment OrderItemPendingFields on OrderItemType {
+  itemId
+  itemType
   productId
   name
   price
+  basePrice
+  finalPrice
   quantity
   imageUrl
+  requestDescription
   lineTotal
 }
 

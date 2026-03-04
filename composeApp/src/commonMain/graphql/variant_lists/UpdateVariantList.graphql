@@ -1,0 +1,15 @@
+mutation UpdateVariantList($input: UpdateVariantListInput!, $jwt: String) {
+  updateVariantList(input: $input, jwt: $jwt) {
+    id
+    branchId
+    name
+    description
+    options {
+      id
+      name
+      priceAdjustment
+    }
+    createdAt
+    updatedAt
+  }
+}
