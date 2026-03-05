@@ -4,25 +4,10 @@
     android:viewportWidth="512"
     android:viewportHeight="512">
 
-    <!-- Fondo circular con gradiente Instagram -->
+    <!-- Fondo circular con color Instagram -->
     <path
-        android:pathData="M255.976,503.396C397.19,503.396 512,388.586 512,247.372C512,106.158 397.19,-8.652 255.976,-8.652C114.762,-8.652 -0.048,106.158 -0.048,247.372C-0.048,388.586 114.762,503.396 255.976,503.396Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="40.7386"
-                android:startY="470.924"
-                android:endX="586.2218"
-                android:endY="-74.5592"
-                android:type="linear">
-                <item android:offset="0.0011" android:color="#FFFBE18A"/>
-                <item android:offset="0.2094" android:color="#FFFCBB45"/>
-                <item android:offset="0.3765" android:color="#FFF75274"/>
-                <item android:offset="0.5238" android:color="#FFD53692"/>
-                <item android:offset="0.7394" android:color="#FF8F39CE"/>
-                <item android:offset="1" android:color="#FF5B4FE9"/>
-            </gradient>
-        </aapt:attr>
-    </path>
+        android:fillColor="#FFC13584"
+        android:pathData="M255.976,503.396C397.19,503.396 512,388.586 512,247.372C512,106.158 397.19,-8.652 255.976,-8.652C114.762,-8.652 -0.048,106.158 -0.048,247.372C-0.048,388.586 114.762,503.396 255.976,503.396Z" />
 
     <!-- Punto cámara esquina superior derecha -->
     <path

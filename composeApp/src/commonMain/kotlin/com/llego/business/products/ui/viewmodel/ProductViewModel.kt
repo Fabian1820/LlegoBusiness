@@ -114,6 +114,7 @@ class ProductViewModel(
 
     fun invalidateProductsCache() {
         lastLoadedProductsQuery = null
+        _productsState.value = ProductsResult.Loading
     }
 
     /**

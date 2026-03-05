@@ -93,12 +93,16 @@ class OrdersViewModel(
         if (branchId == null) {
             _currentBranchId.value = null
             _orders.value = emptyList()
+            _uiState.value = OrdersUiState.Loading
             subscriptionManager.cancelAllSubscriptions()
             lastSubscribedBranchIds = emptyList()
             lastSubscribedActiveBranchId = null
             return
         }
 
+        // Limpiar el estado inmediatamente para evitar mostrar pedidos de la sucursal anterior
+        _orders.value = emptyList()
+        _uiState.value = OrdersUiState.Loading
         _currentBranchId.value = branchId
         refreshSubscriptionsIfPossible()
 

@@ -3,9 +3,11 @@ package com.llego.business.products.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,212 +30,322 @@ fun ComboDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val imageUrl = combo.imageUrl ?: combo.image
+    // Solo usar imageUrl (imagen propia del combo), no usar combo.image como fallback
+    val imageUrl = combo.imageUrl
 
     Scaffold(
+        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del Combo") },
+                title = {
+                    Text(
+                        text = "Detalle del combo",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 actions = {
-                    TextButton(onClick = onEdit) {
-                        Text("Editar")
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar")
                     }
-                }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(scrollState),
+                .verticalScroll(scrollState)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Imagen
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.productCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                if (!imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = combo.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (combo.representativeProducts.isNotEmpty()) {
-                    AsyncImage(
-                        model = combo.representativeProducts.first().imageUrl,
-                        contentDescription = combo.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Nombre y badge
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = combo.name,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.small
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "COMBO",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            text = "Imagen",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            modifier = Modifier.weight(1f)
                         )
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "COMBO",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
                     }
-                }
 
-                // Descripción
-                if (combo.description.isNotBlank()) {
-                    Text(
-                        text = combo.description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Divider()
-
-                // Precios
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (combo.basePrice != combo.finalPrice) {
+                    if (!imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = combo.name,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(LlegoCustomShapes.infoCard),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (combo.representativeProducts.isNotEmpty()) {
+                        // Mostrar composición de productos como iconitos redondos
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .clip(LlegoCustomShapes.infoCard)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy((-16).dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Precio base:", style = MaterialTheme.typography.bodyMedium)
+                                combo.representativeProducts.take(4).forEachIndexed { index, product ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .padding(4.dp)
+                                    ) {
+                                        if (product.imageUrl.isNotBlank()) {
+                                            AsyncImage(
+                                                model = product.imageUrl,
+                                                contentDescription = product.name,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(androidx.compose.foundation.shape.CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = product.name.take(1).uppercase(),
+                                                    style = MaterialTheme.typography.titleLarge.copy(
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (combo.representativeProducts.size > 4) {
                                 Text(
-                                    text = formatPrice(combo.basePrice),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                    text = "+${combo.representativeProducts.size - 4}",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
                                     ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                            shape = MaterialTheme.shapes.small
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = LlegoCustomShapes.infoCard
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Image,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text(
+                                    "Sin imagen",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Precio final:",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                            Text(
-                                text = formatPrice(combo.finalPrice),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        }
-
-                        if (combo.savings > 0) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Ahorro:", style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    text = formatPrice(combo.savings),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                        }
                     }
                 }
+            }
 
-                // Descuento
-                Card(
-                    modifier = Modifier.fillMaxWidth()
+            // Información básica
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.productCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            "Descuento aplicado",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.SemiBold
+                    Text(
+                        text = "Informacion basica",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+
+                    DetailRow(label = "Nombre", value = combo.name)
+                    
+                    if (combo.description.isNotBlank()) {
+                        DetailRow(label = "Descripcion", value = combo.description)
+                    }
+
+                    DetailRow(
+                        label = "Disponibilidad",
+                        value = if (combo.availability) "Disponible" else "No disponible"
+                    )
+                }
+            }
+
+            // Precios y descuento
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.productCard,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Precios",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+
+                    if (combo.basePrice != combo.finalPrice) {
+                        DetailRow(
+                            label = "Precio base",
+                            value = formatPrice(combo.basePrice),
+                            valueStyle = MaterialTheme.typography.bodyMedium.copy(
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
-                        Text(
-                            text = when (combo.discountType) {
-                                com.llego.shared.data.model.DiscountType.PERCENTAGE -> 
-                                    "${combo.discountValue}% de descuento"
-                                com.llego.shared.data.model.DiscountType.FIXED -> 
-                                    "Descuento fijo de ${formatPrice(combo.discountValue)}"
-                            },
-                            style = MaterialTheme.typography.bodyMedium
-                        )
                     }
-                }
 
-                // Slots
-                if (combo.slots.isNotEmpty()) {
-                    Text(
-                        "Opciones del combo",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                    DetailRow(
+                        label = "Precio final",
+                        value = formatPrice(combo.finalPrice),
+                        valueColor = MaterialTheme.colorScheme.primary,
+                        valueStyle = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
                     )
 
-                    combo.slots.forEach { slot ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                    if (combo.savings > 0) {
+                        DetailRow(
+                            label = "Ahorro",
+                            value = formatPrice(combo.savings),
+                            valueColor = MaterialTheme.colorScheme.tertiary,
+                            valueStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    DetailRow(
+                        label = "Tipo de descuento",
+                        value = when (combo.discountType) {
+                            com.llego.shared.data.model.DiscountType.PERCENTAGE -> 
+                                "${combo.discountValue.toInt()}% de descuento"
+                            com.llego.shared.data.model.DiscountType.FIXED -> 
+                                "Descuento fijo de ${formatPrice(combo.discountValue)}"
+                        }
+                    )
+                }
+            }
+
+            // Slots
+            if (combo.slots.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = LlegoCustomShapes.productCard,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Opciones del combo",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+
+                        combo.slots.forEach { slot ->
                             Column(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                HorizontalDivider()
+                                
                                 Text(
                                     slot.name,
                                     style = MaterialTheme.typography.titleSmall.copy(
@@ -248,18 +360,30 @@ fun ComboDetailScreen(
                                 
                                 slot.options.forEach { option ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                option.product?.name ?: "Producto",
-                                                style = MaterialTheme.typography.bodyMedium
-                                            )
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    "•",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    option.product?.name ?: "Producto",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                            }
                                             if (option.isDefault) {
                                                 Text(
-                                                    "Por defecto",
+                                                    "  Por defecto",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
@@ -268,7 +392,9 @@ fun ComboDetailScreen(
                                         if (option.priceAdjustment != 0.0) {
                                             Text(
                                                 "+${formatPrice(option.priceAdjustment)}",
-                                                style = MaterialTheme.typography.bodySmall,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontWeight = FontWeight.Medium
+                                                ),
                                                 color = MaterialTheme.colorScheme.tertiary
                                             )
                                         }
@@ -278,41 +404,31 @@ fun ComboDetailScreen(
                         }
                     }
                 }
-
-                // Estado
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (combo.availability) {
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.errorContainer
-                        }
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Estado:",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            if (combo.availability) "Disponible" else "No disponible",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    valueStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = valueStyle.copy(color = valueColor),
+            modifier = Modifier.padding(start = 4.dp)
+        )
     }
 }
 

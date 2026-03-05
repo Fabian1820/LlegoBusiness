@@ -68,6 +68,7 @@ class ShowcaseViewModel(
 
     fun invalidateShowcasesCache() {
         lastLoadedShowcasesQuery = null
+        _showcasesState.value = ShowcasesResult.Loading
     }
 
     suspend fun createShowcase(

@@ -109,6 +109,8 @@ class WalletViewModel(initialBranchId: String? = null) : ViewModel() {
 
     fun setBranchId(branchId: String?) {
         if (_activeBranchId.value != branchId) {
+            // Limpiar el estado inmediatamente para evitar mostrar datos de la sucursal anterior
+            _uiState.value = WalletUiState.Loading
             _activeBranchId.value = branchId
             loadWalletData()
         }

@@ -77,6 +77,7 @@ class ComboViewModel(
 
     fun invalidateCombosCache() {
         lastLoadedCombosQuery = null
+        _combosState.value = CombosResult.Loading
     }
 
     /**

@@ -643,11 +643,11 @@ private fun NewSlotInlineForm(
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+            width = 2.dp,
+            color = MaterialTheme.colorScheme.primary
         ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         )
     ) {
         Column(
@@ -920,9 +920,17 @@ private fun SlotInlineCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        border = if (isExpanded) {
+            BorderStroke(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            null
+        },
         colors = CardDefaults.cardColors(
             containerColor = if (isExpanded) {
-                MaterialTheme.colorScheme.secondaryContainer
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             } else {
                 MaterialTheme.colorScheme.surfaceVariant
             }

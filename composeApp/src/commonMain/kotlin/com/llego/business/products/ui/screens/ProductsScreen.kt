@@ -2,7 +2,9 @@ package com.llego.business.products.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -871,15 +874,20 @@ private fun ComboRow(
     onViewDetail: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = combo.imageUrl ?: combo.image
+    // Solo usar imageUrl (imagen propia del combo), no usar combo.image como fallback
+    val imageUrl = combo.imageUrl
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -904,14 +912,66 @@ private fun ComboRow(
                         contentScale = ContentScale.Crop
                     )
                 } else if (combo.representativeProducts.isNotEmpty()) {
-                    // Mostrar composiciÃ³n de productos representativos
-                    val firstProduct = combo.representativeProducts.first()
-                    AsyncImage(
-                        model = firstProduct.imageUrl,
-                        contentDescription = combo.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    // Mostrar composición de productos como iconitos redondos superpuestos
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy((-12).dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        combo.representativeProducts.take(3).forEach { product ->
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(2.dp)
+                            ) {
+                                if (product.imageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = product.imageUrl,
+                                        contentDescription = product.name,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = product.name.take(1).uppercase(),
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (combo.representativeProducts.size > 3) {
+                        Text(
+                            text = "+${combo.representativeProducts.size - 3}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                    shape = MaterialTheme.shapes.small
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
                 } else {
                     Icon(
                         Icons.Default.Image,
@@ -936,17 +996,19 @@ private fun ComboRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    Text(
-                        text = "COMBO",
-                        style = MaterialTheme.typography.labelSmall,
+                    Surface(
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = MaterialTheme.shapes.small
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "COMBO",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
                 if (combo.description.isNotBlank()) {
                     Text(
@@ -957,12 +1019,34 @@ private fun ComboRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (combo.savings > 0) {
-                    Text(
-                        text = "Ahorro: ${formatPrice(combo.savings)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (combo.discountType == com.llego.shared.data.model.DiscountType.PERCENTAGE) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "${combo.discountValue.toInt()}% OFF",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    if (combo.savings > 0) {
+                        Text(
+                            text = "Ahorra ${formatPrice(combo.savings)}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
