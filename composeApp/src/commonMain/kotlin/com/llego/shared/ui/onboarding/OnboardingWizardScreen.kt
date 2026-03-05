@@ -862,12 +862,12 @@ private fun StepSingleBranchBasics(
                 modifier = Modifier.weight(1f)
             )
             BranchTipoChip(
-                tipo = BranchTipo.CAFE,
-                selected = BranchTipo.CAFE in selectedTipos,
+                tipo = BranchTipo.PERFUMERIA,
+                selected = BranchTipo.PERFUMERIA in selectedTipos,
                 onClick = {
                     onTiposChange(
-                        if (BranchTipo.CAFE in selectedTipos) selectedTipos - BranchTipo.CAFE
-                        else selectedTipos + BranchTipo.CAFE
+                        if (BranchTipo.PERFUMERIA in selectedTipos) selectedTipos - BranchTipo.PERFUMERIA
+                        else selectedTipos + BranchTipo.PERFUMERIA
                     )
                 },
                 modifier = Modifier.weight(1f)
@@ -1074,12 +1074,12 @@ private fun StepBranchBasics(
                 modifier = Modifier.weight(1f)
             )
             BranchTipoChip(
-                tipo = BranchTipo.CAFE,
-                selected = BranchTipo.CAFE in selectedTipos,
+                tipo = BranchTipo.PERFUMERIA,
+                selected = BranchTipo.PERFUMERIA in selectedTipos,
                 onClick = {
                     onTiposChange(
-                        if (BranchTipo.CAFE in selectedTipos) selectedTipos - BranchTipo.CAFE
-                        else selectedTipos + BranchTipo.CAFE
+                        if (BranchTipo.PERFUMERIA in selectedTipos) selectedTipos - BranchTipo.PERFUMERIA
+                        else selectedTipos + BranchTipo.PERFUMERIA
                     )
                 },
                 modifier = Modifier.weight(1f)
@@ -1778,7 +1778,7 @@ private fun StepReview(
                         BranchTipo.RESTAURANTE -> "Restaurante"
                         BranchTipo.TIENDA -> "Tienda"
                         BranchTipo.DULCERIA -> "Dulceria"
-                        BranchTipo.CAFE -> "Cafe"
+                        BranchTipo.PERFUMERIA -> "Perfumeria"
                     }
                 }
             )

@@ -25,12 +25,8 @@ fun BranchTipoSelector(
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
-    val options = listOf(
-        BranchTipo.RESTAURANTE,
-        BranchTipo.TIENDA,
-        BranchTipo.DULCERIA,
-        BranchTipo.CAFE
-    )
+    // Usar todos los valores del enum del backend sin hardcodear
+    val options = BranchTipo.entries
 
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -39,11 +35,11 @@ fun BranchTipoSelector(
     ) {
         options.forEach { tipo ->
             val selected = tipo in selectedTipos
-            val (label, color) = when (tipo) {
-                BranchTipo.RESTAURANTE -> "Restaurante" to secondaryColor
-                BranchTipo.TIENDA -> "Tienda" to primaryColor
-                BranchTipo.DULCERIA -> "Dulceria" to tertiaryColor
-                BranchTipo.CAFE -> "Cafe" to secondaryColor
+            val color = when (tipo) {
+                BranchTipo.RESTAURANTE -> secondaryColor
+                BranchTipo.TIENDA -> primaryColor
+                BranchTipo.DULCERIA -> tertiaryColor
+                BranchTipo.PERFUMERIA -> primaryColor
             }
 
             FilterChip(
@@ -56,7 +52,7 @@ fun BranchTipoSelector(
                     }
                     onSelectionChange(updated)
                 },
-                label = { Text(label) },
+                label = { Text(tipo.toDisplayName()) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = color.copy(alpha = 0.15f),
                     selectedLabelColor = color,

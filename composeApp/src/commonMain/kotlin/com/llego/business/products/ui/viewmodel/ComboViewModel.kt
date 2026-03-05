@@ -17,32 +17,73 @@ class ComboViewModel(
     tokenManager: TokenManager
 ) : ViewModel() {
 
+    private data class CombosQuery(
+        val branchId: String?,
+        val availableOnly: Boolean
+    )
+
     private val repository = ComboRepository(tokenManager)
 
     private val _combosState = MutableStateFlow<CombosResult>(CombosResult.Loading)
     val combosState: StateFlow<CombosResult> = _combosState.asStateFlow()
+    private var lastLoadedCombosQuery: CombosQuery? = null
 
     /**
      * Carga todos los combos o combos filtrados
      */
     fun loadCombos(
         branchId: String? = null,
-        availableOnly: Boolean = false
+        availableOnly: Boolean = false,
+        force: Boolean = false
     ) {
+        val query = CombosQuery(
+            branchId = branchId,
+            availableOnly = availableOnly
+        )
+
+        if (!force &&
+            query == lastLoadedCombosQuery &&
+            _combosState.value is CombosResult.Success
+        ) {
+            return
+        }
+
         viewModelScope.launch {
-            _combosState.value = CombosResult.Loading
-            _combosState.value = repository.getCombos(
+            if (_combosState.value !is CombosResult.Success) {
+                _combosState.value = CombosResult.Loading
+            }
+
+            val result = repository.getCombos(
                 branchId = branchId,
                 availableOnly = availableOnly
             )
+            _combosState.value = result
+            if (result is CombosResult.Success) {
+                lastLoadedCombosQuery = query
+            }
         }
+    }
+
+    fun ensureCombosLoaded(
+        branchId: String? = null,
+        availableOnly: Boolean = false
+    ) {
+        loadCombos(
+            branchId = branchId,
+            availableOnly = availableOnly,
+            force = false
+        )
+    }
+
+    fun invalidateCombosCache() {
+        lastLoadedCombosQuery = null
     }
 
     /**
      * Recarga los combos
      */
     fun refresh() {
-        loadCombos()
+        loadCombos(force = true)
     }
 
     /**
@@ -57,6 +98,7 @@ class ComboViewModel(
         discountValue: Double,
         slots: List<Map<String, Any>>
     ): CombosResult {
+        invalidateCombosCache()
         _combosState.value = CombosResult.Loading
         val result = repository.createCombo(
             branchId = branchId,
@@ -84,6 +126,7 @@ class ComboViewModel(
         discountValue: Double? = null,
         slots: List<Map<String, Any>>? = null
     ): CombosResult {
+        invalidateCombosCache()
         _combosState.value = CombosResult.Loading
         val result = repository.updateCombo(
             comboId = comboId,
@@ -103,6 +146,7 @@ class ComboViewModel(
      * Elimina un combo y devuelve el resultado de la operación
      */
     suspend fun deleteComboBlocking(comboId: String): CombosResult {
+        invalidateCombosCache()
         _combosState.value = CombosResult.Loading
         val result = repository.deleteCombo(comboId)
         _combosState.value = result
@@ -113,9 +157,37 @@ class ComboViewModel(
      * Cambia la disponibilidad de un combo
      */
     suspend fun toggleAvailability(comboId: String, availability: Boolean): CombosResult {
-        _combosState.value = CombosResult.Loading
-        val result = repository.toggleAvailability(comboId, availability)
-        _combosState.value = result
-        return result
+        val previousState = _combosState.value as? CombosResult.Success
+        val previousCombos = previousState?.combos
+
+        if (previousCombos == null) {
+            val result = repository.toggleAvailability(comboId, availability)
+            if (result is CombosResult.Success) {
+                invalidateCombosCache()
+            }
+            return result
+        }
+
+        val optimisticCombos = previousCombos.map { combo ->
+            if (combo.id == comboId) combo.copy(availability = availability) else combo
+        }
+        _combosState.value = CombosResult.Success(optimisticCombos)
+
+        return when (val result = repository.toggleAvailability(comboId, availability)) {
+            is CombosResult.Success -> {
+                _combosState.value = CombosResult.Success(optimisticCombos)
+                result
+            }
+
+            is CombosResult.Error -> {
+                _combosState.value = CombosResult.Success(previousCombos)
+                result
+            }
+
+            is CombosResult.Loading -> {
+                _combosState.value = CombosResult.Success(previousCombos)
+                CombosResult.Error("No se pudo actualizar disponibilidad")
+            }
+        }
     }
 }

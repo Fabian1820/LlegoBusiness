@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.model.VariantList
@@ -33,6 +34,13 @@ class ProductViewModel(
     tokenManager: TokenManager
 ) : ViewModel() {
 
+    private data class ProductsQuery(
+        val branchId: String?,
+        val categoryId: String?,
+        val availableOnly: Boolean,
+        val first: Int
+    )
+
     private val repository = ProductRepository(tokenManager)
 
     private val _productsState = MutableStateFlow<ProductsResult>(ProductsResult.Loading)
@@ -41,6 +49,7 @@ class ProductViewModel(
     val productCategoriesState: StateFlow<ProductCategoriesUiState> = _productCategoriesState.asStateFlow()
     private val _variantListsState = MutableStateFlow(VariantListsUiState())
     val variantListsState: StateFlow<VariantListsUiState> = _variantListsState.asStateFlow()
+    private var lastLoadedProductsQuery: ProductsQuery? = null
     private var lastLoadedBranchTipos: Set<BranchTipo> = emptySet()
     private var lastLoadedBranchIdForCategories: String? = null
     private var lastLoadedBranchIdForVariantLists: String? = null
@@ -53,17 +62,58 @@ class ProductViewModel(
         branchId: String? = null,
         categoryId: String? = null,
         availableOnly: Boolean = false,
-        first: Int = 100
+        first: Int = 100,
+        force: Boolean = false
     ) {
+        val query = ProductsQuery(
+            branchId = branchId,
+            categoryId = categoryId,
+            availableOnly = availableOnly,
+            first = first
+        )
+
+        if (!force &&
+            query == lastLoadedProductsQuery &&
+            _productsState.value is ProductsResult.Success
+        ) {
+            return
+        }
+
         viewModelScope.launch {
-            _productsState.value = ProductsResult.Loading
-            _productsState.value = repository.getProducts(
+            if (_productsState.value !is ProductsResult.Success) {
+                _productsState.value = ProductsResult.Loading
+            }
+
+            val result = repository.getProducts(
                 branchId = branchId,
                 categoryId = categoryId,
                 availableOnly = availableOnly,
                 first = first
             )
+            _productsState.value = result
+            if (result is ProductsResult.Success) {
+                lastLoadedProductsQuery = query
+            }
         }
+    }
+
+    fun ensureProductsLoaded(
+        branchId: String? = null,
+        categoryId: String? = null,
+        availableOnly: Boolean = false,
+        first: Int = 100
+    ) {
+        loadProducts(
+            branchId = branchId,
+            categoryId = categoryId,
+            availableOnly = availableOnly,
+            first = first,
+            force = false
+        )
+    }
+
+    fun invalidateProductsCache() {
+        lastLoadedProductsQuery = null
     }
 
     /**
@@ -73,6 +123,7 @@ class ProductViewModel(
         viewModelScope.launch {
             _productsState.value = ProductsResult.Loading
             _productsState.value = repository.getProductsByIds(ids)
+            lastLoadedProductsQuery = null
         }
     }
 
@@ -80,7 +131,7 @@ class ProductViewModel(
      * Recarga los productos.
      */
     fun refresh() {
-        loadProducts()
+        loadProducts(force = true)
     }
 
     fun loadProductCategories(
@@ -234,6 +285,7 @@ class ProductViewModel(
         categoryId: String? = null,
         variantListIds: List<String>? = null
     ): ProductsResult {
+        invalidateProductsCache()
         _productsState.value = ProductsResult.Loading
         val result = repository.createProduct(
             name = name,
@@ -266,6 +318,7 @@ class ProductViewModel(
         imagePath: String? = null,
         variantListIds: List<String>? = null
     ): ProductsResult {
+        invalidateProductsCache()
         _productsState.value = ProductsResult.Loading
         val result = repository.updateProduct(
             productId = productId,
@@ -287,9 +340,65 @@ class ProductViewModel(
      * Elimina un producto y devuelve el resultado de la operacion.
      */
     suspend fun deleteProductBlocking(productId: String): ProductsResult {
+        invalidateProductsCache()
         _productsState.value = ProductsResult.Loading
         val result = repository.deleteProduct(productId)
         _productsState.value = result
         return result
+    }
+
+    suspend fun toggleProductAvailability(productId: String, availability: Boolean): ProductsResult {
+        val previousState = _productsState.value as? ProductsResult.Success
+        val previousProducts = previousState?.products
+
+        if (previousProducts == null) {
+            val result = repository.updateProduct(
+                productId = productId,
+                availability = availability
+            )
+            if (result is ProductsResult.Success) {
+                invalidateProductsCache()
+            }
+            return result
+        }
+
+        val optimisticProducts = previousProducts.map { product ->
+            if (product.id == productId) {
+                product.copy(availability = availability)
+            } else {
+                product
+            }
+        }
+        _productsState.value = ProductsResult.Success(optimisticProducts)
+
+        return when (val result = repository.updateProduct(productId = productId, availability = availability)) {
+            is ProductsResult.Success -> {
+                val serverProduct = result.products.firstOrNull()
+                _productsState.value = ProductsResult.Success(
+                    if (serverProduct != null) {
+                        optimisticProducts.replaceById(serverProduct)
+                    } else {
+                        optimisticProducts
+                    }
+                )
+                result
+            }
+
+            is ProductsResult.Error -> {
+                _productsState.value = ProductsResult.Success(previousProducts)
+                result
+            }
+
+            is ProductsResult.Loading -> {
+                _productsState.value = ProductsResult.Success(previousProducts)
+                ProductsResult.Error("No se pudo actualizar disponibilidad")
+            }
+        }
+    }
+
+    private fun List<Product>.replaceById(updated: Product): List<Product> {
+        return map { existing ->
+            if (existing.id == updated.id) updated else existing
+        }
     }
 }

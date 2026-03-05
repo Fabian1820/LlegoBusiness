@@ -38,7 +38,7 @@ import com.llego.shared.ui.theme.LlegoShapes
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.social_facebook
 import llegobusiness.composeapp.generated.resources.social_instagram
-import llegobusiness.composeapp.generated.resources.social_tripadvisor
+import llegobusiness.composeapp.generated.resources.social_whatsapp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -51,7 +51,7 @@ fun SocialLinksSection(
 ) {
     var instagram by remember(socialMedia) { mutableStateOf(socialMedia?.get("instagram") ?: "") }
     var facebook by remember(socialMedia) { mutableStateOf(socialMedia?.get("facebook") ?: "") }
-    var tripadvisor by remember(socialMedia) { mutableStateOf(socialMedia?.get("tripadvisor") ?: "") }
+    var whatsapp by remember(socialMedia) { mutableStateOf(socialMedia?.get("whatsapp") ?: "") }
     var isEditing by remember { mutableStateOf(false) }
 
     ProfileSectionCard {
@@ -65,10 +65,10 @@ fun SocialLinksSection(
                     val updated = mutableMapOf<String, String>()
                     val instagramValue = instagram.trim()
                     val facebookValue = facebook.trim()
-                    val tripadvisorValue = tripadvisor.trim()
+                    val whatsappValue = whatsapp.trim()
                     if (instagramValue.isNotEmpty()) updated["instagram"] = instagramValue
                     if (facebookValue.isNotEmpty()) updated["facebook"] = facebookValue
-                    if (tripadvisorValue.isNotEmpty()) updated["tripadvisor"] = tripadvisorValue
+                    if (whatsappValue.isNotEmpty()) updated["whatsapp"] = whatsappValue
                     onSave(updated)
                 }
                 isEditing = !isEditing
@@ -91,11 +91,11 @@ fun SocialLinksSection(
                 onValueChange = { facebook = it }
             )
             SocialRow(
-                icon = Res.drawable.social_tripadvisor,
-                value = tripadvisor,
-                placeholder = "Perfil de TripAdvisor",
+                icon = Res.drawable.social_whatsapp,
+                value = whatsapp,
+                placeholder = "Número de WhatsApp",
                 isEditing = isEditing,
-                onValueChange = { tripadvisor = it }
+                onValueChange = { whatsapp = it }
             )
         }
     }

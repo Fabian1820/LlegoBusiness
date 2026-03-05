@@ -282,13 +282,13 @@ fun RegisterBusinessScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         BranchTipoChip(
-                                            tipo = BranchTipo.CAFE,
-                                            selected = branch.selectedTipos.contains(BranchTipo.CAFE),
+                                            tipo = BranchTipo.PERFUMERIA,
+                                            selected = branch.selectedTipos.contains(BranchTipo.PERFUMERIA),
                                             onClick = {
-                                                val updated = if (branch.selectedTipos.contains(BranchTipo.CAFE)) {
-                                                    branch.selectedTipos - BranchTipo.CAFE
+                                                val updated = if (branch.selectedTipos.contains(BranchTipo.PERFUMERIA)) {
+                                                    branch.selectedTipos - BranchTipo.PERFUMERIA
                                                 } else {
-                                                    branch.selectedTipos + BranchTipo.CAFE
+                                                    branch.selectedTipos + BranchTipo.PERFUMERIA
                                                 }
                                                 updateBranch(businessIndex, branchIndex) { current -> current.copy(selectedTipos = updated) }
                                             },

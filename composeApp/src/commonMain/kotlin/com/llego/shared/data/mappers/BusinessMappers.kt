@@ -402,7 +402,7 @@ private fun BranchTipo.toGraphQL(): com.llego.multiplatform.graphql.type.BranchT
         BranchTipo.RESTAURANTE -> listOf("RESTAURANTE", "RESTAURANT")
         BranchTipo.TIENDA -> listOf("TIENDA", "STORE")
         BranchTipo.DULCERIA -> listOf("DULCERIA", "BAKERY")
-        BranchTipo.CAFE -> listOf("CAFE")
+        BranchTipo.PERFUMERIA -> listOf("PERFUMERIA", "PERFUME")
     }
 
     for (candidate in candidateNames) {

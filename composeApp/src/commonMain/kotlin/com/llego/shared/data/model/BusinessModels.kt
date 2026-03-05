@@ -97,15 +97,15 @@ data class Branch(
 )
 
 /**
- * Enum de tipos de sucursal (BranchTipo) seg?n backend
- * MVP: RESTAURANTE, TIENDA, DULCERIA
+ * Enum de tipos de sucursal (BranchTipo) según backend
+ * Sincronizado con schema GraphQL
  */
 @Serializable
 enum class BranchTipo {
     RESTAURANTE,
     DULCERIA,
     TIENDA,
-    CAFE
+    PERFUMERIA
 }
 
 @Serializable
@@ -122,9 +122,9 @@ enum class BranchVehicle {
  */
 fun BranchTipo.toDisplayName(): String = when (this) {
     BranchTipo.RESTAURANTE -> "Restaurante"
-    BranchTipo.DULCERIA -> "Dulcer?a"
+    BranchTipo.DULCERIA -> "Dulcería"
     BranchTipo.TIENDA -> "Tienda"
-    BranchTipo.CAFE -> "Cafeteria"
+    BranchTipo.PERFUMERIA -> "Perfumería"
 }
 
 fun BranchVehicle.toDisplayName(): String = when (this) {

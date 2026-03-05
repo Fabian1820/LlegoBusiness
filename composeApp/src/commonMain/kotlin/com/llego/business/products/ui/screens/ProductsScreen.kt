@@ -50,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,15 +98,17 @@ fun ProductsScreen(
     var deleteComboCandidate by remember { mutableStateOf<com.llego.shared.data.model.Combo?>(null) }
     var visibleItemsByCategory by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var showCreateMenu by remember { mutableStateOf(false) }
+    var updatingProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var updatingComboIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var updatingShowcaseIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
-            viewModel.loadProducts(branchId = branchId)
-            comboViewModel.loadCombos(branchId = branchId)
-            showcaseViewModel.loadShowcases(branchId = branchId, activeOnly = false)
+            viewModel.ensureProductsLoaded(branchId = branchId)
+            comboViewModel.ensureCombosLoaded(branchId = branchId)
+            showcaseViewModel.ensureShowcasesLoaded(branchId = branchId, activeOnly = false)
         } else {
-            viewModel.loadProducts()
-            comboViewModel.loadCombos()
+            viewModel.ensureProductsLoaded()
         }
     }
 
@@ -316,11 +320,15 @@ fun ProductsScreen(
                         items(searchedShowcases, key = { "showcase_${it.id}" }) { showcase ->
                             ShowcaseRow(
                                 showcase = showcase,
+                                isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
                                 onToggleAvailability = { isActive ->
+                                    if (updatingShowcaseIds.contains(showcase.id)) return@ShowcaseRow
                                     scope.launch {
-                                        showcaseViewModel.toggleAvailability(showcase.id, isActive)
-                                        if (branchId != null) {
-                                            showcaseViewModel.loadShowcases(branchId = branchId, activeOnly = false)
+                                        updatingShowcaseIds = updatingShowcaseIds + showcase.id
+                                        try {
+                                            showcaseViewModel.toggleAvailability(showcase.id, isActive)
+                                        } finally {
+                                            updatingShowcaseIds = updatingShowcaseIds - showcase.id
                                         }
                                     }
                                 }
@@ -329,12 +337,18 @@ fun ProductsScreen(
                         items(searchedCombos, key = { "combo_${it.id}" }) { combo ->
                             ComboRow(
                                 combo = combo,
+                                isAvailabilityUpdating = updatingComboIds.contains(combo.id),
                                 onEdit = { onNavigateToAddCombo(combo) },
                                 onDelete = { deleteComboCandidate = combo },
                                 onToggleAvailability = { availability ->
+                                    if (updatingComboIds.contains(combo.id)) return@ComboRow
                                     scope.launch {
-                                        comboViewModel.toggleAvailability(combo.id, availability)
-                                        comboViewModel.loadCombos(branchId = branchId)
+                                        updatingComboIds = updatingComboIds + combo.id
+                                        try {
+                                            comboViewModel.toggleAvailability(combo.id, availability)
+                                        } finally {
+                                            updatingComboIds = updatingComboIds - combo.id
+                                        }
                                     }
                                 },
                                 onViewDetail = { onNavigateToComboDetail(combo) }
@@ -344,15 +358,21 @@ fun ProductsScreen(
                             ProductRow(
                                 product = product,
                                 categoryNameById = categoryNameById,
+                                isAvailabilityUpdating = updatingProductIds.contains(product.id),
                                 onEdit = { onNavigateToAddProduct(product) },
                                 onDelete = { deleteCandidate = product },
                                 onToggleAvailability = { availability ->
+                                    if (updatingProductIds.contains(product.id)) return@ProductRow
                                     scope.launch {
-                                        viewModel.updateProductWithImagePath(
-                                            productId = product.id,
-                                            availability = availability
-                                        )
-                                        viewModel.loadProducts(branchId = branchId)
+                                        updatingProductIds = updatingProductIds + product.id
+                                        try {
+                                            viewModel.toggleProductAvailability(
+                                                productId = product.id,
+                                                availability = availability
+                                            )
+                                        } finally {
+                                            updatingProductIds = updatingProductIds - product.id
+                                        }
                                     }
                                 },
                                 onViewDetail = { onNavigateToProductDetail(product) }
@@ -453,7 +473,7 @@ fun ProductsScreen(
                         onClick = {
                             scope.launch {
                                 viewModel.deleteProductBlocking(product.id)
-                                viewModel.loadProducts(branchId = branchId)
+                                viewModel.loadProducts(branchId = branchId, force = true)
                             }
                             deleteCandidate = null
                         },
@@ -482,7 +502,7 @@ fun ProductsScreen(
                         onClick = {
                             scope.launch {
                                 comboViewModel.deleteComboBlocking(combo.id)
-                                comboViewModel.loadCombos(branchId = branchId)
+                                comboViewModel.loadCombos(branchId = branchId, force = true)
                             }
                             deleteComboCandidate = null
                         },
@@ -564,6 +584,7 @@ private fun CreateTypeOption(
 private fun ProductRow(
     product: Product,
     categoryNameById: Map<String, String>,
+    isAvailabilityUpdating: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
@@ -599,13 +620,37 @@ private fun ProductRow(
                         model = imageUrl,
                         contentDescription = product.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        colorFilter = if (!product.availability) {
+                            ColorFilter.colorMatrix(
+                                ColorMatrix().apply { setToSaturation(0f) }
+                            )
+                        } else {
+                            null
+                        }
                     )
                 } else {
                     Icon(
                         Icons.Default.Image,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (!product.availability) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.38f))
+                    )
+                    Text(
+                        text = "No disponible",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
             }
@@ -677,14 +722,23 @@ private fun ProductRow(
                         }
                         IconButton(
                             onClick = { onToggleAvailability(!product.availability) },
+                            enabled = !isAvailabilityUpdating,
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
-                                if (product.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = "Cambiar disponibilidad",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            if (isAvailabilityUpdating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Icon(
+                                    if (product.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Cambiar disponibilidad",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -696,6 +750,7 @@ private fun ProductRow(
 @Composable
 private fun ShowcaseRow(
     showcase: com.llego.shared.data.model.Showcase,
+    isAvailabilityUpdating: Boolean,
     onToggleAvailability: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -776,14 +831,23 @@ private fun ShowcaseRow(
 
             IconButton(
                 onClick = { onToggleAvailability(!showcase.isActive) },
+                enabled = !isAvailabilityUpdating,
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(
-                    if (showcase.isActive) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = "Cambiar disponibilidad",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
+                if (isAvailabilityUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Icon(
+                        if (showcase.isActive) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = "Cambiar disponibilidad",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -800,6 +864,7 @@ private fun formatPrice(price: Double): String {
 @Composable
 private fun ComboRow(
     combo: com.llego.shared.data.model.Combo,
+    isAvailabilityUpdating: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
@@ -950,14 +1015,23 @@ private fun ComboRow(
                         }
                         IconButton(
                             onClick = { onToggleAvailability(!combo.availability) },
+                            enabled = !isAvailabilityUpdating,
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
-                                if (combo.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = "Cambiar disponibilidad",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            if (isAvailabilityUpdating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Icon(
+                                    if (combo.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Cambiar disponibilidad",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }

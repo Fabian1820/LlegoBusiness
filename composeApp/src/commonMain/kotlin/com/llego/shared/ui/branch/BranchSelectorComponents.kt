@@ -302,7 +302,7 @@ internal fun branchTypeColor(tipo: BranchTipo?): Color {
         BranchTipo.RESTAURANTE -> MaterialTheme.colorScheme.secondary
         BranchTipo.TIENDA -> MaterialTheme.colorScheme.primary
         BranchTipo.DULCERIA -> MaterialTheme.colorScheme.tertiary
-        BranchTipo.CAFE -> MaterialTheme.colorScheme.tertiary
+        BranchTipo.PERFUMERIA -> MaterialTheme.colorScheme.primary
         null -> MaterialTheme.colorScheme.primary
     }
 }
@@ -312,7 +312,7 @@ internal fun branchTypeIcon(tipo: BranchTipo?): ImageVector {
         BranchTipo.RESTAURANTE -> Icons.Outlined.Restaurant
         BranchTipo.TIENDA -> Icons.Outlined.Storefront
         BranchTipo.DULCERIA -> Icons.Outlined.Cake
-        BranchTipo.CAFE -> Icons.Outlined.LocalCafe
+        BranchTipo.PERFUMERIA -> Icons.Outlined.Store
         null -> Icons.Outlined.Store
     }
 }
@@ -322,6 +322,6 @@ internal fun branchTypeLabel(tipo: BranchTipo): String {
         BranchTipo.RESTAURANTE -> "Restaurante"
         BranchTipo.TIENDA -> "Tienda"
         BranchTipo.DULCERIA -> "Dulcería"
-        BranchTipo.CAFE -> "Cafe"
+        BranchTipo.PERFUMERIA -> "Perfumería"
     }
 }

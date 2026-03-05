@@ -34,7 +34,7 @@ internal fun mapBranchTipo(
         "RESTAURANTE", "RESTAURANT" -> BranchTipo.RESTAURANTE
         "TIENDA", "STORE" -> BranchTipo.TIENDA
         "DULCERIA", "BAKERY" -> BranchTipo.DULCERIA
-        "CAFE" -> BranchTipo.CAFE
+        "PERFUMERIA", "PERFUME" -> BranchTipo.PERFUMERIA
         else -> null
     }
 }
