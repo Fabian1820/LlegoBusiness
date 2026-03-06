@@ -93,7 +93,8 @@ data class Branch(
     val avatarUrl: String? = null,
     val coverUrl: String? = null,
     val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
-    val walletStatus: String = "active"  // Estado de la billetera: "active", "suspended", etc.
+    val walletStatus: String = "active",  // Estado de la billetera: "active", "suspended", etc.
+    val exchangeRate: Int? = null
 )
 
 /**
@@ -247,6 +248,7 @@ data class RegisterBranchInput(
     val coverImage: String? = null,
     val isActive: Boolean = true,
     val socialMedia: Map<String, String>? = null,
+    val exchangeRate: Int? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
     val phones: List<TransferPhone>? = null
@@ -273,6 +275,7 @@ data class CreateBranchInput(
     val coverImage: String? = null,
     val isActive: Boolean = true,
     val socialMedia: Map<String, String>? = null,
+    val exchangeRate: Int? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
     val phones: List<TransferPhone>? = null
@@ -296,6 +299,7 @@ data class UpdateBranchInput(
     val coverImage: String? = null,
     val isActive: Boolean? = null,
     val socialMedia: Map<String, String>? = null,
+    val exchangeRate: Int? = null,
     val managerIds: List<String>? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,

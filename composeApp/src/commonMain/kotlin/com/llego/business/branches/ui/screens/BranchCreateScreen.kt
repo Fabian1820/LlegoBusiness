@@ -12,11 +12,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.branches.util.parseExchangeRate
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
+import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.parseQrPaymentsInput
@@ -79,6 +82,7 @@ fun BranchCreateScreen(
 
     // Payment methods state
     var selectedPaymentMethodIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    var exchangeRateInput by remember { mutableStateOf("") }
 
     // Load payment methods on screen open
     LaunchedEffect(Unit) {
@@ -377,6 +381,34 @@ fun BranchCreateScreen(
                 isLoading = paymentMethodsUiState.isLoading
             )
 
+            OutlinedTextField(
+                value = exchangeRateInput,
+                onValueChange = { value ->
+                    if (value.all { it.isDigit() }) {
+                        exchangeRateInput = value
+                    }
+                },
+                label = { Text("Tasa de cambio USD -> CUP (opcional)") },
+                placeholder = { Text("Ej: 120") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = LlegoCustomShapes.inputField,
+                isError = validateExchangeRateInput(exchangeRateInput) != null,
+                supportingText = {
+                    Text(
+                        validateExchangeRateInput(exchangeRateInput)
+                            ?: "Si la configuras, se usara para 1 USD = X CUP"
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+
             Text(
                 text = "Imagenes (opcional)",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
@@ -430,6 +462,11 @@ fun BranchCreateScreen(
                         onError(statusMessage ?: "")
                         return@Button
                     }
+                    validateExchangeRateInput(exchangeRateInput)?.let { error ->
+                        statusMessage = error
+                        onError(error)
+                        return@Button
+                    }
                     if (isUploading) {
                         statusMessage = "Espera a que terminen las subidas de imagen"
                         onError(statusMessage ?: "")
@@ -462,6 +499,7 @@ fun BranchCreateScreen(
                                 facebook = facebook,
                                 whatsapp = whatsapp
                             ),
+                            exchangeRate = parseExchangeRate(exchangeRateInput),
                             accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
                             qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
                             phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }

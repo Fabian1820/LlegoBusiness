@@ -62,6 +62,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.branches.util.parseExchangeRate
+import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchVehicle
@@ -134,6 +136,7 @@ fun BranchCreateWizardScreen(
     var transferPhonesInput by remember { mutableStateOf("") }
     var schedule by remember { mutableStateOf(defaultBranchSchedule()) }
     var selectedPaymentMethodIds by remember { mutableStateOf(emptyList<String>()) }
+    var exchangeRateInput by remember { mutableStateOf("") }
     var variantLists by remember { mutableStateOf(listOf<VariantListDraftUi>()) }
 
     val totalSteps = 5
@@ -162,6 +165,7 @@ fun BranchCreateWizardScreen(
                 selectedPaymentMethodIds.isEmpty() -> "Selecciona al menos un metodo de pago."
                 schedule.values.none { it.isOpen } -> "Debes configurar al menos un dia abierto."
                 !useAppMessaging && selectedVehicles.isEmpty() -> "Selecciona al menos un vehiculo para delivery propio."
+                validateExchangeRateInput(exchangeRateInput) != null -> validateExchangeRateInput(exchangeRateInput)
                 else -> null
             }
 
@@ -192,6 +196,7 @@ fun BranchCreateWizardScreen(
         }
 
         isLoading = true
+        val exchangeRateValue = parseExchangeRate(exchangeRateInput)
         val input = CreateBranchInput(
             businessId = businessId,
             name = name.trim(),
@@ -208,6 +213,7 @@ fun BranchCreateWizardScreen(
             ),
             useAppMessaging = useAppMessaging,
             vehicles = selectedVehicles.toList(),
+            exchangeRate = exchangeRateValue,
             accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
             qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
             phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }
@@ -523,6 +529,32 @@ fun BranchCreateWizardScreen(
                             errorMessage = paymentMethodsUiState.error,
                             onRetry = { paymentMethodsViewModel.loadPaymentMethods() },
                             layout = PaymentMethodSelectorLayout.FLOW
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = exchangeRateInput,
+                            onValueChange = { value ->
+                                if (value.all { it.isDigit() }) {
+                                    exchangeRateInput = value
+                                }
+                            },
+                            label = { Text("Tasa de cambio USD -> CUP (opcional)") },
+                            placeholder = { Text("Ej: 120") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp),
+                            isError = validateExchangeRateInput(exchangeRateInput) != null,
+                            supportingText = {
+                                Text(
+                                    validateExchangeRateInput(exchangeRateInput)
+                                        ?: "Si la configuras, se usara para 1 USD = X CUP"
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -884,6 +916,9 @@ fun BranchCreateWizardScreen(
                                         "Pagos",
                                         selectedPaymentMethodNames.ifBlank { "Sin metodos seleccionados" }
                                     )
+                                    if (exchangeRateInput.isNotBlank()) {
+                                        ReviewRow("Tasa de cambio", "1 USD = ${exchangeRateInput.trim()} CUP")
+                                    }
                                     ReviewRow("Listas de variantes", variantLists.size.toString())
                                     ReviewRow("Cuentas", parseTransferAccountsInput(accountsInput).size.toString())
                                     ReviewRow("QR", parseQrPaymentsInput(qrPaymentsInput).size.toString())

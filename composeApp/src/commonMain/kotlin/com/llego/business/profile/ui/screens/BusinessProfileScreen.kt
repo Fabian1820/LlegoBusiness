@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchStatusSelector
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.branches.util.parseExchangeRate
+import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.profile.ui.components.BannerWithLogoSection
 import com.llego.business.profile.ui.components.BranchInfoSection
@@ -155,6 +157,9 @@ fun BusinessProfileScreen(
         )
     }
     var isActive by remember(currentBranch?.id) { mutableStateOf(currentBranch?.isActive ?: true) }
+    var exchangeRateInput by remember(currentBranch?.id) {
+        mutableStateOf(currentBranch?.exchangeRate?.toString().orEmpty())
+    }
 
     var showVariantEditor by remember { mutableStateOf(false) }
     var editingVariantList by remember { mutableStateOf<VariantList?>(null) }
@@ -189,6 +194,7 @@ fun BusinessProfileScreen(
     val avatarPath = (avatarState as? ImageUploadState.Success)?.s3Path
     val coverPath = (coverState as? ImageUploadState.Success)?.s3Path
     val isUploading = avatarState is ImageUploadState.Uploading || coverState is ImageUploadState.Uploading
+    val previewExchangeRate = parseExchangeRate(exchangeRateInput) ?: currentBranch?.exchangeRate
 
     val branchPreview = currentBranch?.copy(
         name = name,
@@ -200,7 +206,8 @@ fun BusinessProfileScreen(
         useAppMessaging = useAppMessaging,
         vehicles = selectedVehicles.toList(),
         paymentMethodIds = selectedPaymentMethodIds,
-        isActive = isActive
+        isActive = isActive,
+        exchangeRate = previewExchangeRate
     )
 
     fun saveBranchChanges() {
@@ -226,6 +233,10 @@ fun BusinessProfileScreen(
             saveMessage = "Espera a que terminen las subidas de imagen"
             return
         }
+        validateExchangeRateInput(exchangeRateInput)?.let { error ->
+            saveMessage = error
+            return
+        }
 
         val socialMediaValue = socialMedia
             .mapValues { it.value.trim() }
@@ -234,6 +245,7 @@ fun BusinessProfileScreen(
         val accountsValue = parseTransferAccountsInput(accountsInput)
         val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput)
         val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
+        val exchangeRateValue = parseExchangeRate(exchangeRateInput)
 
         val input = UpdateBranchInput(
             name = name.trim().takeIf { it != branch.name },
@@ -257,6 +269,7 @@ fun BusinessProfileScreen(
             accounts = accountsValue.takeIf { it != branch.accounts },
             qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
             phones = transferPhonesValue.takeIf { it != branch.phones },
+            exchangeRate = exchangeRateValue.takeIf { it != branch.exchangeRate },
             avatar = avatarPath,
             coverImage = coverPath
         )
@@ -498,6 +511,12 @@ fun BusinessProfileScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(
+                        text = branchPreview?.exchangeRate?.let { "Tasa de cambio: 1 USD = $it CUP" }
+                            ?: "Tasa de cambio: No configurada",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -537,6 +556,34 @@ fun BusinessProfileScreen(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OutlinedTextField(
+                            value = exchangeRateInput,
+                            onValueChange = { value ->
+                                if (value.all { it.isDigit() }) {
+                                    exchangeRateInput = value
+                                }
+                            },
+                            label = { Text("Tasa de cambio USD -> CUP (opcional)") },
+                            placeholder = { Text("Ej: 120") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = validateExchangeRateInput(exchangeRateInput) != null,
+                            supportingText = {
+                                Text(
+                                    validateExchangeRateInput(exchangeRateInput)
+                                        ?: "Si la configuras, se usara para 1 USD = X CUP"
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            shape = LlegoCustomShapes.inputField
+                        )
+
                         Text(
                             text = "Tipos de servicio",
                             style = MaterialTheme.typography.labelMedium,

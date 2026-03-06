@@ -18,8 +18,10 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.branches.ui.components.BranchStatusSelector
 import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.business.branches.util.parseExchangeRate
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.business.branches.util.parseManagerIds
+import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
@@ -70,6 +72,7 @@ fun BranchEditScreen(
     var selectedVehicles by remember { mutableStateOf(branch.vehicles.toSet()) }
     var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
     var isActive by remember { mutableStateOf(branch.isActive) }
+    var exchangeRateInput by remember(branch) { mutableStateOf(branch.exchangeRate?.toString().orEmpty()) }
     var branchAvatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var branchCoverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isLoading by remember { mutableStateOf(false) }
@@ -109,6 +112,11 @@ fun BranchEditScreen(
             onError(statusMessage ?: "")
             return
         }
+        validateExchangeRateInput(exchangeRateInput)?.let { error ->
+            statusMessage = error
+            onError(error)
+            return
+        }
         if (isUploading) {
             statusMessage = "Espera a que terminen las subidas de imagen"
             onError(statusMessage ?: "")
@@ -139,6 +147,7 @@ fun BranchEditScreen(
             val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
             val scheduleValue = branchSchedule.toBackendSchedule()
             val parsedManagerIds = parseManagerIds(managerIds)
+            val exchangeRateValue = parseExchangeRate(exchangeRateInput)
 
             val input = UpdateBranchInput(
                 name = nameValue.takeIf { it != branch.name },
@@ -160,6 +169,7 @@ fun BranchEditScreen(
                 accounts = accountsValue.takeIf { it != branch.accounts },
                 qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
                 phones = transferPhonesValue.takeIf { it != branch.phones },
+                exchangeRate = exchangeRateValue.takeIf { it != branch.exchangeRate },
                 managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
                 avatar = avatarPath,
                 coverImage = coverPath
@@ -547,6 +557,34 @@ fun BranchEditScreen(
                 selectedPaymentMethodIds = selectedPaymentMethodIds,
                 onSelectionChange = { selectedPaymentMethodIds = it },
                 isLoading = paymentMethodsUiState.isLoading
+            )
+
+            OutlinedTextField(
+                value = exchangeRateInput,
+                onValueChange = { value ->
+                    if (value.all { it.isDigit() }) {
+                        exchangeRateInput = value
+                    }
+                },
+                label = { Text("Tasa de cambio USD -> CUP (opcional)") },
+                placeholder = { Text("Ej: 120") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = LlegoCustomShapes.inputField,
+                isError = validateExchangeRateInput(exchangeRateInput) != null,
+                supportingText = {
+                    Text(
+                        validateExchangeRateInput(exchangeRateInput)
+                            ?: "Si la configuras, se usara para 1 USD = X CUP"
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
 
             Text(

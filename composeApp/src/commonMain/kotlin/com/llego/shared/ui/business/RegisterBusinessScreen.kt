@@ -10,7 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.llego.business.branches.util.parseExchangeRate
+import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.components.atoms.LlegoButton
 import com.llego.shared.ui.components.atoms.LlegoButtonSize
@@ -467,6 +470,23 @@ fun RegisterBusinessScreen(
                                     layout = PaymentMethodSelectorLayout.FLOW
                                 )
 
+                                val exchangeRateError = validateExchangeRateInput(branch.exchangeRate)
+                                LlegoTextField(
+                                    value = branch.exchangeRate,
+                                    onValueChange = { value ->
+                                        if (value.all { it.isDigit() }) {
+                                            updateBranch(businessIndex, branchIndex) { current ->
+                                                current.copy(exchangeRate = value)
+                                            }
+                                        }
+                                    },
+                                    label = "Tasa de cambio USD -> CUP (Opcional)",
+                                    placeholder = "Ej: 120",
+                                    keyboardType = KeyboardType.Number,
+                                    isError = exchangeRateError != null,
+                                    errorMessage = exchangeRateError
+                                )
+
                                 Text(
                                     text = "Imagenes de la Sucursal (Opcional)",
                                     style = MaterialTheme.typography.labelLarge.copy(
@@ -608,6 +628,7 @@ fun RegisterBusinessScreen(
                                 branch.phone.isNotBlank() &&
                                 branch.selectedTipos.isNotEmpty() &&
                                 branch.selectedPaymentMethodIds.isNotEmpty() &&
+                                validateExchangeRateInput(branch.exchangeRate) == null &&
                                 branch.latitude != 0.0 &&
                                 branch.longitude != 0.0
                         }
@@ -666,6 +687,7 @@ fun RegisterBusinessScreen(
                                         facebook = branch.facebook,
                                         whatsapp = branch.whatsapp
                                     ),
+                                    exchangeRate = parseExchangeRate(branch.exchangeRate),
                                     accounts = parseTransferAccountsInput(branch.transferAccounts).takeIf { it.isNotEmpty() },
                                     qrPayments = parseQrPaymentsInput(branch.qrPayments).takeIf { it.isNotEmpty() },
                                     phones = parseTransferPhonesInput(branch.transferPhones).takeIf { it.isNotEmpty() },

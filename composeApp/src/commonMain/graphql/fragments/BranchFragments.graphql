@@ -31,6 +31,8 @@ fragment BranchCoreFields on BranchType {
     phone
     isActive
   }
+  acceptedCurrency
+  exchangeRate
   paymentMethodIds
   managerIds
   avatar
@@ -74,6 +76,8 @@ fragment BranchUpdateFields on BranchType {
     phone
     isActive
   }
+  acceptedCurrency
+  exchangeRate
   paymentMethodIds
   managerIds
   avatar
@@ -115,6 +119,8 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
     phone
     isActive
   }
+  acceptedCurrency
+  exchangeRate
   paymentMethodIds
   avatar
   coverImage

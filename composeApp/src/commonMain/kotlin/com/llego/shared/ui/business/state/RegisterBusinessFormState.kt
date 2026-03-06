@@ -34,6 +34,7 @@ data class BranchFormState(
     val useAppMessaging: Boolean = true,
     val selectedVehicles: Set<BranchVehicle> = emptySet(),
     val selectedPaymentMethodIds: List<String> = emptyList(),
+    val exchangeRate: String = "",
     val avatarState: ImageUploadState = ImageUploadState.Idle,
     val coverState: ImageUploadState = ImageUploadState.Idle
 )

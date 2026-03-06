@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
@@ -250,6 +251,14 @@ fun BranchDetailScreen(
                             "Gestionada externamente"
                         }
                     )
+
+                    branch.exchangeRate?.let { rate ->
+                        BranchDetailRow(
+                            icon = Icons.Default.AttachMoney,
+                            label = "Tasa de cambio",
+                            value = "1 USD = $rate CUP"
+                        )
+                    }
                 }
             }
 

@@ -653,6 +653,10 @@ type BranchType {
 
   paymentMethodIds: [String!]!
 
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
+
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -723,6 +727,14 @@ enum BranchVehicle {
   CAMIONETA
 
   CAMINANDO
+}
+
+enum AcceptedCurrency {
+  CUP
+
+  USD
+
+  BOTH
 }
 
 type TransferAccountType {
@@ -978,6 +990,10 @@ type ScoredBranchType {
 
   paymentMethodIds: [String!]!
 
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
+
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -1085,6 +1101,10 @@ type NearbyBranchType {
   tipos: [BranchTipo!]!
 
   paymentMethodIds: [String!]!
+
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
 
   useAppMessaging: Boolean!
 
@@ -3716,6 +3736,10 @@ input RegisterBranchInput {
 
   socialMedia: JSON = null
 
+  acceptedCurrency: AcceptedCurrency = null
+
+  exchangeRate: Int = null
+
   accounts: [TransferAccountInput!] = null
 
   qrPayments: [QrPaymentInput!] = null
@@ -3794,6 +3818,10 @@ input CreateBranchInput {
 
   socialMedia: JSON = null
 
+  acceptedCurrency: AcceptedCurrency = null
+
+  exchangeRate: Int = null
+
   useAppMessaging: Boolean! = true
 
   vehicles: [BranchVehicle!] = null
@@ -3827,6 +3855,10 @@ input UpdateBranchInput {
   coverImage: String = null
 
   tipos: [BranchTipo!] = null
+
+  acceptedCurrency: AcceptedCurrency = null
+
+  exchangeRate: Int = null
 
   paymentMethodIds: [String!] = null
 

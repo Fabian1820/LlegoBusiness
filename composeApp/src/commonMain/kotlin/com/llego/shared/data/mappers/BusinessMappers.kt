@@ -151,7 +151,8 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
         wallet = wallet.walletBalanceFields.toDomain(),
-        walletStatus = walletStatus
+        walletStatus = walletStatus,
+        exchangeRate = exchangeRate
     )
 }
 
@@ -200,7 +201,8 @@ private fun BranchCoreFields.toDomain(): Branch {
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
         wallet = wallet.walletBalanceFields.toDomain(),
-        walletStatus = walletStatus
+        walletStatus = walletStatus,
+        exchangeRate = exchangeRate
     )
 }
 
@@ -249,7 +251,8 @@ private fun BranchUpdateFields.toDomain(): Branch {
         avatarUrl = avatarUrl,
         coverUrl = coverUrl,
         wallet = wallet.walletBalanceFields.toDomain(),
-        walletStatus = walletStatus
+        walletStatus = walletStatus,
+        exchangeRate = exchangeRate
     )
 }
 
@@ -301,6 +304,10 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         socialMedia = Optional.presentIfNotNull(socialMedia),
+        acceptedCurrency = Optional.presentIfNotNull(
+            exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
+        ),
+        exchangeRate = Optional.presentIfNotNull(exchangeRate),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
         phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
@@ -323,6 +330,10 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),
         socialMedia = Optional.presentIfNotNull(socialMedia),
+        acceptedCurrency = Optional.presentIfNotNull(
+            exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
+        ),
+        exchangeRate = Optional.presentIfNotNull(exchangeRate),
         accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
         qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
         phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
@@ -342,6 +353,10 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         socialMedia = Optional.presentIfNotNull(socialMedia),
         managerIds = Optional.presentIfNotNull(managerIds),
         tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
+        acceptedCurrency = Optional.presentIfNotNull(
+            exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
+        ),
+        exchangeRate = Optional.presentIfNotNull(exchangeRate),
         useAppMessaging = Optional.presentIfNotNull(useAppMessaging),
         vehicles = Optional.presentIfNotNull(vehicles?.toGraphQLVehicleList()),
         paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds),
