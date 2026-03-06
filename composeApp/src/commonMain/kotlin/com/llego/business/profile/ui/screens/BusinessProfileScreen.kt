@@ -99,7 +99,8 @@ private data class VariantOptionEditorState(
 fun BusinessProfileScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onOpenMapSelection: ((String, Double, Double, (Double, Double) -> Unit) -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val currentBranch by authViewModel.currentBranch.collectAsState()
@@ -526,7 +527,8 @@ fun BusinessProfileScreen(
                     onLocationSave = { lat, lng ->
                         latitude = lat
                         longitude = lng
-                    }
+                    },
+                    onOpenMapSelection = onOpenMapSelection
                 )
             }
 

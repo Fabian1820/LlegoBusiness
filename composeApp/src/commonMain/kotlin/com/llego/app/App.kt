@@ -917,7 +917,8 @@ private fun MainBusinessFlow(
                 BusinessProfileScreen(
                     authViewModel = authViewModel,
                     productViewModel = productViewModel,
-                    onNavigateBack = { navigator.showProfile = false }
+                    onNavigateBack = { navigator.showProfile = false },
+                    onOpenMapSelection = onOpenMapSelection
                 )
             }
 

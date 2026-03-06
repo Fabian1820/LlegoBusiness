@@ -54,7 +54,8 @@ import kotlin.math.roundToLong
 @Composable
 fun LocationMapSection(
     branch: Branch?,
-    onLocationSave: (Double, Double) -> Unit = { _, _ -> }
+    onLocationSave: (Double, Double) -> Unit = { _, _ -> },
+    onOpenMapSelection: ((String, Double, Double, (Double, Double) -> Unit) -> Unit)? = null
 ) {
     val originalLatitude = branch?.coordinates?.latitude ?: 0.0
     val originalLongitude = branch?.coordinates?.longitude ?: 0.0
@@ -73,8 +74,20 @@ fun LocationMapSection(
     }
 
     val openFullScreenMap = {
-        resetOnDismiss = true
-        showFullScreenMap = true
+        if (onOpenMapSelection != null) {
+            onOpenMapSelection(
+                "Seleccionar ubicación",
+                selectedLatitude,
+                selectedLongitude
+            ) { lat, lng ->
+                selectedLatitude = lat
+                selectedLongitude = lng
+                onLocationSave(lat, lng)
+            }
+        } else {
+            resetOnDismiss = true
+            showFullScreenMap = true
+        }
     }
 
     if (showFullScreenMap) {

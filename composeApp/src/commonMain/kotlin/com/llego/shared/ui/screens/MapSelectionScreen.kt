@@ -4,10 +4,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -44,7 +49,7 @@ import kotlin.math.roundToLong
 
 /**
  * Pantalla de selección de ubicación en mapa
- * 
+ *
  * @param title Título de la pantalla
  * @param initialLatitude Latitud inicial
  * @param initialLongitude Longitud inicial
@@ -67,6 +72,7 @@ fun MapSelectionScreen(
             abs(selectedLongitude - initialLongitude) > 0.000001
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = {
@@ -87,7 +93,8 @@ fun MapSelectionScreen(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                ),
+                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top)
             )
         },
         bottomBar = {
@@ -100,6 +107,7 @@ fun MapSelectionScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
