@@ -39,14 +39,25 @@ fun ImageUploadPreview(
     onStateChange: (ImageUploadState) -> Unit,
     uploadFunction: suspend (filePath: String) -> ImageUploadResult,
     size: ImageUploadSize = ImageUploadSize.MEDIUM,
+    previewAspectRatio: Float? = null,
+    previewContentScale: ContentScale = ContentScale.Crop,
     showSuccessFileName: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     val imagePickerController = rememberImagePickerController()
+    val previewModifier = if (previewAspectRatio != null) {
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(previewAspectRatio)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .height(size.height)
+    }
 
     Card(
-        modifier = modifier.height(size.height + 40.dp),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
@@ -56,9 +67,7 @@ fun ImageUploadPreview(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(size.height)
+                modifier = previewModifier
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable(enabled = uploadState is ImageUploadState.Idle ||
@@ -91,10 +100,10 @@ fun ImageUploadPreview(
             ) {
                 when (uploadState) {
                     is ImageUploadState.Idle -> IdleContent(label, size)
-                    is ImageUploadState.Selected -> LoadingContent(uploadState.localUri, label)
-                    is ImageUploadState.Uploading -> LoadingContent(uploadState.localUri, label)
-                    is ImageUploadState.Success -> SuccessContent(uploadState.localUri, label)
-                    is ImageUploadState.Error -> ErrorContent(uploadState.localUri, label) {
+                    is ImageUploadState.Selected -> LoadingContent(uploadState.localUri, label, previewContentScale)
+                    is ImageUploadState.Uploading -> LoadingContent(uploadState.localUri, label, previewContentScale)
+                    is ImageUploadState.Success -> SuccessContent(uploadState.localUri, label, previewContentScale)
+                    is ImageUploadState.Error -> ErrorContent(uploadState.localUri, label, previewContentScale) {
                         // Retry logic
                         val uri = uploadState.localUri
                         val filename = uploadState.filename
@@ -183,13 +192,13 @@ private fun IdleContent(label: String, size: ImageUploadSize) {
 }
 
 @Composable
-private fun LoadingContent(localUri: String, label: String) {
+private fun LoadingContent(localUri: String, label: String, previewContentScale: ContentScale) {
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
             model = localUri,
             contentDescription = label,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = previewContentScale
         )
         Box(
             modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
@@ -201,13 +210,13 @@ private fun LoadingContent(localUri: String, label: String) {
 }
 
 @Composable
-private fun SuccessContent(localUri: String, label: String) {
+private fun SuccessContent(localUri: String, label: String, previewContentScale: ContentScale) {
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
             model = localUri,
             contentDescription = label,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = previewContentScale
         )
         Surface(
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -221,13 +230,18 @@ private fun SuccessContent(localUri: String, label: String) {
 }
 
 @Composable
-private fun ErrorContent(localUri: String, label: String, onRetry: () -> Unit) {
+private fun ErrorContent(
+    localUri: String,
+    label: String,
+    previewContentScale: ContentScale,
+    onRetry: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize().clickable { onRetry() }) {
         AsyncImage(
             model = localUri,
             contentDescription = label,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = previewContentScale
         )
         Box(
             modifier = Modifier.fillMaxSize().background(Color.Red.copy(alpha = 0.3f)),

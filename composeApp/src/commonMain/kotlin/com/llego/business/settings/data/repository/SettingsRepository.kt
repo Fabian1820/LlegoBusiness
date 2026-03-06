@@ -218,7 +218,6 @@ class SettingsRepository private constructor(
             value.contains("cash") || value.contains("efectivo") -> PaymentMethod.CASH
             value.contains("card") || value.contains("tarjeta") -> PaymentMethod.CARD
             value.contains("transfer") || value.contains("transferencia") -> PaymentMethod.TRANSFER
-            value.contains("wallet") || value.contains("billetera") || value.contains("digital") -> PaymentMethod.DIGITAL_WALLET
             else -> null
         }
     }
@@ -294,8 +293,7 @@ class SettingsRepository private constructor(
             acceptedPaymentMethods = listOf(
                 PaymentMethod.CASH,
                 PaymentMethod.CARD,
-                PaymentMethod.TRANSFER,
-                PaymentMethod.DIGITAL_WALLET
+                PaymentMethod.TRANSFER
             ),
             deliverySettings = DeliverySettings(
                 isDeliveryEnabled = true,

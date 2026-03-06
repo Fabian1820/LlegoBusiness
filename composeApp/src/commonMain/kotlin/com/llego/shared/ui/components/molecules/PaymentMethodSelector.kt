@@ -34,6 +34,19 @@ fun PaymentMethodSelector(
     onRetry: (() -> Unit)? = null,
     layout: PaymentMethodSelectorLayout = PaymentMethodSelectorLayout.HORIZONTAL
 ) {
+    val availablePaymentMethodIds = remember(availablePaymentMethods) {
+        availablePaymentMethods.map { it.id }.toSet()
+    }
+    val visibleSelectedPaymentMethodIds = remember(selectedPaymentMethodIds, availablePaymentMethodIds) {
+        selectedPaymentMethodIds.filter { it in availablePaymentMethodIds }
+    }
+
+    LaunchedEffect(selectedPaymentMethodIds, visibleSelectedPaymentMethodIds) {
+        if (selectedPaymentMethodIds != visibleSelectedPaymentMethodIds) {
+            onSelectionChange(visibleSelectedPaymentMethodIds)
+        }
+    }
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -110,12 +123,12 @@ fun PaymentMethodSelector(
                             items(availablePaymentMethods) { paymentMethod ->
                                 PaymentMethodChip(
                                     paymentMethod = paymentMethod,
-                                    isSelected = selectedPaymentMethodIds.contains(paymentMethod.id),
+                                    isSelected = visibleSelectedPaymentMethodIds.contains(paymentMethod.id),
                                     onClick = {
-                                        val newSelection = if (selectedPaymentMethodIds.contains(paymentMethod.id)) {
-                                            selectedPaymentMethodIds - paymentMethod.id
+                                        val newSelection = if (visibleSelectedPaymentMethodIds.contains(paymentMethod.id)) {
+                                            visibleSelectedPaymentMethodIds - paymentMethod.id
                                         } else {
-                                            selectedPaymentMethodIds + paymentMethod.id
+                                            visibleSelectedPaymentMethodIds + paymentMethod.id
                                         }
                                         onSelectionChange(newSelection)
                                     },
@@ -133,12 +146,12 @@ fun PaymentMethodSelector(
                             availablePaymentMethods.forEach { paymentMethod ->
                                 PaymentMethodChip(
                                     paymentMethod = paymentMethod,
-                                    isSelected = selectedPaymentMethodIds.contains(paymentMethod.id),
+                                    isSelected = visibleSelectedPaymentMethodIds.contains(paymentMethod.id),
                                     onClick = {
-                                        val newSelection = if (selectedPaymentMethodIds.contains(paymentMethod.id)) {
-                                            selectedPaymentMethodIds - paymentMethod.id
+                                        val newSelection = if (visibleSelectedPaymentMethodIds.contains(paymentMethod.id)) {
+                                            visibleSelectedPaymentMethodIds - paymentMethod.id
                                         } else {
-                                            selectedPaymentMethodIds + paymentMethod.id
+                                            visibleSelectedPaymentMethodIds + paymentMethod.id
                                         }
                                         onSelectionChange(newSelection)
                                     },
@@ -152,7 +165,7 @@ fun PaymentMethodSelector(
         }
 
         if (
-            selectedPaymentMethodIds.isEmpty() &&
+            visibleSelectedPaymentMethodIds.isEmpty() &&
             !isLoading &&
             errorMessage.isNullOrBlank() &&
             availablePaymentMethods.isNotEmpty()

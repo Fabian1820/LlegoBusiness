@@ -33,7 +33,6 @@ import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
-import com.llego.shared.ui.theme.LlegoShapes
 import kotlinx.coroutines.launch
 
 
@@ -354,32 +353,6 @@ fun BranchEditScreen(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = LlegoShapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "Billetera (solo lectura)",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    Text(
-                        text = "Local: ${branch.wallet.local} | USD: ${branch.wallet.usd}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Estado: ${branch.walletStatus}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
 
             Text(
                 text = "Cobros por transferencia (opcional)",

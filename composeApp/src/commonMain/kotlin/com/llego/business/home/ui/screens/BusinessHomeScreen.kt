@@ -73,7 +73,6 @@ import com.llego.business.orders.ui.screens.OrdersScreen
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.screens.ProductsScreen
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
-import com.llego.business.wallet.ui.screens.WalletScreen
 import com.llego.shared.data.model.Product
 import com.llego.shared.ui.auth.AuthViewModel
 import org.jetbrains.compose.resources.painterResource
@@ -108,7 +107,8 @@ fun BusinessHomeScreen(
     settingsViewModel: SettingsViewModel
 ) {
     val tabs = HomeTabsProvider.getTabs()
-    val selectedTabId = tabs.getOrNull(selectedTabIndex)?.id
+    val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, tabs.lastIndex)
+    val selectedTabId = tabs.getOrNull(safeSelectedTabIndex)?.id
     val searchEnabledForCurrentTab = selectedTabId == "orders" || selectedTabId == "products"
 
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
@@ -130,6 +130,12 @@ fun BusinessHomeScreen(
     LaunchedEffect(selectedTabId, currentBranch?.id) {
         if (selectedTabId == "settings" && currentBranch?.id != null) {
             settingsViewModel.loadSettings()
+        }
+    }
+
+    LaunchedEffect(selectedTabIndex, safeSelectedTabIndex) {
+        if (selectedTabIndex != safeSelectedTabIndex) {
+            onTabSelected(safeSelectedTabIndex)
         }
     }
 
@@ -300,7 +306,7 @@ fun BusinessHomeScreen(
                             val pendingCount = ordersViewModel.getPendingOrdersCount()
 
                             tabs.forEachIndexed { index, tab ->
-                                val isSelected = selectedTabIndex == index
+                                val isSelected = safeSelectedTabIndex == index
 
                                 NavigationBarItem(
                                     selected = isSelected,
@@ -375,7 +381,7 @@ fun BusinessHomeScreen(
                 )
                 .imePadding()
         ) {
-            when (tabs[selectedTabIndex].id) {
+            when (tabs[safeSelectedTabIndex].id) {
                 "orders" -> {
                     OrdersScreen(
                         viewModel = ordersViewModel,
@@ -401,13 +407,6 @@ fun BusinessHomeScreen(
                     )
                 }
 
-                "wallet" -> {
-                    WalletScreen(
-                        onNavigateBack = { },
-                        branchId = currentBranch?.id
-                    )
-                }
-
                 "statistics" -> {
                     StatisticsScreen(
                         ordersViewModel = ordersViewModel,
@@ -427,6 +426,8 @@ fun BusinessHomeScreen(
                         onNavigateBack = { }
                     )
                 }
+
+                else -> Unit
             }
         }
     }

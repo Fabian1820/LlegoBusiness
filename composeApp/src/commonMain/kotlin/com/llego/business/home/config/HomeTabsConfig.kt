@@ -7,7 +7,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.nav_orders
 import llegobusiness.composeapp.generated.resources.nav_products
-import llegobusiness.composeapp.generated.resources.nav_wallet
 import org.jetbrains.compose.resources.DrawableResource
 
 /**
@@ -32,7 +31,6 @@ object HomeTabsProvider {
         return listOf(
             HomeTabConfig("orders", "Pedidos", HomeTabIcon.Drawable(Res.drawable.nav_orders)),
             HomeTabConfig("products", "Productos", HomeTabIcon.Drawable(Res.drawable.nav_products)),
-            HomeTabConfig("wallet", "Wallet", HomeTabIcon.Drawable(Res.drawable.nav_wallet)),
             HomeTabConfig("statistics", "Estadisticas", HomeTabIcon.Vector(Icons.Default.BarChart)),
             HomeTabConfig("settings", "Ajustes", HomeTabIcon.Vector(Icons.Default.Settings))
         )

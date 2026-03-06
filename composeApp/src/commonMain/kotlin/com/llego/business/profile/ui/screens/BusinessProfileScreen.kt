@@ -1,6 +1,7 @@
 ﻿package com.llego.business.profile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -82,6 +84,7 @@ import com.llego.shared.ui.business.parseTransferAccountsInput
 import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
 import com.llego.shared.ui.components.molecules.PaymentMethodSelectorLayout
+import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
@@ -195,6 +198,13 @@ fun BusinessProfileScreen(
     val avatarPath = (avatarState as? ImageUploadState.Success)?.s3Path
     val coverPath = (coverState as? ImageUploadState.Success)?.s3Path
     val isUploading = avatarState is ImageUploadState.Uploading || coverState is ImageUploadState.Uploading
+    val coverPreviewUrl = when (val state = coverState) {
+        is ImageUploadState.Selected -> state.localUri
+        is ImageUploadState.Uploading -> state.localUri
+        is ImageUploadState.Success -> state.localUri
+        is ImageUploadState.Error -> state.localUri
+        ImageUploadState.Idle -> null
+    }
     val previewExchangeRate = parseExchangeRate(exchangeRateInput) ?: currentBranch?.exchangeRate
 
     val branchPreview = currentBranch?.copy(
@@ -447,14 +457,14 @@ fun BusinessProfileScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(top = paddingValues.calculateTopPadding()),
+            contentPadding = PaddingValues(bottom = paddingValues.calculateBottomPadding() + 88.dp)
         ) {
             item {
                 BannerWithLogoSection(
                     avatarUrl = branchPreview?.avatarUrl,
                     coverUrl = branchPreview?.coverUrl,
+                    coverPreviewUrl = coverPreviewUrl,
                     branchName = branchPreview?.name,
                     onChangeAvatar = { showAvatarDialog = true },
                     onChangeCover = { showCoverDialog = true },
@@ -464,26 +474,30 @@ fun BusinessProfileScreen(
 
             if (saveMessage != null) {
                 item {
-                    ProfileSaveMessageCard(
-                        message = saveMessage ?: "",
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                    Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)) {
+                        ProfileSaveMessageCard(
+                            message = saveMessage ?: ""
+                        )
+                    }
+                }
+            }
+
+            item {
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    BranchInfoSection(
+                        branch = branchPreview,
+                        onSave = { branchName, branchPhone, branchAddress ->
+                            name = branchName
+                            phone = branchPhone
+                            address = branchAddress
+                        }
                     )
                 }
             }
 
             item {
-                BranchInfoSection(
-                    branch = branchPreview,
-                    onSave = { branchName, branchPhone, branchAddress ->
-                        name = branchName
-                        phone = branchPhone
-                        address = branchAddress
-                    }
-                )
-            }
-
-            item {
-                ProfileSectionCard {
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    ProfileSectionCard {
                     SectionHeader(
                         title = "Estado y billetera",
                         sectionIcon = Icons.Default.AccountBalance
@@ -519,39 +533,47 @@ fun BusinessProfileScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                }
             }
 
             item {
-                LocationMapSection(
-                    branch = branchPreview,
-                    onLocationSave = { lat, lng ->
-                        latitude = lat
-                        longitude = lng
-                    },
-                    onOpenMapSelection = onOpenMapSelection
-                )
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    LocationMapSection(
+                        branch = branchPreview,
+                        onLocationSave = { lat, lng ->
+                            latitude = lat
+                            longitude = lng
+                        },
+                        onOpenMapSelection = onOpenMapSelection
+                    )
+                }
             }
 
             item {
-                BranchScheduleSection(
-                    branch = branchPreview,
-                    onSave = { updatedSchedule ->
-                        branchSchedule = updatedSchedule
-                    }
-                )
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    BranchScheduleSection(
+                        branch = branchPreview,
+                        onSave = { updatedSchedule ->
+                            branchSchedule = updatedSchedule
+                        }
+                    )
+                }
             }
 
             item {
-                SocialLinksSection(
-                    socialMedia = branchPreview?.socialMedia,
-                    onSave = { updatedSocial ->
-                        socialMedia = updatedSocial
-                    }
-                )
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    SocialLinksSection(
+                        socialMedia = branchPreview?.socialMedia,
+                        onSave = { updatedSocial ->
+                            socialMedia = updatedSocial
+                        }
+                    )
+                }
             }
 
             item {
-                ProfileSectionCard {
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    ProfileSectionCard {
                     SectionHeader(
                         title = "Operación",
                         sectionIcon = Icons.Default.Build
@@ -655,14 +677,16 @@ fun BusinessProfileScreen(
                         }
                     }
                 }
+                }
             }
 
             item {
-                ProfileSectionCard {
-                    SectionHeader(
-                        title = "Listas de Variantes",
-                        sectionIcon = Icons.Default.Store
-                    )
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    ProfileSectionCard {
+                        SectionHeader(
+                            title = "Listas de Variantes",
+                            sectionIcon = Icons.Default.Store
+                        )
 
                     Text(
                         text = "Crea listas como Tamaños o Extras y asignalas luego a productos de esta sucursal.",
@@ -775,13 +799,15 @@ fun BusinessProfileScreen(
                         }
                     }
                 }
+                }
             }
 
             item {
-                ProfileSectionCard {
-                    SectionHeader(
-                        title = "Cobros",
-                        sectionIcon = Icons.Default.CreditCard
+                Box(modifier = Modifier.padding(top = 16.dp)) {
+                    ProfileSectionCard {
+                        SectionHeader(
+                            title = "Cobros",
+                            sectionIcon = Icons.Default.CreditCard
                     )
 
                     ProfileFieldWithInput(
@@ -804,6 +830,7 @@ fun BusinessProfileScreen(
                         value = transferPhonesInput,
                         onValueChange = { transferPhonesInput = it }
                     )
+                }
                 }
             }
         }
@@ -969,7 +996,10 @@ fun BusinessProfileScreen(
                 }
             },
             uploadFunction = imageUploadViewModel::uploadBranchCover,
-            onDismiss = { showCoverDialog = false }
+            onDismiss = { showCoverDialog = false },
+            size = ImageUploadSize.LARGE,
+            previewAspectRatio = 16f / 9f,
+            previewContentScale = ContentScale.FillBounds
         )
     }
 }

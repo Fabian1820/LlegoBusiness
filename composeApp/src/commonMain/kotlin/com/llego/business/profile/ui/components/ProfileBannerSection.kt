@@ -15,10 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.paint
+import coil3.compose.AsyncImagePainter
+import coil3.compose.LocalPlatformContext
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.size.Size
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Branch
@@ -37,35 +45,79 @@ import com.llego.shared.ui.theme.LlegoShapes
 fun BannerWithLogoSection(
     avatarUrl: String? = null,
     coverUrl: String? = null,
+    coverPreviewUrl: String? = null,
     branchName: String? = null,
     onChangeAvatar: () -> Unit = {},
     onChangeCover: (() -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null
 ) {
     val avatarInitial = branchName?.firstOrNull()?.uppercaseChar()?.toString() ?: "S"
+    val visibleCoverUrl = coverPreviewUrl?.takeIf { it.isNotBlank() } ?: coverUrl
+    val context = LocalPlatformContext.current
+
+    // Crear painter fuera del Box para poder usarlo en Modifier.paint()
+    val coverPainter = if (!visibleCoverUrl.isNullOrEmpty()) {
+        rememberAsyncImagePainter(
+            model = ImageRequest.Builder(context)
+                .data(visibleCoverUrl)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .size(Size.ORIGINAL)
+                .build()
+        )
+    } else null
+
+    val coverState = coverPainter?.state
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
-    ) {
-        // Fondo fallback con color de la app
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
-
-        if (!coverUrl.isNullOrEmpty()) {
-            NetworkImage(
-                url = coverUrl,
-                contentDescription = "Portada de la sucursal",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+            .height(280.dp)
+            .clipToBounds()
+            .then(
+                if (coverPainter != null) {
+                    Modifier.paint(
+                        painter = coverPainter,
+                        contentScale = ContentScale.FillBounds,
+                        sizeToIntrinsics = false
+                    )
+                } else {
+                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant)
+                }
             )
+    ) {
+        // Indicador de carga superpuesto
+        if (coverState is AsyncImagePainter.State.Loading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
 
-        // Gradiente overlay de abajo hacia arriba
+        // Estado de error
+        if (coverState is AsyncImagePainter.State.Error) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.BrokenImage,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+
+        // Gradiente overlay sutil de abajo hacia arriba
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,8 +125,10 @@ fun BannerWithLogoSection(
                     Brush.verticalGradient(
                         colors = listOf(
                             androidx.compose.ui.graphics.Color.Transparent,
-                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.38f)
-                        )
+                            androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.25f)
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
                     )
                 )
         )
@@ -84,25 +138,25 @@ fun BannerWithLogoSection(
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 12.dp, bottom = 10.dp)
+                    .padding(end = 16.dp, bottom = 16.dp)
                     .background(
-                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.31f),
-                        androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f),
+                        androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
                     )
                     .clickable { onChangeCover() }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = null,
                     tint = androidx.compose.ui.graphics.Color.White,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    text = "Editar",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    text = "Editar portada",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = androidx.compose.ui.graphics.Color.White
                 )
             }
@@ -133,13 +187,13 @@ fun BannerWithLogoSection(
     Box(
         modifier = Modifier
             .padding(start = 20.dp)
-            .offset(y = (-36).dp)
+            .offset(y = (-48).dp)
     ) {
         Surface(
-            modifier = Modifier.size(100.dp),
+            modifier = Modifier.size(110.dp),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
+            shadowElevation = 4.dp,
             border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface)
         ) {
             if (!avatarUrl.isNullOrEmpty()) {

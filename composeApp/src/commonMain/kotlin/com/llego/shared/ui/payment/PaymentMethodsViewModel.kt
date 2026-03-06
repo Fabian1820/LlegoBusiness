@@ -31,9 +31,15 @@ class PaymentMethodsViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             repository.getPaymentMethods()
                 .onSuccess { methods ->
+                    val filteredMethods = methods.filterNot { method ->
+                        val normalizedMethod = method.method.lowercase().trim()
+                        normalizedMethod.contains("wallet") ||
+                            normalizedMethod.contains("billetera") ||
+                            normalizedMethod.contains("digital")
+                    }
                     _uiState.value = PaymentMethodsUiState(
                         isLoading = false,
-                        methods = methods,
+                        methods = filteredMethods,
                         error = null
                     )
                 }

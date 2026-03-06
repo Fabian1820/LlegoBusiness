@@ -38,7 +38,7 @@ class PaymentMethodsRepository(
                         currency = method.currency,
                         method = method.method
                     )
-                } ?: emptyList()
+                }?.filterNot { it.isWalletMethod() } ?: emptyList()
 
 
                 Result.success(paymentMethods)
@@ -46,5 +46,12 @@ class PaymentMethodsRepository(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun PaymentMethod.isWalletMethod(): Boolean {
+        val normalizedMethod = method.lowercase().trim()
+        return normalizedMethod.contains("wallet") ||
+            normalizedMethod.contains("billetera") ||
+            normalizedMethod.contains("digital")
     }
 }
