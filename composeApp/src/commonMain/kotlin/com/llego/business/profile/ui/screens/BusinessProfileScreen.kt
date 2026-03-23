@@ -1,5 +1,6 @@
 ﻿package com.llego.business.profile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
@@ -52,8 +51,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.llego.business.branches.ui.components.BranchStatusSelector
-import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.business.branches.util.parseExchangeRate
 import com.llego.business.branches.util.validateExchangeRateInput
@@ -165,6 +162,8 @@ fun BusinessProfileScreen(
         mutableStateOf(currentBranch?.exchangeRate?.toString().orEmpty())
     }
 
+    var showUnsavedChangesDialog by remember { mutableStateOf(false) }
+
     var showVariantEditor by remember { mutableStateOf(false) }
     var editingVariantList by remember { mutableStateOf<VariantList?>(null) }
     var variantName by remember { mutableStateOf("") }
@@ -221,7 +220,50 @@ fun BusinessProfileScreen(
         exchangeRate = previewExchangeRate
     )
 
-    fun saveBranchChanges() {
+    fun getUnsavedChanges(): List<String> {
+        val branch = currentBranch ?: return emptyList()
+        val changes = mutableListOf<String>()
+        if (name.trim() != branch.name) changes.add("Nombre")
+        if (phone.trim() != branch.phone) changes.add("Teléfono")
+        if (address.trim() != (branch.address ?: "")) changes.add("Dirección")
+        if (latitude != branch.coordinates.latitude || longitude != branch.coordinates.longitude) changes.add("Ubicación")
+        if (branchSchedule != branch.schedule) changes.add("Horario")
+        if (selectedTipos != branch.tipos.toSet()) changes.add("Tipos de servicio")
+        if (selectedPaymentMethodIds != branch.paymentMethodIds) changes.add("Métodos de pago")
+        if (useAppMessaging != branch.useAppMessaging) changes.add("Mensajería de la app")
+        if (selectedVehicles != branch.vehicles.toSet()) changes.add("Vehículos de delivery")
+        if (isActive != branch.isActive) changes.add("Estado de sucursal")
+        val currentSocial = socialMedia.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
+        val branchSocial = (branch.socialMedia ?: emptyMap()).mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
+        if (currentSocial != branchSocial) changes.add("Redes sociales")
+        if (accountsInput != formatTransferAccountsInput(branch.accounts)) changes.add("Cuentas para transferencias")
+        if (qrPaymentsInput != formatQrPaymentsInput(branch.qrPayments)) changes.add("Pagos QR")
+        if (transferPhonesInput != formatTransferPhonesInput(branch.phones)) changes.add("Teléfonos de transferencia")
+        if (parseExchangeRate(exchangeRateInput) != branch.exchangeRate) changes.add("Tasa de cambio")
+        if (avatarPath != null) changes.add("Avatar")
+        if (coverPath != null) changes.add("Portada")
+        return changes
+    }
+
+    val handleBack: () -> Unit = {
+        val changes = getUnsavedChanges()
+        if (changes.isEmpty()) {
+            onNavigateBack()
+        } else {
+            showUnsavedChangesDialog = true
+        }
+    }
+
+    BackHandler(
+        enabled = !showVariantEditor &&
+            !showAvatarDialog &&
+            !showCoverDialog &&
+            !showUnsavedChangesDialog
+    ) {
+        handleBack()
+    }
+
+    fun saveBranchChanges(navigateBackOnSuccess: Boolean = false) {
         val branch = currentBranch ?: return
 
         if (name.isBlank() || phone.isBlank()) {
@@ -295,6 +337,9 @@ fun BusinessProfileScreen(
                     saveMessage = "Perfil de sucursal actualizado"
                     avatarState = ImageUploadState.Idle
                     coverState = ImageUploadState.Idle
+                    if (navigateBackOnSuccess) {
+                        onNavigateBack()
+                    }
                 }
 
                 is BusinessResult.Error -> {
@@ -468,7 +513,7 @@ fun BusinessProfileScreen(
                     branchName = branchPreview?.name,
                     onChangeAvatar = { showAvatarDialog = true },
                     onChangeCover = { showCoverDialog = true },
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = handleBack
                 )
             }
 
@@ -486,53 +531,16 @@ fun BusinessProfileScreen(
                 Box(modifier = Modifier.padding(top = 16.dp)) {
                     BranchInfoSection(
                         branch = branchPreview,
+                        isActive = isActive,
+                        onStatusChange = { isActive = it },
+                        selectedTipos = selectedTipos,
+                        onTiposChange = { selectedTipos = it },
                         onSave = { branchName, branchPhone, branchAddress ->
                             name = branchName
                             phone = branchPhone
                             address = branchAddress
                         }
                     )
-                }
-            }
-
-            item {
-                Box(modifier = Modifier.padding(top = 16.dp)) {
-                    ProfileSectionCard {
-                    SectionHeader(
-                        title = "Estado y billetera",
-                        sectionIcon = Icons.Default.AccountBalance
-                    )
-
-                    Text(
-                        text = "Estado de sucursal",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    BranchStatusSelector(
-                        isActive = isActive,
-                        onStatusChange = { isActive = it }
-                    )
-
-                    Text(
-                        text = "Billetera (solo lectura)",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                    )
-                    Text(
-                        text = "Local: ${currentBranch!!.wallet.local} | USD: ${currentBranch!!.wallet.usd}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Estado: ${currentBranch!!.walletStatus}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = branchPreview?.exchangeRate?.let { "Tasa de cambio: 1 USD = $it CUP" }
-                            ?: "Tasa de cambio: No configurada",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 }
             }
 
@@ -568,115 +576,6 @@ fun BusinessProfileScreen(
                             socialMedia = updatedSocial
                         }
                     )
-                }
-            }
-
-            item {
-                Box(modifier = Modifier.padding(top = 16.dp)) {
-                    ProfileSectionCard {
-                    SectionHeader(
-                        title = "Operación",
-                        sectionIcon = Icons.Default.Build
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        OutlinedTextField(
-                            value = exchangeRateInput,
-                            onValueChange = { value ->
-                                if (value.all { it.isDigit() }) {
-                                    exchangeRateInput = value
-                                }
-                            },
-                            label = { Text("Tasa de cambio USD -> CUP (opcional)") },
-                            placeholder = { Text("Ej: 120") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            isError = validateExchangeRateInput(exchangeRateInput) != null,
-                            supportingText = {
-                                Text(
-                                    validateExchangeRateInput(exchangeRateInput)
-                                        ?: "Si la configuras, se usara para 1 USD = X CUP"
-                                )
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            shape = LlegoCustomShapes.inputField
-                        )
-
-                        Text(
-                            text = "Tipos de servicio",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        BranchTipoSelector(
-                            selectedTipos = selectedTipos,
-                            onSelectionChange = { selectedTipos = it }
-                        )
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Métodos de pago",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        PaymentMethodSelector(
-                            availablePaymentMethods = paymentMethodsUiState.methods,
-                            selectedPaymentMethodIds = selectedPaymentMethodIds,
-                            onSelectionChange = { selectedPaymentMethodIds = it },
-                            isLoading = paymentMethodsUiState.isLoading,
-                            layout = PaymentMethodSelectorLayout.FLOW
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = "Mensajería de la app",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
-                            )
-                            Text(
-                                text = if (useAppMessaging) {
-                                    "Clientes escriben por chat de la app"
-                                } else {
-                                    "La sucursal gestiona su propio canal"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = useAppMessaging,
-                            onCheckedChange = { useAppMessaging = it }
-                        )
-                    }
-
-                    if (!useAppMessaging) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = "Vehículos de delivery",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            BranchVehiclesSelector(
-                                selectedVehicles = selectedVehicles,
-                                onSelectionChange = { selectedVehicles = it }
-                            )
-                        }
-                    }
-                }
                 }
             }
 
@@ -805,10 +704,55 @@ fun BusinessProfileScreen(
             item {
                 Box(modifier = Modifier.padding(top = 16.dp)) {
                     ProfileSectionCard {
-                        SectionHeader(
-                            title = "Cobros",
-                            sectionIcon = Icons.Default.CreditCard
+                    SectionHeader(
+                        title = "Operación",
+                        sectionIcon = Icons.Default.Build
                     )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OutlinedTextField(
+                            value = exchangeRateInput,
+                            onValueChange = { value ->
+                                if (value.all { it.isDigit() }) {
+                                    exchangeRateInput = value
+                                }
+                            },
+                            label = { Text("Tasa de cambio USD -> CUP (opcional)") },
+                            placeholder = { Text("Ej: 120") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            isError = validateExchangeRateInput(exchangeRateInput) != null,
+                            supportingText = {
+                                Text(
+                                    validateExchangeRateInput(exchangeRateInput)
+                                        ?: "Si la configuras, se usara para 1 USD = X CUP"
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            shape = LlegoCustomShapes.inputField
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Métodos de pago",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        PaymentMethodSelector(
+                            availablePaymentMethods = paymentMethodsUiState.methods,
+                            selectedPaymentMethodIds = selectedPaymentMethodIds,
+                            onSelectionChange = { selectedPaymentMethodIds = it },
+                            isLoading = paymentMethodsUiState.isLoading,
+                            layout = PaymentMethodSelectorLayout.FLOW
+                        )
+                    }
 
                     ProfileFieldWithInput(
                         label = "Cuentas para transferencias",
@@ -830,6 +774,49 @@ fun BusinessProfileScreen(
                         value = transferPhonesInput,
                         onValueChange = { transferPhonesInput = it }
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Mensajería de la app",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                            )
+                            Text(
+                                text = if (useAppMessaging) {
+                                    "Clientes escriben por chat de la app"
+                                } else {
+                                    "La sucursal gestiona su propio canal"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = useAppMessaging,
+                            onCheckedChange = { useAppMessaging = it }
+                        )
+                    }
+
+                    if (!useAppMessaging) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Vehículos de delivery",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            BranchVehiclesSelector(
+                                selectedVehicles = selectedVehicles,
+                                onSelectionChange = { selectedVehicles = it }
+                            )
+                        }
+                    }
                 }
                 }
             }
@@ -1000,6 +987,60 @@ fun BusinessProfileScreen(
             size = ImageUploadSize.LARGE,
             previewAspectRatio = 16f / 9f,
             previewContentScale = ContentScale.FillBounds
+        )
+    }
+
+    if (showUnsavedChangesDialog) {
+        val unsavedChanges = getUnsavedChanges()
+        AlertDialog(
+            onDismissRequest = { showUnsavedChangesDialog = false },
+            title = {
+                Text(
+                    text = "Cambios sin guardar",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Tienes cambios en:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    unsavedChanges.forEach { change ->
+                        Text(
+                            text = "• $change",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = "¿Desea guardar los cambios?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUnsavedChangesDialog = false
+                        saveBranchChanges(navigateBackOnSuccess = true)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Sí, guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showUnsavedChangesDialog = false
+                        onNavigateBack()
+                    }
+                ) {
+                    Text("No, ir atrás")
+                }
+            }
         )
     }
 }

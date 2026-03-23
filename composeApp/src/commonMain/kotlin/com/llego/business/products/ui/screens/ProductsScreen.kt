@@ -13,11 +13,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -33,8 +36,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +61,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import com.llego.business.orders.ui.components.iOSStylePicker
+import com.llego.business.orders.ui.components.iOSStylePickerOption
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
@@ -69,10 +74,15 @@ import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
 import com.llego.shared.data.model.ShowcasesResult
 import com.llego.shared.ui.theme.LlegoCustomShapes
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-private const val PRODUCTS_LOCAL_PAGE_SIZE = 20
-private const val ALL_PRODUCTS_CATEGORY_KEY = "__all__"
+private enum class ProductTypeFilter(val displayName: String) {
+    ALL("Todos"),
+    PRODUCT("Producto"),
+    COMBO("Combo"),
+    SHOWCASE("Vitrina")
+}
 
 @Composable
 fun ProductsScreen(
@@ -93,25 +103,47 @@ fun ProductsScreen(
     val combosState by comboViewModel.combosState.collectAsState()
     val showcasesState by showcaseViewModel.showcasesState.collectAsState()
     val productCategoriesState by viewModel.productCategoriesState.collectAsState()
+    val isLoadingMoreProducts by viewModel.isLoadingMoreProducts.collectAsState()
+    val loadMoreProductsError by viewModel.loadMoreProductsError.collectAsState()
     val categories: List<ProductCategory> = productCategoriesState.categories
+    val selectedCategoryId by viewModel.selectedProductsCategoryId.collectAsState()
+    val selectedTypeFilterKey by viewModel.selectedProductsTypeFilter.collectAsState()
+    val selectedTypeFilter = ProductTypeFilter.entries.firstOrNull {
+        it.name == selectedTypeFilterKey
+    } ?: ProductTypeFilter.ALL
+    val normalizedSearchQuery = searchQuery.trim().lowercase()
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var deleteCandidate by remember { mutableStateOf<Product?>(null) }
     var deleteComboCandidate by remember { mutableStateOf<com.llego.shared.data.model.Combo?>(null) }
-    var visibleItemsByCategory by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var showCreateMenu by remember { mutableStateOf(false) }
     var updatingProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingComboIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingShowcaseIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
+        viewModel.invalidateProductsCache()
         if (branchId != null) {
-            viewModel.ensureProductsLoaded(branchId = branchId)
             comboViewModel.ensureCombosLoaded(branchId = branchId)
             showcaseViewModel.ensureShowcasesLoaded(branchId = branchId, activeOnly = false)
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(branchId, selectedCategoryId, normalizedSearchQuery) {
+        val shouldLoadAllProducts = normalizedSearchQuery.isNotBlank() || selectedCategoryId != null
+        if (shouldLoadAllProducts) {
+            viewModel.ensureAllProductsLoaded(
+                branchId = branchId,
+                categoryId = selectedCategoryId,
+                first = 100
+            )
         } else {
-            viewModel.ensureProductsLoaded()
+            viewModel.ensureProductsLoaded(
+                branchId = branchId,
+                categoryId = selectedCategoryId,
+                first = ProductViewModel.DEFAULT_PRODUCTS_PAGE_SIZE
+            )
         }
     }
 
@@ -124,9 +156,10 @@ fun ProductsScreen(
 
     androidx.compose.runtime.LaunchedEffect(categories, selectedCategoryId) {
         if (selectedCategoryId != null && categories.none { it.id == selectedCategoryId }) {
-            selectedCategoryId = null
+            viewModel.setSelectedProductsCategoryId(null)
         }
     }
+
 
     val products = when (val state = productsState) {
         is ProductsResult.Success -> state.products
@@ -147,7 +180,6 @@ fun ProductsScreen(
         selectedCategoryId == null || product.categoryId == selectedCategoryId
     }
     val categoryNameById = categories.associate { it.id to it.name }
-    val normalizedSearchQuery = searchQuery.trim().lowercase()
     val searchedProducts = if (normalizedSearchQuery.isBlank()) {
         filteredProducts
     } else {
@@ -176,18 +208,50 @@ fun ProductsScreen(
         }
     }
 
-    val categoryKey = selectedCategoryId ?: ALL_PRODUCTS_CATEGORY_KEY
-    val visibleCount = visibleItemsByCategory[categoryKey] ?: PRODUCTS_LOCAL_PAGE_SIZE
-    val paginatedProducts = if (normalizedSearchQuery.isBlank()) {
-        searchedProducts.take(visibleCount)
-    } else {
-        searchedProducts
-    }
-    val canLoadMore = normalizedSearchQuery.isBlank() && paginatedProducts.size < searchedProducts.size
+    val productSuccessState = productsState as? ProductsResult.Success
+    val supportsInfiniteLoad = normalizedSearchQuery.isBlank() &&
+        selectedCategoryId == null &&
+        (selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.PRODUCT)
+    val canLoadMore = productSuccessState?.hasNextPage == true &&
+        supportsInfiniteLoad &&
+        loadMoreProductsError == null
 
-    androidx.compose.runtime.LaunchedEffect(categoryKey) {
-        if (!visibleItemsByCategory.containsKey(categoryKey)) {
-            visibleItemsByCategory = visibleItemsByCategory + (categoryKey to PRODUCTS_LOCAL_PAGE_SIZE)
+    val categoryFilterActive = selectedCategoryId != null
+    val visibleProducts = when (selectedTypeFilter) {
+        ProductTypeFilter.ALL,
+        ProductTypeFilter.PRODUCT -> searchedProducts
+        ProductTypeFilter.COMBO,
+        ProductTypeFilter.SHOWCASE -> emptyList()
+    }
+    val visibleCombos = when {
+        categoryFilterActive -> emptyList()
+        selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.COMBO -> searchedCombos
+        else -> emptyList()
+    }
+    val visibleShowcases = when {
+        categoryFilterActive -> emptyList()
+        selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.SHOWCASE -> searchedShowcases
+        else -> emptyList()
+    }
+    val hasVisibleItems = visibleProducts.isNotEmpty() || visibleCombos.isNotEmpty() || visibleShowcases.isNotEmpty()
+
+    androidx.compose.runtime.LaunchedEffect(
+        listState,
+        canLoadMore,
+        isLoadingMoreProducts,
+        visibleProducts.size,
+        visibleCombos.size,
+        visibleShowcases.size
+    ) {
+        if (!canLoadMore) return@LaunchedEffect
+        snapshotFlow {
+            val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val totalItems = listState.layoutInfo.totalItemsCount
+            lastVisibleIndex to totalItems
+        }.collectLatest { (lastVisibleIndex, totalItems) ->
+            if (canLoadMore && !isLoadingMoreProducts && totalItems > 0 && lastVisibleIndex >= totalItems - 4) {
+                viewModel.loadMoreProducts()
+            }
         }
     }
 
@@ -219,48 +283,31 @@ fun ProductsScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(state.message)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadProducts(branchId = branchId) }) {
+                        Button(
+                            onClick = {
+                                viewModel.loadProducts(
+                                    branchId = branchId,
+                                    first = ProductViewModel.DEFAULT_PRODUCTS_PAGE_SIZE,
+                                    force = true
+                                )
+                            }
+                        ) {
                             Text("Reintentar")
                         }
                     }
                 }
             }
             is ProductsResult.Success -> {
-                if (paginatedProducts.isEmpty() && searchedCombos.isEmpty() && searchedShowcases.isEmpty()) {
+                if (!hasVisibleItems) {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            item {
-                                FilterChip(
-                                    selected = selectedCategoryId == null,
-                                    onClick = { selectedCategoryId = null },
-                                    label = { Text("Todas") },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                )
-                            }
-                            items(categories) { category ->
-                                FilterChip(
-                                    selected = selectedCategoryId == category.id,
-                                    onClick = { selectedCategoryId = category.id },
-                                    label = { Text(category.name) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                )
-                            }
-                        }
+                        ProductsFilters(
+                            categories = categories,
+                            selectedCategoryId = selectedCategoryId,
+                            selectedTypeFilter = selectedTypeFilter,
+                            onCategorySelected = { viewModel.setSelectedProductsCategoryId(it) },
+                            onTypeSelected = { viewModel.setSelectedProductsTypeFilter(it.name) },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -269,7 +316,7 @@ fun ProductsScreen(
                         ) {
                             Text(
                                 text = if (normalizedSearchQuery.isBlank()) {
-                                    "No hay productos para mostrar"
+                                    "No hay elementos para mostrar"
                                 } else {
                                     "No hay resultados para \"$searchQuery\""
                                 }
@@ -277,126 +324,132 @@ fun ProductsScreen(
                         }
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            top = 6.dp,
-                            end = 16.dp,
-                            bottom = 96.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item(key = "category_filters") {
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                item {
-                                    FilterChip(
-                                        selected = selectedCategoryId == null,
-                                        onClick = { selectedCategoryId = null },
-                                        label = { Text("Todas") },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    )
-                                }
-                                items(categories) { category ->
-                                    FilterChip(
-                                        selected = selectedCategoryId == category.id,
-                                        onClick = { selectedCategoryId = category.id },
-                                        label = { Text(category.name) },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        items(searchedShowcases, key = { "showcase_${it.id}" }) { showcase ->
-                            ShowcaseRow(
-                                showcase = showcase,
-                                isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
-                                onToggleAvailability = { isActive ->
-                                    if (updatingShowcaseIds.contains(showcase.id)) return@ShowcaseRow
-                                    scope.launch {
-                                        updatingShowcaseIds = updatingShowcaseIds + showcase.id
-                                        try {
-                                            showcaseViewModel.toggleAvailability(showcase.id, isActive)
-                                        } finally {
-                                            updatingShowcaseIds = updatingShowcaseIds - showcase.id
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                top = 100.dp,
+                                end = 16.dp,
+                                bottom = 96.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(visibleCombos, key = { "combo_${it.id}" }) { combo ->
+                                ComboRow(
+                                    combo = combo,
+                                    isAvailabilityUpdating = updatingComboIds.contains(combo.id),
+                                    onEdit = { onNavigateToAddCombo(combo) },
+                                    onDelete = { deleteComboCandidate = combo },
+                                    onToggleAvailability = { availability ->
+                                        if (updatingComboIds.contains(combo.id)) return@ComboRow
+                                        scope.launch {
+                                            updatingComboIds = updatingComboIds + combo.id
+                                            try {
+                                                comboViewModel.toggleAvailability(combo.id, availability)
+                                            } finally {
+                                                updatingComboIds = updatingComboIds - combo.id
+                                            }
                                         }
-                                    }
-                                }
-                            )
-                        }
-                        items(searchedCombos, key = { "combo_${it.id}" }) { combo ->
-                            ComboRow(
-                                combo = combo,
-                                isAvailabilityUpdating = updatingComboIds.contains(combo.id),
-                                onEdit = { onNavigateToAddCombo(combo) },
-                                onDelete = { deleteComboCandidate = combo },
-                                onToggleAvailability = { availability ->
-                                    if (updatingComboIds.contains(combo.id)) return@ComboRow
-                                    scope.launch {
-                                        updatingComboIds = updatingComboIds + combo.id
-                                        try {
-                                            comboViewModel.toggleAvailability(combo.id, availability)
-                                        } finally {
-                                            updatingComboIds = updatingComboIds - combo.id
-                                        }
-                                    }
-                                },
-                                onViewDetail = { onNavigateToComboDetail(combo) }
-                            )
-                        }
-                        items(paginatedProducts, key = { it.id }) { product ->
-                            ProductRow(
-                                product = product,
-                                categoryNameById = categoryNameById,
-                                isAvailabilityUpdating = updatingProductIds.contains(product.id),
-                                onEdit = { onNavigateToAddProduct(product) },
-                                onDelete = { deleteCandidate = product },
-                                onToggleAvailability = { availability ->
-                                    if (updatingProductIds.contains(product.id)) return@ProductRow
-                                    scope.launch {
-                                        updatingProductIds = updatingProductIds + product.id
-                                        try {
-                                            viewModel.toggleProductAvailability(
-                                                productId = product.id,
-                                                availability = availability
-                                            )
-                                        } finally {
-                                            updatingProductIds = updatingProductIds - product.id
-                                        }
-                                    }
-                                },
-                                onViewDetail = { onNavigateToProductDetail(product) }
-                            )
-                        }
-                        if (canLoadMore) {
-                            item {
-                                Button(
-                                    onClick = {
-                                        val updatedCount = (visibleItemsByCategory[categoryKey]
-                                            ?: PRODUCTS_LOCAL_PAGE_SIZE) + PRODUCTS_LOCAL_PAGE_SIZE
-                                        visibleItemsByCategory = visibleItemsByCategory + (
-                                            categoryKey to updatedCount
-                                        )
                                     },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Cargar mas")
+                                    onViewDetail = { onNavigateToComboDetail(combo) }
+                                )
+                            }
+                            items(visibleProducts, key = { it.id }) { product ->
+                                ProductRow(
+                                    product = product,
+                                    categoryNameById = categoryNameById,
+                                    isAvailabilityUpdating = updatingProductIds.contains(product.id),
+                                    onEdit = { onNavigateToAddProduct(product) },
+                                    onDelete = { deleteCandidate = product },
+                                    onToggleAvailability = { availability ->
+                                        if (updatingProductIds.contains(product.id)) return@ProductRow
+                                        scope.launch {
+                                            updatingProductIds = updatingProductIds + product.id
+                                            try {
+                                                viewModel.toggleProductAvailability(
+                                                    productId = product.id,
+                                                    availability = availability
+                                                )
+                                            } finally {
+                                                updatingProductIds = updatingProductIds - product.id
+                                            }
+                                        }
+                                    },
+                                    onViewDetail = { onNavigateToProductDetail(product) }
+                                )
+                            }
+                            items(visibleShowcases, key = { "showcase_${it.id}" }) { showcase ->
+                                ShowcaseRow(
+                                    showcase = showcase,
+                                    isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
+                                    onToggleAvailability = { isActive ->
+                                        if (updatingShowcaseIds.contains(showcase.id)) return@ShowcaseRow
+                                        scope.launch {
+                                            updatingShowcaseIds = updatingShowcaseIds + showcase.id
+                                            try {
+                                                showcaseViewModel.toggleAvailability(showcase.id, isActive)
+                                            } finally {
+                                                updatingShowcaseIds = updatingShowcaseIds - showcase.id
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                            if (isLoadingMoreProducts) {
+                                item(key = "loading_more_products") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                }
+                            }
+                            if (!isLoadingMoreProducts &&
+                                loadMoreProductsError != null &&
+                                supportsInfiniteLoad &&
+                                productSuccessState?.hasNextPage == true
+                            ) {
+                                item(key = "loading_more_products_error") {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = loadMoreProductsError ?: "No se pudo cargar más productos",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        TextButton(
+                                            onClick = { viewModel.loadMoreProducts(force = true) }
+                                        ) {
+                                            Text("Reintentar")
+                                        }
+                                    }
                                 }
                             }
                         }
+
+                        ProductsFilters(
+                            categories = categories,
+                            selectedCategoryId = selectedCategoryId,
+                            selectedTypeFilter = selectedTypeFilter,
+                            onCategorySelected = { viewModel.setSelectedProductsCategoryId(it) },
+                            onTypeSelected = { viewModel.setSelectedProductsTypeFilter(it.name) },
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .zIndex(10f)
+                        )
                     }
                 }
             }
@@ -476,7 +529,11 @@ fun ProductsScreen(
                         onClick = {
                             scope.launch {
                                 viewModel.deleteProductBlocking(product.id)
-                                viewModel.loadProducts(branchId = branchId, force = true)
+                                viewModel.loadProducts(
+                                    branchId = branchId,
+                                    first = ProductViewModel.DEFAULT_PRODUCTS_PAGE_SIZE,
+                                    force = true
+                                )
                             }
                             deleteCandidate = null
                         },
@@ -522,6 +579,81 @@ fun ProductsScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun ProductsFilters(
+    categories: List<ProductCategory>,
+    selectedCategoryId: String?,
+    selectedTypeFilter: ProductTypeFilter,
+    onCategorySelected: (String?) -> Unit,
+    onTypeSelected: (ProductTypeFilter) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showCategoryPicker by remember { mutableStateOf(false) }
+    var showTypePicker by remember { mutableStateOf(false) }
+    val selectedCategoryName = categories
+        .firstOrNull { it.id == selectedCategoryId }
+        ?.name
+        ?: "Todas"
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        iOSStylePicker(
+            label = "Categoria",
+            selectedValue = selectedCategoryName,
+            isExpanded = showCategoryPicker,
+            onToggle = { showCategoryPicker = !showCategoryPicker },
+            modifier = Modifier.weight(1f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                iOSStylePickerOption(
+                    text = "Todas",
+                    isSelected = selectedCategoryId == null,
+                    onClick = {
+                        onCategorySelected(null)
+                        showCategoryPicker = false
+                    }
+                )
+                categories.forEach { category ->
+                    iOSStylePickerOption(
+                        text = category.name,
+                        isSelected = selectedCategoryId == category.id,
+                        onClick = {
+                            onCategorySelected(category.id)
+                            showCategoryPicker = false
+                        }
+                    )
+                }
+            }
+        }
+
+        iOSStylePicker(
+            label = "Tipo",
+            selectedValue = selectedTypeFilter.displayName,
+            isExpanded = showTypePicker,
+            onToggle = { showTypePicker = !showTypePicker },
+            modifier = Modifier.weight(1f)
+        ) {
+            ProductTypeFilter.entries.forEach { filter ->
+                iOSStylePickerOption(
+                    text = filter.displayName,
+                    isSelected = selectedTypeFilter == filter,
+                    onClick = {
+                        onTypeSelected(filter)
+                        showTypePicker = false
+                    }
+                )
+            }
         }
     }
 }
@@ -594,7 +726,11 @@ private fun ProductRow(
     onViewDetail: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
+    val imageUrl = product.imageUrlMuyBaja.takeIf { it.isNotBlank() }
+        ?: product.imageUrlBaja.takeIf { it.isNotBlank() }
+        ?: product.imageUrl.takeIf { it.isNotBlank() }
+        ?: product.imageUrlOriginal.takeIf { it.isNotBlank() }
+        ?: product.image
     val resolvedCategoryName = categoryNameById[product.categoryId]
 
     Card(

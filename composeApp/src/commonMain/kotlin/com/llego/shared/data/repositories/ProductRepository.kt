@@ -48,21 +48,28 @@ class ProductRepository(
         branchId: String? = null,
         categoryId: String? = null,
         availableOnly: Boolean = false,
-        first: Int = 100
+        first: Int = 100,
+        after: String? = null
     ): ProductsResult {
         return try {
             val query = GetProductsQuery(
                 branchId = Optional.presentIfNotNull(branchId),
                 categoryId = Optional.presentIfNotNull(categoryId),
                 availableOnly = Optional.present(availableOnly),
-                first = Optional.present(first)
+                first = Optional.present(first),
+                after = Optional.presentIfNotNull(after)
             )
 
             val response = client.query(query).execute()
 
             if (response.data != null) {
-                val products = response.data!!.products.edges.map { it.node.toDomain() }
-                ProductsResult.Success(products)
+                val productsConnection = response.data!!.products
+                val products = productsConnection.edges.map { it.node.toDomain() }
+                ProductsResult.Success(
+                    products = products,
+                    hasNextPage = productsConnection.pageInfo.hasNextPage,
+                    endCursor = productsConnection.pageInfo.endCursor
+                )
             } else {
                 ProductsResult.Error(response.errors?.firstOrNull()?.message ?: "Unknown error")
             }
@@ -89,8 +96,13 @@ class ProductRepository(
 
             if (response.data != null) {
                 // Extraer los nodos de la estructura paginada edges[].node
-                val products = response.data!!.products.edges.map { it.node.toDomain() }
-                ProductsResult.Success(products)
+                val productsConnection = response.data!!.products
+                val products = productsConnection.edges.map { it.node.toDomain() }
+                ProductsResult.Success(
+                    products = products,
+                    hasNextPage = productsConnection.pageInfo.hasNextPage,
+                    endCursor = productsConnection.pageInfo.endCursor
+                )
             } else {
                 ProductsResult.Error(response.errors?.firstOrNull()?.message ?: "Unknown error")
             }

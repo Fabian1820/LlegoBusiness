@@ -1,39 +1,28 @@
-﻿package com.llego.business.profile.ui.components
+package com.llego.business.profile.ui.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.llego.business.shared.ui.components.NetworkImage
-import com.llego.shared.data.model.Business
+import com.llego.business.branches.ui.components.BranchStatusSelector
+import com.llego.business.branches.ui.components.BranchTipoSelector
 import com.llego.shared.data.model.Branch
-import com.llego.shared.data.model.User
-import com.llego.shared.data.model.toDisplayName
-import com.llego.shared.utils.formatDouble
-import com.llego.shared.ui.components.molecules.SchedulePicker
-import com.llego.shared.ui.components.molecules.toBackendSchedule
-import com.llego.shared.ui.components.molecules.toDaySchedule
-import com.llego.shared.ui.theme.LlegoCustomShapes
-import com.llego.shared.ui.theme.LlegoShapes
+import com.llego.shared.data.model.BranchTipo
 
 // ============= BRANCH INFO SECTION =============
 
 @Composable
 fun BranchInfoSection(
     branch: Branch?,
+    isActive: Boolean = branch?.isActive ?: false,
+    onStatusChange: (Boolean) -> Unit = {},
+    selectedTipos: Set<BranchTipo> = emptySet(),
+    onTiposChange: (Set<BranchTipo>) -> Unit = {},
     onSave: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
     var branchName by remember(branch) { mutableStateOf(branch?.name ?: "") }
@@ -53,17 +42,20 @@ fun BranchInfoSection(
     }
 
     ProfileSectionCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SectionHeader(
-                title = "Información de la sucursal",
-                sectionIcon = Icons.Default.Store
-            )
-            StatusBadge(branch?.isActive)
-        }
+        SectionHeader(
+            title = "Información de la sucursal",
+            sectionIcon = Icons.Default.Store
+        )
+
+        Text(
+            text = "Estado de sucursal",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        BranchStatusSelector(
+            isActive = isActive,
+            onStatusChange = onStatusChange
+        )
 
         EditableField(
             label = "Nombre",
@@ -106,6 +98,16 @@ fun BranchInfoSection(
             onCancelClick = { branchAddress = branch?.address ?: ""; isEditingAddress = false },
             icon = Icons.Default.LocationOn,
             placeholder = "Agregar direccion"
+        )
+
+        Text(
+            text = "Tipos de servicio",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        BranchTipoSelector(
+            selectedTipos = selectedTipos,
+            onSelectionChange = onTiposChange
         )
     }
 }

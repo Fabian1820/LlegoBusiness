@@ -9,7 +9,8 @@ import kotlinx.serialization.Serializable
  * Campos con valores por defecto del backend:
  * - weight: String! (default: "" si no se especifica en CreateProductInput)
  * - currency: String! (default: "USD" si no se especifica en CreateProductInput)
- * - imageUrl: String! (siempre generado por el backend como presigned URL)
+ * - imageUrl: String! (legacy/por defecto)
+ * - imageUrlMuyBaja/Baja/Media/Alta/Original: variantes optimizadas por calidad
  */
 @Serializable
 data class Product(
@@ -39,10 +40,14 @@ data class Product(
     val createdAt: String,
 
     /**
-     * URL presigned para acceder a la imagen del producto.
-     * Siempre generado por el backend (no nullable).
+     * URL presigned de compatibilidad.
      */
     val imageUrl: String,
+    val imageUrlMuyBaja: String = imageUrl,
+    val imageUrlBaja: String = imageUrl,
+    val imageUrlMedia: String = imageUrl,
+    val imageUrlAlta: String = imageUrl,
+    val imageUrlOriginal: String = imageUrl,
 
     // Relaciones opcionales (solo cuando se solicitan explícitamente en queries GraphQL)
 
@@ -83,7 +88,11 @@ data class ProductCategory(
  * Estado del resultado de productos
  */
 sealed class ProductsResult {
-    data class Success(val products: List<Product>) : ProductsResult()
+    data class Success(
+        val products: List<Product>,
+        val hasNextPage: Boolean = false,
+        val endCursor: String? = null
+    ) : ProductsResult()
     data class Error(val message: String) : ProductsResult()
     data object Loading : ProductsResult()
 }

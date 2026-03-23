@@ -21,9 +21,7 @@ fun BranchTipoSelector(
     selectedTipos: Set<BranchTipo>,
     onSelectionChange: (Set<BranchTipo>) -> Unit
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val chipColor = MaterialTheme.colorScheme.primary
 
     // Usar todos los valores del enum del backend sin hardcodear
     val options = BranchTipo.entries
@@ -35,12 +33,6 @@ fun BranchTipoSelector(
     ) {
         options.forEach { tipo ->
             val selected = tipo in selectedTipos
-            val color = when (tipo) {
-                BranchTipo.RESTAURANTE -> secondaryColor
-                BranchTipo.TIENDA -> primaryColor
-                BranchTipo.DULCERIA -> tertiaryColor
-                BranchTipo.PERFUMERIA -> primaryColor
-            }
 
             FilterChip(
                 selected = selected,
@@ -54,15 +46,15 @@ fun BranchTipoSelector(
                 },
                 label = { Text(tipo.toDisplayName()) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = color.copy(alpha = 0.15f),
-                    selectedLabelColor = color,
+                    selectedContainerColor = chipColor.copy(alpha = 0.15f),
+                    selectedLabelColor = chipColor,
                     containerColor = MaterialTheme.colorScheme.surface,
                     labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = selected,
-                    selectedBorderColor = color.copy(alpha = 0.6f),
+                    selectedBorderColor = chipColor.copy(alpha = 0.6f),
                     borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 ),
                 shape = LlegoCustomShapes.secondaryButton

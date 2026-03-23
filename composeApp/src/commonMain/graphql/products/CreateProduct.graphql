@@ -11,6 +11,11 @@ mutation CreateProduct($input: CreateProductInput!, $jwt: String) {
     variantListIds
     image
     imageUrl
+    imageUrlMuyBaja
+    imageUrlBaja
+    imageUrlMedia
+    imageUrlAlta
+    imageUrlOriginal
     availability
     createdAt
   }

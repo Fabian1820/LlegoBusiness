@@ -44,6 +44,7 @@ fun OrdersScreen(
     var animateContent by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }
     var gesturePullDistance by remember { mutableStateOf(0f) }
+    var shouldScrollToTopAfterRefresh by remember { mutableStateOf(false) }
     var visibleItemsByFilter by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     val latestUiState by rememberUpdatedState(uiState)
     val latestPullRefreshing by rememberUpdatedState(isPullRefreshing)
@@ -97,6 +98,21 @@ fun OrdersScreen(
         }
     }
 
+    LaunchedEffect(
+        shouldScrollToTopAfterRefresh,
+        isPullRefreshing,
+        uiState,
+        paginatedOrders.firstOrNull()?.id
+    ) {
+        val refreshCompleted = !isPullRefreshing && uiState !is OrdersUiState.Loading
+        if (shouldScrollToTopAfterRefresh && refreshCompleted) {
+            if (paginatedOrders.isNotEmpty()) {
+                ordersListState.animateScrollToItem(0)
+            }
+            shouldScrollToTopAfterRefresh = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         // Refresco automatico cada 2 minutos mientras la pantalla esta activa.
         while (true) {
@@ -113,6 +129,7 @@ fun OrdersScreen(
 
     val refreshFromGesture = {
         if (uiState !is OrdersUiState.Loading && !isPullRefreshing) {
+            shouldScrollToTopAfterRefresh = true
             isPullRefreshing = true
             viewModel.refreshOrders()
         }

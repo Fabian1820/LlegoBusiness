@@ -1,5 +1,5 @@
-query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolean = false, $first: Int = 100) {
-  products(branchId: $branchId, categoryId: $categoryId, availableOnly: $availableOnly, first: $first) {
+query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolean = false, $first: Int = 100, $after: String) {
+  products(branchId: $branchId, categoryId: $categoryId, availableOnly: $availableOnly, first: $first, after: $after) {
     edges {
       node {
         id
@@ -15,6 +15,11 @@ query GetProducts($branchId: String, $categoryId: String, $availableOnly: Boolea
         variantListIds
         createdAt
         imageUrl
+        imageUrlMuyBaja
+        imageUrlBaja
+        imageUrlMedia
+        imageUrlAlta
+        imageUrlOriginal
       }
     }
     pageInfo {

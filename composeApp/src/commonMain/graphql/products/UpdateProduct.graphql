@@ -11,6 +11,11 @@ mutation UpdateProduct($productId: String!, $input: UpdateProductInput!, $jwt: S
     variantListIds
     image
     imageUrl
+    imageUrlMuyBaja
+    imageUrlBaja
+    imageUrlMedia
+    imageUrlAlta
+    imageUrlOriginal
     availability
     createdAt
   }

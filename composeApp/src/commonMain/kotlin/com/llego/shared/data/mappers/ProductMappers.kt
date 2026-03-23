@@ -38,7 +38,12 @@ internal fun GetProductsQuery.Node.toDomain(): Product {
         categoryId = categoryId,
         variantListIds = variantListIds,
         createdAt = createdAt.toString(),
-        imageUrl = imageUrl           // String! -> String (no nullable)
+        imageUrl = imageUrl,
+        imageUrlMuyBaja = imageUrlMuyBaja,
+        imageUrlBaja = imageUrlBaja,
+        imageUrlMedia = imageUrlMedia,
+        imageUrlAlta = imageUrlAlta,
+        imageUrlOriginal = imageUrlOriginal
     )
 }
 
@@ -62,7 +67,12 @@ internal fun GetProductsByIdsQuery.Node.toDomain(): Product {
         categoryId = categoryId,
         variantListIds = variantListIds,
         createdAt = createdAt.toString(),
-        imageUrl = imageUrl           // String! -> String (no nullable)
+        imageUrl = imageUrl,
+        imageUrlMuyBaja = imageUrlMuyBaja,
+        imageUrlBaja = imageUrlBaja,
+        imageUrlMedia = imageUrlMedia,
+        imageUrlAlta = imageUrlAlta,
+        imageUrlOriginal = imageUrlOriginal
     )
 }
 
@@ -86,7 +96,12 @@ internal fun CreateProductMutation.CreateProduct.toDomain(): Product {
         categoryId = categoryId,
         variantListIds = variantListIds,
         createdAt = createdAt.toString(),
-        imageUrl = imageUrl           // String! -> String (no nullable)
+        imageUrl = imageUrl,
+        imageUrlMuyBaja = imageUrlMuyBaja,
+        imageUrlBaja = imageUrlBaja,
+        imageUrlMedia = imageUrlMedia,
+        imageUrlAlta = imageUrlAlta,
+        imageUrlOriginal = imageUrlOriginal
     )
 }
 
@@ -110,7 +125,12 @@ internal fun UpdateProductMutation.UpdateProduct.toDomain(): Product {
         categoryId = categoryId,
         variantListIds = variantListIds,
         createdAt = createdAt.toString(),
-        imageUrl = imageUrl           // String! -> String (no nullable)
+        imageUrl = imageUrl,
+        imageUrlMuyBaja = imageUrlMuyBaja,
+        imageUrlBaja = imageUrlBaja,
+        imageUrlMedia = imageUrlMedia,
+        imageUrlAlta = imageUrlAlta,
+        imageUrlOriginal = imageUrlOriginal
     )
 }
 

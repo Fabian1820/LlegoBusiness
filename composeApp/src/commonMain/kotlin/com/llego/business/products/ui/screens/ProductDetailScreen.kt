@@ -57,7 +57,12 @@ fun ProductDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val imageUrl = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
+    val imageUrl = product.imageUrlMedia.takeIf { it.isNotBlank() }
+        ?: product.imageUrlAlta.takeIf { it.isNotBlank() }
+        ?: product.imageUrlBaja.takeIf { it.isNotBlank() }
+        ?: product.imageUrl.takeIf { it.isNotBlank() }
+        ?: product.imageUrlOriginal.takeIf { it.isNotBlank() }
+        ?: product.image
     val associatedVariantIds = product.variantListIds.distinct()
     val associatedVariantNames = associatedVariantIds.mapNotNull { variantListNameById[it] }
     val variantAssociationSummary = when {

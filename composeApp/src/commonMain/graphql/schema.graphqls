@@ -80,6 +80,11 @@ type Query {
   product(id: String!, jwt: String = null): ProductType
 
   """
+  Obtener múltiples productos por lista de IDs (findMany)
+  """
+  productsByIds(ids: [String!]!, jwt: String = null): [ProductType!]!
+
+  """
   Buscar productos con scoring por cercanía (paginado)
   """
   searchProducts(query: String!, first: Int = null, after: String = null, useVectorSearch: Boolean! = true, branchTipo: BranchTipo = null, categoryId: String = null, radiusKm: Float = null, jwt: String = null): ProductConnection!
@@ -150,9 +155,9 @@ type Query {
   semanticSearch(query: String!, collection: SemanticSearchCollection!, limit: Int! = 10, jwt: String = null): SemanticSearchResultType!
 
   """
-  Send a message to the AI assistant and get a response with RAG
+  Send a message to the AI assistant and get a response with RAG. Use stream=true for GraphQL subscription streaming.
   """
-  aiChat(input: AiAssistantChatInput!, jwt: String = null): AiAssistantResponseType
+  aiChat(input: AiAssistantChatInput!, jwt: String = null): AiChatResult!
 
   """
   Obtener mis pedidos con paginación
@@ -440,7 +445,7 @@ type Query {
   syncProducts(branchId: String = null, categoryId: String = null, availableOnly: Boolean! = false, jwt: String = null): [ProductSyncType!]!
 
   """
-  Sincronizar imágenes con URLs para diferentes calidades (baja 100x100, original)
+  Sincronizar imágenes con URLs para diferentes calidades (200x200, 720x540, 1080x1350, 1440x1800, original)
   """
   syncImages(entityType: String = null, entityIds: [String!] = null, qualities: [ImageQuality!] = null, jwt: String = null): [ImageSyncType!]!
 
@@ -653,10 +658,6 @@ type BranchType {
 
   paymentMethodIds: [String!]!
 
-  acceptedCurrency: AcceptedCurrency
-
-  exchangeRate: Int
-
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -668,6 +669,10 @@ type BranchType {
   phones: [TransferPhoneType!]!
 
   deliveryRadius: Float
+
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
 
   createdAt: DateTime!
 
@@ -729,14 +734,6 @@ enum BranchVehicle {
   CAMINANDO
 }
 
-enum AcceptedCurrency {
-  CUP
-
-  USD
-
-  BOTH
-}
-
 type TransferAccountType {
   cardNumber: String!
 
@@ -757,6 +754,14 @@ type TransferPhoneType {
   phone: String!
 
   isActive: Boolean!
+}
+
+enum AcceptedCurrency {
+  CUP
+
+  USD
+
+  BOTH
 }
 
 type ProductType {
@@ -788,6 +793,46 @@ type ProductType {
   Presigned URL for the product image
   """
   imageUrl: String!
+
+  """
+  Presigned URL for the very low quality product image (200x200)
+  """
+  imageUrlMuyBaja: String!
+
+  """
+  Presigned URL for the low quality product image (720x540)
+  """
+  imageUrlBaja: String!
+
+  """
+  Presigned URL for the medium quality product image (1080x1350)
+  """
+  imageUrlMedia: String!
+
+  """
+  Presigned URL for the high quality product image (1440x1800)
+  """
+  imageUrlAlta: String!
+
+  """
+  Presigned URL for the original product image
+  """
+  imageUrlOriginal: String!
+
+  """
+  Precio convertido a la otra moneda (si la sucursal acepta ambas)
+  """
+  convertedPrice: Float
+
+  """
+  Moneda del precio convertido
+  """
+  convertedCurrency: String
+
+  """
+  Tasa de cambio de la sucursal (si acepta ambas monedas)
+  """
+  exchangeRate: Int
 
   """
   Product category name
@@ -990,10 +1035,6 @@ type ScoredBranchType {
 
   paymentMethodIds: [String!]!
 
-  acceptedCurrency: AcceptedCurrency
-
-  exchangeRate: Int
-
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -1005,6 +1046,10 @@ type ScoredBranchType {
   phones: [TransferPhoneType!]!
 
   deliveryRadius: Float
+
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
 
   createdAt: DateTime!
 
@@ -1102,10 +1147,6 @@ type NearbyBranchType {
 
   paymentMethodIds: [String!]!
 
-  acceptedCurrency: AcceptedCurrency
-
-  exchangeRate: Int
-
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -1117,6 +1158,10 @@ type NearbyBranchType {
   phones: [TransferPhoneType!]!
 
   deliveryRadius: Float
+
+  acceptedCurrency: AcceptedCurrency
+
+  exchangeRate: Int
 
   createdAt: DateTime!
 
@@ -1204,9 +1249,49 @@ type ScoredProductType {
   imageUrl: String!
 
   """
+  Presigned URL for the very low quality product image (200x200)
+  """
+  imageUrlMuyBaja: String!
+
+  """
+  Presigned URL for the low quality product image (720x540)
+  """
+  imageUrlBaja: String!
+
+  """
+  Presigned URL for the medium quality product image (1080x1350)
+  """
+  imageUrlMedia: String!
+
+  """
+  Presigned URL for the high quality product image (1440x1800)
+  """
+  imageUrlAlta: String!
+
+  """
+  Presigned URL for the original product image
+  """
+  imageUrlOriginal: String!
+
+  """
   Distance in kilometers from user
   """
   distanceKm: Float
+
+  """
+  Precio convertido a la otra moneda (si la sucursal acepta ambas)
+  """
+  convertedPrice: Float
+
+  """
+  Moneda del precio convertido
+  """
+  convertedCurrency: String
+
+  """
+  Tasa de cambio de la sucursal (si acepta ambas monedas)
+  """
+  exchangeRate: Int
 
   """
   Product category name
@@ -1346,7 +1431,7 @@ type ComboType {
   imageUrl: String
 
   """
-  Representative products for frontend composition (one per slot)
+  Representative products for frontend composition (max 4 products)
   """
   representativeProducts: [ProductType!]!
 
@@ -1512,6 +1597,18 @@ enum SemanticSearchCollection {
   BRANCHES
 
   BUSINESSES
+}
+
+type AiChatResult {
+  """
+  Successful response data
+  """
+  success: AiAssistantResponseType
+
+  """
+  Error information if request failed
+  """
+  error: AiChatError
 }
 
 type AiAssistantResponseType {
@@ -1709,6 +1806,80 @@ type DraftOrderItemType {
   imageUrl: String!
 }
 
+type AiChatError {
+  """
+  Error code
+  """
+  code: AiChatErrorCode!
+
+  """
+  Human-readable error message
+  """
+  message: String!
+
+  """
+  Quota information (if applicable)
+  """
+  quota: AiChatQuotaInfo
+
+  """
+  Seconds until retry is allowed (if applicable)
+  """
+  retryAfter: Int
+
+  """
+  Maximum allowed words (for MESSAGE_TOO_LONG)
+  """
+  maxWords: Int
+
+  """
+  Actual word count (for MESSAGE_TOO_LONG)
+  """
+  wordsCount: Int
+}
+
+enum AiChatErrorCode {
+  AI_MESSAGE_TOO_LONG
+
+  AI_DEVICE_ID_REQUIRED
+
+  AI_DAILY_DEVICE_QUOTA_EXCEEDED
+
+  AI_QUOTA_EXCEEDED
+
+  AI_FREE_QUOTA_EXCEEDED
+
+  AI_SERVICE_ERROR
+
+  AI_RATE_LIMIT_EXCEEDED
+
+  AI_INVALID_REQUEST
+
+  AI_INTERNAL_ERROR
+}
+
+type AiChatQuotaInfo {
+  """
+  Quota source identifier
+  """
+  source: String!
+
+  """
+  Total quota limit
+  """
+  limit: Int!
+
+  """
+  Amount used
+  """
+  used: Int!
+
+  """
+  Amount remaining
+  """
+  remaining: Int!
+}
+
 input AiAssistantChatInput {
   """
   The user message/query to send
@@ -1719,6 +1890,11 @@ input AiAssistantChatInput {
   Unique device identifier from mobile app (required for free quota)
   """
   deviceId: String = null
+
+  """
+  Enable streaming mode (requires GraphQL subscription)
+  """
+  stream: Boolean! = false
 }
 
 type OrdersConnectionType {
@@ -1901,11 +2077,39 @@ type OrderItemType {
 
   quantity: Int!
 
-  imageUrl: String
-
   requestDescription: String
 
   wasModifiedByStore: Boolean!
+
+  """
+  Presigned URL for the item image
+  """
+  imageUrl: String
+
+  """
+  Presigned URL for the very low quality item image (200x200)
+  """
+  imageUrlMuyBaja: String
+
+  """
+  Presigned URL for the low quality item image (720x540)
+  """
+  imageUrlBaja: String
+
+  """
+  Presigned URL for the medium quality item image (1080x1350)
+  """
+  imageUrlMedia: String
+
+  """
+  Presigned URL for the high quality item image (1440x1800)
+  """
+  imageUrlAlta: String
+
+  """
+  Presigned URL for the original item image
+  """
+  imageUrlOriginal: String
 
   """
   Line total (price * quantity)
@@ -2149,11 +2353,39 @@ type TopProductType {
 
   name: String!
 
-  imageUrl: String!
-
   totalQuantity: Int!
 
   totalRevenue: Float!
+
+  """
+  Presigned URL for the product image
+  """
+  imageUrl: String!
+
+  """
+  Presigned URL for the very low quality product image (200x200)
+  """
+  imageUrlMuyBaja: String!
+
+  """
+  Presigned URL for the low quality product image (720x540)
+  """
+  imageUrlBaja: String!
+
+  """
+  Presigned URL for the medium quality product image (1080x1350)
+  """
+  imageUrlMedia: String!
+
+  """
+  Presigned URL for the high quality product image (1440x1800)
+  """
+  imageUrlAlta: String!
+
+  """
+  Presigned URL for the original product image
+  """
+  imageUrlOriginal: String!
 }
 
 enum DashboardPeriod {
@@ -2843,6 +3075,31 @@ type FeedProductType {
   imageUrl: String!
 
   """
+  Presigned URL for the very low quality product image (200x200)
+  """
+  imageUrlMuyBaja: String!
+
+  """
+  Presigned URL for the low quality product image (720x540)
+  """
+  imageUrlBaja: String!
+
+  """
+  Presigned URL for the medium quality product image (1080x1350)
+  """
+  imageUrlMedia: String!
+
+  """
+  Presigned URL for the high quality product image (1440x1800)
+  """
+  imageUrlAlta: String!
+
+  """
+  Presigned URL for the original product image
+  """
+  imageUrlOriginal: String!
+
+  """
   Product category name
   """
   categoryName: String
@@ -3011,6 +3268,10 @@ type BranchSyncType {
 
   deliveryRadius: Float
 
+  acceptedCurrency: String
+
+  exchangeRate: Int
+
   createdAt: DateTime!
 
   """
@@ -3072,13 +3333,25 @@ type ImageSyncType {
 }
 
 type ImageUrlType {
+  muyBaja: String
+
   baja: String
+
+  media: String
+
+  alta: String
 
   original: String
 }
 
 enum ImageQuality {
+  MUY_BAJA
+
   BAJA
+
+  MEDIA
+
+  ALTA
 
   ORIGINAL
 }
@@ -3818,13 +4091,13 @@ input CreateBranchInput {
 
   socialMedia: JSON = null
 
-  acceptedCurrency: AcceptedCurrency = null
-
-  exchangeRate: Int = null
-
   useAppMessaging: Boolean! = true
 
   vehicles: [BranchVehicle!] = null
+
+  acceptedCurrency: AcceptedCurrency = null
+
+  exchangeRate: Int = null
 
   accounts: [TransferAccountInput!] = null
 
@@ -3856,15 +4129,15 @@ input UpdateBranchInput {
 
   tipos: [BranchTipo!] = null
 
-  acceptedCurrency: AcceptedCurrency = null
-
-  exchangeRate: Int = null
-
   paymentMethodIds: [String!] = null
 
   useAppMessaging: Boolean = null
 
   vehicles: [BranchVehicle!] = null
+
+  acceptedCurrency: AcceptedCurrency = null
+
+  exchangeRate: Int = null
 
   accounts: [TransferAccountInput!] = null
 
@@ -4587,6 +4860,16 @@ type Subscription {
   Cambios en pedidos de una sucursal
   """
   branchOrderUpdated(branchId: String!): OrderType!
+
+  """
+  Stream de seguimiento de pedido en tiempo real
+  """
+  orderTrackingStream(orderId: String!, jwt: String = null): OrderTrackingStreamPayload!
+
+  """
+  Stream AI assistant responses in real-time with RAG support
+  """
+  aiChatStream(input: AiAssistantChatInput!, jwt: String = null): AiChatStreamChunk!
 }
 
 type DeliveryLocationUpdateType {
@@ -4599,6 +4882,84 @@ type DeliveryLocationUpdateType {
   estimatedMinutesRemaining: Int
 
   distanceRemainingKm: Float
+}
+
+type OrderTrackingStreamPayload {
+  estimatedMinutes: Int
+
+  distanceKm: Float
+
+  deliveryPersonLocation: CoordinatesType
+
+  """
+  Order summary
+  """
+  order: OrderSummaryType!
+}
+
+type OrderSummaryType {
+  id: String!
+
+  status: OrderStatusEnum!
+
+  estimatedMinutesRemaining: Int
+}
+
+type AiChatStreamChunk {
+  """
+  Incremental text delta for this chunk
+  """
+  delta: String!
+
+  """
+  Full accumulated text so far
+  """
+  accumulatedText: String!
+
+  """
+  Products suggested (sent in final chunk)
+  """
+  suggestedProducts: [ProductSuggestionType!]!
+
+  """
+  Branches suggested (sent in final chunk)
+  """
+  suggestedBranches: [BranchSuggestionType!]!
+
+  """
+  Product IDs suggested (sent in final chunk)
+  """
+  suggestedProductIds: [String!]!
+
+  """
+  Branch IDs suggested (sent in final chunk)
+  """
+  suggestedBranchIds: [String!]!
+
+  """
+  Draft order (sent in final chunk)
+  """
+  draftOrder: DraftOrderType
+
+  """
+  Missing fields (sent in final chunk)
+  """
+  missingFields: [String!]!
+
+  """
+  Confidence score (sent in final chunk)
+  """
+  confidence: Float
+
+  """
+  Whether this is the final chunk
+  """
+  isFinal: Boolean!
+
+  """
+  Error if streaming failed
+  """
+  error: AiChatError
 }
 
 """
