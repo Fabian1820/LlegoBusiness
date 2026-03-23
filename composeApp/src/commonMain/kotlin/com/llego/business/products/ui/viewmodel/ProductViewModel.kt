@@ -114,8 +114,7 @@ class ProductViewModel(
             _loadMoreProductsError.value = null
             lastFailedLoadMoreCursor = null
             fullyLoadedProductsQueries.remove(fullQuery)
-            val shouldShowLoading =
-                force || query != lastLoadedProductsQuery || _productsState.value !is ProductsResult.Success
+            val shouldShowLoading = force || _productsState.value !is ProductsResult.Success
             if (shouldShowLoading) {
                 _productsState.value = ProductsResult.Loading
             }
@@ -276,7 +275,7 @@ class ProductViewModel(
                 _isLoadingMoreProducts.value = false
                 _loadMoreProductsError.value = null
                 lastFailedLoadMoreCursor = null
-                if (currentState == null || fullQuery !in fullyLoadedProductsQueries) {
+                if (currentState == null) {
                     _productsState.value = ProductsResult.Loading
                 }
 

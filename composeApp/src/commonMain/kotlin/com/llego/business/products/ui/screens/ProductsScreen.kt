@@ -160,6 +160,17 @@ fun ProductsScreen(
         }
     }
 
+    androidx.compose.runtime.LaunchedEffect(
+        branchId,
+        selectedCategoryId,
+        selectedTypeFilter,
+        normalizedSearchQuery
+    ) {
+        if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
+            listState.scrollToItem(0)
+        }
+    }
+
 
     val products = when (val state = productsState) {
         is ProductsResult.Success -> state.products

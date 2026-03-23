@@ -141,7 +141,10 @@ class OrdersViewModel(
         val branchId = _currentBranchId.value ?: return
 
         viewModelScope.launch {
-            _uiState.value = OrdersUiState.Loading
+            val shouldShowLoading = _orders.value.isEmpty()
+            if (shouldShowLoading) {
+                _uiState.value = OrdersUiState.Loading
+            }
             val dateRange = _selectedDateRange.value.getDateRange()
             val allOrders = mutableListOf<Order>()
             var fetchOffset = 0

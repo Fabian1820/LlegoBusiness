@@ -73,10 +73,10 @@ fun OrdersScreen(
     val isAtTop = paginatedOrders.isEmpty() ||
         (ordersListState.firstVisibleItemIndex == 0 && ordersListState.firstVisibleItemScrollOffset == 0)
 
-    // Scroll to top when filters change
-    LaunchedEffect(selectedFilter, selectedDateRange, searchQuery) {
-        if (paginatedOrders.isNotEmpty()) {
-            ordersListState.animateScrollToItem(0)
+    // Scroll to top when filters or search change.
+    LaunchedEffect(selectedFilter, selectedDateRange, normalizedSearchQuery) {
+        if (ordersListState.firstVisibleItemIndex != 0 || ordersListState.firstVisibleItemScrollOffset != 0) {
+            ordersListState.scrollToItem(0)
         }
     }
 
