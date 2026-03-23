@@ -69,6 +69,7 @@ import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.Showcase
 import com.llego.shared.data.model.ProductCategory
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
@@ -94,6 +95,7 @@ fun ProductsScreen(
     searchQuery: String = "",
     onNavigateToAddProduct: (Product?) -> Unit,
     onNavigateToAddShowcase: () -> Unit,
+    onNavigateToEditShowcase: (Showcase) -> Unit,
     onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
     onNavigateToComboDetail: (com.llego.shared.data.model.Combo) -> Unit,
@@ -117,6 +119,7 @@ fun ProductsScreen(
 
     var deleteCandidate by remember { mutableStateOf<Product?>(null) }
     var deleteComboCandidate by remember { mutableStateOf<com.llego.shared.data.model.Combo?>(null) }
+    var deleteShowcaseCandidate by remember { mutableStateOf<Showcase?>(null) }
     var showCreateMenu by remember { mutableStateOf(false) }
     var updatingProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingComboIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -244,6 +247,12 @@ fun ProductsScreen(
         selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.SHOWCASE -> searchedShowcases
         else -> emptyList()
     }
+    val showcaseFilterEnabled = !categoryFilterActive &&
+        (selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.SHOWCASE)
+    val isShowcaseOnlyFilter = selectedTypeFilter == ProductTypeFilter.SHOWCASE
+    val showcasesErrorMessage = (showcasesState as? ShowcasesResult.Error)?.message
+    val isShowcasesLoading = showcasesState is ShowcasesResult.Loading
+    val canRetryShowcases = branchId != null
     val hasVisibleItems = visibleProducts.isNotEmpty() || visibleCombos.isNotEmpty() || visibleShowcases.isNotEmpty()
 
     androidx.compose.runtime.LaunchedEffect(
@@ -309,6 +318,10 @@ fun ProductsScreen(
                 }
             }
             is ProductsResult.Success -> {
+                val shouldRenderShowcasesLoadingState = isShowcaseOnlyFilter && isShowcasesLoading
+                val shouldRenderShowcasesErrorState =
+                    isShowcaseOnlyFilter && !isShowcasesLoading && showcasesErrorMessage != null
+
                 if (!hasVisibleItems) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         ProductsFilters(
@@ -325,13 +338,49 @@ fun ProductsScreen(
                                 .fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = if (normalizedSearchQuery.isBlank()) {
-                                    "No hay elementos para mostrar"
-                                } else {
-                                    "No hay resultados para \"$searchQuery\""
+                            when {
+                                shouldRenderShowcasesLoadingState -> {
+                                    CircularProgressIndicator()
                                 }
-                            )
+
+                                shouldRenderShowcasesErrorState -> {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = showcasesErrorMessage
+                                                ?: "Error al cargar vitrinas",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        TextButton(
+                                            enabled = canRetryShowcases,
+                                            onClick = {
+                                                branchId?.let { currentBranchId ->
+                                                    showcaseViewModel.loadShowcases(
+                                                        branchId = currentBranchId,
+                                                        activeOnly = false,
+                                                        force = true
+                                                    )
+                                                }
+                                            }
+                                        ) {
+                                            Text("Reintentar")
+                                        }
+                                    }
+                                }
+
+                                else -> {
+                                    Text(
+                                        text = if (normalizedSearchQuery.isBlank()) {
+                                            "No hay elementos para mostrar"
+                                        } else {
+                                            "No hay resultados para \"$searchQuery\""
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -391,10 +440,58 @@ fun ProductsScreen(
                                     onViewDetail = { onNavigateToProductDetail(product) }
                                 )
                             }
+                            if (showcaseFilterEnabled && showcasesErrorMessage != null) {
+                                item(key = "showcases_error") {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = showcasesErrorMessage,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                        TextButton(
+                                            enabled = canRetryShowcases,
+                                            onClick = {
+                                                branchId?.let { currentBranchId ->
+                                                    showcaseViewModel.loadShowcases(
+                                                        branchId = currentBranchId,
+                                                        activeOnly = false,
+                                                        force = true
+                                                    )
+                                                }
+                                            }
+                                        ) {
+                                            Text("Reintentar")
+                                        }
+                                    }
+                                }
+                            }
+                            if (showcaseFilterEnabled && isShowcasesLoading && visibleShowcases.isEmpty()) {
+                                item(key = "showcases_loading") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                }
+                            }
                             items(visibleShowcases, key = { "showcase_${it.id}" }) { showcase ->
                                 ShowcaseRow(
                                     showcase = showcase,
                                     isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
+                                    onEdit = { onNavigateToEditShowcase(showcase) },
+                                    onDelete = { deleteShowcaseCandidate = showcase },
                                     onToggleAvailability = { isActive ->
                                         if (updatingShowcaseIds.contains(showcase.id)) return@ShowcaseRow
                                         scope.launch {
@@ -586,6 +683,34 @@ fun ProductsScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { deleteComboCandidate = null }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+
+        deleteShowcaseCandidate?.let { showcase ->
+            AlertDialog(
+                onDismissRequest = { deleteShowcaseCandidate = null },
+                title = { Text("Eliminar vitrina") },
+                text = { Text("Confirmas eliminar \"${showcase.title}\"?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                showcaseViewModel.deleteShowcase(showcase.id)
+                            }
+                            deleteShowcaseCandidate = null
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { deleteShowcaseCandidate = null }) {
                         Text("Cancelar")
                     }
                 }
@@ -899,8 +1024,10 @@ private fun ProductRow(
 
 @Composable
 private fun ShowcaseRow(
-    showcase: com.llego.shared.data.model.Showcase,
+    showcase: Showcase,
     isAvailabilityUpdating: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -979,24 +1106,51 @@ private fun ShowcaseRow(
                 )
             }
 
-            IconButton(
-                onClick = { onToggleAvailability(!showcase.isActive) },
-                enabled = !isAvailabilityUpdating,
-                modifier = Modifier.size(32.dp)
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isAvailabilityUpdating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
-                        if (showcase.isActive) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Cambiar disponibilidad",
+                        Icons.Default.Edit,
+                        contentDescription = "Editar",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(
+                    onClick = { onToggleAvailability(!showcase.isActive) },
+                    enabled = !isAvailabilityUpdating,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    if (isAvailabilityUpdating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Icon(
+                            if (showcase.isActive) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Cambiar disponibilidad",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }

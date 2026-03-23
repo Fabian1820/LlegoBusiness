@@ -91,6 +91,42 @@ class ShowcaseViewModel(
         return result
     }
 
+    suspend fun updateShowcase(
+        showcaseId: String,
+        title: String? = null,
+        imagePath: String? = null,
+        description: String? = null,
+        items: List<ShowcaseItem>? = null,
+        isActive: Boolean? = null
+    ): ShowcasesResult {
+        val previousState = _showcasesState.value as? ShowcasesResult.Success
+        _showcasesState.value = ShowcasesResult.Loading
+        val result = repository.updateShowcase(
+            showcaseId = showcaseId,
+            title = title,
+            imagePath = imagePath,
+            description = description,
+            items = items,
+            isActive = isActive
+        )
+        if (result is ShowcasesResult.Success) {
+            val updated = result.showcases.firstOrNull()
+            val previousShowcases = previousState?.showcases
+            _showcasesState.value = if (updated != null && previousShowcases != null) {
+                ShowcasesResult.Success(
+                    previousShowcases.map { showcase ->
+                        if (showcase.id == updated.id) updated else showcase
+                    }
+                )
+            } else {
+                result
+            }
+        } else {
+            _showcasesState.value = result
+        }
+        return result
+    }
+
     suspend fun toggleAvailability(showcaseId: String, isActive: Boolean): ShowcasesResult {
         val previousState = _showcasesState.value as? ShowcasesResult.Success
         val previousShowcases = previousState?.showcases
@@ -122,6 +158,39 @@ class ShowcaseViewModel(
             is ShowcasesResult.Loading -> {
                 _showcasesState.value = ShowcasesResult.Success(previousShowcases)
                 ShowcasesResult.Error("No se pudo actualizar disponibilidad")
+            }
+        }
+    }
+
+    suspend fun deleteShowcase(showcaseId: String): ShowcasesResult {
+        val previousState = _showcasesState.value as? ShowcasesResult.Success
+        val previousShowcases = previousState?.showcases
+
+        if (previousShowcases == null) {
+            val result = repository.deleteShowcase(showcaseId)
+            if (result is ShowcasesResult.Success) {
+                invalidateShowcasesCache()
+            }
+            return result
+        }
+
+        val optimisticShowcases = previousShowcases.filterNot { it.id == showcaseId }
+        _showcasesState.value = ShowcasesResult.Success(optimisticShowcases)
+
+        return when (val result = repository.deleteShowcase(showcaseId)) {
+            is ShowcasesResult.Success -> {
+                _showcasesState.value = ShowcasesResult.Success(optimisticShowcases)
+                result
+            }
+
+            is ShowcasesResult.Error -> {
+                _showcasesState.value = ShowcasesResult.Success(previousShowcases)
+                result
+            }
+
+            is ShowcasesResult.Loading -> {
+                _showcasesState.value = ShowcasesResult.Success(previousShowcases)
+                ShowcasesResult.Error("No se pudo eliminar la vitrina")
             }
         }
     }

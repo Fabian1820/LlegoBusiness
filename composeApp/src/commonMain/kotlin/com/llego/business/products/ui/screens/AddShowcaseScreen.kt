@@ -54,6 +54,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.shared.data.model.ImageUploadState
+import com.llego.shared.data.model.Showcase
 import com.llego.shared.data.model.ShowcaseDetectionResult
 import com.llego.shared.data.model.ShowcaseItem
 import com.llego.shared.data.model.ShowcasesResult
@@ -76,6 +77,7 @@ private data class EditableShowcaseItem(
 fun AddShowcaseScreen(
     viewModel: ShowcaseViewModel,
     branchId: String?,
+    existingShowcase: Showcase? = null,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,8 +86,9 @@ fun AddShowcaseScreen(
     val density = LocalDensity.current
     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    val isEditing = existingShowcase != null
+    var title by remember(existingShowcase?.id) { mutableStateOf(existingShowcase?.title.orEmpty()) }
+    var description by remember(existingShowcase?.id) { mutableStateOf(existingShowcase?.description.orEmpty()) }
     var showcaseImageState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var isSaving by remember { mutableStateOf(false) }
     var isDetecting by remember { mutableStateOf(false) }
@@ -93,9 +96,26 @@ fun AddShowcaseScreen(
     var detectionMessage by remember { mutableStateOf<String?>(null) }
     var lastDetectedImagePath by remember { mutableStateOf<String?>(null) }
 
-    val items = remember { mutableStateListOf<EditableShowcaseItem>() }
+    val items = remember(existingShowcase?.id) {
+        mutableStateListOf<EditableShowcaseItem>().apply {
+            addAll(
+                existingShowcase?.items.orEmpty().map { item ->
+                    EditableShowcaseItem(
+                        id = item.id,
+                        name = item.name,
+                        description = item.description.orEmpty(),
+                        price = item.price?.let { value ->
+                            if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+                        }.orEmpty(),
+                        availability = item.availability
+                    )
+                }
+            )
+        }
+    }
 
-    val imagePath = (showcaseImageState as? ImageUploadState.Success)?.s3Path
+    val uploadedImagePath = (showcaseImageState as? ImageUploadState.Success)?.s3Path
+    val imagePath = uploadedImagePath ?: existingShowcase?.image
     val localImagePath = (showcaseImageState as? ImageUploadState.Success)?.localUri
 
     val canSave = branchId != null &&
@@ -154,7 +174,7 @@ fun AddShowcaseScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Nueva vitrina",
+                        text = if (isEditing) "Editar vitrina" else "Nueva vitrina",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
                 },
@@ -211,18 +231,33 @@ fun AddShowcaseScreen(
                                             availability = item.availability
                                         )
                                     }
-                                    .ifEmpty { null }
+                                val showcaseItemsPayload = if (isEditing) {
+                                    normalizedItems ?: emptyList()
+                                } else {
+                                    normalizedItems
+                                }
 
                                 scope.launch {
                                     isSaving = true
                                     errorMessage = null
-                                    val result = viewModel.createShowcase(
-                                        branchId = branchId.orEmpty(),
-                                        title = title.trim(),
-                                        imagePath = imagePath.orEmpty(),
-                                        description = description.trim().ifBlank { null },
-                                        items = normalizedItems
-                                    )
+                                    val result = if (isEditing) {
+                                        viewModel.updateShowcase(
+                                            showcaseId = existingShowcase!!.id,
+                                            title = title.trim(),
+                                            imagePath = uploadedImagePath,
+                                            description = description.trim().ifBlank { "" },
+                                            items = showcaseItemsPayload,
+                                            isActive = null
+                                        )
+                                    } else {
+                                        viewModel.createShowcase(
+                                            branchId = branchId.orEmpty(),
+                                            title = title.trim(),
+                                            imagePath = imagePath.orEmpty(),
+                                            description = description.trim().ifBlank { null },
+                                            items = showcaseItemsPayload
+                                        )
+                                    }
                                     when (result) {
                                         is ShowcasesResult.Success -> onNavigateBack()
                                         is ShowcasesResult.Error -> errorMessage = result.message
@@ -242,7 +277,7 @@ fun AddShowcaseScreen(
                                     strokeWidth = 2.dp
                                 )
                             } else {
-                                Text("Publicar vitrina")
+                                Text(if (isEditing) "Guardar cambios" else "Publicar vitrina")
                             }
                         }
                     }

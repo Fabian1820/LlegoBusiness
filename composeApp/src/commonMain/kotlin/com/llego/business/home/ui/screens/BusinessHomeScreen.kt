@@ -96,6 +96,7 @@ fun BusinessHomeScreen(
     onNavigateToOrderDetail: (String) -> Unit = {},
     onNavigateToAddProduct: (Product?) -> Unit = {},
     onNavigateToAddShowcase: () -> Unit = {},
+    onNavigateToEditShowcase: (com.llego.shared.data.model.Showcase) -> Unit = {},
     onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit = {},
     onNavigateToProductDetail: (Product) -> Unit = {},
     onNavigateToComboDetail: (com.llego.shared.data.model.Combo) -> Unit = {},
@@ -401,6 +402,7 @@ fun BusinessHomeScreen(
                         searchQuery = productsSearchQuery,
                         onNavigateToAddProduct = onNavigateToAddProduct,
                         onNavigateToAddShowcase = onNavigateToAddShowcase,
+                        onNavigateToEditShowcase = onNavigateToEditShowcase,
                         onNavigateToAddCombo = onNavigateToAddCombo,
                         onNavigateToProductDetail = onNavigateToProductDetail,
                         onNavigateToComboDetail = onNavigateToComboDetail

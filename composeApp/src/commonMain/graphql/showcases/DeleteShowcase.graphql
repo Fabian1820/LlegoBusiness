@@ -1,0 +1,3 @@
+mutation DeleteShowcase($showcaseId: String!, $jwt: String) {
+  deleteShowcase(showcaseId: $showcaseId, jwt: $jwt)
+}

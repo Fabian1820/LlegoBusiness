@@ -14,6 +14,7 @@ import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.Combo
 import com.llego.shared.data.model.Product
+import com.llego.shared.data.model.Showcase
 
 @Stable
 class AppNavigatorState {
@@ -25,6 +26,7 @@ class AppNavigatorState {
     var showAddProduct by mutableStateOf(false)
     var showAddShowcase by mutableStateOf(false)
     var productToEdit by mutableStateOf<Product?>(null)
+    var showcaseToEdit by mutableStateOf<Showcase?>(null)
     var showProductDetail by mutableStateOf(false)
     var productToView by mutableStateOf<Product?>(null)
     var showProductSearch by mutableStateOf(false)
@@ -145,6 +147,7 @@ class AppNavigatorState {
 
             showAddShowcase -> {
                 showAddShowcase = false
+                showcaseToEdit = null
                 true
             }
 
@@ -201,6 +204,7 @@ class AppNavigatorState {
         showAddProduct = false
         showAddShowcase = false
         productToEdit = null
+        showcaseToEdit = null
         showProductDetail = false
         productToView = null
         showProductSearch = false
@@ -221,6 +225,7 @@ class AppNavigatorState {
     private fun toSaveMap(): Map<String, Any?> {
         val shouldRestoreAddProduct = showAddProduct && productToEdit == null
         val shouldRestoreAddCombo = showAddCombo && comboToEdit == null
+        val shouldRestoreAddShowcase = showAddShowcase && showcaseToEdit == null
 
         return mapOf(
             KEY_SHOW_PROFILE to showProfile,
@@ -229,7 +234,7 @@ class AppNavigatorState {
             KEY_SHOW_INVITATIONS to showInvitations,
             KEY_SHOW_DELIVERY_MANAGEMENT to showDeliveryManagement,
             KEY_SHOW_ADD_PRODUCT to shouldRestoreAddProduct,
-            KEY_SHOW_ADD_SHOWCASE to showAddShowcase,
+            KEY_SHOW_ADD_SHOWCASE to shouldRestoreAddShowcase,
             KEY_SHOW_PRODUCT_DETAIL to false,
             KEY_SHOW_PRODUCT_SEARCH to showProductSearch,
             KEY_SHOW_ADD_COMBO to shouldRestoreAddCombo,
@@ -261,6 +266,7 @@ class AppNavigatorState {
         branchCreateBusinessId = values[KEY_BRANCH_CREATE_BUSINESS_ID] as? String
 
         productToEdit = null
+        showcaseToEdit = null
         productToView = null
         comboToEdit = null
         comboToView = null

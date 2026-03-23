@@ -772,8 +772,10 @@ private fun MainBusinessFlow(
                 AddShowcaseScreen(
                     viewModel = showcaseViewModel,
                     branchId = authViewModel.getCurrentBranchId(),
+                    existingShowcase = navigator.showcaseToEdit,
                     onNavigateBack = {
                         navigator.showAddShowcase = false
+                        navigator.showcaseToEdit = null
                         authViewModel.getCurrentBranchId()?.let { branchId ->
                             showcaseViewModel.loadShowcases(branchId, activeOnly = false)
                         }
@@ -945,6 +947,11 @@ private fun MainBusinessFlow(
                         navigator.showAddProduct = true
                     },
                     onNavigateToAddShowcase = {
+                        navigator.showcaseToEdit = null
+                        navigator.showAddShowcase = true
+                    },
+                    onNavigateToEditShowcase = { showcase ->
+                        navigator.showcaseToEdit = showcase
                         navigator.showAddShowcase = true
                     },
                     onNavigateToAddCombo = { combo ->
