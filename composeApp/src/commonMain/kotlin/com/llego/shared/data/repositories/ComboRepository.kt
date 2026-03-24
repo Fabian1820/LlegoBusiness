@@ -101,8 +101,11 @@ class ComboRepository(
             val slotInputs = slots.map { slot ->
                 ComboSlotInput(
                     name = slot["name"] as String,
+                    description = Optional.presentIfNotNull(slot["description"] as? String),
                     minSelections = Optional.presentIfNotNull(slot["minSelections"] as? Int),
                     maxSelections = Optional.presentIfNotNull(slot["maxSelections"] as? Int),
+                    isRequired = Optional.presentIfNotNull(slot["isRequired"] as? Boolean),
+                    displayOrder = Optional.presentIfNotNull(slot["displayOrder"] as? Int),
                     options = (slot["options"] as List<Map<String, Any>>).map { option ->
                         ComboOptionInput(
                             productId = option["productId"] as String,
@@ -172,8 +175,11 @@ class ComboRepository(
             val slotInputs = slots?.map { slot ->
                 ComboSlotInput(
                     name = slot["name"] as String,
+                    description = Optional.presentIfNotNull(slot["description"] as? String),
                     minSelections = Optional.presentIfNotNull(slot["minSelections"] as? Int),
                     maxSelections = Optional.presentIfNotNull(slot["maxSelections"] as? Int),
+                    isRequired = Optional.presentIfNotNull(slot["isRequired"] as? Boolean),
+                    displayOrder = Optional.presentIfNotNull(slot["displayOrder"] as? Int),
                     options = (slot["options"] as List<Map<String, Any>>).map { option ->
                         ComboOptionInput(
                             productId = option["productId"] as String,

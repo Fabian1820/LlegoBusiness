@@ -309,6 +309,8 @@ fun ComboDetailScreen(
                     DetailRow(
                         label = "Tipo de descuento",
                         value = when (combo.discountType) {
+                            com.llego.shared.data.model.DiscountType.NONE ->
+                                "Sin descuento"
                             com.llego.shared.data.model.DiscountType.PERCENTAGE -> 
                                 "${combo.discountValue.toInt()}% de descuento"
                             com.llego.shared.data.model.DiscountType.FIXED -> 

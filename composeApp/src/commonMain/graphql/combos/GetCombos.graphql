@@ -16,9 +16,13 @@ query GetCombos($branchId: String!, $availableOnly: Boolean = false) {
       imageUrl
     }
     slots {
+      id
       name
+      description
       minSelections
       maxSelections
+      isRequired
+      displayOrder
       options {
         productId
         isDefault

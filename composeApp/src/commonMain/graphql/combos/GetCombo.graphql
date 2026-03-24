@@ -16,9 +16,13 @@ query GetCombo($comboId: String!) {
       imageUrl
     }
     slots {
+      id
       name
+      description
       minSelections
       maxSelections
+      isRequired
+      displayOrder
       options {
         productId
         isDefault

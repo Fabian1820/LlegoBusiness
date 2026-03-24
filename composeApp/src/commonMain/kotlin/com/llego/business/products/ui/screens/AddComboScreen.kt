@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,10 +24,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.llego.business.products.ui.viewmodel.ComboViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.shared.data.model.Combo
+import com.llego.shared.data.model.CombosResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.Product
 import com.llego.shared.data.model.ProductsResult
@@ -36,12 +40,15 @@ import com.llego.shared.ui.upload.ImageUploadViewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 
-// Modelo temporal para slots en edición
+// Modelo temporal para slots en edicion
 data class SlotEdit(
     val id: String = generateUUID(),
     var name: String = "",
+    var description: String? = null,
     var minSelections: Int = 1,
     var maxSelections: Int = 1,
+    var isRequired: Boolean = true,
+    var displayOrder: Int = 0,
     val options: MutableList<OptionEdit> = mutableListOf()
 )
 
@@ -53,9 +60,9 @@ data class OptionEdit(
     var priceAdjustment: Double = 0.0
 )
 
-// Helper para generar IDs únicos multiplataforma
+// Helper para generar IDs unicos multiplataforma
 private fun generateUUID(): String {
-    // Genera un ID único usando números aleatorios
+    // Genera un ID unico usando numeros aleatorios
     // Suficiente para IDs temporales en la UI
     val random1 = (0..999999999).random()
     val random2 = (0..999999999).random()
@@ -81,7 +88,7 @@ fun AddComboScreen(
     var name by remember { mutableStateOf(combo?.name ?: "") }
     var description by remember { mutableStateOf(combo?.description ?: "") }
     var comboImageState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
-    var discountType by remember { mutableStateOf(combo?.discountType?.name ?: "PERCENTAGE") }
+    var discountType by remember { mutableStateOf(combo?.discountType?.name ?: "NONE") }
     var discountValue by remember { mutableStateOf(combo?.discountValue?.toString() ?: "0") }
     var slots by remember { mutableStateOf<List<SlotEdit>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -97,9 +104,13 @@ fun AddComboScreen(
         if (combo != null && slots.isEmpty()) {
             slots = combo.slots.map { slot ->
                 SlotEdit(
+                    id = slot.id ?: generateUUID(),
                     name = slot.name,
+                    description = slot.description,
                     minSelections = slot.minSelections,
                     maxSelections = slot.maxSelections,
+                    isRequired = slot.isRequired,
+                    displayOrder = slot.displayOrder,
                     options = slot.options.map { option ->
                         OptionEdit(
                             productId = option.productId,
@@ -126,32 +137,50 @@ fun AddComboScreen(
     }
 
     val imagePath = (comboImageState as? ImageUploadState.Success)?.s3Path
-    val canSave = !isLoading && name.isNotBlank() && slots.isNotEmpty()
+    val normalizedDiscountValue = normalizeDiscountValue(discountType, discountValue)
+    val formValidationError = validateComboForm(
+        comboName = name,
+        discountType = discountType,
+        discountValue = normalizedDiscountValue,
+        slots = slots,
+        availableProducts = availableProducts
+    )
+    val canSave = !isLoading && formValidationError == null
 
     fun saveCombo() {
+        if (formValidationError != null) {
+            errorMessage = formValidationError
+            return
+        }
+
         scope.launch {
             isLoading = true
             errorMessage = null
 
             try {
-                val discountVal = discountValue.toDoubleOrNull() ?: 0.0
-
-                val slotsData = slots.map { slot ->
-                    mapOf(
-                        "name" to slot.name,
-                        "minSelections" to slot.minSelections,
-                        "maxSelections" to slot.maxSelections,
-                        "options" to slot.options.map { option ->
-                            mapOf(
-                                "productId" to option.productId,
-                                "isDefault" to option.isDefault,
-                                "priceAdjustment" to option.priceAdjustment
-                            )
-                        }
-                    )
+                val discountVal = normalizedDiscountValue ?: 0.0
+                val slotsData = slots.mapIndexed { index, slot ->
+                    buildMap<String, Any> {
+                        put("name", slot.name)
+                        slot.description?.takeIf { it.isNotBlank() }?.let { put("description", it) }
+                        put("minSelections", slot.minSelections)
+                        put("maxSelections", slot.maxSelections)
+                        put("isRequired", slot.isRequired)
+                        put("displayOrder", index)
+                        put(
+                            "options",
+                            slot.options.map { option ->
+                                mapOf<String, Any>(
+                                    "productId" to option.productId,
+                                    "isDefault" to option.isDefault,
+                                    "priceAdjustment" to option.priceAdjustment
+                                )
+                            }
+                        )
+                    }
                 }
 
-                if (combo == null) {
+                val result = if (combo == null) {
                     viewModel.createComboWithImagePath(
                         branchId = branchId,
                         name = name,
@@ -172,8 +201,11 @@ fun AddComboScreen(
                         slots = slotsData
                     )
                 }
-
-                onNavigateBack()
+                when (result) {
+                    is CombosResult.Success -> onNavigateBack()
+                    is CombosResult.Error -> errorMessage = result.message
+                    is CombosResult.Loading -> errorMessage = "No se pudo completar la operacion"
+                }
             } catch (e: Exception) {
                 errorMessage = e.message ?: "Error desconocido"
             } finally {
@@ -298,6 +330,15 @@ fun AddComboScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     DiscountTypeButton(
+                        selected = discountType == "NONE",
+                        label = "Sin dto",
+                        onClick = {
+                            discountType = "NONE"
+                            discountValue = "0"
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                    DiscountTypeButton(
                         selected = discountType == "PERCENTAGE",
                         label = "%",
                         onClick = { discountType = "PERCENTAGE" },
@@ -313,10 +354,24 @@ fun AddComboScreen(
 
                 OutlinedTextField(
                     value = discountValue,
-                    onValueChange = { discountValue = it },
-                    label = { Text(if (discountType == "PERCENTAGE") "Descuento (%)" else "Descuento (monto)") },
+                    onValueChange = {
+                        if (it.isEmpty() || it.matches(Regex("^-?\\d{0,6}([\\.,]\\d{0,2})?$"))) {
+                            discountValue = it
+                        }
+                    },
+                    label = {
+                        Text(
+                            when (discountType) {
+                                "PERCENTAGE" -> "Descuento (%)"
+                                "FIXED" -> "Descuento (monto)"
+                                else -> "Sin descuento"
+                            }
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    enabled = discountType != "NONE",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = LlegoCustomShapes.inputField
                 )
 
@@ -372,7 +427,7 @@ fun AddComboScreen(
                     }
                 }
 
-                errorMessage?.let { error ->
+                (errorMessage ?: formValidationError)?.let { error ->
                     Text(
                         text = error,
                         color = MaterialTheme.colorScheme.error,
@@ -672,7 +727,7 @@ private fun NewSlotInlineForm(
 
             HorizontalDivider()
 
-            // Información básica
+            // Informacion basica
             OutlinedTextField(
                 value = slotName,
                 onValueChange = { slotName = it },
@@ -689,7 +744,7 @@ private fun NewSlotInlineForm(
             OutlinedTextField(
                 value = slotDescription,
                 onValueChange = { slotDescription = it },
-                label = { Text("Descripción (opcional)") },
+                label = { Text("Descripcion (opcional)") },
                 placeholder = { Text("Ej: Elige tu plato principal") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
@@ -699,9 +754,9 @@ private fun NewSlotInlineForm(
                 )
             )
 
-            // Configuración de selección
+            // Configuracion de seleccion
             Text(
-                "Configuración",
+                "Configuracion",
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold
                 )
@@ -718,7 +773,7 @@ private fun NewSlotInlineForm(
                             minSel = it
                         }
                     },
-                    label = { Text("Mínimo") },
+                    label = { Text("Minimo") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -733,7 +788,7 @@ private fun NewSlotInlineForm(
                             maxSel = it
                         }
                     },
-                    label = { Text("Máximo") },
+                    label = { Text("Maximo") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -758,7 +813,7 @@ private fun NewSlotInlineForm(
                 )
             }
 
-            // Selección de productos
+            // Seleccion de productos
             HorizontalDivider()
 
             Text(
@@ -843,7 +898,7 @@ private fun NewSlotInlineForm(
 
                 if (filteredProducts.size > 5) {
                     Text(
-                        "Y ${filteredProducts.size - 5} productos más...",
+                        "Y ${filteredProducts.size - 5} productos mas...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp)
@@ -851,7 +906,7 @@ private fun NewSlotInlineForm(
                 }
             }
 
-            // Botones de acción
+            // Botones de accion
             HorizontalDivider()
 
             Row(
@@ -866,16 +921,20 @@ private fun NewSlotInlineForm(
                 }
                 Button(
                     onClick = {
+                        val minSelectionValue = minSel.toIntOrNull() ?: if (isRequired) 1 else 0
+                        val defaultCount = minSelectionValue.coerceIn(0, selectedProducts.size)
                         val newSlot = SlotEdit(
                             name = slotName,
-                            minSelections = minSel.toIntOrNull() ?: 1,
+                            description = slotDescription.takeIf { it.isNotBlank() },
+                            minSelections = minSelectionValue,
                             maxSelections = maxSel.toIntOrNull() ?: 1,
+                            isRequired = isRequired,
                             options = selectedProducts.mapIndexed { index, productId ->
                                 val product = availableProducts.find { it.id == productId }
                                 OptionEdit(
                                     productId = productId,
                                     productName = product?.name ?: "",
-                                    isDefault = index == 0,
+                                    isDefault = index < defaultCount,
                                     priceAdjustment = 0.0
                                 )
                             }.toMutableList()
@@ -940,7 +999,6 @@ private fun SlotInlineCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header del slot
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -960,23 +1018,35 @@ private fun SlotInlineCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                Row {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Eliminar",
-                            tint = MaterialTheme.colorScheme.error
+                    slot.description?.takeIf { it.isNotBlank() }?.let { slotDescription ->
+                        Text(
+                            slotDescription,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    Text(
+                        if (slot.isRequired) "Obligatorio" else "Opcional",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (slot.isRequired) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
 
-            // Contenido expandido
             if (isExpanded) {
                 HorizontalDivider()
 
-                // Productos actuales
                 Text(
                     "Productos incluidos",
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -990,49 +1060,94 @@ private fun SlotInlineCard(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
                                     option.productName,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontWeight = FontWeight.Medium
-                                    )
+                                    ),
+                                    modifier = Modifier.weight(1f)
                                 )
-                                if (option.isDefault) {
-                                    Text(
-                                        "Por defecto",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                IconButton(
+                                    onClick = {
+                                        slot.options.removeAll { it.id == option.id }
+                                        onUpdate()
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Eliminar",
+                                        tint = MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
-                            IconButton(
-                                onClick = {
-                                    slot.options.removeAll { it.id == option.id }
-                                    onUpdate()
-                                }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Eliminar",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = option.isDefault,
+                                        onCheckedChange = { checked ->
+                                            option.isDefault = checked
+                                            onUpdate()
+                                        }
+                                    )
+                                    Text(
+                                        "Por defecto",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            option.priceAdjustment -= 0.5
+                                            onUpdate()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Reducir ajuste")
+                                    }
+                                    Text(
+                                        formatPriceLocal(option.priceAdjustment),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            option.priceAdjustment += 0.5
+                                            onUpdate()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = "Aumentar ajuste")
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                // Agregar más productos
                 HorizontalDivider()
 
                 Text(
-                    "Agregar más productos",
+                    "Agregar mas productos",
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold
                     )
@@ -1065,11 +1180,12 @@ private fun SlotInlineCard(
                         product = product,
                         selected = false,
                         onClick = {
+                            val defaultCount = slot.options.count { it.isDefault }
                             slot.options.add(
                                 OptionEdit(
                                     productId = product.id,
                                     productName = product.name,
-                                    isDefault = slot.options.isEmpty(),
+                                    isDefault = defaultCount < slot.minSelections,
                                     priceAdjustment = 0.0
                                 )
                             )
@@ -1087,7 +1203,7 @@ private fun SlotInlineCard(
 
                 if (availableToAdd.size > 3) {
                     Text(
-                        "Y ${availableToAdd.size - 3} productos más disponibles...",
+                        "Y ${availableToAdd.size - 3} productos mas disponibles...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 8.dp)
@@ -1097,3 +1213,88 @@ private fun SlotInlineCard(
         }
     }
 }
+
+private fun normalizeDiscountValue(discountType: String, rawValue: String): Double? {
+    if (discountType == "NONE") return 0.0
+    val parsed = rawValue.trim().replace(',', '.').toDoubleOrNull() ?: return null
+    return parsed
+}
+
+private fun validateComboForm(
+    comboName: String,
+    discountType: String,
+    discountValue: Double?,
+    slots: List<SlotEdit>,
+    availableProducts: List<Product>
+): String? {
+    if (comboName.isBlank()) return "El nombre del combo es obligatorio"
+    if (slots.isEmpty()) return "Debes agregar al menos un slot"
+    if (discountValue == null) return "Valor de descuento invalido"
+
+    when (discountType) {
+        "NONE" -> if (discountValue != 0.0) return "Con descuento NONE el valor debe ser 0"
+        "PERCENTAGE" -> if (discountValue < 0.0 || discountValue > 100.0) {
+            return "El descuento porcentual debe estar entre 0 y 100"
+        }
+        "FIXED" -> if (discountValue < 0.0) {
+            return "El descuento fijo no puede ser negativo"
+        }
+        else -> return "Tipo de descuento no soportado"
+    }
+
+    val productCurrencyMap = availableProducts.associate { it.id to it.currency.uppercase() }
+    val comboCurrencies = mutableSetOf<String>()
+
+    slots.forEachIndexed { index, slot ->
+        if (slot.name.isBlank()) return "El slot ${index + 1} debe tener nombre"
+        if (slot.minSelections < 0) return "El minimo de selecciones en ${slot.name} no puede ser negativo"
+        if (slot.maxSelections <= 0) return "El maximo de selecciones en ${slot.name} debe ser mayor que 0"
+        if (slot.minSelections > slot.maxSelections) return "En ${slot.name}, minimo no puede ser mayor que maximo"
+        if (slot.isRequired && slot.minSelections < 1) return "El slot ${slot.name} es obligatorio y debe permitir al menos 1 seleccion"
+        if (slot.options.isEmpty()) return "El slot ${slot.name} debe tener al menos una opcion"
+        if (slot.maxSelections > slot.options.size) {
+            return "En ${slot.name}, maximo no puede exceder la cantidad de opciones"
+        }
+
+        val duplicatedProduct = slot.options
+            .groupBy { it.productId }
+            .entries
+            .firstOrNull { it.key.isBlank() || it.value.size > 1 }
+        if (duplicatedProduct != null) {
+            return if (duplicatedProduct.key.isBlank()) {
+                "Hay una opcion sin producto en ${slot.name}"
+            } else {
+                "No se permite repetir el producto en el slot ${slot.name}"
+            }
+        }
+
+        val defaultsCount = slot.options.count { it.isDefault }
+        if (defaultsCount < slot.minSelections) {
+            return "En ${slot.name}, opciones por defecto insuficientes para el minimo requerido"
+        }
+        if (defaultsCount > slot.maxSelections) {
+            return "En ${slot.name}, opciones por defecto exceden el maximo permitido"
+        }
+
+        slot.options.forEach { option ->
+            if (!option.priceAdjustment.isFinite()) {
+                return "Ajuste de precio invalido en ${slot.name}"
+            }
+            productCurrencyMap[option.productId]?.let { comboCurrencies.add(it) }
+        }
+    }
+
+    if (comboCurrencies.size > 1) {
+        return "Todos los productos del combo deben tener la misma moneda"
+    }
+
+    return null
+}
+
+private fun formatPriceLocal(price: Double): String {
+    val rounded = (price * 100).toInt() / 100.0
+    val intPart = rounded.toInt()
+    val decimalPart = ((rounded - intPart) * 100).toInt()
+    return "${intPart}.${decimalPart.toString().padStart(2, '0')}"
+}
+

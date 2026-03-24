@@ -29,9 +29,13 @@ data class Combo(
  */
 @Serializable
 data class ComboSlot(
+    val id: String? = null,
     val name: String,
+    val description: String? = null,
     val minSelections: Int = 1,
     val maxSelections: Int = 1,
+    val isRequired: Boolean = true,
+    val displayOrder: Int = 0,
     val options: List<ComboOption>
 )
 
@@ -71,6 +75,7 @@ data class RepresentativeProduct(
  */
 @Serializable
 enum class DiscountType {
+    NONE,
     PERCENTAGE,
     FIXED
 }

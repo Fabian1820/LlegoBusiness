@@ -20,9 +20,10 @@ fun GetCombosQuery.CombosByBranch.toDomain(): Combo {
         finalPrice = finalPrice,
         savings = savings,
         discountType = when (discountType.name) {
+            "NONE" -> DiscountType.NONE
             "PERCENTAGE" -> DiscountType.PERCENTAGE
             "FIXED" -> DiscountType.FIXED
-            else -> DiscountType.PERCENTAGE
+            else -> DiscountType.NONE
         },
         discountValue = discountValue,
         availability = availability,
@@ -45,9 +46,10 @@ fun GetComboQuery.Combo.toDomain(): Combo {
         finalPrice = finalPrice,
         savings = savings,
         discountType = when (discountType.name) {
+            "NONE" -> DiscountType.NONE
             "PERCENTAGE" -> DiscountType.PERCENTAGE
             "FIXED" -> DiscountType.FIXED
-            else -> DiscountType.PERCENTAGE
+            else -> DiscountType.NONE
         },
         discountValue = discountValue,
         availability = availability,
@@ -61,9 +63,13 @@ fun GetComboQuery.Combo.toDomain(): Combo {
 // Mapper para Slot (GetCombosQuery)
 fun GetCombosQuery.Slot.toDomain(): ComboSlot {
     return ComboSlot(
+        id = id,
         name = name,
+        description = description,
         minSelections = minSelections,
         maxSelections = maxSelections,
+        isRequired = isRequired,
+        displayOrder = displayOrder,
         options = options.map { it.toDomain() }
     )
 }
@@ -71,9 +77,13 @@ fun GetCombosQuery.Slot.toDomain(): ComboSlot {
 // Mapper para Slot (GetComboQuery)
 fun GetComboQuery.Slot.toDomain(): ComboSlot {
     return ComboSlot(
+        id = id,
         name = name,
+        description = description,
         minSelections = minSelections,
         maxSelections = maxSelections,
+        isRequired = isRequired,
+        displayOrder = displayOrder,
         options = options.map { it.toDomain() }
     )
 }
