@@ -60,7 +60,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.llego.business.orders.ui.components.iOSStylePicker
 import com.llego.business.orders.ui.components.iOSStylePickerOption
@@ -126,7 +125,6 @@ fun ProductsScreen(
     var updatingShowcaseIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
-        viewModel.invalidateProductsCache()
         if (branchId != null) {
             comboViewModel.ensureCombosLoaded(branchId = branchId)
             showcaseViewModel.ensureShowcasesLoaded(branchId = branchId, activeOnly = false)
@@ -322,16 +320,17 @@ fun ProductsScreen(
                 val shouldRenderShowcasesErrorState =
                     isShowcaseOnlyFilter && !isShowcasesLoading && showcasesErrorMessage != null
 
-                if (!hasVisibleItems) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        ProductsFilters(
-                            categories = categories,
-                            selectedCategoryId = selectedCategoryId,
-                            selectedTypeFilter = selectedTypeFilter,
-                            onCategorySelected = { viewModel.setSelectedProductsCategoryId(it) },
-                            onTypeSelected = { viewModel.setSelectedProductsTypeFilter(it.name) },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    ProductsFilters(
+                        categories = categories,
+                        selectedCategoryId = selectedCategoryId,
+                        selectedTypeFilter = selectedTypeFilter,
+                        onCategorySelected = { viewModel.setSelectedProductsCategoryId(it) },
+                        onTypeSelected = { viewModel.setSelectedProductsTypeFilter(it.name) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    if (!hasVisibleItems) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -382,15 +381,15 @@ fun ProductsScreen(
                                 }
                             }
                         }
-                    }
-                } else {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    } else {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
                             contentPadding = PaddingValues(
                                 start = 16.dp,
-                                top = 100.dp,
+                                top = 8.dp,
                                 end = 16.dp,
                                 bottom = 96.dp
                             ),
@@ -548,17 +547,6 @@ fun ProductsScreen(
                                 }
                             }
                         }
-
-                        ProductsFilters(
-                            categories = categories,
-                            selectedCategoryId = selectedCategoryId,
-                            selectedTypeFilter = selectedTypeFilter,
-                            onCategorySelected = { viewModel.setSelectedProductsCategoryId(it) },
-                            onTypeSelected = { viewModel.setSelectedProductsTypeFilter(it.name) },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .zIndex(10f)
-                        )
                     }
                 }
             }

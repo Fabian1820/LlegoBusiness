@@ -1,29 +1,23 @@
 package com.llego.business.orders.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInCubic
-import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.ui.viewmodel.DateRangeFilter
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -138,7 +132,9 @@ fun iOSStylePicker(
         label = "picker_elevation"
     )
 
-    Box(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier) {
+        val pickerWidth = maxWidth
+
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -181,35 +177,22 @@ fun iOSStylePicker(
             }
         }
 
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(
-                animationSpec = tween(200, easing = EaseOutCubic),
-                expandFrom = Alignment.Top
-            ) + fadeIn(animationSpec = tween(150)),
-            exit = shrinkVertically(
-                animationSpec = tween(150, easing = EaseInCubic),
-                shrinkTowards = Alignment.Top
-            ) + fadeOut(animationSpec = tween(100)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = 60.dp)
-                .zIndex(20f)
+        DropdownMenu(
+            expanded = isExpanded,
+            onDismissRequest = {
+                if (isExpanded) onToggle()
+            },
+            modifier = Modifier.width(pickerWidth),
+            offset = DpOffset(x = 0.dp, y = 4.dp),
+            shape = LlegoCustomShapes.secondaryButton,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shadowElevation = 4.dp
         ) {
-            Surface(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = LlegoCustomShapes.secondaryButton,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(0.dp)
-                ) {
-                    content()
-                }
+                content()
             }
         }
     }
