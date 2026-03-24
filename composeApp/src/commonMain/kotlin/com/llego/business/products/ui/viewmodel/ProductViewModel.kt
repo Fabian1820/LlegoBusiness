@@ -52,6 +52,14 @@ class ProductViewModel(
         val availableOnly: Boolean
     )
 
+    private fun ProductsQuery.toFullQuery(): ProductsFullQuery {
+        return ProductsFullQuery(
+            branchId = branchId,
+            categoryId = categoryId,
+            availableOnly = availableOnly
+        )
+    }
+
     private val repository = ProductRepository(tokenManager)
 
     private val _productsState = MutableStateFlow<ProductsResult>(ProductsResult.Loading)
@@ -256,10 +264,13 @@ class ProductViewModel(
         )
 
         val currentState = _productsState.value as? ProductsResult.Success
-        if (fullQuery in fullyLoadedProductsQueries &&
+        val currentLoadedFullQuery = lastLoadedProductsQuery?.toFullQuery()
+        val hasCompleteSnapshotForRequestedQuery =
             currentState != null &&
-            !currentState.hasNextPage
-        ) {
+                !currentState.hasNextPage &&
+                currentLoadedFullQuery == fullQuery
+
+        if (fullQuery in fullyLoadedProductsQueries && hasCompleteSnapshotForRequestedQuery) {
             return
         }
 
@@ -275,7 +286,7 @@ class ProductViewModel(
                 _isLoadingMoreProducts.value = false
                 _loadMoreProductsError.value = null
                 lastFailedLoadMoreCursor = null
-                if (currentState == null) {
+                if (!hasCompleteSnapshotForRequestedQuery) {
                     _productsState.value = ProductsResult.Loading
                 }
 

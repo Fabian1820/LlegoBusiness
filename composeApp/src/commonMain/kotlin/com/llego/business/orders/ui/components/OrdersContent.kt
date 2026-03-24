@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -43,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.model.PaymentStatus
@@ -77,28 +75,37 @@ fun OrdersContent(
                     animationSpec = tween(600, easing = EaseOutCubic)
                 )
     ) {
-        if (filteredOrders.isEmpty()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                iOSStyleFilters(
-                    selectedDateRange = selectedDateRange,
-                    onDateRangeSelected = onDateRangeSelected,
-                    selectedStatus = selectedFilter,
-                    onStatusSelected = onStatusSelected,
-                    onStatusCleared = onStatusCleared,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-                EmptyOrdersView(
-                    hasFilter = selectedFilter != null || selectedDateRange != DateRangeFilter.TODAY || searchQuery.isNotBlank(),
-                    hasSearchQuery = searchQuery.isNotBlank()
-                )
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            iOSStyleFilters(
+                selectedDateRange = selectedDateRange,
+                onDateRangeSelected = onDateRangeSelected,
+                selectedStatus = selectedFilter,
+                onStatusSelected = onStatusSelected,
+                onStatusCleared = onStatusCleared,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            if (filteredOrders.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    EmptyOrdersView(
+                        hasFilter = selectedFilter != null ||
+                            selectedDateRange != DateRangeFilter.TODAY ||
+                            searchQuery.isNotBlank(),
+                        hasSearchQuery = searchQuery.isNotBlank()
+                    )
+                }
+            } else {
                 LazyColumn(
                     state = ordersListState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentPadding = PaddingValues(
-                        top = 100.dp,
+                        top = 8.dp,
                         bottom = 16.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -127,17 +134,6 @@ fun OrdersContent(
                         }
                     }
                 }
-
-                iOSStyleFilters(
-                    selectedDateRange = selectedDateRange,
-                    onDateRangeSelected = onDateRangeSelected,
-                    selectedStatus = selectedFilter,
-                    onStatusSelected = onStatusSelected,
-                    onStatusCleared = onStatusCleared,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .zIndex(10f)
-                )
             }
         }
     }

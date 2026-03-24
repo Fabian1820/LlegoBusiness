@@ -19,8 +19,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,6 +83,8 @@ private enum class ProductTypeFilter(val displayName: String) {
     COMBO("Combo"),
     SHOWCASE("Vitrina")
 }
+
+private const val IMAGE_LOAD_BATCH_SIZE = 4
 
 @Composable
 fun ProductsScreen(
@@ -123,6 +126,15 @@ fun ProductsScreen(
     var updatingProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingComboIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingShowcaseIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var maxUnlockedImageIndex by remember { mutableStateOf(IMAGE_LOAD_BATCH_SIZE - 1) }
+    val visibleLazyIndexRange by remember(listState) {
+        derivedStateOf {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            val firstVisible = visibleItems.firstOrNull()?.index ?: 0
+            val lastVisible = visibleItems.lastOrNull()?.index ?: -1
+            firstVisible to lastVisible
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
@@ -170,6 +182,15 @@ fun ProductsScreen(
         if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
             listState.scrollToItem(0)
         }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(
+        branchId,
+        selectedCategoryId,
+        selectedTypeFilter,
+        normalizedSearchQuery
+    ) {
+        maxUnlockedImageIndex = IMAGE_LOAD_BATCH_SIZE - 1
     }
 
 
@@ -269,6 +290,24 @@ fun ProductsScreen(
         }.collectLatest { (lastVisibleIndex, totalItems) ->
             if (canLoadMore && !isLoadingMoreProducts && totalItems > 0 && lastVisibleIndex >= totalItems - 4) {
                 viewModel.loadMoreProducts()
+            }
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(
+        listState,
+        visibleProducts.size,
+        visibleCombos.size,
+        visibleShowcases.size
+    ) {
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+        }.collectLatest { lastVisibleIndex ->
+            if (lastVisibleIndex < 0) return@collectLatest
+            val chunkIndex = lastVisibleIndex / IMAGE_LOAD_BATCH_SIZE
+            val nextUnlockedIndex = ((chunkIndex + 1) * IMAGE_LOAD_BATCH_SIZE) - 1
+            if (nextUnlockedIndex > maxUnlockedImageIndex) {
+                maxUnlockedImageIndex = nextUnlockedIndex
             }
         }
     }
@@ -382,6 +421,24 @@ fun ProductsScreen(
                             }
                         }
                     } else {
+                        val showShowcasesErrorRow = showcaseFilterEnabled && showcasesErrorMessage != null
+                        val showShowcasesLoadingRow =
+                            showcaseFilterEnabled && isShowcasesLoading && visibleShowcases.isEmpty()
+                        val comboStartIndex = 0
+                        val showcaseStartIndex = visibleCombos.size +
+                            (if (showShowcasesErrorRow) 1 else 0) +
+                            (if (showShowcasesLoadingRow) 1 else 0)
+                        val productStartIndex = showcaseStartIndex + visibleShowcases.size
+                        val (visibleLazyStartIndex, visibleLazyEndIndex) = visibleLazyIndexRange
+
+                        fun shouldLoadImageForIndex(index: Int): Boolean {
+                            if (index > maxUnlockedImageIndex) return false
+                            if (visibleLazyEndIndex < 0) return index <= maxUnlockedImageIndex
+                            val bufferedStart = (visibleLazyStartIndex - IMAGE_LOAD_BATCH_SIZE).coerceAtLeast(0)
+                            val bufferedEnd = visibleLazyEndIndex + IMAGE_LOAD_BATCH_SIZE
+                            return index in bufferedStart..bufferedEnd
+                        }
+
                         LazyColumn(
                             state = listState,
                             modifier = Modifier
@@ -395,10 +452,11 @@ fun ProductsScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(visibleCombos, key = { "combo_${it.id}" }) { combo ->
+                            itemsIndexed(visibleCombos, key = { _, combo -> "combo_${combo.id}" }) { index, combo ->
                                 ComboRow(
                                     combo = combo,
                                     isAvailabilityUpdating = updatingComboIds.contains(combo.id),
+                                    shouldLoadImage = shouldLoadImageForIndex(comboStartIndex + index),
                                     onEdit = { onNavigateToAddCombo(combo) },
                                     onDelete = { deleteComboCandidate = combo },
                                     onToggleAvailability = { availability ->
@@ -415,7 +473,7 @@ fun ProductsScreen(
                                     onViewDetail = { onNavigateToComboDetail(combo) }
                                 )
                             }
-                            if (showcaseFilterEnabled && showcasesErrorMessage != null) {
+                            if (showShowcasesErrorRow) {
                                 item(key = "showcases_error") {
                                     Column(
                                         modifier = Modifier
@@ -446,7 +504,7 @@ fun ProductsScreen(
                                     }
                                 }
                             }
-                            if (showcaseFilterEnabled && isShowcasesLoading && visibleShowcases.isEmpty()) {
+                            if (showShowcasesLoadingRow) {
                                 item(key = "showcases_loading") {
                                     Box(
                                         modifier = Modifier
@@ -461,10 +519,11 @@ fun ProductsScreen(
                                     }
                                 }
                             }
-                            items(visibleShowcases, key = { "showcase_${it.id}" }) { showcase ->
+                            itemsIndexed(visibleShowcases, key = { _, showcase -> "showcase_${showcase.id}" }) { index, showcase ->
                                 ShowcaseRow(
                                     showcase = showcase,
                                     isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
+                                    shouldLoadImage = shouldLoadImageForIndex(showcaseStartIndex + index),
                                     onEdit = { onNavigateToEditShowcase(showcase) },
                                     onDelete = { deleteShowcaseCandidate = showcase },
                                     onViewDetail = { onNavigateToShowcaseDetail(showcase) },
@@ -481,11 +540,12 @@ fun ProductsScreen(
                                     }
                                 )
                             }
-                            items(visibleProducts, key = { it.id }) { product ->
+                            itemsIndexed(visibleProducts, key = { _, product -> product.id }) { index, product ->
                                 ProductRow(
                                     product = product,
                                     categoryNameById = categoryNameById,
                                     isAvailabilityUpdating = updatingProductIds.contains(product.id),
+                                    shouldLoadImage = shouldLoadImageForIndex(productStartIndex + index),
                                     onEdit = { onNavigateToAddProduct(product) },
                                     onDelete = { deleteCandidate = product },
                                     onToggleAvailability = { availability ->
@@ -845,6 +905,7 @@ private fun ProductRow(
     product: Product,
     categoryNameById: Map<String, String>,
     isAvailabilityUpdating: Boolean,
+    shouldLoadImage: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
@@ -879,7 +940,7 @@ private fun ProductRow(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (imageUrl.isNotBlank()) {
+                if (imageUrl.isNotBlank() && shouldLoadImage) {
                     AsyncImage(
                         model = imageUrl,
                         contentDescription = product.name,
@@ -1015,6 +1076,7 @@ private fun ProductRow(
 private fun ShowcaseRow(
     showcase: Showcase,
     isAvailabilityUpdating: Boolean,
+    shouldLoadImage: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onViewDetail: () -> Unit,
@@ -1069,7 +1131,7 @@ private fun ShowcaseRow(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (showcase.imageUrl.isNotBlank()) {
+                    if (showcase.imageUrl.isNotBlank() && shouldLoadImage) {
                         AsyncImage(
                             model = showcase.imageUrl,
                             contentDescription = showcase.title,
@@ -1193,6 +1255,7 @@ private fun ShowcaseRow(
             }
         }
     }
+
 }
 
 private fun formatPrice(price: Double): String {
@@ -1207,6 +1270,7 @@ private fun formatPrice(price: Double): String {
 private fun ComboRow(
     combo: com.llego.shared.data.model.Combo,
     isAvailabilityUpdating: Boolean,
+    shouldLoadImage: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
@@ -1243,7 +1307,7 @@ private fun ComboRow(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (!imageUrl.isNullOrBlank()) {
+                if (!imageUrl.isNullOrBlank() && shouldLoadImage) {
                     AsyncImage(
                         model = imageUrl,
                         contentDescription = combo.name,
@@ -1272,7 +1336,7 @@ private fun ComboRow(
                                     .background(MaterialTheme.colorScheme.surface)
                                     .padding(2.dp)
                             ) {
-                                if (product.imageUrl.isNotBlank()) {
+                                if (product.imageUrl.isNotBlank() && shouldLoadImage) {
                                     AsyncImage(
                                         model = product.imageUrl,
                                         contentDescription = product.name,
