@@ -359,17 +359,6 @@ class OrdersViewModel(
 
     fun enterEditMode(order: Order) {
         if (!order.isEditable || order.status != OrderStatus.PENDING_ACCEPTANCE) return
-        val hasUnsupportedItems = order.items.any {
-            !it.itemType.equals("PRODUCT", ignoreCase = true) &&
-                !it.itemType.equals("SHOWCASE", ignoreCase = true)
-        }
-        if (hasUnsupportedItems) {
-            _uiState.value = OrdersUiState.ActionError(
-                "Este pedido contiene combos y no se puede editar desde esta version."
-            )
-            return
-        }
-
         _modificationState.value = OrderModificationState.fromItems(
             items = order.items,
             originalTotal = order.total
@@ -423,16 +412,6 @@ class OrdersViewModel(
 
     fun applyModification(orderId: String, reason: String = "Modificado por el negocio") {
         val state = _modificationState.value ?: return
-        val unsupportedItem = state.modifiedItems.firstOrNull {
-            !it.itemType.equals("PRODUCT", ignoreCase = true) &&
-                !it.itemType.equals("SHOWCASE", ignoreCase = true)
-        }
-        if (unsupportedItem != null) {
-            _uiState.value = OrdersUiState.ActionError(
-                "No se pueden modificar items tipo ${unsupportedItem.itemType}."
-            )
-            return
-        }
 
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -441,7 +420,24 @@ class OrdersViewModel(
                 OrderItemInput(
                     quantity = item.quantity,
                     itemType = item.itemType,
-                    productId = item.productId,
+                    productId = if (item.isCombo) null else item.productId,
+                    comboId = if (item.isCombo) item.comboId ?: item.itemId else null,
+                    comboSelections = item.comboSelections.map { slot ->
+                        com.llego.business.orders.data.repository.OrderComboSlotSelectionInput(
+                            slotId = slot.slotId,
+                            selectedOptions = slot.selectedOptions.map { option ->
+                                com.llego.business.orders.data.repository.OrderComboSelectedOptionInput(
+                                    productId = option.productId,
+                                    quantity = option.quantity,
+                                    modifiers = option.modifiers.map { modifier ->
+                                        com.llego.business.orders.data.repository.OrderComboModifierInput(
+                                            name = modifier.name
+                                        )
+                                    }
+                                )
+                            }
+                        )
+                    },
                     showcaseId = if (item.isShowcase) item.itemId else null,
                     description = item.requestDescription
                 )

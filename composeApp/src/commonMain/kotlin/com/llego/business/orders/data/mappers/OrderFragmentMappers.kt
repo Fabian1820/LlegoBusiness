@@ -215,6 +215,11 @@ private fun OrderItemFields.toDomain(): OrderItem = OrderItem(
     itemId = itemId,
     itemType = itemType,
     productId = productId.takeIf { it.isNotBlank() },
+    comboId = if (itemType.equals("COMBO", ignoreCase = true)) {
+        itemId.takeIf { it.isNotBlank() }
+    } else {
+        null
+    },
     name = name,
     price = price,
     basePrice = basePrice,
@@ -222,20 +227,51 @@ private fun OrderItemFields.toDomain(): OrderItem = OrderItem(
     quantity = quantity,
     imageUrl = imageUrl,
     requestDescription = requestDescription,
-    wasModifiedByStore = wasModifiedByStore
+    wasModifiedByStore = wasModifiedByStore,
+    comboSelections = comboSelections?.map { it.orderComboSelectionFields.toDomain() } ?: emptyList(),
+    discountType = discountType,
+    discountValue = discountValue
 )
 
 private fun OrderItemPendingFields.toDomain(): OrderItem = OrderItem(
     itemId = itemId,
     itemType = itemType,
     productId = productId.takeIf { it.isNotBlank() },
+    comboId = if (itemType.equals("COMBO", ignoreCase = true)) {
+        itemId.takeIf { it.isNotBlank() }
+    } else {
+        null
+    },
     name = name,
     price = price,
     basePrice = basePrice,
     finalPrice = finalPrice,
     quantity = quantity,
     imageUrl = imageUrl,
-    requestDescription = requestDescription
+    requestDescription = requestDescription,
+    comboSelections = comboSelections?.map { it.orderComboSelectionFields.toDomain() } ?: emptyList(),
+    discountType = discountType,
+    discountValue = discountValue
+)
+
+private fun OrderComboSelectionFields.toDomain(): OrderComboSelection = OrderComboSelection(
+    slotId = slotId,
+    slotName = slotName,
+    selectedOptions = selectedOptions.map { it.orderComboSelectedOptionFields.toDomain() }
+)
+
+private fun OrderComboSelectedOptionFields.toDomain(): OrderComboSelectedOption = OrderComboSelectedOption(
+    productId = productId,
+    name = name,
+    price = price,
+    quantity = quantity,
+    priceAdjustment = priceAdjustment,
+    modifiers = modifiers.map { it.orderComboModifierFields.toDomain() }
+)
+
+private fun OrderComboModifierFields.toDomain(): OrderComboModifier = OrderComboModifier(
+    name = name,
+    priceAdjustment = priceAdjustment
 )
 
 private fun OrderDiscountFields.toDomain(): OrderDiscount = OrderDiscount(

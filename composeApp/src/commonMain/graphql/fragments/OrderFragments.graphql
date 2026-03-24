@@ -1,3 +1,27 @@
+fragment OrderComboModifierFields on OrderComboModifierType {
+  name
+  priceAdjustment
+}
+
+fragment OrderComboSelectedOptionFields on OrderComboSelectedOptionType {
+  productId
+  name
+  price
+  quantity
+  priceAdjustment
+  modifiers {
+    ...OrderComboModifierFields
+  }
+}
+
+fragment OrderComboSelectionFields on OrderComboSelectionType {
+  slotId
+  slotName
+  selectedOptions {
+    ...OrderComboSelectedOptionFields
+  }
+}
+
 fragment OrderItemFields on OrderItemType {
   itemId
   itemType
@@ -10,6 +34,11 @@ fragment OrderItemFields on OrderItemType {
   imageUrl
   requestDescription
   wasModifiedByStore
+  discountType
+  discountValue
+  comboSelections {
+    ...OrderComboSelectionFields
+  }
   lineTotal
 }
 
@@ -24,6 +53,11 @@ fragment OrderItemPendingFields on OrderItemType {
   quantity
   imageUrl
   requestDescription
+  discountType
+  discountValue
+  comboSelections {
+    ...OrderComboSelectionFields
+  }
   lineTotal
 }
 

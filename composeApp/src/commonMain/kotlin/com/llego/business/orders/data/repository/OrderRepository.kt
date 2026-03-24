@@ -23,8 +23,25 @@ data class OrderItemInput(
     val quantity: Int,
     val itemType: String = "PRODUCT",
     val productId: String? = null,
+    val comboId: String? = null,
+    val comboSelections: List<OrderComboSlotSelectionInput> = emptyList(),
     val showcaseId: String? = null,
     val description: String? = null
+)
+
+data class OrderComboModifierInput(
+    val name: String
+)
+
+data class OrderComboSelectedOptionInput(
+    val productId: String,
+    val quantity: Int = 1,
+    val modifiers: List<OrderComboModifierInput> = emptyList()
+)
+
+data class OrderComboSlotSelectionInput(
+    val slotId: String,
+    val selectedOptions: List<OrderComboSelectedOptionInput>
 )
 
 enum class DashboardStatsPeriod {

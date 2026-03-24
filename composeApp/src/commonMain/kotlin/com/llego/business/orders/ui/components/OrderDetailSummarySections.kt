@@ -217,6 +217,39 @@ fun OrderItemsSection(items: List<OrderItem>) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        if (item.comboSelections.isNotEmpty()) {
+                            item.comboSelections.forEach { slot ->
+                                Text(
+                                    text = slot.slotName,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                slot.selectedOptions.forEach { option ->
+                                    val modifiers = option.modifiers.joinToString { it.name }
+                                    val optionText = buildString {
+                                        append("- ${option.quantity}x ${option.name}")
+                                        if (option.priceAdjustment != 0.0) {
+                                            append(" (+${formatDouble("%.2f", option.priceAdjustment)})")
+                                        }
+                                        if (modifiers.isNotBlank()) {
+                                            append(" [$modifiers]")
+                                        }
+                                    }
+                                    Text(
+                                        text = optionText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                        if (!item.discountType.isNullOrBlank() && (item.discountValue ?: 0.0) > 0.0) {
+                            Text(
+                                text = "Descuento ${item.discountType}: ${formatDouble("%.2f", item.discountValue ?: 0.0)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
                     }
 
                     Text(

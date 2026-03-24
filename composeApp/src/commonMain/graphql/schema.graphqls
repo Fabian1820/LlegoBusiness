@@ -147,7 +147,7 @@ type Query {
   """
   Obtener todos los combos
   """
-  allCombos(availableOnly: Boolean! = false): [ComboType!]!
+  allCombos(availableOnly: Boolean! = false, branchTipo: String = null, productCategoryId: String = null): [ComboType!]!
 
   """
   Semantic vector search across products, branches, or businesses. Returns enriched results from Qdrant + MongoDB.
@@ -674,6 +674,14 @@ type BranchType {
 
   exchangeRate: Int
 
+  acceptsQvapay: Boolean!
+
+  acceptsZelle: Boolean!
+
+  qvapayUsername: String
+
+  zelleEmail: String
+
   createdAt: DateTime!
 
   wallet: WalletBalanceType!
@@ -1051,6 +1059,14 @@ type ScoredBranchType {
 
   exchangeRate: Int
 
+  acceptsQvapay: Boolean!
+
+  acceptsZelle: Boolean!
+
+  qvapayUsername: String
+
+  zelleEmail: String
+
   createdAt: DateTime!
 
   score: Float!
@@ -1162,6 +1178,14 @@ type NearbyBranchType {
   acceptedCurrency: AcceptedCurrency
 
   exchangeRate: Int
+
+  acceptsQvapay: Boolean!
+
+  acceptsZelle: Boolean!
+
+  qvapayUsername: String
+
+  zelleEmail: String
 
   createdAt: DateTime!
 
@@ -2081,6 +2105,12 @@ type OrderItemType {
 
   wasModifiedByStore: Boolean!
 
+  comboSelections: [OrderComboSelectionType!]
+
+  discountType: String
+
+  discountValue: Float
+
   """
   Presigned URL for the item image
   """
@@ -2115,6 +2145,34 @@ type OrderItemType {
   Line total (price * quantity)
   """
   lineTotal: Float!
+}
+
+type OrderComboSelectionType {
+  slotId: String!
+
+  slotName: String!
+
+  selectedOptions: [OrderComboSelectedOptionType!]!
+}
+
+type OrderComboSelectedOptionType {
+  productId: String!
+
+  name: String!
+
+  price: Float!
+
+  quantity: Int!
+
+  priceAdjustment: Float!
+
+  modifiers: [OrderComboModifierType!]!
+}
+
+type OrderComboModifierType {
+  name: String!
+
+  priceAdjustment: Float!
 }
 
 type OrderDiscountType {
@@ -3688,6 +3746,16 @@ type Mutation {
   cancelPayment(paymentAttemptId: String!, jwt: String!): PaymentAttemptType!
 
   """
+  Iniciar pago con QvaPay para un pedido
+  """
+  initiateQvapayPayment(orderId: String!, jwt: String!): QvaPayPaymentResult!
+
+  """
+  Iniciar pago con USDT/TronDealer para un pedido
+  """
+  initiateTrondealerPayment(orderId: String!, jwt: String!): TronDealerPaymentResult!
+
+  """
   Transferir dinero a otro usuario o sucursal
   """
   transferMoney(input: TransferInput!, jwt: String!): WalletTransactionType!
@@ -4144,6 +4212,14 @@ input UpdateBranchInput {
   qrPayments: [QrPaymentInput!] = null
 
   phones: [TransferPhoneInput!] = null
+
+  acceptsQvapay: Boolean = null
+
+  acceptsZelle: Boolean = null
+
+  qvapayUsername: String = null
+
+  zelleEmail: String = null
 }
 
 input CreateProductInput {
@@ -4317,6 +4393,10 @@ input OrderItemInput {
 
   productId: String = null
 
+  comboId: String = null
+
+  comboSelections: [OrderComboSlotSelectionInput!]! = []
+
   showcaseId: String = null
 
   description: String = null
@@ -4325,7 +4405,27 @@ input OrderItemInput {
 enum OrderItemTypeInput {
   PRODUCT
 
+  COMBO
+
   SHOWCASE
+}
+
+input OrderComboSlotSelectionInput {
+  slotId: String!
+
+  selectedOptions: [OrderComboSelectedOptionInput!]!
+}
+
+input OrderComboSelectedOptionInput {
+  productId: String!
+
+  quantity: Int! = 1
+
+  modifiers: [OrderComboModifierInput!]! = []
+}
+
+input OrderComboModifierInput {
+  name: String!
 }
 
 input DeliveryAddressInput {
@@ -4578,6 +4678,55 @@ type InitiatePaymentResult {
   Instructions for completing payment (for manual methods)
   """
   instructions: String
+}
+
+type QvaPayPaymentResult {
+  """
+  URL de pago QvaPay — abrir en WebView o browser
+  """
+  paymentUrl: String!
+
+  """
+  UUID de la transacción en QvaPay
+  """
+  transactionUuid: String!
+
+  """
+  Monto a pagar en USD
+  """
+  amount: Float!
+
+  """
+  ID de la orden asociada
+  """
+  orderId: String!
+}
+
+type TronDealerPaymentResult {
+  """
+  Dirección de wallet TRON a la que enviar el USDT
+  """
+  address: String!
+
+  """
+  Monto exacto en USDT a enviar
+  """
+  expectedAmount: Float!
+
+  """
+  Token a usar, generalmente USDT
+  """
+  token: String!
+
+  """
+  Red blockchain, generalmente TRON
+  """
+  network: String
+
+  """
+  ID de la orden asociada
+  """
+  orderId: String!
 }
 
 input TransferInput {

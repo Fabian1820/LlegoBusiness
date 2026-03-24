@@ -25,6 +25,9 @@ import com.llego.multiplatform.graphql.type.UpdateOrderStatusInput
 import com.llego.multiplatform.graphql.type.ModifyOrderItemsInput
 import com.llego.multiplatform.graphql.type.AddOrderCommentInput
 import com.llego.multiplatform.graphql.type.DashboardPeriod
+import com.llego.multiplatform.graphql.type.OrderComboModifierInput as GraphQLOrderComboModifierInput
+import com.llego.multiplatform.graphql.type.OrderComboSelectedOptionInput as GraphQLOrderComboSelectedOptionInput
+import com.llego.multiplatform.graphql.type.OrderComboSlotSelectionInput as GraphQLOrderComboSlotSelectionInput
 import com.llego.multiplatform.graphql.type.OrderItemInput as GraphQLOrderItemInput
 import com.llego.multiplatform.graphql.type.OrderItemTypeInput as GraphQLOrderItemTypeInput
 import com.llego.shared.data.auth.TokenManager
@@ -406,15 +409,45 @@ class OrderRepositoryImpl(
                 val graphqlItemType = when (item.itemType.uppercase()) {
                     "SHOWCASE" -> GraphQLOrderItemTypeInput.SHOWCASE
                     "PRODUCT" -> GraphQLOrderItemTypeInput.PRODUCT
+                    "COMBO" -> GraphQLOrderItemTypeInput.COMBO
                     else -> throw IllegalArgumentException(
                         "Tipo de item no soportado para modificacion: ${item.itemType}"
                     )
                 }
 
+                val comboId = item.comboId?.takeIf { it.isNotBlank() }
+                if (graphqlItemType == GraphQLOrderItemTypeInput.COMBO && comboId == null) {
+                    throw IllegalArgumentException("comboId es obligatorio para items COMBO")
+                }
+
+                val comboSelections = item.comboSelections.map { slotSelection ->
+                    GraphQLOrderComboSlotSelectionInput(
+                        slotId = slotSelection.slotId,
+                        selectedOptions = slotSelection.selectedOptions.map { selectedOption ->
+                            GraphQLOrderComboSelectedOptionInput(
+                                productId = selectedOption.productId,
+                                quantity = Optional.present(selectedOption.quantity),
+                                modifiers = Optional.present(
+                                    selectedOption.modifiers.map { modifier ->
+                                        GraphQLOrderComboModifierInput(name = modifier.name)
+                                    }
+                                )
+                            )
+                        }
+                    )
+                }
+                val productIdForMutation = if (graphqlItemType == GraphQLOrderItemTypeInput.COMBO) {
+                    null
+                } else {
+                    item.productId
+                }
+
                 GraphQLOrderItemInput(
                     quantity = item.quantity,
                     itemType = Optional.present(graphqlItemType),
-                    productId = Optional.presentIfNotNull(item.productId),
+                    productId = Optional.presentIfNotNull(productIdForMutation),
+                    comboId = Optional.presentIfNotNull(comboId),
+                    comboSelections = Optional.present(comboSelections),
                     showcaseId = Optional.presentIfNotNull(item.showcaseId),
                     description = Optional.presentIfNotNull(item.description)
                 )

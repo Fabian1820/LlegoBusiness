@@ -10,6 +10,7 @@ data class OrderItem(
     val itemId: String,
     val itemType: String,
     val productId: String? = null,
+    val comboId: String? = null,
     val name: String,
     val price: Double,
     val basePrice: Double = price,
@@ -17,7 +18,10 @@ data class OrderItem(
     val quantity: Int,
     val imageUrl: String? = null,
     val requestDescription: String? = null,
-    val wasModifiedByStore: Boolean = false
+    val wasModifiedByStore: Boolean = false,
+    val comboSelections: List<OrderComboSelection> = emptyList(),
+    val discountType: String? = null,
+    val discountValue: Double? = null
 ) {
     /**
      * Total de linea calculado (finalPrice * quantity)
@@ -25,7 +29,32 @@ data class OrderItem(
     val lineTotal: Double get() = finalPrice * quantity
 
     val isShowcase: Boolean get() = itemType.equals("SHOWCASE", ignoreCase = true)
+
+    val isCombo: Boolean get() = itemType.equals("COMBO", ignoreCase = true)
 }
+
+@Serializable
+data class OrderComboSelection(
+    val slotId: String,
+    val slotName: String,
+    val selectedOptions: List<OrderComboSelectedOption>
+)
+
+@Serializable
+data class OrderComboSelectedOption(
+    val productId: String,
+    val name: String,
+    val price: Double,
+    val quantity: Int,
+    val priceAdjustment: Double,
+    val modifiers: List<OrderComboModifier>
+)
+
+@Serializable
+data class OrderComboModifier(
+    val name: String,
+    val priceAdjustment: Double
+)
 
 /**
  * DirecciÃ³n de entrega alineada con backend DeliveryAddressType
