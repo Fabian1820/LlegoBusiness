@@ -2,7 +2,6 @@ package com.llego.business.products.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
@@ -95,6 +94,7 @@ fun ProductsScreen(
     searchQuery: String = "",
     onNavigateToAddProduct: (Product?) -> Unit,
     onNavigateToAddShowcase: () -> Unit,
+    onNavigateToShowcaseDetail: (Showcase) -> Unit,
     onNavigateToEditShowcase: (Showcase) -> Unit,
     onNavigateToAddCombo: (com.llego.shared.data.model.Combo?) -> Unit,
     onNavigateToProductDetail: (Product) -> Unit,
@@ -416,30 +416,6 @@ fun ProductsScreen(
                                     onViewDetail = { onNavigateToComboDetail(combo) }
                                 )
                             }
-                            items(visibleProducts, key = { it.id }) { product ->
-                                ProductRow(
-                                    product = product,
-                                    categoryNameById = categoryNameById,
-                                    isAvailabilityUpdating = updatingProductIds.contains(product.id),
-                                    onEdit = { onNavigateToAddProduct(product) },
-                                    onDelete = { deleteCandidate = product },
-                                    onToggleAvailability = { availability ->
-                                        if (updatingProductIds.contains(product.id)) return@ProductRow
-                                        scope.launch {
-                                            updatingProductIds = updatingProductIds + product.id
-                                            try {
-                                                viewModel.toggleProductAvailability(
-                                                    productId = product.id,
-                                                    availability = availability
-                                                )
-                                            } finally {
-                                                updatingProductIds = updatingProductIds - product.id
-                                            }
-                                        }
-                                    },
-                                    onViewDetail = { onNavigateToProductDetail(product) }
-                                )
-                            }
                             if (showcaseFilterEnabled && showcasesErrorMessage != null) {
                                 item(key = "showcases_error") {
                                     Column(
@@ -492,6 +468,7 @@ fun ProductsScreen(
                                     isAvailabilityUpdating = updatingShowcaseIds.contains(showcase.id),
                                     onEdit = { onNavigateToEditShowcase(showcase) },
                                     onDelete = { deleteShowcaseCandidate = showcase },
+                                    onViewDetail = { onNavigateToShowcaseDetail(showcase) },
                                     onToggleAvailability = { isActive ->
                                         if (updatingShowcaseIds.contains(showcase.id)) return@ShowcaseRow
                                         scope.launch {
@@ -503,6 +480,30 @@ fun ProductsScreen(
                                             }
                                         }
                                     }
+                                )
+                            }
+                            items(visibleProducts, key = { it.id }) { product ->
+                                ProductRow(
+                                    product = product,
+                                    categoryNameById = categoryNameById,
+                                    isAvailabilityUpdating = updatingProductIds.contains(product.id),
+                                    onEdit = { onNavigateToAddProduct(product) },
+                                    onDelete = { deleteCandidate = product },
+                                    onToggleAvailability = { availability ->
+                                        if (updatingProductIds.contains(product.id)) return@ProductRow
+                                        scope.launch {
+                                            updatingProductIds = updatingProductIds + product.id
+                                            try {
+                                                viewModel.toggleProductAvailability(
+                                                    productId = product.id,
+                                                    availability = availability
+                                                )
+                                            } finally {
+                                                updatingProductIds = updatingProductIds - product.id
+                                            }
+                                        }
+                                    },
+                                    onViewDetail = { onNavigateToProductDetail(product) }
                                 )
                             }
                             if (isLoadingMoreProducts) {
@@ -1028,128 +1029,177 @@ private fun ShowcaseRow(
     isAvailabilityUpdating: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onViewDetail: () -> Unit,
     onToggleAvailability: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val firstItemLabel = showcase.items?.firstOrNull()?.name
+    val showcaseItemsCount = showcase.items?.size ?: 0
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.22f)
+        )
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .clickable { onViewDetail() }
         ) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(LlegoCustomShapes.infoCard)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 10.dp),
+                color = MaterialTheme.colorScheme.tertiary,
+                shape = MaterialTheme.shapes.small
             ) {
-                if (showcase.imageUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = showcase.imageUrl,
-                        contentDescription = showcase.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Storefront,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "VITRINA",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onTertiary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
             }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(LlegoCustomShapes.infoCard)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (showcase.imageUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = showcase.imageUrl,
+                            contentDescription = showcase.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            colorFilter = if (!showcase.isActive) {
+                                ColorFilter.colorMatrix(
+                                    ColorMatrix().apply { setToSaturation(0f) }
+                                )
+                            } else {
+                                null
+                            }
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Storefront,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (!showcase.isActive) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.38f))
+                        )
+                        Text(
+                            text = "No disponible",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = showcase.title,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "VITRINA",
+                        text = showcase.description?.takeIf { it.isNotBlank() }
+                            ?: "Pedidos por descripcion manual",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = if (showcaseItemsCount > 0) {
+                            "$showcaseItemsCount productos en la vitrina"
+                        } else {
+                            "Sin productos en la vitrina"
+                        },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-                Text(
-                    text = showcase.description?.takeIf { it.isNotBlank() }
-                        ?: "Pedidos por descripcion manual",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = if (firstItemLabel != null) "Incluye: $firstItemLabel" else "Sin productos publicados",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            Row(
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Editar",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(
-                    onClick = { onToggleAvailability(!showcase.isActive) },
-                    enabled = !isAvailabilityUpdating,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    if (isAvailabilityUpdating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Icon(
-                            if (showcase.isActive) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Cambiar disponibilidad",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Editar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { onToggleAvailability(!showcase.isActive) },
+                            enabled = !isAvailabilityUpdating,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            if (isAvailabilityUpdating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Icon(
+                                    if (showcase.isActive) {
+                                        Icons.Default.Visibility
+                                    } else {
+                                        Icons.Default.VisibilityOff
+                                    },
+                                    contentDescription = "Cambiar disponibilidad",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1210,7 +1260,14 @@ private fun ComboRow(
                         model = imageUrl,
                         contentDescription = combo.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        colorFilter = if (!combo.availability) {
+                            ColorFilter.colorMatrix(
+                                ColorMatrix().apply { setToSaturation(0f) }
+                            )
+                        } else {
+                            null
+                        }
                     )
                 } else if (combo.representativeProducts.isNotEmpty()) {
                     // Mostrar composición de productos como iconitos redondos superpuestos
@@ -1234,7 +1291,14 @@ private fun ComboRow(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(CircleShape),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Crop,
+                                        colorFilter = if (!combo.availability) {
+                                            ColorFilter.colorMatrix(
+                                                ColorMatrix().apply { setToSaturation(0f) }
+                                            )
+                                        } else {
+                                            null
+                                        }
                                     )
                                 } else {
                                     Box(
@@ -1278,6 +1342,23 @@ private fun ComboRow(
                         Icons.Default.Image,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (!combo.availability) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.38f))
+                    )
+                    Text(
+                        text = "No disponible",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
             }

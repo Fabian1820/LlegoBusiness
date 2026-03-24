@@ -28,6 +28,7 @@ import com.llego.business.products.ui.screens.AddShowcaseScreen
 import com.llego.business.products.ui.screens.AddComboScreen
 import com.llego.business.products.ui.screens.ProductDetailScreen
 import com.llego.business.products.ui.screens.ComboDetailScreen
+import com.llego.business.products.ui.screens.ShowcaseDetailScreen
 import com.llego.business.products.ui.screens.ProductSearchScreen
 import com.llego.business.profile.ui.screens.BusinessProfileScreen
 import com.llego.business.branches.ui.screens.BranchesManagementScreen
@@ -688,6 +689,22 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
+                ShowcaseDetailScreen(
+                    showcase = navigator.showcaseToView!!,
+                    onNavigateBack = {
+                        navigator.showShowcaseDetail = false
+                        navigator.showcaseToView = null
+                    },
+                    onEdit = {
+                        navigator.showcaseToEdit = navigator.showcaseToView
+                        navigator.showShowcaseDetail = false
+                        navigator.showcaseToView = null
+                        navigator.showAddShowcase = true
+                    }
+                )
+            }
+
             navigator.showAddProduct -> {
                 AddProductScreen(
                     branchId = authViewModel.getCurrentBranchId(),
@@ -947,10 +964,18 @@ private fun MainBusinessFlow(
                         navigator.showAddProduct = true
                     },
                     onNavigateToAddShowcase = {
+                        navigator.showShowcaseDetail = false
+                        navigator.showcaseToView = null
                         navigator.showcaseToEdit = null
                         navigator.showAddShowcase = true
                     },
+                    onNavigateToShowcaseDetail = { showcase ->
+                        navigator.showShowcaseDetail = true
+                        navigator.showcaseToView = showcase
+                    },
                     onNavigateToEditShowcase = { showcase ->
+                        navigator.showShowcaseDetail = false
+                        navigator.showcaseToView = null
                         navigator.showcaseToEdit = showcase
                         navigator.showAddShowcase = true
                     },

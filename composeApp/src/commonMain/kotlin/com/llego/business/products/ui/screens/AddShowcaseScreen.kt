@@ -28,6 +28,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -35,7 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -58,6 +58,7 @@ import com.llego.shared.data.model.Showcase
 import com.llego.shared.data.model.ShowcaseDetectionResult
 import com.llego.shared.data.model.ShowcaseItem
 import com.llego.shared.data.model.ShowcasesResult
+import com.llego.shared.data.model.extractFilename
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -66,11 +67,18 @@ import kotlinx.coroutines.launch
 
 private data class EditableShowcaseItem(
     val id: String? = null,
-    var name: String = "",
-    var description: String = "",
-    var price: String = "",
-    var availability: Boolean = true
+    val name: String = "",
+    val description: String = "",
+    val price: String = "",
+    val availability: Boolean = true
 )
+
+private fun isLikelyLocalImagePath(uri: String): Boolean {
+    return uri.startsWith("content://", ignoreCase = true) ||
+        uri.startsWith("file://", ignoreCase = true) ||
+        uri.startsWith("/", ignoreCase = true) ||
+        uri.contains(":\\")
+}
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +97,23 @@ fun AddShowcaseScreen(
     val isEditing = existingShowcase != null
     var title by remember(existingShowcase?.id) { mutableStateOf(existingShowcase?.title.orEmpty()) }
     var description by remember(existingShowcase?.id) { mutableStateOf(existingShowcase?.description.orEmpty()) }
-    var showcaseImageState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    val initialImageState = remember(existingShowcase?.id) {
+        existingShowcase?.let { showcase ->
+            val displayUri = showcase.imageUrl.takeIf { it.isNotBlank() } ?: showcase.image
+            if (displayUri.isNotBlank()) {
+                ImageUploadState.Success(
+                    localUri = displayUri,
+                    s3Path = showcase.image,
+                    filename = displayUri.extractFilename()
+                )
+            } else {
+                ImageUploadState.Idle
+            }
+        } ?: ImageUploadState.Idle
+    }
+    var showcaseImageState by remember(existingShowcase?.id) {
+        mutableStateOf<ImageUploadState>(initialImageState)
+    }
     var isSaving by remember { mutableStateOf(false) }
     var isDetecting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -117,6 +141,7 @@ fun AddShowcaseScreen(
     val uploadedImagePath = (showcaseImageState as? ImageUploadState.Success)?.s3Path
     val imagePath = uploadedImagePath ?: existingShowcase?.image
     val localImagePath = (showcaseImageState as? ImageUploadState.Success)?.localUri
+        ?.takeIf(::isLikelyLocalImagePath)
 
     val canSave = branchId != null &&
         title.isNotBlank() &&
@@ -231,11 +256,7 @@ fun AddShowcaseScreen(
                                             availability = item.availability
                                         )
                                     }
-                                val showcaseItemsPayload = if (isEditing) {
-                                    normalizedItems ?: emptyList()
-                                } else {
-                                    normalizedItems
-                                }
+                                val showcaseItemsPayload = normalizedItems
 
                                 scope.launch {
                                     isSaving = true
@@ -360,20 +381,38 @@ fun AddShowcaseScreen(
             )
 
             if (isDetecting) {
-                Row(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = LlegoCustomShapes.infoCard,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.30f)
+                    )
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(18.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Text(
-                        text = "Analizando la foto para sugerirte productos...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Analizando foto con IA",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "Estamos detectando productos y precios sugeridos. Puedes seguir editando mientras termina.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else if (!detectionMessage.isNullOrBlank()) {
                 Card(
@@ -403,20 +442,10 @@ fun AddShowcaseScreen(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Productos sugeridos (opcional)",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-                )
-                TextButton(onClick = { items.add(EditableShowcaseItem()) }) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Text("Agregar")
-                }
-            }
+            Text(
+                text = if (isEditing) "Productos de la vitrina" else "Productos sugeridos (opcional)",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
 
             if (items.isEmpty()) {
                 Text(
@@ -458,7 +487,9 @@ fun AddShowcaseScreen(
 
                         OutlinedTextField(
                             value = item.name,
-                            onValueChange = { item.name = it },
+                            onValueChange = { value ->
+                                items[index] = item.copy(name = value)
+                            },
                             label = { Text("Nombre *") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
@@ -467,7 +498,9 @@ fun AddShowcaseScreen(
 
                         OutlinedTextField(
                             value = item.description,
-                            onValueChange = { item.description = it },
+                            onValueChange = { value ->
+                                items[index] = item.copy(description = value)
+                            },
                             label = { Text("Descripcion") },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
@@ -479,7 +512,7 @@ fun AddShowcaseScreen(
                             value = item.price,
                             onValueChange = { input ->
                                 if (input.isEmpty() || input.toDoubleOrNull() != null) {
-                                    item.price = input
+                                    items[index] = item.copy(price = input)
                                 }
                             },
                             label = { Text("Precio (opcional)") },
@@ -497,11 +530,25 @@ fun AddShowcaseScreen(
                             Text("Disponible")
                             Switch(
                                 checked = item.availability,
-                                onCheckedChange = { item.availability = it }
+                                onCheckedChange = { isAvailable ->
+                                    items[index] = item.copy(availability = isAvailable)
+                                }
                             )
                         }
                     }
                 }
+            }
+
+            OutlinedButton(
+                onClick = { items.add(EditableShowcaseItem()) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = LlegoCustomShapes.secondaryButton
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text(
+                    text = if (isEditing) "Agregar producto a la vitrina" else "Agregar producto",
+                    modifier = Modifier.padding(start = 6.dp)
+                )
             }
 
             if (branchId == null) {

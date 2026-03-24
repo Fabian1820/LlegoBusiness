@@ -27,6 +27,8 @@ class AppNavigatorState {
     var showAddShowcase by mutableStateOf(false)
     var productToEdit by mutableStateOf<Product?>(null)
     var showcaseToEdit by mutableStateOf<Showcase?>(null)
+    var showShowcaseDetail by mutableStateOf(false)
+    var showcaseToView by mutableStateOf<Showcase?>(null)
     var showProductDetail by mutableStateOf(false)
     var productToView by mutableStateOf<Product?>(null)
     var showProductSearch by mutableStateOf(false)
@@ -85,6 +87,7 @@ class AppNavigatorState {
             showOrderDetail ||
             showProductDetail ||
             showAddProduct ||
+            showShowcaseDetail ||
             showComboDetail ||
             showAddCombo ||
             showAddShowcase ||
@@ -124,6 +127,12 @@ class AppNavigatorState {
             showProductDetail -> {
                 showProductDetail = false
                 productToView = null
+                true
+            }
+
+            showShowcaseDetail -> {
+                showShowcaseDetail = false
+                showcaseToView = null
                 true
             }
 
@@ -205,6 +214,8 @@ class AppNavigatorState {
         showAddShowcase = false
         productToEdit = null
         showcaseToEdit = null
+        showShowcaseDetail = false
+        showcaseToView = null
         showProductDetail = false
         productToView = null
         showProductSearch = false
@@ -235,6 +246,7 @@ class AppNavigatorState {
             KEY_SHOW_DELIVERY_MANAGEMENT to showDeliveryManagement,
             KEY_SHOW_ADD_PRODUCT to shouldRestoreAddProduct,
             KEY_SHOW_ADD_SHOWCASE to shouldRestoreAddShowcase,
+            KEY_SHOW_SHOWCASE_DETAIL to false,
             KEY_SHOW_PRODUCT_DETAIL to false,
             KEY_SHOW_PRODUCT_SEARCH to showProductSearch,
             KEY_SHOW_ADD_COMBO to shouldRestoreAddCombo,
@@ -256,6 +268,7 @@ class AppNavigatorState {
         showDeliveryManagement = values[KEY_SHOW_DELIVERY_MANAGEMENT] as? Boolean ?: false
         showAddProduct = values[KEY_SHOW_ADD_PRODUCT] as? Boolean ?: false
         showAddShowcase = values[KEY_SHOW_ADD_SHOWCASE] as? Boolean ?: false
+        showShowcaseDetail = false
         showProductDetail = false
         showProductSearch = values[KEY_SHOW_PRODUCT_SEARCH] as? Boolean ?: false
         showAddCombo = values[KEY_SHOW_ADD_COMBO] as? Boolean ?: false
@@ -267,6 +280,7 @@ class AppNavigatorState {
 
         productToEdit = null
         showcaseToEdit = null
+        showcaseToView = null
         productToView = null
         comboToEdit = null
         comboToView = null
@@ -293,6 +307,7 @@ class AppNavigatorState {
         private const val KEY_SHOW_DELIVERY_MANAGEMENT = "showDeliveryManagement"
         private const val KEY_SHOW_ADD_PRODUCT = "showAddProduct"
         private const val KEY_SHOW_ADD_SHOWCASE = "showAddShowcase"
+        private const val KEY_SHOW_SHOWCASE_DETAIL = "showShowcaseDetail"
         private const val KEY_SHOW_PRODUCT_DETAIL = "showProductDetail"
         private const val KEY_SHOW_PRODUCT_SEARCH = "showProductSearch"
         private const val KEY_SHOW_ADD_COMBO = "showAddCombo"
