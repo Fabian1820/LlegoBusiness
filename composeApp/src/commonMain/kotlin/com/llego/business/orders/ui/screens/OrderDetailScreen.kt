@@ -299,7 +299,8 @@ private fun EditableOrderItemRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val itemImageUrl = item.imageUrl
+                val itemImageUrl = item.imageUrl?.takeIf { it.isNotBlank() }
+                    ?: item.previewProducts.firstOrNull()?.imageUrl?.takeIf { it.isNotBlank() }
                 if (!itemImageUrl.isNullOrBlank()) {
                     NetworkImage(
                         url = itemImageUrl,

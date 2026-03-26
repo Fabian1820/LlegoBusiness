@@ -12,14 +12,14 @@ data class Combo(
     val name: String,
     val description: String,
     val image: String? = null,
-    val basePrice: Double,
-    val finalPrice: Double,
-    val savings: Double,
+    val startingFinalPrice: Double,
+    val startingSavings: Double,
     val discountType: DiscountType,
     val discountValue: Double,
     val availability: Boolean,
     val slots: List<ComboSlot>,
     val representativeProducts: List<RepresentativeProduct> = emptyList(),
+    val giftOptions: List<ComboGiftOption> = emptyList(),
     val createdAt: String,
     val imageUrl: String? = null
 )
@@ -34,7 +34,7 @@ data class ComboSlot(
     val description: String? = null,
     val minSelections: Int = 1,
     val maxSelections: Int = 1,
-    val isRequired: Boolean = true,
+    val isFree: Boolean = false,
     val displayOrder: Int = 0,
     val options: List<ComboOption>
 )
@@ -58,6 +58,19 @@ data class ComboOption(
 data class ComboModifier(
     val name: String,
     val priceAdjustment: Double
+)
+
+@Serializable
+data class ComboGiftOption(
+    val productId: String,
+    val product: GiftProductPreview? = null
+)
+
+@Serializable
+data class GiftProductPreview(
+    val id: String,
+    val name: String,
+    val imageUrl: String? = null
 )
 
 /**

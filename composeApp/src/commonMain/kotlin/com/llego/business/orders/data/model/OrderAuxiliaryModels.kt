@@ -17,6 +17,8 @@ data class OrderItem(
     val finalPrice: Double = price,
     val quantity: Int,
     val imageUrl: String? = null,
+    val hasGift: Boolean = false,
+    val previewProducts: List<OrderPreviewProduct> = emptyList(),
     val requestDescription: String? = null,
     val wasModifiedByStore: Boolean = false,
     val comboSelections: List<OrderComboSelection> = emptyList(),
@@ -38,6 +40,13 @@ data class OrderComboSelection(
     val slotId: String,
     val slotName: String,
     val selectedOptions: List<OrderComboSelectedOption>
+)
+
+@Serializable
+data class OrderPreviewProduct(
+    val productId: String,
+    val name: String,
+    val imageUrl: String? = null
 )
 
 @Serializable

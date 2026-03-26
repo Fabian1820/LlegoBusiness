@@ -712,6 +712,11 @@ type BranchType {
   Product categories applicable to this branch based on its tipos
   """
   applicableCategories: [ProductCategoryType!]!
+
+  """
+  Showcases from this branch
+  """
+  showcases(activeOnly: Boolean! = true): [ShowcaseType!]!
 }
 
 type CoordinatesType {
@@ -1000,6 +1005,48 @@ type PaymentMethodType {
   updatedAt: DateTime!
 }
 
+type ShowcaseType {
+  id: String!
+
+  branchId: String!
+
+  title: String!
+
+  image: String!
+
+  description: String
+
+  items: [ShowcaseItemType!]
+
+  isActive: Boolean!
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+
+  """
+  Presigned URL for the showcase image
+  """
+  imageUrl: String!
+
+  """
+  Branch associated with this showcase
+  """
+  branch: BranchType
+}
+
+type ShowcaseItemType {
+  id: String!
+
+  name: String!
+
+  description: String
+
+  price: Float
+
+  availability: Boolean!
+}
+
 type BranchConnection {
   edges: [BranchEdge!]!
 
@@ -1106,6 +1153,11 @@ type ScoredBranchType {
   Product categories applicable to this branch based on its tipos
   """
   applicableCategories: [ProductCategoryType!]!
+
+  """
+  Showcases from this branch
+  """
+  showcases(activeOnly: Boolean! = true): [ShowcaseType!]!
 }
 
 type PageInfo {
@@ -1224,6 +1276,11 @@ type NearbyBranchType {
   Product categories applicable to this branch based on its tipos
   """
   applicableCategories: [ProductCategoryType!]!
+
+  """
+  Showcases from this branch
+  """
+  showcases(activeOnly: Boolean! = true): [ShowcaseType!]!
 }
 
 type ProductConnection {
@@ -1362,48 +1419,6 @@ type ProductRecommendationType {
   product: ProductType
 }
 
-type ShowcaseType {
-  id: String!
-
-  branchId: String!
-
-  title: String!
-
-  image: String!
-
-  description: String
-
-  items: [ShowcaseItemType!]
-
-  isActive: Boolean!
-
-  createdAt: DateTime!
-
-  updatedAt: DateTime!
-
-  """
-  Presigned URL for the showcase image
-  """
-  imageUrl: String!
-
-  """
-  Branch associated with this showcase
-  """
-  branch: BranchType
-}
-
-type ShowcaseItemType {
-  id: String!
-
-  name: String!
-
-  description: String
-
-  price: Float
-
-  availability: Boolean!
-}
-
 type CategoryType {
   id: String!
 
@@ -1438,6 +1453,8 @@ type ComboType {
   discountType: DiscountType!
 
   discountValue: Float!
+
+  giftOptions: [ComboGiftOptionType!]!
 
   currency: String!
 
@@ -1475,6 +1492,21 @@ type ComboType {
   savings: Float!
 
   """
+  Minimum valid base price to build this combo (before discount)
+  """
+  startingBasePrice: Float!
+
+  """
+  Minimum valid final price after discount (for catalog 'From $X' display)
+  """
+  startingFinalPrice: Float!
+
+  """
+  Minimum savings amount (startingBasePrice - startingFinalPrice)
+  """
+  startingSavings: Float!
+
+  """
   Branch associated with this combo
   """
   branch: BranchType
@@ -1493,7 +1525,7 @@ type ComboSlotType {
 
   maxSelections: Int!
 
-  isRequired: Boolean!
+  isFree: Boolean!
 
   displayOrder: Int!
 }
@@ -1525,6 +1557,15 @@ enum DiscountType {
   PERCENTAGE
 
   FIXED
+}
+
+type ComboGiftOptionType {
+  productId: String!
+
+  """
+  Gift product details
+  """
+  product: ProductType
 }
 
 type SemanticSearchResultType {
@@ -2107,9 +2148,13 @@ type OrderItemType {
 
   comboSelections: [OrderComboSelectionType!]
 
+  hasGift: Boolean!
+
   discountType: String
 
   discountValue: Float
+
+  previewProducts: [OrderPreviewProductType!]
 
   """
   Presigned URL for the item image
@@ -2173,6 +2218,17 @@ type OrderComboModifierType {
   name: String!
 
   priceAdjustment: Float!
+}
+
+type OrderPreviewProductType {
+  productId: String!
+
+  name: String!
+
+  """
+  Presigned URL for preview product image
+  """
+  imageUrl: String
 }
 
 type OrderDiscountType {
@@ -4315,6 +4371,8 @@ input CreateComboInput {
 
   discountValue: Float! = 0
 
+  giftOptions: [ComboGiftOptionInput!]! = []
+
   categoryId: String = null
 }
 
@@ -4329,7 +4387,7 @@ input ComboSlotInput {
 
   maxSelections: Int! = 1
 
-  isRequired: Boolean! = true
+  isFree: Boolean! = false
 
   displayOrder: Int! = 0
 }
@@ -4350,6 +4408,10 @@ input ComboModifierInput {
   priceAdjustment: Float! = 0
 }
 
+input ComboGiftOptionInput {
+  productId: String!
+}
+
 input UpdateComboInput {
   comboId: String!
 
@@ -4364,6 +4426,8 @@ input UpdateComboInput {
   discountType: DiscountType = null
 
   discountValue: Float = null
+
+  giftOptions: [ComboGiftOptionInput!] = null
 
   availability: Boolean = null
 

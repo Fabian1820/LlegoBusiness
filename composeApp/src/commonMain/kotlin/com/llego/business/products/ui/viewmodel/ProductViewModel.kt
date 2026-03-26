@@ -96,6 +96,7 @@ class ProductViewModel(
         first: Int = 100,
         force: Boolean = false
     ) {
+        val previousQuery = lastLoadedProductsQuery
         val fullQuery = ProductsFullQuery(
             branchId = branchId,
             categoryId = categoryId,
@@ -122,7 +123,10 @@ class ProductViewModel(
             _loadMoreProductsError.value = null
             lastFailedLoadMoreCursor = null
             fullyLoadedProductsQueries.remove(fullQuery)
-            val shouldShowLoading = force || _productsState.value !is ProductsResult.Success
+            val branchChanged = previousQuery?.branchId != branchId
+            val shouldShowLoading = force ||
+                _productsState.value !is ProductsResult.Success ||
+                branchChanged
             if (shouldShowLoading) {
                 _productsState.value = ProductsResult.Loading
             }

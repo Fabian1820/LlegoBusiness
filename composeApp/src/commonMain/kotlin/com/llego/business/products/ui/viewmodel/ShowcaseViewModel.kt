@@ -34,6 +34,7 @@ class ShowcaseViewModel(
     val detectionState: StateFlow<ShowcaseDetectionResult> = _detectionState.asStateFlow()
 
     fun loadShowcases(branchId: String, activeOnly: Boolean = false, force: Boolean = false) {
+        val previousQuery = lastLoadedShowcasesQuery
         val query = ShowcasesQuery(branchId = branchId, activeOnly = activeOnly)
         if (!force &&
             query == lastLoadedShowcasesQuery &&
@@ -43,7 +44,8 @@ class ShowcaseViewModel(
         }
 
         viewModelScope.launch {
-            if (_showcasesState.value !is ShowcasesResult.Success) {
+            val queryChanged = previousQuery != query
+            if (_showcasesState.value !is ShowcasesResult.Success || queryChanged) {
                 _showcasesState.value = ShowcasesResult.Loading
             }
 

@@ -32,6 +32,12 @@ fragment OrderItemFields on OrderItemType {
   finalPrice
   quantity
   imageUrl
+  hasGift
+  previewProducts {
+    productId
+    name
+    imageUrl
+  }
   requestDescription
   wasModifiedByStore
   discountType
@@ -52,6 +58,12 @@ fragment OrderItemPendingFields on OrderItemType {
   finalPrice
   quantity
   imageUrl
+  hasGift
+  previewProducts {
+    productId
+    name
+    imageUrl
+  }
   requestDescription
   discountType
   discountValue

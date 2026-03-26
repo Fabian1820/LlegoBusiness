@@ -12,13 +12,12 @@ import com.llego.shared.data.model.*
 fun GetCombosQuery.CombosByBranch.toDomain(): Combo {
     return Combo(
         id = id,
-        branchId = "", // No disponible en la query, se debe pasar desde el contexto
+        branchId = branchId,
         name = name,
         description = description,
         image = image,
-        basePrice = basePrice,
-        finalPrice = finalPrice,
-        savings = savings,
+        startingFinalPrice = startingFinalPrice,
+        startingSavings = startingSavings,
         discountType = when (discountType.name) {
             "NONE" -> DiscountType.NONE
             "PERCENTAGE" -> DiscountType.PERCENTAGE
@@ -29,8 +28,9 @@ fun GetCombosQuery.CombosByBranch.toDomain(): Combo {
         availability = availability,
         slots = slots.map { it.toDomain() },
         representativeProducts = representativeProducts.map { it.toDomain() },
+        giftOptions = giftOptions.map { ComboGiftOption(productId = it.productId) },
         createdAt = createdAt.toString(),
-        imageUrl = image // Usar el campo image como imageUrl
+        imageUrl = imageUrl ?: image
     )
 }
 
@@ -38,13 +38,12 @@ fun GetCombosQuery.CombosByBranch.toDomain(): Combo {
 fun GetComboQuery.Combo.toDomain(): Combo {
     return Combo(
         id = id,
-        branchId = "", // No disponible en la query, se debe pasar desde el contexto
+        branchId = branchId,
         name = name,
         description = description,
         image = image,
-        basePrice = basePrice,
-        finalPrice = finalPrice,
-        savings = savings,
+        startingFinalPrice = startingFinalPrice,
+        startingSavings = startingSavings,
         discountType = when (discountType.name) {
             "NONE" -> DiscountType.NONE
             "PERCENTAGE" -> DiscountType.PERCENTAGE
@@ -55,8 +54,9 @@ fun GetComboQuery.Combo.toDomain(): Combo {
         availability = availability,
         slots = slots.map { it.toDomain() },
         representativeProducts = representativeProducts.map { it.toDomain() },
+        giftOptions = giftOptions.map { ComboGiftOption(productId = it.productId) },
         createdAt = createdAt.toString(),
-        imageUrl = image // Usar el campo image como imageUrl
+        imageUrl = imageUrl ?: image
     )
 }
 
@@ -68,7 +68,7 @@ fun GetCombosQuery.Slot.toDomain(): ComboSlot {
         description = description,
         minSelections = minSelections,
         maxSelections = maxSelections,
-        isRequired = isRequired,
+        isFree = isFree,
         displayOrder = displayOrder,
         options = options.map { it.toDomain() }
     )
@@ -82,7 +82,7 @@ fun GetComboQuery.Slot.toDomain(): ComboSlot {
         description = description,
         minSelections = minSelections,
         maxSelections = maxSelections,
-        isRequired = isRequired,
+        isFree = isFree,
         displayOrder = displayOrder,
         options = options.map { it.toDomain() }
     )

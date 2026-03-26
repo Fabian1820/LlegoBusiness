@@ -126,6 +126,7 @@ fun ProductsScreen(
     var updatingProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingComboIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var updatingShowcaseIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var previousVisibleCombosCount by remember { mutableStateOf(0) }
     var maxUnlockedImageIndex by remember { mutableStateOf(IMAGE_LOAD_BATCH_SIZE - 1) }
     val visibleLazyIndexRange by remember(listState) {
         derivedStateOf {
@@ -273,6 +274,29 @@ fun ProductsScreen(
     val isShowcasesLoading = showcasesState is ShowcasesResult.Loading
     val canRetryShowcases = branchId != null
     val hasVisibleItems = visibleProducts.isNotEmpty() || visibleCombos.isNotEmpty() || visibleShowcases.isNotEmpty()
+
+    androidx.compose.runtime.LaunchedEffect(branchId) {
+        previousVisibleCombosCount = 0
+    }
+
+    androidx.compose.runtime.LaunchedEffect(
+        visibleCombos.size,
+        selectedCategoryId,
+        selectedTypeFilter
+    ) {
+        val combosVisibleInCurrentFilter =
+            selectedCategoryId == null &&
+                (selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.COMBO)
+        val combosJustAppeared = previousVisibleCombosCount == 0 && visibleCombos.isNotEmpty()
+        if (
+            combosVisibleInCurrentFilter &&
+            combosJustAppeared &&
+            (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0)
+        ) {
+            listState.scrollToItem(0)
+        }
+        previousVisibleCombosCount = visibleCombos.size
+    }
 
     androidx.compose.runtime.LaunchedEffect(
         listState,
@@ -1472,9 +1496,9 @@ private fun ComboRow(
                             )
                         }
                     }
-                    if (combo.savings > 0) {
+                    if (combo.startingSavings > 0) {
                         Text(
-                            text = "Ahorra ${formatPrice(combo.savings)}",
+                            text = "Ahorra desde ${formatPrice(combo.startingSavings)}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium
                             ),
@@ -1488,17 +1512,8 @@ private fun ComboRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        if (combo.basePrice != combo.finalPrice) {
-                            Text(
-                                text = formatPrice(combo.basePrice),
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                                )
-                            )
-                        }
                         Text(
-                            text = formatPrice(combo.finalPrice),
+                            text = "Desde ${formatPrice(combo.startingFinalPrice)}",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary

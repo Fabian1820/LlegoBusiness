@@ -36,6 +36,7 @@ class ComboViewModel(
         availableOnly: Boolean = false,
         force: Boolean = false
     ) {
+        val previousQuery = lastLoadedCombosQuery
         val query = CombosQuery(
             branchId = branchId,
             availableOnly = availableOnly
@@ -49,7 +50,8 @@ class ComboViewModel(
         }
 
         viewModelScope.launch {
-            if (_combosState.value !is CombosResult.Success) {
+            val queryChanged = previousQuery != query
+            if (_combosState.value !is CombosResult.Success || queryChanged) {
                 _combosState.value = CombosResult.Loading
             }
 
@@ -97,7 +99,8 @@ class ComboViewModel(
         imagePath: String? = null,
         discountType: String,
         discountValue: Double,
-        slots: List<Map<String, Any>>
+        slots: List<Map<String, Any>>,
+        giftOptions: List<String> = emptyList()
     ): CombosResult {
         invalidateCombosCache()
         _combosState.value = CombosResult.Loading
@@ -108,7 +111,8 @@ class ComboViewModel(
             image = imagePath,
             discountType = discountType,
             discountValue = discountValue,
-            slots = slots
+            slots = slots,
+            giftOptions = giftOptions
         )
         _combosState.value = result
         return result
@@ -125,7 +129,8 @@ class ComboViewModel(
         availability: Boolean? = null,
         discountType: String? = null,
         discountValue: Double? = null,
-        slots: List<Map<String, Any>>? = null
+        slots: List<Map<String, Any>>? = null,
+        giftOptions: List<String>? = null
     ): CombosResult {
         invalidateCombosCache()
         _combosState.value = CombosResult.Loading
@@ -137,7 +142,8 @@ class ComboViewModel(
             availability = availability,
             discountType = discountType,
             discountValue = discountValue,
-            slots = slots
+            slots = slots,
+            giftOptions = giftOptions
         )
         _combosState.value = result
         return result

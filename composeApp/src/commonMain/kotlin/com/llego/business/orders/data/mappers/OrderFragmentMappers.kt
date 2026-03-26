@@ -226,6 +226,14 @@ private fun OrderItemFields.toDomain(): OrderItem = OrderItem(
     finalPrice = finalPrice,
     quantity = quantity,
     imageUrl = imageUrl,
+    hasGift = hasGift,
+    previewProducts = previewProducts?.map { preview ->
+        OrderPreviewProduct(
+            productId = preview.productId,
+            name = preview.name,
+            imageUrl = preview.imageUrl
+        )
+    } ?: emptyList(),
     requestDescription = requestDescription,
     wasModifiedByStore = wasModifiedByStore,
     comboSelections = comboSelections?.map { it.orderComboSelectionFields.toDomain() } ?: emptyList(),
@@ -248,6 +256,14 @@ private fun OrderItemPendingFields.toDomain(): OrderItem = OrderItem(
     finalPrice = finalPrice,
     quantity = quantity,
     imageUrl = imageUrl,
+    hasGift = hasGift,
+    previewProducts = previewProducts?.map { preview ->
+        OrderPreviewProduct(
+            productId = preview.productId,
+            name = preview.name,
+            imageUrl = preview.imageUrl
+        )
+    } ?: emptyList(),
     requestDescription = requestDescription,
     comboSelections = comboSelections?.map { it.orderComboSelectionFields.toDomain() } ?: emptyList(),
     discountType = discountType,

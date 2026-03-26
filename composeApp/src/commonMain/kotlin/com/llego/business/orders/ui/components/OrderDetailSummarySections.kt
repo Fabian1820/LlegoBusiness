@@ -143,7 +143,8 @@ fun OrderItemsSection(items: List<OrderItem>) {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val itemImageUrl = item.imageUrl
+                    val itemImageUrl = item.imageUrl?.takeIf { it.isNotBlank() }
+                        ?: item.previewProducts.firstOrNull()?.imageUrl?.takeIf { it.isNotBlank() }
                     if (!itemImageUrl.isNullOrBlank()) {
                         NetworkImage(
                             url = itemImageUrl,
@@ -201,6 +202,19 @@ fun OrderItemsSection(items: List<OrderItem>) {
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
+                            }
+                            if (item.hasGift) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        text = "Incluye regalo",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

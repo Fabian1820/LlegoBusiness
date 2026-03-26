@@ -12,6 +12,7 @@ import com.llego.multiplatform.graphql.type.CreateComboInput
 import com.llego.multiplatform.graphql.type.ComboSlotInput
 import com.llego.multiplatform.graphql.type.ComboOptionInput
 import com.llego.multiplatform.graphql.type.ComboModifierInput
+import com.llego.multiplatform.graphql.type.ComboGiftOptionInput
 import com.llego.multiplatform.graphql.type.UpdateComboInput
 import com.llego.multiplatform.graphql.type.DiscountType as GraphQLDiscountType
 import com.llego.shared.data.auth.TokenManager
@@ -92,7 +93,8 @@ class ComboRepository(
         image: String? = null,
         discountType: String,
         discountValue: Double,
-        slots: List<Map<String, Any>>
+        slots: List<Map<String, Any>>,
+        giftOptions: List<String> = emptyList()
     ): CombosResult {
         return try {
             val token = tokenManager.getToken()
@@ -104,7 +106,7 @@ class ComboRepository(
                     description = Optional.presentIfNotNull(slot["description"] as? String),
                     minSelections = Optional.presentIfNotNull(slot["minSelections"] as? Int),
                     maxSelections = Optional.presentIfNotNull(slot["maxSelections"] as? Int),
-                    isRequired = Optional.presentIfNotNull(slot["isRequired"] as? Boolean),
+                    isFree = Optional.presentIfNotNull(slot["isFree"] as? Boolean),
                     displayOrder = Optional.presentIfNotNull(slot["displayOrder"] as? Int),
                     options = (slot["options"] as List<Map<String, Any>>).map { option ->
                         ComboOptionInput(
@@ -123,6 +125,13 @@ class ComboRepository(
                     }
                 )
             }
+            val giftOptionInputs = giftOptions
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .map { productId ->
+                    ComboGiftOptionInput(productId = productId)
+                }
             
             val response = client.mutation(
                 CreateComboMutation(
@@ -137,7 +146,8 @@ class ComboRepository(
                             else -> GraphQLDiscountType.NONE
                         }),
                         discountValue = Optional.present(discountValue),
-                        slots = slotInputs
+                        slots = slotInputs,
+                        giftOptions = Optional.present(giftOptionInputs)
                     ),
                     jwt = Optional.presentIfNotNull(token)
                 )
@@ -166,7 +176,8 @@ class ComboRepository(
         availability: Boolean? = null,
         discountType: String? = null,
         discountValue: Double? = null,
-        slots: List<Map<String, Any>>? = null
+        slots: List<Map<String, Any>>? = null,
+        giftOptions: List<String>? = null
     ): CombosResult {
         return try {
             val token = tokenManager.getToken()
@@ -178,7 +189,7 @@ class ComboRepository(
                     description = Optional.presentIfNotNull(slot["description"] as? String),
                     minSelections = Optional.presentIfNotNull(slot["minSelections"] as? Int),
                     maxSelections = Optional.presentIfNotNull(slot["maxSelections"] as? Int),
-                    isRequired = Optional.presentIfNotNull(slot["isRequired"] as? Boolean),
+                    isFree = Optional.presentIfNotNull(slot["isFree"] as? Boolean),
                     displayOrder = Optional.presentIfNotNull(slot["displayOrder"] as? Int),
                     options = (slot["options"] as List<Map<String, Any>>).map { option ->
                         ComboOptionInput(
@@ -197,6 +208,13 @@ class ComboRepository(
                     }
                 )
             }
+            val giftOptionInputs = giftOptions
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?.distinct()
+                ?.map { productId ->
+                    ComboGiftOptionInput(productId = productId)
+                }
             
             val response = client.mutation(
                 UpdateComboMutation(
@@ -216,7 +234,8 @@ class ComboRepository(
                             }
                         ),
                         discountValue = Optional.presentIfNotNull(discountValue),
-                        slots = Optional.presentIfNotNull(slotInputs)
+                        slots = Optional.presentIfNotNull(slotInputs),
+                        giftOptions = Optional.presentIfNotNull(giftOptionInputs)
                     ),
                     jwt = Optional.presentIfNotNull(token)
                 )

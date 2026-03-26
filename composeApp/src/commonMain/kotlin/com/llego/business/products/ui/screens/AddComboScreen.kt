@@ -47,7 +47,7 @@ data class SlotEdit(
     var description: String? = null,
     var minSelections: Int = 1,
     var maxSelections: Int = 1,
-    var isRequired: Boolean = true,
+    var isFree: Boolean = false,
     var displayOrder: Int = 0,
     val options: MutableList<OptionEdit> = mutableListOf()
 )
@@ -91,6 +91,8 @@ fun AddComboScreen(
     var discountType by remember { mutableStateOf(combo?.discountType?.name ?: "NONE") }
     var discountValue by remember { mutableStateOf(combo?.discountValue?.toString() ?: "0") }
     var slots by remember { mutableStateOf<List<SlotEdit>>(emptyList()) }
+    var selectedGiftProductIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var giftSearchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isCreatingNewSlot by remember { mutableStateOf(false) }
@@ -109,7 +111,7 @@ fun AddComboScreen(
                     description = slot.description,
                     minSelections = slot.minSelections,
                     maxSelections = slot.maxSelections,
-                    isRequired = slot.isRequired,
+                    isFree = slot.isFree,
                     displayOrder = slot.displayOrder,
                     options = slot.options.map { option ->
                         OptionEdit(
@@ -121,6 +123,7 @@ fun AddComboScreen(
                     }.toMutableList()
                 )
             }
+            selectedGiftProductIds = combo.giftOptions.map { it.productId }.toSet()
             if (combo.image != null) {
                 comboImageState = ImageUploadState.Success(
                     localUri = combo.image,
@@ -134,6 +137,15 @@ fun AddComboScreen(
     val availableProducts = when (val state = productsState) {
         is ProductsResult.Success -> state.products
         else -> emptyList()
+    }
+    val filteredGiftProducts = remember(giftSearchQuery, availableProducts) {
+        if (giftSearchQuery.isBlank()) {
+            availableProducts
+        } else {
+            availableProducts.filter { product ->
+                product.name.contains(giftSearchQuery, ignoreCase = true)
+            }
+        }
     }
 
     val imagePath = (comboImageState as? ImageUploadState.Success)?.s3Path
@@ -165,7 +177,7 @@ fun AddComboScreen(
                         slot.description?.takeIf { it.isNotBlank() }?.let { put("description", it) }
                         put("minSelections", slot.minSelections)
                         put("maxSelections", slot.maxSelections)
-                        put("isRequired", slot.isRequired)
+                        put("isFree", slot.isFree)
                         put("displayOrder", index)
                         put(
                             "options",
@@ -179,6 +191,7 @@ fun AddComboScreen(
                         )
                     }
                 }
+                val giftOptionsData = selectedGiftProductIds.toList()
 
                 val result = if (combo == null) {
                     viewModel.createComboWithImagePath(
@@ -188,7 +201,8 @@ fun AddComboScreen(
                         imagePath = imagePath,
                         discountType = discountType,
                         discountValue = discountVal,
-                        slots = slotsData
+                        slots = slotsData,
+                        giftOptions = giftOptionsData
                     )
                 } else {
                     viewModel.updateComboWithImagePath(
@@ -198,7 +212,8 @@ fun AddComboScreen(
                         imagePath = imagePath,
                         discountType = discountType,
                         discountValue = discountVal,
-                        slots = slotsData
+                        slots = slotsData,
+                        giftOptions = giftOptionsData
                     )
                 }
                 when (result) {
@@ -374,6 +389,73 @@ fun AddComboScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = LlegoCustomShapes.inputField
                 )
+
+                Text(
+                    "Regalos promocionales (opcional)",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+                Text(
+                    "Se muestran como posibles regalos al cliente, no son seleccionables en checkout.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = giftSearchQuery,
+                    onValueChange = { giftSearchQuery = it },
+                    label = { Text("Buscar productos para regalo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = {
+                        if (giftSearchQuery.isNotBlank()) {
+                            IconButton(onClick = { giftSearchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                            }
+                        }
+                    },
+                    shape = LlegoCustomShapes.inputField
+                )
+                if (selectedGiftProductIds.isNotEmpty()) {
+                    Text(
+                        "${selectedGiftProductIds.size} regalo${if (selectedGiftProductIds.size != 1) "s" else ""} seleccionado${if (selectedGiftProductIds.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filteredGiftProducts.take(5).forEach { product ->
+                        val selected = selectedGiftProductIds.contains(product.id)
+                        CompactProductSelectionCard(
+                            product = product,
+                            selected = selected,
+                            onClick = {
+                                selectedGiftProductIds = if (selected) {
+                                    selectedGiftProductIds - product.id
+                                } else {
+                                    selectedGiftProductIds + product.id
+                                }
+                            },
+                            trailingContent = {
+                                Checkbox(
+                                    checked = selected,
+                                    onCheckedChange = null
+                                )
+                            }
+                        )
+                    }
+                    if (filteredGiftProducts.size > 5) {
+                        Text(
+                            "Y ${filteredGiftProducts.size - 5} productos mas...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+                }
 
                 Text(
                     "Slots del combo",
@@ -644,7 +726,7 @@ private fun SlotCard(
                             )
                             if (option.isDefault) {
                                 Text(
-                                    "Por defecto",
+                                    "Preseleccionado",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -681,7 +763,7 @@ private fun NewSlotInlineForm(
     var slotDescription by remember { mutableStateOf("") }
     var minSel by remember { mutableStateOf("1") }
     var maxSel by remember { mutableStateOf("1") }
-    var isRequired by remember { mutableStateOf(true) }
+    var isFree by remember { mutableStateOf(false) }
     var selectedProducts by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -804,12 +886,12 @@ private fun NewSlotInlineForm(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Slot obligatorio",
+                    "Slot gratis (incluido)",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Switch(
-                    checked = isRequired,
-                    onCheckedChange = { isRequired = it }
+                    checked = isFree,
+                    onCheckedChange = { isFree = it }
                 )
             }
 
@@ -921,14 +1003,14 @@ private fun NewSlotInlineForm(
                 }
                 Button(
                     onClick = {
-                        val minSelectionValue = minSel.toIntOrNull() ?: if (isRequired) 1 else 0
+                        val minSelectionValue = minSel.toIntOrNull() ?: 0
                         val defaultCount = minSelectionValue.coerceIn(0, selectedProducts.size)
                         val newSlot = SlotEdit(
                             name = slotName,
                             description = slotDescription.takeIf { it.isNotBlank() },
                             minSelections = minSelectionValue,
                             maxSelections = maxSel.toIntOrNull() ?: 1,
-                            isRequired = isRequired,
+                            isFree = isFree,
                             options = selectedProducts.mapIndexed { index, productId ->
                                 val product = availableProducts.find { it.id == productId }
                                 OptionEdit(
@@ -1025,15 +1107,13 @@ private fun SlotInlineCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Text(
-                        if (slot.isRequired) "Obligatorio" else "Opcional",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (slot.isRequired) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
+                    if (slot.isFree) {
+                        Text(
+                            "Incluido / Gratis",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -1109,7 +1189,7 @@ private fun SlotInlineCard(
                                         }
                                     )
                                     Text(
-                                        "Por defecto",
+                                        "Preseleccionado",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -1250,7 +1330,6 @@ private fun validateComboForm(
         if (slot.minSelections < 0) return "El minimo de selecciones en ${slot.name} no puede ser negativo"
         if (slot.maxSelections <= 0) return "El maximo de selecciones en ${slot.name} debe ser mayor que 0"
         if (slot.minSelections > slot.maxSelections) return "En ${slot.name}, minimo no puede ser mayor que maximo"
-        if (slot.isRequired && slot.minSelections < 1) return "El slot ${slot.name} es obligatorio y debe permitir al menos 1 seleccion"
         if (slot.options.isEmpty()) return "El slot ${slot.name} debe tener al menos una opcion"
         if (slot.maxSelections > slot.options.size) {
             return "En ${slot.name}, maximo no puede exceder la cantidad de opciones"
@@ -1270,10 +1349,10 @@ private fun validateComboForm(
 
         val defaultsCount = slot.options.count { it.isDefault }
         if (defaultsCount < slot.minSelections) {
-            return "En ${slot.name}, opciones por defecto insuficientes para el minimo requerido"
+            return "En ${slot.name}, opciones preseleccionadas insuficientes para el minimo requerido"
         }
         if (defaultsCount > slot.maxSelections) {
-            return "En ${slot.name}, opciones por defecto exceden el maximo permitido"
+            return "En ${slot.name}, opciones preseleccionadas exceden el maximo permitido"
         }
 
         slot.options.forEach { option ->

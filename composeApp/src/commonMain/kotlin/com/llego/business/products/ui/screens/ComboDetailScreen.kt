@@ -273,30 +273,19 @@ fun ComboDetailScreen(
                         )
                     )
 
-                    if (combo.basePrice != combo.finalPrice) {
-                        DetailRow(
-                            label = "Precio base",
-                            value = formatPrice(combo.basePrice),
-                            valueStyle = MaterialTheme.typography.bodyMedium.copy(
-                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-
                     DetailRow(
-                        label = "Precio final",
-                        value = formatPrice(combo.finalPrice),
+                        label = "Desde",
+                        value = formatPrice(combo.startingFinalPrice),
                         valueColor = MaterialTheme.colorScheme.primary,
                         valueStyle = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
                     )
 
-                    if (combo.savings > 0) {
+                    if (combo.startingSavings > 0) {
                         DetailRow(
-                            label = "Ahorro",
-                            value = formatPrice(combo.savings),
+                            label = "Ahorro desde",
+                            value = formatPrice(combo.startingSavings),
                             valueColor = MaterialTheme.colorScheme.tertiary,
                             valueStyle = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold
@@ -359,6 +348,13 @@ fun ComboDetailScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (slot.isFree) {
+                                    Text(
+                                        "Incluido / Gratis",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
                                 
                                 slot.options.forEach { option ->
                                     Row(
@@ -385,13 +381,21 @@ fun ComboDetailScreen(
                                             }
                                             if (option.isDefault) {
                                                 Text(
-                                                    "  Por defecto",
+                                                    "  Preseleccionado",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }
-                                        if (option.priceAdjustment != 0.0) {
+                                        if (slot.isFree) {
+                                            Text(
+                                                "Incluido",
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontWeight = FontWeight.Medium
+                                                ),
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        } else if (option.priceAdjustment != 0.0) {
                                             Text(
                                                 "+${formatPrice(option.priceAdjustment)}",
                                                 style = MaterialTheme.typography.bodySmall.copy(

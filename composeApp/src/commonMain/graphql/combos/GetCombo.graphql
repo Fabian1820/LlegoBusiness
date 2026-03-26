@@ -1,12 +1,13 @@
 query GetCombo($comboId: String!) {
   combo(comboId: $comboId) {
     id
+    branchId
     name
     description
     image
-    basePrice
-    finalPrice
-    savings
+    imageUrl
+    startingFinalPrice
+    startingSavings
     discountType
     discountValue
     availability
@@ -21,7 +22,7 @@ query GetCombo($comboId: String!) {
       description
       minSelections
       maxSelections
-      isRequired
+      isFree
       displayOrder
       options {
         productId
@@ -37,6 +38,14 @@ query GetCombo($comboId: String!) {
           name
           priceAdjustment
         }
+      }
+    }
+    giftOptions {
+      productId
+      product {
+        id
+        name
+        imageUrl
       }
     }
     createdAt
