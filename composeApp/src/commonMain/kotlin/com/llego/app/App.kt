@@ -70,6 +70,8 @@ import com.llego.shared.ui.components.atoms.LoadingOverlay
 import kotlinx.coroutines.launch
 
 private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
+// MVP: el frontend de vitrinas queda deshabilitado temporalmente.
+private const val SHOWCASE_FRONTEND_ENABLED = false
 
 private fun normalizeCategoryId(raw: String?): String? {
     val value = raw?.trim().orEmpty()
@@ -601,6 +603,21 @@ private fun MainBusinessFlow(
         }
     }
 
+    LaunchedEffect(
+        navigator.showAddShowcase,
+        navigator.showShowcaseDetail,
+        navigator.showcaseToEdit,
+        navigator.showcaseToView
+    ) {
+        // MVP: evitar abrir/recuperar navegación de vitrinas.
+        if (!SHOWCASE_FRONTEND_ENABLED) {
+            navigator.showAddShowcase = false
+            navigator.showShowcaseDetail = false
+            navigator.showcaseToEdit = null
+            navigator.showcaseToView = null
+        }
+    }
+
     Box(modifier = Modifier) {
         when {
             navigator.showProductSearch -> {
@@ -689,7 +706,7 @@ private fun MainBusinessFlow(
                 )
             }
 
-            navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
+            SHOWCASE_FRONTEND_ENABLED && navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
                 ShowcaseDetailScreen(
                     showcase = navigator.showcaseToView!!,
                     onNavigateBack = {
@@ -785,7 +802,7 @@ private fun MainBusinessFlow(
                 )
             }
 
-            navigator.showAddShowcase -> {
+            SHOWCASE_FRONTEND_ENABLED && navigator.showAddShowcase -> {
                 AddShowcaseScreen(
                     viewModel = showcaseViewModel,
                     branchId = authViewModel.getCurrentBranchId(),
@@ -963,22 +980,10 @@ private fun MainBusinessFlow(
                         navigator.productToEdit = product
                         navigator.showAddProduct = true
                     },
-                    onNavigateToAddShowcase = {
-                        navigator.showShowcaseDetail = false
-                        navigator.showcaseToView = null
-                        navigator.showcaseToEdit = null
-                        navigator.showAddShowcase = true
-                    },
-                    onNavigateToShowcaseDetail = { showcase ->
-                        navigator.showShowcaseDetail = true
-                        navigator.showcaseToView = showcase
-                    },
-                    onNavigateToEditShowcase = { showcase ->
-                        navigator.showShowcaseDetail = false
-                        navigator.showcaseToView = null
-                        navigator.showcaseToEdit = showcase
-                        navigator.showAddShowcase = true
-                    },
+                    // MVP: callbacks de vitrina deshabilitados.
+                    onNavigateToAddShowcase = {},
+                    onNavigateToShowcaseDetail = { _ -> },
+                    onNavigateToEditShowcase = { _ -> },
                     onNavigateToAddCombo = { combo ->
                         navigator.comboToEdit = combo
                         navigator.showAddCombo = true
