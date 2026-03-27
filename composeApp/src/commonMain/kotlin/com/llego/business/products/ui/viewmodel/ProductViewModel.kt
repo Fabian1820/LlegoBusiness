@@ -138,10 +138,14 @@ class ProductViewModel(
                 first = first,
                 after = null
             )
-            _productsState.value = result
-            if (result is ProductsResult.Success) {
+            val normalizedResult = when (result) {
+                is ProductsResult.Success -> result.copy(products = result.products.distinctBy { it.id })
+                else -> result
+            }
+            _productsState.value = normalizedResult
+            if (normalizedResult is ProductsResult.Success) {
                 lastLoadedProductsQuery = query
-                if (!result.hasNextPage) {
+                if (!normalizedResult.hasNextPage) {
                     fullyLoadedProductsQueries += fullQuery
                 }
             }
@@ -223,12 +227,16 @@ class ProductViewModel(
         }
     }
 
-    fun invalidateProductsCache() {
+    private fun markProductsCacheStale() {
         lastLoadedProductsQuery = null
         fullyLoadedProductsQueries.clear()
         _isLoadingMoreProducts.value = false
         _loadMoreProductsError.value = null
         lastFailedLoadMoreCursor = null
+    }
+
+    fun invalidateProductsCache() {
+        markProductsCacheStale()
         _productsState.value = ProductsResult.Loading
     }
 
@@ -249,7 +257,10 @@ class ProductViewModel(
             _loadMoreProductsError.value = null
             lastFailedLoadMoreCursor = null
             _productsState.value = ProductsResult.Loading
-            _productsState.value = repository.getProductsByIds(ids)
+            _productsState.value = when (val result = repository.getProductsByIds(ids)) {
+                is ProductsResult.Success -> result.copy(products = result.products.distinctBy { it.id })
+                else -> result
+            }
             lastLoadedProductsQuery = null
             fullyLoadedProductsQueries.clear()
         }
@@ -515,8 +526,7 @@ class ProductViewModel(
         categoryId: String? = null,
         variantListIds: List<String>? = null
     ): ProductsResult {
-        invalidateProductsCache()
-        _productsState.value = ProductsResult.Loading
+        val previousState = _productsState.value as? ProductsResult.Success
         val result = repository.createProduct(
             name = name,
             description = description,
@@ -529,7 +539,17 @@ class ProductViewModel(
             categoryId = categoryId,
             variantListIds = variantListIds
         )
-        _productsState.value = result
+        if (result is ProductsResult.Success) {
+            val created = result.products.firstOrNull()
+            if (created != null && previousState != null) {
+                _productsState.value = ProductsResult.Success(
+                    products = previousState.products.upsertById(created),
+                    hasNextPage = previousState.hasNextPage,
+                    endCursor = previousState.endCursor
+                )
+            }
+            markProductsCacheStale()
+        }
         return result
     }
 
@@ -548,8 +568,7 @@ class ProductViewModel(
         imagePath: String? = null,
         variantListIds: List<String>? = null
     ): ProductsResult {
-        invalidateProductsCache()
-        _productsState.value = ProductsResult.Loading
+        val previousState = _productsState.value as? ProductsResult.Success
         val result = repository.updateProduct(
             productId = productId,
             name = name,
@@ -562,7 +581,17 @@ class ProductViewModel(
             categoryId = categoryId,
             variantListIds = variantListIds
         )
-        _productsState.value = result
+        if (result is ProductsResult.Success) {
+            val updated = result.products.firstOrNull()
+            if (updated != null && previousState != null) {
+                _productsState.value = ProductsResult.Success(
+                    products = previousState.products.upsertById(updated),
+                    hasNextPage = previousState.hasNextPage,
+                    endCursor = previousState.endCursor
+                )
+            }
+            markProductsCacheStale()
+        }
         return result
     }
 
@@ -570,10 +599,18 @@ class ProductViewModel(
      * Elimina un producto y devuelve el resultado de la operacion.
      */
     suspend fun deleteProductBlocking(productId: String): ProductsResult {
-        invalidateProductsCache()
-        _productsState.value = ProductsResult.Loading
+        val previousState = _productsState.value as? ProductsResult.Success
         val result = repository.deleteProduct(productId)
-        _productsState.value = result
+        if (result is ProductsResult.Success) {
+            if (previousState != null) {
+                _productsState.value = ProductsResult.Success(
+                    products = previousState.products.filterNot { it.id == productId },
+                    hasNextPage = previousState.hasNextPage,
+                    endCursor = previousState.endCursor
+                )
+            }
+            markProductsCacheStale()
+        }
         return result
     }
 
@@ -646,5 +683,18 @@ class ProductViewModel(
         return map { existing ->
             if (existing.id == updated.id) updated else existing
         }
+    }
+
+    private fun List<Product>.upsertById(updated: Product): List<Product> {
+        var replaced = false
+        val updatedList = map { existing ->
+            if (existing.id == updated.id) {
+                replaced = true
+                updated
+            } else {
+                existing
+            }
+        }
+        return if (replaced) updatedList else updatedList + updated
     }
 }

@@ -561,6 +561,7 @@ private fun MainBusinessFlow(
     onNavigateBackToBranchSelector: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    var isSavingProduct by remember { mutableStateOf(false) }
     val productsState by productViewModel.productsState.collectAsState()
     val productCategoriesState by productViewModel.productCategoriesState.collectAsState()
     val variantListsState by productViewModel.variantListsState.collectAsState()
@@ -600,6 +601,12 @@ private fun MainBusinessFlow(
     LaunchedEffect(currentBranch?.id) {
         currentBranch?.id?.let { branchId ->
             productViewModel.loadVariantLists(branchId = branchId)
+        }
+    }
+
+    LaunchedEffect(navigator.showAddProduct) {
+        if (!navigator.showAddProduct) {
+            isSavingProduct = false
         }
     }
 
@@ -729,6 +736,7 @@ private fun MainBusinessFlow(
                     variantLists = variantListsState.variantLists,
                     variantListsLoading = variantListsState.isLoading,
                     variantListsError = variantListsState.error,
+                    isSaving = isSavingProduct,
                     onCreateVariantList = { branchId, name, description, options ->
                         productViewModel.createVariantList(
                             branchId = branchId,
@@ -738,63 +746,80 @@ private fun MainBusinessFlow(
                         )
                     },
                     onNavigateBack = {
+                        if (isSavingProduct) return@AddProductScreen
                         navigator.showAddProduct = false
                         navigator.productToEdit = null
                     },
                     onSave = { form ->
+                        if (isSavingProduct) return@AddProductScreen
+                        isSavingProduct = true
                         val currentBranchId = authViewModel.getCurrentBranchId()
                         scope.launch {
-                            if (currentBranchId == null) {
-                                println("❌ Error: No hay sucursal seleccionada")
-                                return@launch
-                            }
-                            if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) {
-                                println("❌ Error: No hay imagen subida para el nuevo producto")
-                                return@launch
-                            }
-
-                            println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
-
-                            val result = if (navigator.productToEdit == null) {
-                                productViewModel.createProductWithImagePath(
-                                    name = form.name,
-                                    description = form.description.ifBlank { form.name },
-                                    price = form.price,
-                                    imagePath = form.imagePath ?: "",
-                                    branchId = currentBranchId,
-                                    currency = form.currency,
-                                    weight = form.weight,
-                                    categoryId = normalizeCategoryId(form.categoryId),
-                                    variantListIds = form.variantListIds.takeIf { it.isNotEmpty() }
-                                )
-                            } else {
-                                productViewModel.updateProductWithImagePath(
-                                    productId = navigator.productToEdit!!.id,
-                                    name = form.name,
-                                    description = form.description,
-                                    price = form.price,
-                                    currency = form.currency,
-                                    weight = form.weight,
-                                    availability = form.availability,
-                                    categoryId = normalizeCategoryId(form.categoryId),
-                                    imagePath = form.imagePath,
-                                    variantListIds = form.variantListIds
-                                )
-                            }
-
-                            when (result) {
-                                is ProductsResult.Success -> {
-                                    println("✅ Producto guardado exitosamente")
-                                    productViewModel.loadProducts(branchId = currentBranchId)
-                                    navigator.showAddProduct = false
-                                    navigator.productToEdit = null
+                            try {
+                                if (currentBranchId == null) {
+                                    println("❌ Error: No hay sucursal seleccionada")
+                                    return@launch
+                                }
+                                if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) {
+                                    println("❌ Error: No hay imagen subida para el nuevo producto")
+                                    return@launch
                                 }
 
-                                is ProductsResult.Error -> {
-                                    println("❌ Error al guardar producto: ${result.message}")
+                                println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
+
+                                val editingProduct = navigator.productToEdit
+                                val imagePathForUpdate = if (
+                                    editingProduct != null &&
+                                    form.imagePath == editingProduct.image
+                                ) {
+                                    null
+                                } else {
+                                    form.imagePath
                                 }
 
-                                is ProductsResult.Loading -> {}
+                                val result = if (editingProduct == null) {
+                                    productViewModel.createProductWithImagePath(
+                                        name = form.name,
+                                        description = form.description.ifBlank { form.name },
+                                        price = form.price,
+                                        imagePath = form.imagePath ?: "",
+                                        branchId = currentBranchId,
+                                        currency = form.currency,
+                                        weight = form.weight,
+                                        categoryId = normalizeCategoryId(form.categoryId),
+                                        variantListIds = form.variantListIds.takeIf { it.isNotEmpty() }
+                                    )
+                                } else {
+                                    productViewModel.updateProductWithImagePath(
+                                        productId = editingProduct.id,
+                                        name = form.name,
+                                        description = form.description,
+                                        price = form.price,
+                                        currency = form.currency,
+                                        weight = form.weight,
+                                        availability = form.availability,
+                                        categoryId = normalizeCategoryId(form.categoryId),
+                                        imagePath = imagePathForUpdate,
+                                        variantListIds = form.variantListIds
+                                    )
+                                }
+
+                                when (result) {
+                                    is ProductsResult.Success -> {
+                                        println("✅ Producto guardado exitosamente")
+                                        productViewModel.loadProducts(branchId = currentBranchId)
+                                        navigator.showAddProduct = false
+                                        navigator.productToEdit = null
+                                    }
+
+                                    is ProductsResult.Error -> {
+                                        println("❌ Error al guardar producto: ${result.message}")
+                                    }
+
+                                    is ProductsResult.Loading -> {}
+                                }
+                            } finally {
+                                isSavingProduct = false
                             }
                         }
                     },

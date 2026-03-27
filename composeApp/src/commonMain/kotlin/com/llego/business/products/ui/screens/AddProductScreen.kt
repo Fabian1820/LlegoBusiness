@@ -111,6 +111,7 @@ fun AddProductScreen(
     variantLists: List<VariantList> = emptyList(),
     variantListsLoading: Boolean = false,
     variantListsError: String? = null,
+    isSaving: Boolean = false,
     onNavigateBack: () -> Unit,
     onSave: (ProductFormData) -> Unit,
     onCreateVariantList: suspend (
@@ -129,27 +130,29 @@ fun AddProductScreen(
     val density = LocalDensity.current
     val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
 
-    var name by remember { mutableStateOf(existingProduct?.name ?: "") }
-    var description by remember { mutableStateOf(existingProduct?.description ?: "") }
-    var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
-    var weight by remember { mutableStateOf(existingProduct?.weight ?: "") }
-    var selectedCategoryId by remember { mutableStateOf(existingProduct?.categoryId) }
-    var currency by remember { mutableStateOf(existingProduct?.currency ?: "USD") }
-    var isAvailable by remember { mutableStateOf(existingProduct?.availability ?: true) }
-    var selectedVariantListIds by remember(existingProduct?.id) {
+    val formKey = existingProduct?.id ?: "new:${branchId ?: "none"}"
+
+    var name by remember(formKey) { mutableStateOf(existingProduct?.name ?: "") }
+    var description by remember(formKey) { mutableStateOf(existingProduct?.description ?: "") }
+    var price by remember(formKey) { mutableStateOf(existingProduct?.price?.toString() ?: "") }
+    var weight by remember(formKey) { mutableStateOf(existingProduct?.weight ?: "") }
+    var selectedCategoryId by remember(formKey) { mutableStateOf(existingProduct?.categoryId) }
+    var currency by remember(formKey) { mutableStateOf(existingProduct?.currency ?: "USD") }
+    var isAvailable by remember(formKey) { mutableStateOf(existingProduct?.availability ?: true) }
+    var selectedVariantListIds by remember(formKey) {
         mutableStateOf(existingProduct?.variantListIds ?: emptyList())
     }
 
-    var showCategoryDropdown by remember { mutableStateOf(false) }
-    var showVariantEditor by remember { mutableStateOf(false) }
-    var variantOperationLoading by remember { mutableStateOf(false) }
-    var variantFeedback by remember { mutableStateOf<String?>(null) }
-    var variantEditorMessage by remember { mutableStateOf<String?>(null) }
-    var variantName by remember { mutableStateOf("") }
-    var variantDescription by remember { mutableStateOf("") }
-    var variantOptions by remember { mutableStateOf(listOf(VariantOptionEditorState())) }
+    var showCategoryDropdown by remember(formKey) { mutableStateOf(false) }
+    var showVariantEditor by remember(formKey) { mutableStateOf(false) }
+    var variantOperationLoading by remember(formKey) { mutableStateOf(false) }
+    var variantFeedback by remember(formKey) { mutableStateOf<String?>(null) }
+    var variantEditorMessage by remember(formKey) { mutableStateOf<String?>(null) }
+    var variantName by remember(formKey) { mutableStateOf("") }
+    var variantDescription by remember(formKey) { mutableStateOf("") }
+    var variantOptions by remember(formKey) { mutableStateOf(listOf(VariantOptionEditorState())) }
 
-    val initialImageState = remember(existingProduct) {
+    val initialImageState = remember(formKey, existingProduct?.image, existingProduct?.imageUrl) {
         existingProduct?.let { product ->
             val displayUri = product.imageUrl.takeIf { it.isNotBlank() } ?: product.image
             if (displayUri.isNotBlank()) {
@@ -163,7 +166,7 @@ fun AddProductScreen(
             }
         } ?: ImageUploadState.Idle
     }
-    var productImageState by remember { mutableStateOf<ImageUploadState>(initialImageState) }
+    var productImageState by remember(formKey) { mutableStateOf<ImageUploadState>(initialImageState) }
 
     val imagePath = (productImageState as? ImageUploadState.Success)?.s3Path
     val priceValue = price.toDoubleOrNull()
@@ -171,7 +174,8 @@ fun AddProductScreen(
         name.isNotBlank() &&
         priceValue != null &&
         currency.isNotBlank() &&
-        !imagePath.isNullOrBlank()
+        !imagePath.isNullOrBlank() &&
+        !isSaving
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -328,7 +332,18 @@ fun AddProductScreen(
                             enabled = isSaveEnabled,
                             shape = LlegoCustomShapes.primaryButton
                         ) {
-                            Text("Guardar")
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier
+                                        .padding(end = 8.dp)
+                                        .height(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Text("Guardando...")
+                            } else {
+                                Text("Guardar")
+                            }
                         }
                     }
                 }

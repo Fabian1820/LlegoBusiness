@@ -206,17 +206,17 @@ fun ProductsScreen(
 
 
     val products = when (val state = productsState) {
-        is ProductsResult.Success -> state.products
+        is ProductsResult.Success -> state.products.distinctBy { it.id }
         else -> emptyList()
     }
 
     val combos = when (val state = combosState) {
-        is com.llego.shared.data.model.CombosResult.Success -> state.combos
+        is com.llego.shared.data.model.CombosResult.Success -> state.combos.distinctBy { it.id }
         else -> emptyList()
     }
 
     val showcases = when (val state = showcasesState) {
-        is ShowcasesResult.Success -> state.showcases
+        is ShowcasesResult.Success -> state.showcases.distinctBy { it.id }
         else -> emptyList()
     }
 
