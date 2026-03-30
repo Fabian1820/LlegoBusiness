@@ -58,8 +58,8 @@ fun ImageUploadPreview(
 
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -131,7 +131,7 @@ fun ImageUploadPreview(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(34.dp)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -178,7 +178,7 @@ private fun IdleContent(label: String, size: ImageUploadSize) {
         Icon(
             imageVector = Icons.Default.AddPhotoAlternate,
             contentDescription = "Agregar $label",
-            modifier = Modifier.size(if (size == ImageUploadSize.LARGE) 48.dp else 32.dp),
+            modifier = Modifier.size(if (size == ImageUploadSize.LARGE) 38.dp else 28.dp),
             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.height(8.dp))

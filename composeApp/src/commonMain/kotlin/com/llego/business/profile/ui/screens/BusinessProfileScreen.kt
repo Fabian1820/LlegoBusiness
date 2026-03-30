@@ -968,7 +968,8 @@ fun BusinessProfileScreen(
                 }
             },
             uploadFunction = imageUploadViewModel::uploadBranchAvatar,
-            onDismiss = { showAvatarDialog = false }
+            onDismiss = { showAvatarDialog = false },
+            helperText = "Usa una imagen cuadrada para mejor resultado."
         )
     }
 
@@ -986,9 +987,10 @@ fun BusinessProfileScreen(
             },
             uploadFunction = imageUploadViewModel::uploadBranchCover,
             onDismiss = { showCoverDialog = false },
-            size = ImageUploadSize.LARGE,
+            size = ImageUploadSize.MEDIUM,
             previewAspectRatio = 16f / 9f,
-            previewContentScale = ContentScale.Crop
+            previewContentScale = ContentScale.Crop,
+            helperText = "Formato recomendado: 16:9 para que llene la portada sin bordes."
         )
     }
 
