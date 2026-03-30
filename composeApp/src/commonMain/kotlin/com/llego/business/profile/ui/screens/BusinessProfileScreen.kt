@@ -72,6 +72,8 @@ import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.VariantList
 import com.llego.shared.data.model.VariantOptionDraft
+import com.llego.shared.data.model.avatarLargeUrl
+import com.llego.shared.data.model.coverBestUrl
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
 import com.llego.shared.ui.business.formatTransferAccountsInput
@@ -507,8 +509,8 @@ fun BusinessProfileScreen(
         ) {
             item {
                 BannerWithLogoSection(
-                    avatarUrl = branchPreview?.avatarUrl,
-                    coverUrl = branchPreview?.coverUrl,
+                    avatarUrl = branchPreview?.avatarLargeUrl(),
+                    coverUrl = branchPreview?.coverBestUrl(),
                     coverPreviewUrl = coverPreviewUrl,
                     branchName = branchPreview?.name,
                     onChangeAvatar = { showAvatarDialog = true },

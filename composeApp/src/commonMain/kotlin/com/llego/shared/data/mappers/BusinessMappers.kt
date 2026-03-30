@@ -54,7 +54,9 @@ private fun BusinessCoreFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -73,7 +75,9 @@ private fun BusinessRoleFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -88,7 +92,9 @@ private fun BusinessUpdateFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -149,7 +155,11 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate
@@ -199,7 +209,11 @@ private fun BranchCoreFields.toDomain(): Branch {
         },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate
@@ -249,7 +263,11 @@ private fun BranchUpdateFields.toDomain(): Branch {
         },
         createdAt = "",
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate

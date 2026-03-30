@@ -269,7 +269,11 @@ internal class BusinessDomainRepository(
                             },
                             createdAt = fields.createdAt.toString(),
                             avatarUrl = fields.avatarUrl,
+                            avatarUrlBaja = fields.avatarUrlBaja,
+                            avatarUrlAlta = fields.avatarUrlAlta,
                             coverUrl = fields.coverUrl,
+                            coverUrlBaja = fields.coverUrlBaja,
+                            coverUrlAlta = fields.coverUrlAlta,
                             wallet = WalletBalance(
                                 local = fields.wallet.walletBalanceFields.local,
                                 usd = fields.wallet.walletBalanceFields.usd
@@ -292,6 +296,8 @@ internal class BusinessDomainRepository(
                         isActive = businessFields.isActive,
                         createdAt = businessFields.createdAt.toString(),
                         avatarUrl = businessFields.avatarUrl,
+                        avatarUrlBaja = businessFields.avatarUrlBaja,
+                        avatarUrlAlta = businessFields.avatarUrlAlta,
                         branches = branches
                     )
                 }
@@ -352,7 +358,9 @@ internal class BusinessDomainRepository(
                         tags = core.tags ?: emptyList(),
                         isActive = core.isActive,
                         createdAt = core.createdAt.toString(),
-                        avatarUrl = core.avatarUrl
+                        avatarUrl = core.avatarUrl,
+                        avatarUrlBaja = core.avatarUrlBaja,
+                        avatarUrlAlta = core.avatarUrlAlta
                     )
                 }
 

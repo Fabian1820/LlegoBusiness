@@ -74,6 +74,7 @@ import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.screens.ProductsScreen
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.model.Product
+import com.llego.shared.data.model.avatarSmallUrl
 import com.llego.shared.ui.auth.AuthViewModel
 import org.jetbrains.compose.resources.painterResource
 
@@ -116,7 +117,7 @@ fun BusinessHomeScreen(
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val topBarTitle = currentBranch?.name ?: currentBusiness?.name ?: "Mi negocio"
-    val branchAvatarUrl = currentBranch?.avatarUrl?.takeIf { it.isNotBlank() }
+    val branchAvatarUrl = currentBranch?.avatarSmallUrl()?.takeIf { it.isNotBlank() }
         ?: currentBranch?.avatar?.takeIf { it.isNotBlank() }
 
     var isSearchMode by remember { mutableStateOf(false) }

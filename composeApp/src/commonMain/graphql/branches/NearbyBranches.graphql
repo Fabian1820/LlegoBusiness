@@ -29,7 +29,11 @@ query NearbyBranches(
         distanceM
         distanceKm
         avatarUrl
+        avatarUrlBaja
+        avatarUrlAlta
         coverUrl
+        coverUrlBaja
+        coverUrlAlta
       }
     }
     pageInfo {

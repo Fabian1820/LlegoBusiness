@@ -589,6 +589,16 @@ type BusinessType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 """
@@ -625,6 +635,16 @@ type BusinessWithBranchesType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 type BranchType {
@@ -694,9 +714,29 @@ type BranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Products from this branch
@@ -1130,9 +1170,29 @@ type ScoredBranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Distance in kilometers from user
@@ -1253,9 +1313,29 @@ type NearbyBranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Distance in kilometers
@@ -3347,6 +3427,16 @@ type BusinessSyncType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 type BranchSyncType {
@@ -3394,9 +3484,29 @@ type BranchSyncType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 }
 
 type CoordinatesSyncType {

@@ -25,7 +25,9 @@ data class Business(
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null
 )
 
 /**
@@ -46,6 +48,8 @@ data class BusinessWithBranches(
     val isActive: Boolean = true,
     val createdAt: String,
     val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null,
     val branches: List<Branch> = emptyList()
 ) {
     fun toBusiness(): Business {
@@ -59,7 +63,9 @@ data class BusinessWithBranches(
             tags = tags,
             isActive = isActive,
             createdAt = createdAt,
-            avatarUrl = avatarUrl
+            avatarUrl = avatarUrl,
+            avatarUrlBaja = avatarUrlBaja,
+            avatarUrlAlta = avatarUrlAlta
         )
     }
 }
@@ -91,7 +97,11 @@ data class Branch(
     val phones: List<TransferPhone> = emptyList(),
     val createdAt: String,
     val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null,
     val coverUrl: String? = null,
+    val coverUrlBaja: String? = null,
+    val coverUrlAlta: String? = null,
     val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
     val walletStatus: String = "active",  // Estado de la billetera: "active", "suspended", etc.
     val exchangeRate: Int? = null
