@@ -47,10 +47,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.llego.business.shared.ui.components.rememberImagePickerController
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.business.branches.util.parseExchangeRate
 import com.llego.business.branches.util.validateExchangeRateInput
@@ -58,7 +58,6 @@ import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.profile.ui.components.BannerWithLogoSection
 import com.llego.business.profile.ui.components.BranchInfoSection
 import com.llego.business.profile.ui.components.BranchScheduleSection
-import com.llego.business.profile.ui.components.ImageUploadDialog
 import com.llego.business.profile.ui.components.LocationMapSection
 import com.llego.business.profile.ui.components.ProfileFieldWithInput
 import com.llego.business.profile.ui.components.ProfileSaveMessageCard
@@ -68,12 +67,14 @@ import com.llego.business.profile.ui.components.SocialLinksSection
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
+import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.VariantList
 import com.llego.shared.data.model.VariantOptionDraft
 import com.llego.shared.data.model.avatarLargeUrl
 import com.llego.shared.data.model.coverBestUrl
+import com.llego.shared.data.model.extractFilename
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
 import com.llego.shared.ui.business.formatTransferAccountsInput
@@ -83,7 +84,6 @@ import com.llego.shared.ui.business.parseTransferAccountsInput
 import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
 import com.llego.shared.ui.components.molecules.PaymentMethodSelectorLayout
-import com.llego.shared.ui.components.molecules.ImageUploadSize
 import com.llego.shared.ui.theme.LlegoCustomShapes
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
@@ -107,6 +107,7 @@ fun BusinessProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val imageUploadViewModel = remember { ImageUploadViewModel() }
+    val imagePickerController = rememberImagePickerController()
     val paymentMethodsViewModel = remember { PaymentMethodsViewModel() }
     val paymentMethodsUiState by paymentMethodsViewModel.uiState.collectAsState()
     val variantListsUiState by productViewModel.variantListsState.collectAsState()
@@ -114,8 +115,6 @@ fun BusinessProfileScreen(
     var isSaving by remember { mutableStateOf(false) }
     var saveMessage by remember { mutableStateOf<String?>(null) }
     var variantMessage by remember { mutableStateOf<String?>(null) }
-    var showAvatarDialog by remember { mutableStateOf(false) }
-    var showCoverDialog by remember { mutableStateOf(false) }
     var avatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
     var coverState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
 
@@ -258,11 +257,80 @@ fun BusinessProfileScreen(
 
     BackHandler(
         enabled = !showVariantEditor &&
-            !showAvatarDialog &&
-            !showCoverDialog &&
             !showUnsavedChangesDialog
     ) {
         handleBack()
+    }
+
+    fun pickAndUploadImage(
+        isCover: Boolean,
+        uploadFunction: suspend (String) -> ImageUploadResult
+    ) {
+        imagePickerController.pickImage { selectedUri ->
+            val filename = selectedUri.extractFilename()
+
+            if (isCover) {
+                coverState = ImageUploadState.Selected(selectedUri, filename)
+            } else {
+                avatarState = ImageUploadState.Selected(selectedUri, filename)
+            }
+
+            coroutineScope.launch {
+                if (isCover) {
+                    coverState = ImageUploadState.Uploading(selectedUri, filename)
+                } else {
+                    avatarState = ImageUploadState.Uploading(selectedUri, filename)
+                }
+
+                try {
+                    when (val result = uploadFunction(selectedUri)) {
+                        is ImageUploadResult.Success -> {
+                            val successState = ImageUploadState.Success(
+                                localUri = selectedUri,
+                                s3Path = result.response.imagePath,
+                                filename = filename
+                            )
+                            if (isCover) {
+                                coverState = successState
+                                saveMessage = "Portada lista. Guarda para aplicar cambios."
+                            } else {
+                                avatarState = successState
+                                saveMessage = "Avatar listo. Guarda para aplicar cambios."
+                            }
+                        }
+
+                        is ImageUploadResult.Error -> {
+                            val errorState = ImageUploadState.Error(
+                                localUri = selectedUri,
+                                message = result.message,
+                                filename = filename
+                            )
+                            if (isCover) {
+                                coverState = errorState
+                            } else {
+                                avatarState = errorState
+                            }
+                            saveMessage = result.message
+                        }
+
+                        is ImageUploadResult.Loading -> Unit
+                    }
+                } catch (e: Exception) {
+                    val message = e.message ?: "No se pudo subir la imagen"
+                    val errorState = ImageUploadState.Error(
+                        localUri = selectedUri,
+                        message = message,
+                        filename = filename
+                    )
+                    if (isCover) {
+                        coverState = errorState
+                    } else {
+                        avatarState = errorState
+                    }
+                    saveMessage = message
+                }
+            }
+        }
     }
 
     fun saveBranchChanges(navigateBackOnSuccess: Boolean = false) {
@@ -513,8 +581,18 @@ fun BusinessProfileScreen(
                     coverUrl = branchPreview?.coverBestUrl(),
                     coverPreviewUrl = coverPreviewUrl,
                     branchName = branchPreview?.name,
-                    onChangeAvatar = { showAvatarDialog = true },
-                    onChangeCover = { showCoverDialog = true },
+                    onChangeAvatar = {
+                        pickAndUploadImage(
+                            isCover = false,
+                            uploadFunction = imageUploadViewModel::uploadBranchAvatar
+                        )
+                    },
+                    onChangeCover = {
+                        pickAndUploadImage(
+                            isCover = true,
+                            uploadFunction = imageUploadViewModel::uploadBranchCover
+                        )
+                    },
                     onNavigateBack = handleBack
                 )
             }
@@ -952,48 +1030,6 @@ fun BusinessProfileScreen(
                     Text("Cancelar")
                 }
             }
-        )
-    }
-
-    if (showAvatarDialog) {
-        ImageUploadDialog(
-            title = "Avatar de la sucursal",
-            label = "Avatar",
-            uploadState = avatarState,
-            onStateChange = { state ->
-                avatarState = state
-                if (state is ImageUploadState.Success) {
-                    saveMessage = "Avatar listo. Guarda para aplicar cambios."
-                    showAvatarDialog = false
-                }
-            },
-            uploadFunction = imageUploadViewModel::uploadBranchAvatar,
-            onDismiss = { showAvatarDialog = false },
-            size = ImageUploadSize.SMALL,
-            helperText = "Usa una imagen cuadrada para mejor resultado.",
-            previewWidthFraction = 0.72f
-        )
-    }
-
-    if (showCoverDialog) {
-        ImageUploadDialog(
-            title = "Portada de la sucursal",
-            label = "Portada",
-            uploadState = coverState,
-            onStateChange = { state ->
-                coverState = state
-                if (state is ImageUploadState.Success) {
-                    saveMessage = "Portada lista. Guarda para aplicar cambios."
-                    showCoverDialog = false
-                }
-            },
-            uploadFunction = imageUploadViewModel::uploadBranchCover,
-            onDismiss = { showCoverDialog = false },
-            size = ImageUploadSize.MEDIUM,
-            previewAspectRatio = 16f / 9f,
-            previewContentScale = ContentScale.Crop,
-            helperText = "Formato recomendado: 16:9 para que llene la portada sin bordes.",
-            previewWidthFraction = 0.82f
         )
     }
 
