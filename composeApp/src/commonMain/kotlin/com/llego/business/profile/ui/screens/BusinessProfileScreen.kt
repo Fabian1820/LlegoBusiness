@@ -988,7 +988,7 @@ fun BusinessProfileScreen(
             onDismiss = { showCoverDialog = false },
             size = ImageUploadSize.LARGE,
             previewAspectRatio = 16f / 9f,
-            previewContentScale = ContentScale.FillBounds
+            previewContentScale = ContentScale.Crop
         )
     }
 

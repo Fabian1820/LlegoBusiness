@@ -3,10 +3,7 @@
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +13,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
@@ -102,29 +98,19 @@ fun BannerWithLogoSection(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(end = 12.dp, bottom = 12.dp),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = CircleShape,
                         shadowElevation = 2.dp,
-                        color = Color.Black.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .clickable { onChangeCover() }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        IconButton(
+                            onClick = onChangeCover,
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
-                                contentDescription = null,
-                                tint = Color.White,
+                                contentDescription = "Editar portada",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Editar portada",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White
                             )
                         }
                     }
@@ -135,14 +121,14 @@ fun BannerWithLogoSection(
             modifier = Modifier
                 .padding(start = 20.dp)
                 .align(Alignment.BottomStart)
-                .offset(y = 48.dp)
+                .offset(y = 42.dp)
         ) {
             Surface(
-                modifier = Modifier.size(96.dp),
+                modifier = Modifier.size(82.dp),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 6.dp,
-                border = BorderStroke(3.dp, MaterialTheme.colorScheme.surface)
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
             ) {
                 if (!avatarUrl.isNullOrEmpty()) {
                     NetworkImage(
@@ -173,7 +159,7 @@ fun BannerWithLogoSection(
                 onClick = onChangeAvatar,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(28.dp)
+                    .size(24.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
                     .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
             ) {
@@ -181,11 +167,11 @@ fun BannerWithLogoSection(
                     imageVector = Icons.Default.CameraAlt,
                     contentDescription = "Cambiar avatar",
                     tint = Color.White,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(12.dp)
                 )
             }
         }
     }
 
-    Spacer(modifier = Modifier.height(56.dp))
+    Spacer(modifier = Modifier.height(50.dp))
 }
