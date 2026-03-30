@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.AlertDialog
@@ -12,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +34,8 @@ fun ImageUploadDialog(
     size: ImageUploadSize = ImageUploadSize.MEDIUM,
     previewAspectRatio: Float? = null,
     previewContentScale: ContentScale = ContentScale.Crop,
-    helperText: String? = null
+    helperText: String? = null,
+    previewWidthFraction: Float = 0.82f
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -61,17 +64,22 @@ fun ImageUploadDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                ImageUploadPreview(
-                    label = label,
-                    uploadState = uploadState,
-                    onStateChange = onStateChange,
-                    uploadFunction = uploadFunction,
-                    size = size,
-                    previewAspectRatio = previewAspectRatio,
-                    previewContentScale = previewContentScale,
-                    showSuccessFileName = false,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ImageUploadPreview(
+                        label = label,
+                        uploadState = uploadState,
+                        onStateChange = onStateChange,
+                        uploadFunction = uploadFunction,
+                        size = size,
+                        previewAspectRatio = previewAspectRatio,
+                        previewContentScale = previewContentScale,
+                        showSuccessFileName = false,
+                        modifier = Modifier.fillMaxWidth(previewWidthFraction)
+                    )
+                }
             }
         },
         confirmButton = {
