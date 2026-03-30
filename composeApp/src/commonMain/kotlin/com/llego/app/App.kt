@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
@@ -67,6 +68,8 @@ import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
+import com.llego.shared.ui.components.modifiers.dismissKeyboardOnScroll
+import com.llego.shared.ui.components.modifiers.dismissKeyboardOnTapOutside
 import kotlinx.coroutines.launch
 
 private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
@@ -107,6 +110,7 @@ data class AppViewModels(
 fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
         val authViewModel = viewModels.auth
+        val focusManager = LocalFocusManager.current
 
 
         var isAuthenticated by remember { mutableStateOf(false) }
@@ -295,7 +299,12 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .dismissKeyboardOnTapOutside(focusManager)
+                .dismissKeyboardOnScroll(focusManager)
+        ) {
             when {
                 // Caso 0: Carga inicial - sesion + datos de negocio/sucursales
                 isCheckingSession || (!initialLoadComplete && isAuthenticated) -> {
