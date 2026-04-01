@@ -6,11 +6,24 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class OrderStatus {
+    @SerialName("AWAITING_DELIVERY_ACCEPTANCE")
+    AWAITING_DELIVERY_ACCEPTANCE,
+
+    @SerialName("PENDING_PAYMENT")
+    PENDING_PAYMENT,
+
+    @SerialName("PAYMENT_IN_PROGRESS")
+    PAYMENT_IN_PROGRESS,
+
     @SerialName("PENDING_ACCEPTANCE")
     PENDING_ACCEPTANCE,
 
     @SerialName("MODIFIED_BY_STORE")
     MODIFIED_BY_STORE,
+
+    // Domain-only status alias from backend contract docs.
+    @SerialName("REJECTED_BY_STORE")
+    REJECTED_BY_STORE,
 
     @SerialName("ACCEPTED")
     ACCEPTED,
@@ -31,8 +44,12 @@ enum class OrderStatus {
     CANCELLED;
 
     fun getDisplayName(): String = when (this) {
+        AWAITING_DELIVERY_ACCEPTANCE -> "Esperando chofer"
+        PENDING_PAYMENT -> "Esperando pago"
+        PAYMENT_IN_PROGRESS -> "Pago en proceso"
         PENDING_ACCEPTANCE -> "Pendiente"
         MODIFIED_BY_STORE -> "Modificado"
+        REJECTED_BY_STORE -> "Rechazado"
         ACCEPTED -> "Aceptado"
         PREPARING -> "Preparando"
         READY_FOR_PICKUP -> "Listo"
@@ -42,8 +59,12 @@ enum class OrderStatus {
     }
 
     fun getColor(): Color = when (this) {
+        AWAITING_DELIVERY_ACCEPTANCE -> Color(0xFF3F51B5)
+        PENDING_PAYMENT -> Color(0xFFFF9800)
+        PAYMENT_IN_PROGRESS -> Color(0xFFFB8C00)
         PENDING_ACCEPTANCE -> Color(0xFFFF9800)
         MODIFIED_BY_STORE -> Color(0xFF2196F3)
+        REJECTED_BY_STORE -> Color(0xFFF44336)
         ACCEPTED -> Color(0xFF8BC34A)
         PREPARING -> Color(0xFF9C27B0)
         READY_FOR_PICKUP -> Color(0xFF4CAF50)

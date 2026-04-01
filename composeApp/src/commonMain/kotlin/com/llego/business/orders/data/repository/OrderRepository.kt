@@ -141,7 +141,11 @@ interface OrderRepository {
      *
      * Requirements: 5.1
      */
-    suspend fun acceptOrder(orderId: String, estimatedMinutes: Int): Result<Order>
+    suspend fun acceptOrder(
+        orderId: String,
+        estimatedMinutes: Int,
+        deliveryFee: Double? = null
+    ): Result<Order>
 
     /**
      * Rechaza un pedido pendiente

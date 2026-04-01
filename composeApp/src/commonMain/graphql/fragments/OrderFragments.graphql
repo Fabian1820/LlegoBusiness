@@ -95,6 +95,13 @@ fragment DeliveryAddressPendingFields on DeliveryAddressType {
   reference
 }
 
+fragment PickupAddressFields on PickupAddressType {
+  street
+  coordinates {
+    ...CoordinatesFields
+  }
+}
+
 fragment OrderTimelineFields on OrderTimelineType {
   status
   timestamp
@@ -132,14 +139,17 @@ fragment OrderFullFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  deliveryMode
   total
   currency
   status
   paymentMethod
   paymentStatus
+  paidAt
   createdAt
   updatedAt
   lastStatusAt
+  deadlineAt
   deliveryPersonId
   estimatedDeliveryTime
   paymentId
@@ -156,6 +166,9 @@ fragment OrderFullFields on OrderType {
   }
   deliveryAddress {
     ...DeliveryAddressFields
+  }
+  pickupAddress {
+    ...PickupAddressFields
   }
   timeline {
     ...OrderTimelineFields
@@ -185,14 +198,17 @@ fragment OrderNewBranchFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  deliveryMode
   total
   currency
   status
   paymentMethod
   paymentStatus
+  paidAt
   createdAt
   updatedAt
   lastStatusAt
+  deadlineAt
   isEditable
   canCancel
   estimatedMinutesRemaining
@@ -204,6 +220,9 @@ fragment OrderNewBranchFields on OrderType {
   }
   deliveryAddress {
     ...DeliveryAddressFields
+  }
+  pickupAddress {
+    ...PickupAddressFields
   }
   timeline {
     ...OrderTimelineFields
@@ -230,14 +249,17 @@ fragment OrderUpdatedFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  deliveryMode
   total
   currency
   status
   paymentMethod
   paymentStatus
+  paidAt
   createdAt
   updatedAt
   lastStatusAt
+  deadlineAt
   deliveryPersonId
   estimatedDeliveryTime
   isEditable
@@ -251,6 +273,9 @@ fragment OrderUpdatedFields on OrderType {
   }
   deliveryAddress {
     ...DeliveryAddressFields
+  }
+  pickupAddress {
+    ...PickupAddressFields
   }
   timeline {
     ...OrderTimelineFields
@@ -276,12 +301,17 @@ fragment OrderPendingFields on OrderType {
   id
   orderNumber
   status
+  deliveryMode
   total
   currency
   createdAt
+  deadlineAt
   branchId
   paymentMethod
   paymentStatus
+  paidAt
+  deliveryPersonId
+  estimatedDeliveryTime
   isEditable
   canCancel
   estimatedMinutesRemaining
@@ -300,8 +330,18 @@ fragment OrderStatusUpdateFields on OrderType {
   id
   orderNumber
   status
+  paymentMethod
+  paymentStatus
+  paidAt
+  deliveryMode
+  deliveryPersonId
+  estimatedDeliveryTime
+  isEditable
+  canCancel
+  estimatedMinutesRemaining
   updatedAt
   lastStatusAt
+  deadlineAt
   timeline {
     ...OrderTimelineFields
   }
@@ -309,8 +349,6 @@ fragment OrderStatusUpdateFields on OrderType {
 
 fragment OrderAcceptUpdateFields on OrderType {
   ...OrderStatusUpdateFields
-  estimatedDeliveryTime
-  estimatedMinutesRemaining
 }
 
 fragment OrderModifyItemsUpdateFields on OrderType {

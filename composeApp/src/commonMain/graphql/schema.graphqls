@@ -2083,6 +2083,8 @@ type OrderType {
 
   lastStatusAt: DateTime!
 
+  deadlineAt: DateTime
+
   deliveryPersonId: String
 
   deliveryZoneId: String
@@ -2178,6 +2180,14 @@ type OrderType {
 }
 
 enum OrderStatusEnum {
+  AWAITING_DELIVERY_ACCEPTANCE
+
+  PENDING_PAYMENT
+
+  PAYMENT_IN_PROGRESS
+
+  REJECTED_BY_STORE
+
   PENDING_ACCEPTANCE
 
   MODIFIED_BY_STORE

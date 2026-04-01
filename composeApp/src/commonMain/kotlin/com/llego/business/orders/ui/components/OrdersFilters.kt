@@ -86,10 +86,17 @@ fun iOSStyleFilters(
             modifier = Modifier.weight(1f)
         ) {
             val businessStatuses = listOf(
+                OrderStatus.AWAITING_DELIVERY_ACCEPTANCE,
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.PAYMENT_IN_PROGRESS,
                 OrderStatus.PENDING_ACCEPTANCE,
                 OrderStatus.MODIFIED_BY_STORE,
+                OrderStatus.REJECTED_BY_STORE,
                 OrderStatus.ACCEPTED,
+                OrderStatus.PREPARING,
                 OrderStatus.READY_FOR_PICKUP,
+                OrderStatus.ON_THE_WAY,
+                OrderStatus.DELIVERED,
                 OrderStatus.CANCELLED
             )
             iOSStylePickerOption(

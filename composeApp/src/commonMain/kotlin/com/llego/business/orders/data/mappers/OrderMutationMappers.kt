@@ -1,6 +1,7 @@
 package com.llego.business.orders.data.mappers
 
 import com.llego.business.orders.data.model.Order
+import com.llego.business.orders.data.model.OrderStatus
 import com.llego.multiplatform.graphql.AcceptOrderMutation
 import com.llego.multiplatform.graphql.AddOrderCommentMutation
 import com.llego.multiplatform.graphql.MarkOrderReadyMutation
@@ -17,7 +18,7 @@ fun AcceptOrderMutation.AcceptOrder.toPartialDomain(): Order =
     orderAcceptUpdateFields.toPartialDomain()
 
 fun RejectOrderMutation.RejectOrder.toPartialDomain(): Order =
-    orderStatusUpdateFields.toPartialDomain()
+    orderStatusUpdateFields.toPartialDomain().copy(status = OrderStatus.REJECTED_BY_STORE)
 
 fun CancelOrderMutation.CancelOrder.toPartialDomain(): Order =
     orderStatusUpdateFields.toPartialDomain()

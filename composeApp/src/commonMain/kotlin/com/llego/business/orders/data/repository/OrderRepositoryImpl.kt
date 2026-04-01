@@ -227,7 +227,11 @@ class OrderRepositoryImpl(
      * Acepta un pedido pendiente
      * Requirements: 5.1
      */
-    override suspend fun acceptOrder(orderId: String, estimatedMinutes: Int): Result<Order> {
+    override suspend fun acceptOrder(
+        orderId: String,
+        estimatedMinutes: Int,
+        deliveryFee: Double?
+    ): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
 
@@ -235,7 +239,8 @@ class OrderRepositoryImpl(
                 AcceptOrderMutation(
                     orderId = orderId,
                     estimatedMinutes = estimatedMinutes,
-                    jwt = token
+                    jwt = token,
+                    deliveryFee = Optional.presentIfNotNull(deliveryFee)
                 )
             ).execute()
 

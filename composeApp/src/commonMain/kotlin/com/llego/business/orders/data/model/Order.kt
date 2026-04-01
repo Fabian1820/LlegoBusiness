@@ -15,11 +15,14 @@ data class Order(
     val businessId: String,
     val subtotal: Double,
     val deliveryFee: Double,
+    val deliveryMode: String = "",
     val total: Double,
     val currency: String,
     val status: OrderStatus,
     val paymentMethod: String,
     val paymentStatus: PaymentStatus,
+    val paidAt: String? = null,
+    val deadlineAt: String? = null,
     val createdAt: String,
     val updatedAt: String,
     val lastStatusAt: String,
@@ -35,6 +38,7 @@ data class Order(
     val comments: List<OrderComment> = emptyList(),
     // Objetos anidados
     val deliveryAddress: DeliveryAddress,
+    val pickupAddress: PickupAddress? = null,
     val customer: CustomerInfo? = null,
     val branch: BranchInfo? = null,
     val business: BusinessInfo? = null,
@@ -43,7 +47,58 @@ data class Order(
     val isEditable: Boolean = false,
     val canCancel: Boolean = false,
     val estimatedMinutesRemaining: Int? = null
-)
+) {
+    fun isCashPaymentMethod(): Boolean = PaymentMethodClassifier.isCash(paymentMethod)
+
+    fun requiresCompletedPaymentBeforePreparing(): Boolean = !isCashPaymentMethod()
+
+    fun canStartPreparingAccordingToPaymentRule(): Boolean =
+        isCashPaymentMethod() || paymentStatus == PaymentStatus.COMPLETED
+}
+
+private object PaymentMethodClassifier {
+    private val cashPaymentMethods = setOf(
+        "cash",
+        "efectivo",
+        "contraentrega",
+        "contra_entrega",
+        "cash_on_delivery",
+        "cod"
+    )
+
+    private val nonCashPaymentMethods = setOf(
+        "transfer",
+        "transferencia",
+        "card",
+        "tarjeta",
+        "pasarela",
+        "gateway",
+        "online",
+        "wallet",
+        "qvapay",
+        "enzona",
+        "stripe",
+        "bank"
+    )
+
+    fun isCash(rawPaymentMethod: String): Boolean {
+        val normalized = normalize(rawPaymentMethod)
+        if (normalized in cashPaymentMethods) return true
+        if (normalized in nonCashPaymentMethods) return false
+        if (cashPaymentMethods.any { normalized.contains(it) }) return true
+        if (nonCashPaymentMethods.any { normalized.contains(it) }) return false
+
+        // Ambiguous values are treated as non-cash for safety.
+        return false
+    }
+
+    private fun normalize(rawPaymentMethod: String): String =
+        rawPaymentMethod
+            .lowercase()
+            .replace("-", "_")
+            .replace(" ", "_")
+            .trim()
+}
 
 /**
  * Información básica de la sucursal

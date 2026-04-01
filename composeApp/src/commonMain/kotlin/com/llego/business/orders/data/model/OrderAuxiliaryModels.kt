@@ -76,6 +76,12 @@ data class DeliveryAddress(
     val coordinates: Coordinates? = null
 )
 
+@Serializable
+data class PickupAddress(
+    val street: String? = null,
+    val coordinates: Coordinates
+)
+
 /**
  * Coordenadas alineadas con backend CoordinatesType
  * El backend usa formato GeoJSON: [longitude, latitude]

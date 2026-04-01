@@ -114,11 +114,17 @@ fun OrderDetailScreen(
             OrderActionsSection(
                 order = currentOrder,
                 isActionInProgress = isActionInProgress,
-                onAcceptOrder = { minutes ->
-                    ordersViewModel.acceptOrder(currentOrder.id, minutes)
+                onAcceptOrder = { minutes, deliveryFee ->
+                    ordersViewModel.acceptOrder(currentOrder.id, minutes, deliveryFee)
+                },
+                onRejectOrder = { reason ->
+                    ordersViewModel.rejectOrder(currentOrder.id, reason)
                 },
                 onCancelOrder = { reason ->
                     ordersViewModel.cancelOrder(currentOrder.id, reason)
+                },
+                onStartPreparing = {
+                    ordersViewModel.startPreparingOrder(currentOrder.id)
                 },
                 onMarkReady = {
                     ordersViewModel.markOrderReady(currentOrder.id)

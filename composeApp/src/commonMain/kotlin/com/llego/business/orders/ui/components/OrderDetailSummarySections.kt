@@ -54,8 +54,12 @@ fun OrderStatusSection(order: Order) {
         ) {
             Icon(
                 imageVector = when (order.status) {
+                    OrderStatus.AWAITING_DELIVERY_ACCEPTANCE -> Icons.Default.LocalShipping
+                    OrderStatus.PENDING_PAYMENT -> Icons.Default.HourglassEmpty
+                    OrderStatus.PAYMENT_IN_PROGRESS -> Icons.Default.Timer
                     OrderStatus.PENDING_ACCEPTANCE -> Icons.Default.HourglassEmpty
                     OrderStatus.MODIFIED_BY_STORE -> Icons.Default.Edit
+                    OrderStatus.REJECTED_BY_STORE -> Icons.Default.Cancel
                     OrderStatus.ACCEPTED -> Icons.Default.CheckCircle
                     OrderStatus.PREPARING -> Icons.Default.Restaurant
                     OrderStatus.READY_FOR_PICKUP -> Icons.Default.Done
@@ -79,6 +83,21 @@ fun OrderStatusSection(order: Order) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = order.status.getColor()
                 )
+                val showDeadline = order.status in listOf(
+                    OrderStatus.PENDING_ACCEPTANCE,
+                    OrderStatus.MODIFIED_BY_STORE,
+                    OrderStatus.REJECTED_BY_STORE,
+                    OrderStatus.AWAITING_DELIVERY_ACCEPTANCE,
+                    OrderStatus.PENDING_PAYMENT,
+                    OrderStatus.PAYMENT_IN_PROGRESS
+                )
+                if (showDeadline && !order.deadlineAt.isNullOrBlank()) {
+                    Text(
+                        text = "Limite: ${order.deadlineAt}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             order.estimatedMinutesRemaining?.let { minutes ->

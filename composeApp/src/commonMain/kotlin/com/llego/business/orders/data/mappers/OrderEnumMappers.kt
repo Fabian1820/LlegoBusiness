@@ -22,23 +22,31 @@ import com.llego.multiplatform.graphql.type.VehicleTypeEnum
  * Convierte OrderStatusEnum de GraphQL a OrderStatus
  */
 fun OrderStatusEnum.toDomain(): OrderStatus = when (this) {
+    OrderStatusEnum.AWAITING_DELIVERY_ACCEPTANCE -> OrderStatus.AWAITING_DELIVERY_ACCEPTANCE
+    OrderStatusEnum.PENDING_PAYMENT -> OrderStatus.PENDING_PAYMENT
+    OrderStatusEnum.PAYMENT_IN_PROGRESS -> OrderStatus.PAYMENT_IN_PROGRESS
     OrderStatusEnum.PENDING_ACCEPTANCE -> OrderStatus.PENDING_ACCEPTANCE
     OrderStatusEnum.MODIFIED_BY_STORE -> OrderStatus.MODIFIED_BY_STORE
+    OrderStatusEnum.REJECTED_BY_STORE -> OrderStatus.REJECTED_BY_STORE
     OrderStatusEnum.ACCEPTED -> OrderStatus.ACCEPTED
     OrderStatusEnum.PREPARING -> OrderStatus.PREPARING
     OrderStatusEnum.READY_FOR_PICKUP -> OrderStatus.READY_FOR_PICKUP
     OrderStatusEnum.ON_THE_WAY -> OrderStatus.ON_THE_WAY
     OrderStatusEnum.DELIVERED -> OrderStatus.DELIVERED
     OrderStatusEnum.CANCELLED -> OrderStatus.CANCELLED
-    OrderStatusEnum.UNKNOWN__ -> OrderStatus.PENDING_ACCEPTANCE
+    OrderStatusEnum.UNKNOWN__ -> OrderStatus.REJECTED_BY_STORE
 }
 
 /**
  * Convierte OrderStatus a OrderStatusEnum de GraphQL
  */
 fun OrderStatus.toGraphQL(): OrderStatusEnum = when (this) {
+    OrderStatus.AWAITING_DELIVERY_ACCEPTANCE -> OrderStatusEnum.AWAITING_DELIVERY_ACCEPTANCE
+    OrderStatus.PENDING_PAYMENT -> OrderStatusEnum.PENDING_PAYMENT
+    OrderStatus.PAYMENT_IN_PROGRESS -> OrderStatusEnum.PAYMENT_IN_PROGRESS
     OrderStatus.PENDING_ACCEPTANCE -> OrderStatusEnum.PENDING_ACCEPTANCE
     OrderStatus.MODIFIED_BY_STORE -> OrderStatusEnum.MODIFIED_BY_STORE
+    OrderStatus.REJECTED_BY_STORE -> OrderStatusEnum.REJECTED_BY_STORE
     OrderStatus.ACCEPTED -> OrderStatusEnum.ACCEPTED
     OrderStatus.PREPARING -> OrderStatusEnum.PREPARING
     OrderStatus.READY_FOR_PICKUP -> OrderStatusEnum.READY_FOR_PICKUP
