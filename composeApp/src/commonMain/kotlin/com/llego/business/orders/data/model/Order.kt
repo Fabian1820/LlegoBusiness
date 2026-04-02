@@ -51,6 +51,7 @@ data class Order(
     fun isPickupOrder(): Boolean = deliveryMode.equals("pickup", ignoreCase = true)
 
     fun isCashPaymentMethod(): Boolean = PaymentMethodClassifier.isCash(paymentMethod)
+    fun paymentMethodDisplayName(): String = PaymentMethodClassifier.toDisplayName(paymentMethod)
 
     fun requiresCompletedPaymentBeforePreparing(): Boolean = !isCashPaymentMethod()
 
@@ -92,6 +93,30 @@ private object PaymentMethodClassifier {
 
         // Ambiguous values are treated as non-cash for safety.
         return false
+    }
+
+    fun toDisplayName(rawPaymentMethod: String): String {
+        val normalized = normalize(rawPaymentMethod)
+        if (normalized.isBlank()) return "No especificado"
+
+        return when {
+            normalized in setOf("cash", "efectivo", "cash_on_delivery", "cod", "contraentrega", "contra_entrega") -> "Efectivo"
+            normalized.contains("transfer") -> "Transferencia"
+            normalized.contains("card") || normalized.contains("tarjeta") -> "Tarjeta"
+            normalized.contains("qvapay") -> "QvaPay"
+            normalized.contains("enzona") -> "Enzona"
+            normalized.contains("zelle") -> "Zelle"
+            normalized.contains("wallet") || normalized.contains("billetera") -> "Billetera digital"
+            normalized.contains("pasarela") || normalized.contains("gateway") || normalized.contains("online") -> "Pago en linea"
+            normalized.contains("bank") || normalized.contains("banco") -> "Pago bancario"
+            else -> normalized
+                .replace("_", " ")
+                .split(" ")
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { token ->
+                    token.replaceFirstChar { first -> first.uppercase() }
+                }
+        }
     }
 
     private fun normalize(rawPaymentMethod: String): String =

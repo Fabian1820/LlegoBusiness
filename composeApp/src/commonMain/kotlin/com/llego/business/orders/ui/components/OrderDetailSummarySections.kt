@@ -24,6 +24,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +41,9 @@ import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.utils.formatDouble
+import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 @Composable
 fun OrderStatusSection(order: Order) {
@@ -83,19 +91,6 @@ fun OrderStatusSection(order: Order) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = order.status.getColor()
                 )
-                Text(
-                    text = if (order.isPickupOrder()) "Modalidad: Recogida en tienda" else "Modalidad: Delivery",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (order.isPickupOrder()) {
-                    val pickupStreet = order.pickupAddress?.street?.takeIf { it.isNotBlank() } ?: "Sucursal"
-                    Text(
-                        text = "Punto de recogida: $pickupStreet",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 val showDeadline = order.status in listOf(
                     OrderStatus.PENDING_ACCEPTANCE,
                     OrderStatus.MODIFIED_BY_STORE,
@@ -104,11 +99,16 @@ fun OrderStatusSection(order: Order) {
                     OrderStatus.PENDING_PAYMENT,
                     OrderStatus.PAYMENT_IN_PROGRESS
                 )
-                if (showDeadline && !order.deadlineAt.isNullOrBlank()) {
+                val countdownText = rememberDeadlineCountdownText(
+                    deadlineAt = order.deadlineAt,
+                    enabled = showDeadline
+                )
+                if (countdownText != null) {
                     Text(
-                        text = "Limite: ${order.deadlineAt}",
+                        text = "Limite: $countdownText",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -356,22 +356,6 @@ fun PaymentSummarySection(order: Order) {
             )
         }
 
-        if (order.isPickupOrder()) {
-            order.pickupAddress?.street?.takeIf { it.isNotBlank() }?.let { pickupStreet ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Recogida en", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = pickupStreet,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
         order.discounts.forEach { discount ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -412,7 +396,7 @@ fun PaymentSummarySection(order: Order) {
             Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = order.paymentMethod,
+                    text = order.paymentMethodDisplayName(),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Surface(
@@ -445,5 +429,64 @@ fun PaymentSummarySection(order: Order) {
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean): String? {
+    if (!enabled || deadlineAt.isNullOrBlank()) return null
+
+    val deadlineEpochSeconds = remember(deadlineAt) { parseDeadlineToEpochSeconds(deadlineAt) }
+        ?: return deadlineAt
+
+    var nowEpochSeconds by remember(deadlineAt) {
+        mutableStateOf(Clock.System.now().toEpochMilliseconds() / 1000)
+    }
+
+    LaunchedEffect(deadlineAt, enabled) {
+        if (!enabled) return@LaunchedEffect
+        while (true) {
+            nowEpochSeconds = Clock.System.now().toEpochMilliseconds() / 1000
+            delay(1000)
+        }
+    }
+
+    val remainingSeconds = deadlineEpochSeconds - nowEpochSeconds
+    return if (remainingSeconds <= 0L) "Vencido" else formatCountdown(remainingSeconds)
+}
+
+private fun parseDeadlineToEpochSeconds(rawDeadline: String): Long? {
+    val value = rawDeadline.trim()
+    if (value.isBlank()) return null
+
+    val candidates = buildList {
+        add(value)
+        if (!value.endsWith("Z") && !value.contains("+")) {
+            add("${value}Z")
+        }
+    }
+
+    candidates.forEach { candidate ->
+        runCatching { Instant.parse(candidate) }
+            .getOrNull()
+            ?.let { parsed -> return parsed.toEpochMilliseconds() / 1000 }
+    }
+
+    return null
+}
+
+private fun formatCountdown(totalSeconds: Long): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    val mm = minutes.toString().padStart(2, '0')
+    val ss = seconds.toString().padStart(2, '0')
+
+    return if (hours > 0) {
+        val hh = hours.toString().padStart(2, '0')
+        "$hh:$mm:$ss restantes"
+    } else {
+        "$mm:$ss restantes"
     }
 }

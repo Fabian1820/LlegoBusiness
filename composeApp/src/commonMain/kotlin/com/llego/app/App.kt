@@ -666,6 +666,7 @@ private fun MainBusinessFlow(
                         OrderDetailScreen(
                             order = order,
                             ordersViewModel = ordersViewModel,
+                            authViewModel = authViewModel,
                             onNavigateBack = {
                                 navigator.showOrderDetail = false
                                 navigator.selectedOrderId = null

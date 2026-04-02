@@ -680,6 +680,8 @@ type BranchType {
 
   paymentMethodIds: [String!]!
 
+  pickupEnabled: Boolean!
+
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -1131,6 +1133,8 @@ type ScoredBranchType {
   tipos: [BranchTipo!]!
 
   paymentMethodIds: [String!]!
+
+  pickupEnabled: Boolean!
 
   useAppMessaging: Boolean!
 
@@ -4245,6 +4249,8 @@ input RegisterBranchInput {
 
   paymentMethodIds: [String!]!
 
+  pickupEnabled: Boolean! = false
+
   address: String = null
 
   managerIds: [String!] = null
@@ -4376,6 +4382,8 @@ input UpdateBranchInput {
   tipos: [BranchTipo!] = null
 
   paymentMethodIds: [String!] = null
+
+  pickupEnabled: Boolean = null
 
   useAppMessaging: Boolean = null
 

@@ -43,6 +43,7 @@ import com.llego.business.orders.data.model.OrderStatus
 fun OrderActionsSection(
     order: Order,
     isActionInProgress: Boolean = false,
+    showDeliveryFeeInput: Boolean = true,
     onAcceptOrder: ((Int, Double?) -> Unit)? = null,
     onRejectOrder: ((String) -> Unit)? = null,
     onCancelOrder: ((String) -> Unit)? = null,
@@ -252,26 +253,32 @@ fun OrderActionsSection(
                         singleLine = true
                     )
 
-                    OutlinedTextField(
-                        value = deliveryFee,
-                        onValueChange = { value ->
-                            if (value.all { it.isDigit() || it == '.' || it == ',' }) {
-                                deliveryFee = value
-                            }
-                        },
-                        label = { Text("Tarifa de envio (opcional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (showDeliveryFeeInput) {
+                        OutlinedTextField(
+                            value = deliveryFee,
+                            onValueChange = { value ->
+                                if (value.all { it.isDigit() || it == '.' || it == ',' }) {
+                                    deliveryFee = value
+                                }
+                            },
+                            label = { Text("Tarifa de envio (opcional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         val minutes = estimatedMinutes.toIntOrNull() ?: 30
-                        val fee = deliveryFee
-                            .replace(',', '.')
-                            .toDoubleOrNull()
+                        val fee = if (showDeliveryFeeInput) {
+                            deliveryFee
+                                .replace(',', '.')
+                                .toDoubleOrNull()
+                        } else {
+                            null
+                        }
                         onAcceptOrder?.invoke(minutes, fee)
                         showAcceptDialog = false
                     },
