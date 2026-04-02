@@ -88,6 +88,23 @@ fun CustomerInfoSection(
                         )
                     )
 
+                    val kycText = when (customer.hasKycOrNull()) {
+                        true -> "Si"
+                        false -> "No"
+                        null -> "Sin dato"
+                    }
+
+                    Text(
+                        text = "Pedidos entregados: ${customer.deliveredOrdersCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "KYC: $kycText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     customer.phone?.let { phone ->
                         Row(
                             modifier = Modifier

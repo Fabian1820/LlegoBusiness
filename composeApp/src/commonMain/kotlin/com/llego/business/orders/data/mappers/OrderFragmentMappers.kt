@@ -369,13 +369,17 @@ private fun UserOrderCustomerFields.toDomain(): CustomerInfo = CustomerInfo(
     id = id,
     name = name,
     phone = phone,
-    avatarUrl = avatarUrl
+    avatarUrl = avatarUrl,
+    deliveredOrdersCount = deliveredOrdersCount,
+    walletStatus = walletStatus
 )
 
 private fun UserOrderPendingCustomerFields.toDomain(): CustomerInfo = CustomerInfo(
     id = id,
     name = name,
-    phone = phone
+    phone = phone,
+    deliveredOrdersCount = deliveredOrdersCount,
+    walletStatus = walletStatus
 )
 
 private fun BranchOrderInfoFields.toDomain(): BranchInfo = BranchInfo(

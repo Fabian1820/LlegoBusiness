@@ -83,6 +83,19 @@ fun OrderStatusSection(order: Order) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = order.status.getColor()
                 )
+                Text(
+                    text = if (order.isPickupOrder()) "Modalidad: Recogida en tienda" else "Modalidad: Delivery",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (order.isPickupOrder()) {
+                    val pickupStreet = order.pickupAddress?.street?.takeIf { it.isNotBlank() } ?: "Sucursal"
+                    Text(
+                        text = "Punto de recogida: $pickupStreet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 val showDeadline = order.status in listOf(
                     OrderStatus.PENDING_ACCEPTANCE,
                     OrderStatus.MODIFIED_BY_STORE,
@@ -329,6 +342,33 @@ fun PaymentSummarySection(order: Order) {
                     text = "${order.currency} ${formatDouble("%.2f", order.deliveryFee)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Modalidad", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = if (order.isPickupOrder()) "Recogida en tienda" else "Delivery",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+        }
+
+        if (order.isPickupOrder()) {
+            order.pickupAddress?.street?.takeIf { it.isNotBlank() }?.let { pickupStreet ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Recogida en", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = pickupStreet,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

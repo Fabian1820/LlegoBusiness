@@ -54,6 +54,7 @@ import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
 import com.llego.business.orders.ui.components.OrderActionsSection
 import com.llego.business.orders.ui.components.OrderCommentsSection
+import com.llego.business.orders.ui.components.CustomerInfoSection
 import com.llego.business.orders.ui.components.OrderItemsSection
 import com.llego.business.orders.ui.components.OrderStatusSection
 import com.llego.business.orders.ui.components.OrderTimelineSection
@@ -145,6 +146,12 @@ fun OrderDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OrderStatusSection(order = currentOrder)
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+            CustomerInfoSection(
+                customer = currentOrder.customer,
+                onCallCustomer = onCallPhone
+            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             OrderItemsSection(items = currentOrder.items)

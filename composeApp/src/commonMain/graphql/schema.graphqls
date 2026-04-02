@@ -503,6 +503,8 @@ type UserType {
 
   defaultAddressId: String
 
+  deliveredOrdersCount: Int!
+
   """
   URL firmada del avatar del usuario
   """

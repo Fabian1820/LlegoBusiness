@@ -10,8 +10,23 @@ data class CustomerInfo(
     val id: String,
     val name: String,
     val phone: String? = null,
-    val avatarUrl: String? = null
-)
+    val avatarUrl: String? = null,
+    val deliveredOrdersCount: Int = 0,
+    val walletStatus: String? = null
+) {
+    fun hasKycOrNull(): Boolean? {
+        val normalized = walletStatus?.trim()?.lowercase().orEmpty()
+        if (normalized.isBlank()) return null
+
+        val approvedTokens = listOf("verified", "aprob", "approved", "kyc_ok", "active")
+        if (approvedTokens.any { normalized.contains(it) }) return true
+
+        val rejectedTokens = listOf("pending", "reject", "failed", "frozen", "suspended", "inactive", "unverified")
+        if (rejectedTokens.any { normalized.contains(it) }) return false
+
+        return null
+    }
+}
 
 /**
  * Información del repartidor alineada con backend DeliveryPersonType

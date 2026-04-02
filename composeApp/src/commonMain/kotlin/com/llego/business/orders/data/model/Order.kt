@@ -48,6 +48,8 @@ data class Order(
     val canCancel: Boolean = false,
     val estimatedMinutesRemaining: Int? = null
 ) {
+    fun isPickupOrder(): Boolean = deliveryMode.equals("pickup", ignoreCase = true)
+
     fun isCashPaymentMethod(): Boolean = PaymentMethodClassifier.isCash(paymentMethod)
 
     fun requiresCompletedPaymentBeforePreparing(): Boolean = !isCashPaymentMethod()

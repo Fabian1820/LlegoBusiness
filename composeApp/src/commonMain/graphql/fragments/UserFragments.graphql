@@ -69,10 +69,14 @@ fragment UserOrderCustomerFields on UserType {
   name
   phone
   avatarUrl
+  deliveredOrdersCount
+  walletStatus
 }
 
 fragment UserOrderPendingCustomerFields on UserType {
   id
   name
   phone
+  deliveredOrdersCount
+  walletStatus
 }

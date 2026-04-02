@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Verified
@@ -180,13 +181,14 @@ fun OrderCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val isPickup = order.isPickupOrder()
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Icon(
-                                imageVector = Icons.Default.TwoWheeler,
-                                contentDescription = "Domicilio",
+                                imageVector = if (isPickup) Icons.Default.Storefront else Icons.Default.TwoWheeler,
+                                contentDescription = if (isPickup) "Recogida en tienda" else "Delivery",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .size(30.dp)
@@ -200,6 +202,17 @@ fun OrderCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         )
+                        Surface(
+                            shape = LlegoCustomShapes.secondaryButton,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = if (isPickup) "PICKUP" else "DELIVERY",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     val statusColor = order.status.getColor()
@@ -249,6 +262,13 @@ fun OrderCard(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
+                            order.customer?.let { customer ->
+                                Text(
+                                    text = "Cliente: ${customer.deliveredOrdersCount} entregados",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
