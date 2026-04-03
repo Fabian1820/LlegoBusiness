@@ -409,6 +409,22 @@ fun BusinessProfileScreen(
             when (val result = authViewModel.updateBranch(branch.id, input)) {
                 is BusinessResult.Success -> {
                     val updated = result.data
+                    name = updated.name
+                    phone = updated.phone
+                    address = updated.address.orEmpty()
+                    latitude = updated.coordinates.latitude
+                    longitude = updated.coordinates.longitude
+                    branchSchedule = updated.schedule
+                    selectedTipos = updated.tipos.toSet()
+                    selectedPaymentMethodIds = updated.paymentMethodIds
+                    useAppMessaging = updated.useAppMessaging
+                    selectedVehicles = updated.vehicles.toSet()
+                    socialMedia = updated.socialMedia ?: emptyMap()
+                    accountsInput = formatTransferAccountsInput(updated.accounts)
+                    qrPaymentsInput = formatQrPaymentsInput(updated.qrPayments)
+                    transferPhonesInput = formatTransferPhonesInput(updated.phones)
+                    isActive = updated.isActive
+                    exchangeRateInput = updated.exchangeRate?.toString().orEmpty()
                     authViewModel.setCurrentBranch(updated)
                     authViewModel.reloadUserData()
                     saveMessage = "Perfil de sucursal actualizado"
