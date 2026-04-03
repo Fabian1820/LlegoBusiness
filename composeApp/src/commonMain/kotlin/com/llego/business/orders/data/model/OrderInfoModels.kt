@@ -28,6 +28,23 @@ data class CustomerInfo(
     }
 }
 
+@Serializable
+data class CustomerCashKycStatus(
+    val verificationId: String? = null,
+    val kycEvalStatus: String? = null,
+    val cashCoverageStatus: String? = null,
+    val allowCash: Boolean = false,
+    val appCoversCash: Boolean = false,
+    val nextAction: String? = null,
+    val expiresAt: String? = null
+) {
+    fun hasKycApprovedOrNull(): Boolean? {
+        val normalized = kycEvalStatus?.trim()?.lowercase().orEmpty()
+        if (normalized.isBlank()) return null
+        return normalized == "approved"
+    }
+}
+
 /**
  * Información del repartidor alineada con backend DeliveryPersonType
  */

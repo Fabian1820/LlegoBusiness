@@ -1,0 +1,17 @@
+query ActivePaymentAttempt($orderId: String!, $jwt: String!) {
+  activePaymentAttempt(orderId: $orderId, jwt: $jwt) {
+    id
+    orderId
+    paymentMethodId
+    status
+    sendsSmsNotification
+    proofUrl
+    customerConfirmedAt
+    businessConfirmedAt
+    completedAt
+    failedAt
+    failedReason
+    createdAt
+    updatedAt
+  }
+}

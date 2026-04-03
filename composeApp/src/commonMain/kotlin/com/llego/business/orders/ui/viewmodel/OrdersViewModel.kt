@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderActor
 import com.llego.business.orders.data.model.OrderComment
+import com.llego.business.orders.data.model.CustomerCashKycStatus
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
+import com.llego.business.orders.data.model.PaymentAttempt
+import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.DashboardStats
@@ -74,6 +77,12 @@ class OrdersViewModel(
 
     private val _modificationState = MutableStateFlow<OrderModificationState?>(null)
     val modificationState: StateFlow<OrderModificationState?> = _modificationState.asStateFlow()
+
+    private val _activePaymentAttempt = MutableStateFlow<PaymentAttempt?>(null)
+    val activePaymentAttempt: StateFlow<PaymentAttempt?> = _activePaymentAttempt.asStateFlow()
+
+    private val _customerCashKycStatus = MutableStateFlow<CustomerCashKycStatus?>(null)
+    val customerCashKycStatus: StateFlow<CustomerCashKycStatus?> = _customerCashKycStatus.asStateFlow()
 
     private var currentOffset = 0
     private var hasMore = true
@@ -666,6 +675,65 @@ class OrdersViewModel(
     }
 
     fun clearActionError() = clearError()
+
+    fun loadActivePaymentAttempt(orderId: String) {
+        viewModelScope.launch {
+            repository.getActivePaymentAttempt(orderId)
+                .onSuccess { attempt ->
+                    _activePaymentAttempt.value = attempt
+                }
+                .onFailure {
+                    _activePaymentAttempt.value = null
+                }
+        }
+    }
+
+    fun clearActivePaymentAttempt() {
+        _activePaymentAttempt.value = null
+    }
+
+    fun loadCustomerCashKycStatus(
+        merchantId: String,
+        branchId: String?,
+        customerId: String
+    ) {
+        viewModelScope.launch {
+            repository.getCustomerCashKycStatus(
+                merchantId = merchantId,
+                branchId = branchId,
+                customerId = customerId
+            )
+                .onSuccess { status ->
+                    _customerCashKycStatus.value = status
+                }
+                .onFailure {
+                    _customerCashKycStatus.value = null
+                }
+        }
+    }
+
+    fun clearCustomerCashKycStatus() {
+        _customerCashKycStatus.value = null
+    }
+
+    fun confirmPaymentReceived(orderId: String, paymentAttemptId: String) {
+        viewModelScope.launch {
+            _uiState.value = OrdersUiState.ActionInProgress(orderId)
+
+            repository.confirmPaymentReceived(paymentAttemptId)
+                .onSuccess { confirmedAttempt ->
+                    _activePaymentAttempt.value = confirmedAttempt
+                    refreshOrderById(orderId)
+                    if (confirmedAttempt.status != PaymentAttemptStatus.AWAITING_BUSINESS) {
+                        loadActivePaymentAttempt(orderId)
+                    }
+                    _uiState.value = OrdersUiState.Success
+                }
+                .onFailure { error ->
+                    _uiState.value = OrdersUiState.ActionError(error.message ?: "Error al confirmar pago")
+                }
+        }
+    }
 
     fun loadMenuItems(branchId: String? = null) {
         // Intentionally no-op for now.

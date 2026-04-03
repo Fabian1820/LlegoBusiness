@@ -1,0 +1,21 @@
+query CustomerCashKycStatus(
+  $merchantId: String!
+  $branchId: String
+  $customerId: String!
+  $jwt: String!
+) {
+  cashKycStatusByAccount(
+    merchantId: $merchantId
+    branchId: $branchId
+    customerId: $customerId
+    jwt: $jwt
+  ) {
+    verificationId
+    kycEvalStatus
+    cashCoverageStatus
+    allowCash
+    appCoversCash
+    nextAction
+    expiresAt
+  }
+}

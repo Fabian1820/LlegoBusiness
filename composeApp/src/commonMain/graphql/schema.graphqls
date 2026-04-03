@@ -275,6 +275,11 @@ type Query {
   activePaymentAttempt(orderId: String!, jwt: String!): PaymentAttemptType
 
   """
+  Estado KYC de efectivo de un cliente para un merchant/sucursal.
+  """
+  cashKycStatusByAccount(merchantId: String!, branchId: String = null, customerId: String!, jwt: String!): CashKycStatusType!
+
+  """
   Obtener balance de wallet del usuario actual
   """
   myWallet(jwt: String!): WalletStatusType!
@@ -2858,6 +2863,22 @@ type PaymentAttemptType {
   updatedAt: DateTime!
 }
 
+type CashKycStatusType {
+  verificationId: String
+
+  kycEvalStatus: String
+
+  cashCoverageStatus: String
+
+  allowCash: Boolean!
+
+  appCoversCash: Boolean!
+
+  nextAction: String
+
+  expiresAt: DateTime
+}
+
 enum PaymentAttemptStatusEnum {
   PENDING
 
@@ -3895,7 +3916,7 @@ type Mutation {
   """
   Confirmar que el cliente envió el pago (para métodos manuales)
   """
-  confirmPaymentSent(paymentAttemptId: String!, proofUrl: String!, jwt: String!): PaymentAttemptType!
+  confirmPaymentSent(paymentAttemptId: String!, proofUrl: String = null, jwt: String!): PaymentAttemptType!
 
   """
   Negocio confirma que recibió el pago

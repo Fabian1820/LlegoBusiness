@@ -44,6 +44,8 @@ fun OrderActionsSection(
     order: Order,
     isActionInProgress: Boolean = false,
     showDeliveryFeeInput: Boolean = true,
+    showConfirmPaymentReceived: Boolean = false,
+    onConfirmPaymentReceived: (() -> Unit)? = null,
     onAcceptOrder: ((Int, Double?) -> Unit)? = null,
     onRejectOrder: ((String) -> Unit)? = null,
     onCancelOrder: ((String) -> Unit)? = null,
@@ -146,6 +148,25 @@ fun OrderActionsSection(
                 OrderStatus.PENDING_PAYMENT,
                 OrderStatus.PAYMENT_IN_PROGRESS -> {
                     WaitingStateCard("Esperando confirmacion de pago")
+                    if (showConfirmPaymentReceived && onConfirmPaymentReceived != null) {
+                        Button(
+                            onClick = onConfirmPaymentReceived,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isActionInProgress
+                        ) {
+                            if (isActionInProgress) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null)
+                                Spacer(modifier = Modifier.size(8.dp))
+                                Text("Confirmar pago recibido")
+                            }
+                        }
+                    }
                     if (order.canCancel) {
                         CancelOrderButton(
                             enabled = !isActionInProgress && onCancelOrder != null,
