@@ -79,6 +79,7 @@ import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
 import com.llego.shared.ui.business.formatTransferAccountsInput
 import com.llego.shared.ui.business.formatTransferPhonesInput
+import com.llego.shared.ui.business.findInvalidTransferAccountsInputLines
 import com.llego.shared.ui.business.parseQrPaymentsInput
 import com.llego.shared.ui.business.parseTransferAccountsInput
 import com.llego.shared.ui.business.parseTransferPhonesInput
@@ -335,6 +336,7 @@ fun BusinessProfileScreen(
 
     fun saveBranchChanges(navigateBackOnSuccess: Boolean = false) {
         val branch = currentBranch ?: return
+        if (isSaving) return
 
         if (name.isBlank() || phone.isBlank()) {
             saveMessage = "Completa nombre y telefono"
@@ -360,14 +362,19 @@ fun BusinessProfileScreen(
             saveMessage = error
             return
         }
+        val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
+        if (invalidAccountLines.isNotEmpty()) {
+            saveMessage = "Formato invalido en cuentas (lineas: ${invalidAccountLines.joinToString(", ")}). Usa numero|titular|banco."
+            return
+        }
 
         val socialMediaValue = socialMedia
             .mapValues { it.value.trim() }
             .filterValues { it.isNotEmpty() }
 
-        val accountsValue = parseTransferAccountsInput(accountsInput)
-        val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput)
-        val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
+        val accountsValue = parseTransferAccountsInput(accountsInput, branch.accounts)
+        val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput, branch.qrPayments)
+        val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput, branch.phones)
         val exchangeRateValue = parseExchangeRate(exchangeRateInput)
 
         val input = UpdateBranchInput(
@@ -551,7 +558,11 @@ fun BusinessProfileScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             androidx.compose.material3.ExtendedFloatingActionButton(
-                onClick = { saveBranchChanges() },
+                onClick = {
+                    if (!isSaving && !isUploading) {
+                        saveBranchChanges()
+                    }
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = androidx.compose.ui.graphics.Color.White
             ) {
@@ -1069,6 +1080,7 @@ fun BusinessProfileScreen(
                         showUnsavedChangesDialog = false
                         saveBranchChanges(navigateBackOnSuccess = true)
                     },
+                    enabled = !isSaving && !isUploading,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Sí, guardar")

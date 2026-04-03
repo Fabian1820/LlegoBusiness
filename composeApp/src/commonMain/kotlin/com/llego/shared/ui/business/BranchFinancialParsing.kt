@@ -4,7 +4,36 @@ import com.llego.shared.data.model.QrPayment
 import com.llego.shared.data.model.TransferAccount
 import com.llego.shared.data.model.TransferPhone
 
-fun parseTransferAccountsInput(text: String): List<TransferAccount> {
+private fun buildAccountKey(cardNumber: String, cardHolderName: String, bankName: String): String {
+    return "${cardNumber.trim()}|${cardHolderName.trim()}|${bankName.trim()}"
+}
+
+fun findInvalidTransferAccountsInputLines(text: String): List<Int> {
+    return text
+        .lineSequence()
+        .mapIndexedNotNull { index, rawLine ->
+            val line = rawLine.trim()
+            if (line.isEmpty()) return@mapIndexedNotNull null
+
+            val parts = line.split("|").map { it.trim() }
+            val isValid = parts.size >= 3 &&
+                parts[0].isNotBlank() &&
+                parts[1].isNotBlank() &&
+                parts[2].isNotBlank()
+
+            if (isValid) null else index + 1
+        }
+        .toList()
+}
+
+fun parseTransferAccountsInput(
+    text: String,
+    existingAccounts: List<TransferAccount> = emptyList()
+): List<TransferAccount> {
+    val existingStatusByAccount = existingAccounts.associate { account ->
+        buildAccountKey(account.cardNumber, account.cardHolderName, account.bankName) to account.isActive
+    }
+
     return text
         .lineSequence()
         .map { it.trim() }
@@ -22,14 +51,23 @@ fun parseTransferAccountsInput(text: String): List<TransferAccount> {
                     cardNumber = cardNumber,
                     cardHolderName = cardHolderName,
                     bankName = bankName,
-                    isActive = true
+                    isActive = existingStatusByAccount[
+                        buildAccountKey(cardNumber, cardHolderName, bankName)
+                    ] ?: true
                 )
             }
         }
         .toList()
 }
 
-fun parseQrPaymentsInput(text: String): List<QrPayment> {
+fun parseQrPaymentsInput(
+    text: String,
+    existingQrPayments: List<QrPayment> = emptyList()
+): List<QrPayment> {
+    val existingStatusByValue = existingQrPayments.associate { qr ->
+        qr.value.trim() to qr.isActive
+    }
+
     return text
         .lineSequence()
         .map { it.trim() }
@@ -37,13 +75,20 @@ fun parseQrPaymentsInput(text: String): List<QrPayment> {
         .map { value ->
             QrPayment(
                 value = value,
-                isActive = true
+                isActive = existingStatusByValue[value] ?: true
             )
         }
         .toList()
 }
 
-fun parseTransferPhonesInput(text: String): List<TransferPhone> {
+fun parseTransferPhonesInput(
+    text: String,
+    existingPhones: List<TransferPhone> = emptyList()
+): List<TransferPhone> {
+    val existingStatusByPhone = existingPhones.associate { phone ->
+        phone.phone.trim() to phone.isActive
+    }
+
     return text
         .lineSequence()
         .map { it.trim() }
@@ -51,7 +96,7 @@ fun parseTransferPhonesInput(text: String): List<TransferPhone> {
         .map { value ->
             TransferPhone(
                 phone = value,
-                isActive = true
+                isActive = existingStatusByPhone[value] ?: true
             )
         }
         .toList()
