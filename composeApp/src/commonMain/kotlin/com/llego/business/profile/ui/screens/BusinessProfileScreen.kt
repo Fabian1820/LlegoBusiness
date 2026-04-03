@@ -364,7 +364,7 @@ fun BusinessProfileScreen(
         }
         val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
         if (invalidAccountLines.isNotEmpty()) {
-            saveMessage = "Formato invalido en cuentas (lineas: ${invalidAccountLines.joinToString(", ")}). Usa numero|titular|banco."
+            saveMessage = "Formato invalido en cuentas. Usa numero|banco, numero|titular|banco o JSON con accounts[]. Bancos: BPA, BANDEC, METROPOLITANO."
             return
         }
 
@@ -863,7 +863,7 @@ fun BusinessProfileScreen(
 
                     ProfileFieldWithInput(
                         label = "Cuentas para transferencias",
-                        hint = "numero|titular|banco (una por línea)",
+                        hint = "numero|banco o numero|titular|banco (BPA/BANDEC/METROPOLITANO)",
                         value = accountsInput,
                         onValueChange = { accountsInput = it }
                     )

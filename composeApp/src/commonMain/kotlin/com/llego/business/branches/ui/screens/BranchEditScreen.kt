@@ -126,7 +126,7 @@ fun BranchEditScreen(
         }
         val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
         if (invalidAccountLines.isNotEmpty()) {
-            statusMessage = "Formato invalido en cuentas (lineas: ${invalidAccountLines.joinToString(", ")}). Usa numero|titular|banco."
+            statusMessage = "Formato invalido en cuentas. Usa numero|banco, numero|titular|banco o JSON con accounts[]. Bancos: BPA, BANDEC, METROPOLITANO."
             onError(statusMessage ?: "")
             return
         }
@@ -368,7 +368,7 @@ fun BranchEditScreen(
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
             )
             Text(
-                text = "Cuentas: una por linea en formato numero|titular|banco",
+                text = "Cuentas: numero|banco o numero|titular|banco. Bancos: BPA, BANDEC, METROPOLITANO",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
