@@ -21,13 +21,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TwoWheeler
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
@@ -40,11 +37,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderStatus
-import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.ui.viewmodel.DateRangeFilter
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
@@ -177,16 +174,18 @@ fun OrderCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val isPickup = order.isPickupOrder()
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Icon(
-                                imageVector = Icons.Default.TwoWheeler,
-                                contentDescription = "Domicilio",
+                                imageVector = if (isPickup) Icons.Default.Storefront else Icons.Default.TwoWheeler,
+                                contentDescription = if (isPickup) "Recogida en tienda" else "Delivery",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .size(30.dp)
@@ -195,11 +194,24 @@ fun OrderCard(
                         }
                         Text(
                             text = order.orderNumber,
-                            style = MaterialTheme.typography.titleMedium.copy(
+                            style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
-                            )
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Surface(
+                            shape = LlegoCustomShapes.secondaryButton,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = if (isPickup) "PICKUP" else "DELIVERY",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     val statusColor = order.status.getColor()
@@ -249,6 +261,13 @@ fun OrderCard(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
+                            order.customer?.let { customer ->
+                                Text(
+                                    text = "Cliente: ${customer.deliveredOrdersCount} entregados",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
@@ -257,38 +276,12 @@ fun OrderCard(
                                 color = MaterialTheme.colorScheme.surface
                             ) {
                                 Text(
-                                    text = order.paymentMethod,
+                                    text = order.paymentMethodDisplayName(),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-
-                            val paymentStatusColor = order.paymentStatus.getColor()
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = when (order.paymentStatus) {
-                                        PaymentStatus.COMPLETED -> Icons.Default.CheckCircle
-                                        PaymentStatus.VALIDATED -> Icons.Default.Verified
-                                        PaymentStatus.PENDING -> Icons.Default.Schedule
-                                        PaymentStatus.FAILED -> Icons.Default.Error
-                                    },
-                                    contentDescription = null,
-                                    tint = paymentStatusColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = order.paymentStatus.getDisplayName(),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = paymentStatusColor
                                 )
                             }
 

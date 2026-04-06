@@ -1,0 +1,17 @@
+mutation ConfirmPaymentReceived($paymentAttemptId: String!, $jwt: String!) {
+  confirmPaymentReceived(paymentAttemptId: $paymentAttemptId, jwt: $jwt) {
+    id
+    orderId
+    paymentMethodId
+    status
+    sendsSmsNotification
+    proofUrl
+    customerConfirmedAt
+    businessConfirmedAt
+    completedAt
+    failedAt
+    failedReason
+    createdAt
+    updatedAt
+  }
+}

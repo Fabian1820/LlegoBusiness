@@ -1,5 +1,5 @@
-mutation AcceptOrder($orderId: String!, $estimatedMinutes: Int!, $jwt: String!) {
-  acceptOrder(orderId: $orderId, estimatedMinutes: $estimatedMinutes, jwt: $jwt) {
+mutation AcceptOrder($orderId: String!, $estimatedMinutes: Int!, $jwt: String!, $deliveryFee: Float = null) {
+  acceptOrder(orderId: $orderId, estimatedMinutes: $estimatedMinutes, jwt: $jwt, deliveryFee: $deliveryFee) {
     ...OrderAcceptUpdateFields
   }
 }

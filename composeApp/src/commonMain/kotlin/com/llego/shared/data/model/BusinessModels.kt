@@ -25,7 +25,9 @@ data class Business(
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null
 )
 
 /**
@@ -46,6 +48,8 @@ data class BusinessWithBranches(
     val isActive: Boolean = true,
     val createdAt: String,
     val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null,
     val branches: List<Branch> = emptyList()
 ) {
     fun toBusiness(): Business {
@@ -59,7 +63,9 @@ data class BusinessWithBranches(
             tags = tags,
             isActive = isActive,
             createdAt = createdAt,
-            avatarUrl = avatarUrl
+            avatarUrl = avatarUrl,
+            avatarUrlBaja = avatarUrlBaja,
+            avatarUrlAlta = avatarUrlAlta
         )
     }
 }
@@ -78,6 +84,7 @@ data class Branch(
     val phone: String,
     val schedule: Map<String, List<String>> = emptyMap(),  // JSON map: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo> = emptyList(),  // RESTAURANTE, DULCERIA, TIENDA
+    val pickupEnabled: Boolean = false,
     val useAppMessaging: Boolean = true,
     val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String> = emptyList(),  // IDs of accepted payment methods
@@ -91,7 +98,11 @@ data class Branch(
     val phones: List<TransferPhone> = emptyList(),
     val createdAt: String,
     val avatarUrl: String? = null,
+    val avatarUrlBaja: String? = null,
+    val avatarUrlAlta: String? = null,
     val coverUrl: String? = null,
+    val coverUrlBaja: String? = null,
+    val coverUrlAlta: String? = null,
     val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
     val walletStatus: String = "active",  // Estado de la billetera: "active", "suspended", etc.
     val exchangeRate: Int? = null
@@ -239,6 +250,7 @@ data class RegisterBranchInput(
     @Contextual
     val schedule: Any,  // JSON - Map<String, List<String>>: {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>,  // Requerido: RESTAURANTE, DULCERIA, TIENDA
+    val pickupEnabled: Boolean = false,
     val useAppMessaging: Boolean = true,
     val vehicles: List<BranchVehicle> = emptyList(),
     val paymentMethodIds: List<String>,  // Requerido: IDs of accepted payment methods
@@ -291,6 +303,7 @@ data class UpdateBranchInput(
     val phone: String? = null,
     val schedule: Map<String, List<String>>? = null,  // {"mon": ["08:00-12:00", "14:00-20:00"]}
     val tipos: List<BranchTipo>? = null,
+    val pickupEnabled: Boolean? = null,
     val useAppMessaging: Boolean? = null,
     val vehicles: List<BranchVehicle>? = null,
     val paymentMethodIds: List<String>? = null,  // IDs of accepted payment methods

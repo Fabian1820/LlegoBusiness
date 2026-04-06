@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.llego.business.orders.data.model.CustomerCashKycStatus
 import com.llego.business.orders.data.model.CustomerInfo
 import com.llego.business.orders.data.model.DeliveryAddress
 import com.llego.shared.utils.formatDouble
@@ -28,6 +29,7 @@ import com.llego.shared.utils.formatDouble
 @Composable
 fun CustomerInfoSection(
     customer: CustomerInfo?,
+    customerCashKycStatus: CustomerCashKycStatus? = null,
     onCallCustomer: ((String) -> Unit)? = null
 ) {
     if (customer == null) return
@@ -86,6 +88,25 @@ fun CustomerInfoSection(
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         )
+                    )
+
+                    val hasKycFromCashQuery = customerCashKycStatus?.hasKycApprovedOrNull()
+                    val hasKyc = hasKycFromCashQuery ?: customer.hasKycOrNull()
+                    val kycText = when (hasKyc) {
+                        true -> "Si"
+                        false -> "No"
+                        null -> "Sin dato"
+                    }
+
+                    Text(
+                        text = "Pedidos entregados: ${customer.deliveredOrdersCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "KYC: $kycText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     customer.phone?.let { phone ->

@@ -107,6 +107,20 @@ interface OrderRepository {
     suspend fun getOrder(orderId: String): Result<Order?>
 
     /**
+     * Obtiene el intento de pago activo de un pedido.
+     */
+    suspend fun getActivePaymentAttempt(orderId: String): Result<PaymentAttempt?>
+
+    /**
+     * Obtiene el estado KYC/cobertura de efectivo del cliente para una sucursal/merchant.
+     */
+    suspend fun getCustomerCashKycStatus(
+        merchantId: String,
+        branchId: String?,
+        customerId: String
+    ): Result<CustomerCashKycStatus?>
+
+    /**
      * Obtiene estadísticas de pedidos
      *
      * @param fromDate Fecha inicial del rango (formato ISO)
@@ -141,7 +155,11 @@ interface OrderRepository {
      *
      * Requirements: 5.1
      */
-    suspend fun acceptOrder(orderId: String, estimatedMinutes: Int): Result<Order>
+    suspend fun acceptOrder(
+        orderId: String,
+        estimatedMinutes: Int,
+        deliveryFee: Double? = null
+    ): Result<Order>
 
     /**
      * Rechaza un pedido pendiente
@@ -188,6 +206,11 @@ interface OrderRepository {
      * Requirements: 5.4
      */
     suspend fun markOrderReady(orderId: String): Result<Order>
+
+    /**
+     * Negocio confirma que recibio el pago.
+     */
+    suspend fun confirmPaymentReceived(paymentAttemptId: String): Result<PaymentAttempt>
 
     /**
      * Modifica los items de un pedido

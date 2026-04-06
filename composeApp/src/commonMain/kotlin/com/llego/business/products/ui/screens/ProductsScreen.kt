@@ -85,6 +85,13 @@ private enum class ProductTypeFilter(val displayName: String) {
 }
 
 private const val IMAGE_LOAD_BATCH_SIZE = 4
+// MVP: la vitrina queda deshabilitada temporalmente en el frontend.
+private const val SHOWCASE_FRONTEND_ENABLED = false
+private val ACTIVE_PRODUCT_TYPE_FILTERS = listOf(
+    ProductTypeFilter.ALL,
+    ProductTypeFilter.PRODUCT,
+    ProductTypeFilter.COMBO
+)
 
 @Composable
 fun ProductsScreen(
@@ -114,7 +121,8 @@ fun ProductsScreen(
     val selectedTypeFilterKey by viewModel.selectedProductsTypeFilter.collectAsState()
     val selectedTypeFilter = ProductTypeFilter.entries.firstOrNull {
         it.name == selectedTypeFilterKey
-    } ?: ProductTypeFilter.ALL
+    }?.takeIf { SHOWCASE_FRONTEND_ENABLED || it != ProductTypeFilter.SHOWCASE }
+        ?: ProductTypeFilter.ALL
     val normalizedSearchQuery = searchQuery.trim().lowercase()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -140,7 +148,9 @@ fun ProductsScreen(
     androidx.compose.runtime.LaunchedEffect(branchId) {
         if (branchId != null) {
             comboViewModel.ensureCombosLoaded(branchId = branchId)
-            showcaseViewModel.ensureShowcasesLoaded(branchId = branchId, activeOnly = false)
+            if (SHOWCASE_FRONTEND_ENABLED) {
+                showcaseViewModel.ensureShowcasesLoaded(branchId = branchId, activeOnly = false)
+            }
         }
     }
 
@@ -196,17 +206,17 @@ fun ProductsScreen(
 
 
     val products = when (val state = productsState) {
-        is ProductsResult.Success -> state.products
+        is ProductsResult.Success -> state.products.distinctBy { it.id }
         else -> emptyList()
     }
 
     val combos = when (val state = combosState) {
-        is com.llego.shared.data.model.CombosResult.Success -> state.combos
+        is com.llego.shared.data.model.CombosResult.Success -> state.combos.distinctBy { it.id }
         else -> emptyList()
     }
 
     val showcases = when (val state = showcasesState) {
-        is ShowcasesResult.Success -> state.showcases
+        is ShowcasesResult.Success -> state.showcases.distinctBy { it.id }
         else -> emptyList()
     }
 
@@ -263,16 +273,21 @@ fun ProductsScreen(
         else -> emptyList()
     }
     val visibleShowcases = when {
+        !SHOWCASE_FRONTEND_ENABLED -> emptyList()
         categoryFilterActive -> emptyList()
         selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.SHOWCASE -> searchedShowcases
         else -> emptyList()
     }
-    val showcaseFilterEnabled = !categoryFilterActive &&
+    val showcaseFilterEnabled = SHOWCASE_FRONTEND_ENABLED && !categoryFilterActive &&
         (selectedTypeFilter == ProductTypeFilter.ALL || selectedTypeFilter == ProductTypeFilter.SHOWCASE)
-    val isShowcaseOnlyFilter = selectedTypeFilter == ProductTypeFilter.SHOWCASE
-    val showcasesErrorMessage = (showcasesState as? ShowcasesResult.Error)?.message
-    val isShowcasesLoading = showcasesState is ShowcasesResult.Loading
-    val canRetryShowcases = branchId != null
+    val isShowcaseOnlyFilter = SHOWCASE_FRONTEND_ENABLED && selectedTypeFilter == ProductTypeFilter.SHOWCASE
+    val showcasesErrorMessage = if (SHOWCASE_FRONTEND_ENABLED) {
+        (showcasesState as? ShowcasesResult.Error)?.message
+    } else {
+        null
+    }
+    val isShowcasesLoading = SHOWCASE_FRONTEND_ENABLED && showcasesState is ShowcasesResult.Loading
+    val canRetryShowcases = SHOWCASE_FRONTEND_ENABLED && branchId != null
     val hasVisibleItems = visibleProducts.isNotEmpty() || visibleCombos.isNotEmpty() || visibleShowcases.isNotEmpty()
 
     androidx.compose.runtime.LaunchedEffect(branchId) {
@@ -669,8 +684,10 @@ fun ProductsScreen(
                                 onNavigateToAddProduct(null)
                             }
                         )
-                        CreateTypeOption(
-                            icon = Icons.Default.Storefront,
+                        if (SHOWCASE_FRONTEND_ENABLED) {
+                            // MVP: no mostrar creación de vitrinas.
+                            CreateTypeOption(
+                                icon = Icons.Default.Storefront,
                             title = "Vitrina",
                             subtitle = "Publica una foto y recibe pedidos por descripción",
                             accentColor = MaterialTheme.colorScheme.secondary,
@@ -678,7 +695,8 @@ fun ProductsScreen(
                                 showCreateMenu = false
                                 onNavigateToAddShowcase()
                             }
-                        )
+                            )
+                        }
                         CreateTypeOption(
                             icon = Icons.Default.Restaurant,
                             title = "Combo",
@@ -853,7 +871,8 @@ private fun ProductsFilters(
             onToggle = { showTypePicker = !showTypePicker },
             modifier = Modifier.weight(1f)
         ) {
-            ProductTypeFilter.entries.forEach { filter ->
+            // MVP: ocultar el filtro de vitrinas en la UI.
+            ACTIVE_PRODUCT_TYPE_FILTERS.forEach { filter ->
                 iOSStylePickerOption(
                     text = filter.displayName,
                     isSelected = selectedTypeFilter == filter,

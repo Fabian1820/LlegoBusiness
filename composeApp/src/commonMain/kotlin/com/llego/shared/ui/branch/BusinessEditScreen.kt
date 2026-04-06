@@ -55,6 +55,7 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
+import com.llego.shared.data.model.avatarLargeUrl
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.components.molecules.ImageUploadPreview
 import com.llego.shared.ui.components.molecules.ImageUploadSize
@@ -347,7 +348,7 @@ fun BusinessEditScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 BusinessAvatar(
-                    avatarUrl = originalBusiness.avatarUrl,
+                    avatarUrl = originalBusiness.avatarLargeUrl(),
                     name = name.ifBlank { originalBusiness.name },
                     size = 56
                 )

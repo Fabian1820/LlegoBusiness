@@ -10,8 +10,40 @@ data class CustomerInfo(
     val id: String,
     val name: String,
     val phone: String? = null,
-    val avatarUrl: String? = null
-)
+    val avatarUrl: String? = null,
+    val deliveredOrdersCount: Int = 0,
+    val walletStatus: String? = null
+) {
+    fun hasKycOrNull(): Boolean? {
+        val normalized = walletStatus?.trim()?.lowercase().orEmpty()
+        if (normalized.isBlank()) return null
+
+        val approvedTokens = listOf("verified", "aprob", "approved", "kyc_ok", "active")
+        if (approvedTokens.any { normalized.contains(it) }) return true
+
+        val rejectedTokens = listOf("pending", "reject", "failed", "frozen", "suspended", "inactive", "unverified")
+        if (rejectedTokens.any { normalized.contains(it) }) return false
+
+        return null
+    }
+}
+
+@Serializable
+data class CustomerCashKycStatus(
+    val verificationId: String? = null,
+    val kycEvalStatus: String? = null,
+    val cashCoverageStatus: String? = null,
+    val allowCash: Boolean = false,
+    val appCoversCash: Boolean = false,
+    val nextAction: String? = null,
+    val expiresAt: String? = null
+) {
+    fun hasKycApprovedOrNull(): Boolean? {
+        val normalized = kycEvalStatus?.trim()?.lowercase().orEmpty()
+        if (normalized.isBlank()) return null
+        return normalized == "approved"
+    }
+}
 
 /**
  * Información del repartidor alineada con backend DeliveryPersonType

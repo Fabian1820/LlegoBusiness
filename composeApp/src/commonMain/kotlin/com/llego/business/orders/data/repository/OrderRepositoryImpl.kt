@@ -7,6 +7,8 @@ import com.llego.business.orders.data.mappers.toDomain
 import com.llego.business.orders.data.mappers.toGraphQL
 import com.llego.business.orders.data.mappers.toPartialDomain
 import com.llego.business.orders.data.model.*
+import com.llego.multiplatform.graphql.ActivePaymentAttemptQuery
+import com.llego.multiplatform.graphql.CustomerCashKycStatusQuery
 import com.llego.multiplatform.graphql.BranchOrdersQuery
 import com.llego.multiplatform.graphql.DashboardStatsQuery
 import com.llego.multiplatform.graphql.PendingBranchOrdersQuery
@@ -19,6 +21,7 @@ import com.llego.multiplatform.graphql.UpdateOrderStatusMutation
 import com.llego.multiplatform.graphql.MarkOrderReadyMutation
 import com.llego.multiplatform.graphql.ModifyOrderItemsMutation
 import com.llego.multiplatform.graphql.AddOrderCommentMutation
+import com.llego.multiplatform.graphql.ConfirmPaymentReceivedMutation
 import com.llego.multiplatform.graphql.NewBranchOrderSubscription
 import com.llego.multiplatform.graphql.BranchOrderUpdatedSubscription
 import com.llego.multiplatform.graphql.type.UpdateOrderStatusInput
@@ -158,6 +161,60 @@ class OrderRepositoryImpl(
         }
     }
 
+    override suspend fun getActivePaymentAttempt(orderId: String): Result<PaymentAttempt?> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
+
+            val response = apolloClient.query(
+                ActivePaymentAttemptQuery(
+                    orderId = orderId,
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener intento de pago"))
+            } else {
+                val attempt = response.data?.activePaymentAttempt?.toDomain()
+                Result.success(attempt)
+            }
+        } catch (e: ApolloException) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado: ${e.message}"))
+        }
+    }
+
+    override suspend fun getCustomerCashKycStatus(
+        merchantId: String,
+        branchId: String?,
+        customerId: String
+    ): Result<CustomerCashKycStatus?> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
+
+            val response = apolloClient.query(
+                CustomerCashKycStatusQuery(
+                    merchantId = merchantId,
+                    branchId = Optional.presentIfNotNull(branchId),
+                    customerId = customerId,
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener KYC del cliente"))
+            } else {
+                val status = response.data?.cashKycStatusByAccount?.toDomain()
+                Result.success(status)
+            }
+        } catch (e: ApolloException) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado: ${e.message}"))
+        }
+    }
+
     /**
      * Obtiene estadÃ­sticas de pedidos
      * Requirements: 11.1
@@ -227,7 +284,11 @@ class OrderRepositoryImpl(
      * Acepta un pedido pendiente
      * Requirements: 5.1
      */
-    override suspend fun acceptOrder(orderId: String, estimatedMinutes: Int): Result<Order> {
+    override suspend fun acceptOrder(
+        orderId: String,
+        estimatedMinutes: Int,
+        deliveryFee: Double?
+    ): Result<Order> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
 
@@ -235,7 +296,8 @@ class OrderRepositoryImpl(
                 AcceptOrderMutation(
                     orderId = orderId,
                     estimatedMinutes = estimatedMinutes,
-                    jwt = token
+                    jwt = token,
+                    deliveryFee = Optional.presentIfNotNull(deliveryFee)
                 )
             ).execute()
 
@@ -384,6 +446,34 @@ class OrderRepositoryImpl(
                     Result.success(order)
                 } else {
                     Result.failure(Exception("No se recibiÃ³ respuesta del servidor"))
+                }
+            }
+        } catch (e: ApolloException) {
+            Result.failure(Exception("Error de red: ${e.message}"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Error inesperado: ${e.message}"))
+        }
+    }
+
+    override suspend fun confirmPaymentReceived(paymentAttemptId: String): Result<PaymentAttempt> {
+        return try {
+            val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
+
+            val response = apolloClient.mutation(
+                ConfirmPaymentReceivedMutation(
+                    paymentAttemptId = paymentAttemptId,
+                    jwt = token
+                )
+            ).execute()
+
+            if (response.hasErrors()) {
+                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al confirmar pago"))
+            } else {
+                val attempt = response.data?.confirmPaymentReceived?.toDomain()
+                if (attempt != null) {
+                    Result.success(attempt)
+                } else {
+                    Result.failure(Exception("No se recibio respuesta del servidor"))
                 }
             }
         } catch (e: ApolloException) {

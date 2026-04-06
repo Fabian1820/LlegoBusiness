@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.avatarSmallUrl
 
 /**
  * Avatar del negocio: círculo con inicial o foto.
@@ -107,7 +108,8 @@ internal fun BranchRow(
     ) {
         // Map pin icon in colored circle
         val typeColor = branchTypeColor(branch.tipos.firstOrNull())
-        val hasPhoto = !branch.avatarUrl.isNullOrBlank()
+        val branchAvatarUrl = branch.avatarSmallUrl()
+        val hasPhoto = !branchAvatarUrl.isNullOrBlank()
 
         Surface(
             modifier = Modifier.size(32.dp),
@@ -117,7 +119,7 @@ internal fun BranchRow(
         ) {
             if (hasPhoto) {
                 AsyncImage(
-                    model = branch.avatarUrl,
+                    model = branchAvatarUrl,
                     contentDescription = branch.name,
                     modifier = Modifier
                         .fillMaxSize()

@@ -7,9 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderActor
 import com.llego.business.orders.data.model.OrderComment
+import com.llego.business.orders.data.model.CustomerCashKycStatus
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
+import com.llego.business.orders.data.model.PaymentAttempt
+import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.OrderStatus
+import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.DashboardStats
 import com.llego.business.orders.data.repository.DashboardStatsPeriod
 import com.llego.business.orders.data.repository.OrderItemInput
@@ -73,6 +77,12 @@ class OrdersViewModel(
 
     private val _modificationState = MutableStateFlow<OrderModificationState?>(null)
     val modificationState: StateFlow<OrderModificationState?> = _modificationState.asStateFlow()
+
+    private val _activePaymentAttempt = MutableStateFlow<PaymentAttempt?>(null)
+    val activePaymentAttempt: StateFlow<PaymentAttempt?> = _activePaymentAttempt.asStateFlow()
+
+    private val _customerCashKycStatus = MutableStateFlow<CustomerCashKycStatus?>(null)
+    val customerCashKycStatus: StateFlow<CustomerCashKycStatus?> = _customerCashKycStatus.asStateFlow()
 
     private var currentOffset = 0
     private var hasMore = true
@@ -277,11 +287,11 @@ class OrdersViewModel(
         refreshOrders()
     }
 
-    fun acceptOrder(orderId: String, estimatedMinutes: Int = 30) {
+    fun acceptOrder(orderId: String, estimatedMinutes: Int = 30, deliveryFee: Double? = null) {
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
 
-            repository.acceptOrder(orderId, estimatedMinutes)
+            repository.acceptOrder(orderId, estimatedMinutes, deliveryFee)
                 .onSuccess { updatedOrder ->
                     updateOrderInList(updatedOrder)
                     _uiState.value = OrdersUiState.Success
@@ -307,9 +317,21 @@ class OrdersViewModel(
         }
     }
 
-    // Backward compatibility: this project no longer moves through PREPARING.
     fun startPreparingOrder(orderId: String) {
-        acceptOrder(orderId)
+        val order = getOrderById(orderId) ?: return
+        if (order.status != OrderStatus.ACCEPTED) return
+        if (order.requiresCompletedPaymentBeforePreparing() && order.paymentStatus != PaymentStatus.COMPLETED) {
+            _uiState.value = OrdersUiState.ActionError(
+                "No se puede iniciar elaboracion hasta confirmar el pago."
+            )
+            return
+        }
+
+        updateOrderStatus(
+            orderId = orderId,
+            newStatus = OrderStatus.PREPARING,
+            message = "El negocio inicio la elaboracion"
+        )
     }
 
     fun markOrderReady(orderId: String) {
@@ -598,6 +620,7 @@ class OrdersViewModel(
         val hasMonetaryChanges = incoming.subtotal != 0.0 || incoming.deliveryFee != 0.0 || incoming.total != 0.0
         val hasStatusUpdate = incoming.updatedAt.isNotBlank() || incoming.lastStatusAt.isNotBlank() || incoming.timeline.isNotEmpty()
         val hasCommentUpdate = incoming.comments.isNotEmpty()
+        val hasOperationalUpdate = hasStatusUpdate || incoming.paymentMethod.isNotBlank() || incoming.deliveryMode.isNotBlank()
         val shouldTakeIncomingStatus = hasStatusUpdate || incoming.status != OrderStatus.PENDING_ACCEPTANCE || existing.status == OrderStatus.PENDING_ACCEPTANCE
 
         return existing.copy(
@@ -605,8 +628,14 @@ class OrdersViewModel(
             deliveryFee = if (hasItemChanges || hasMonetaryChanges) incoming.deliveryFee else existing.deliveryFee,
             total = if (hasItemChanges || hasMonetaryChanges) incoming.total else existing.total,
             status = if (shouldTakeIncomingStatus) incoming.status else existing.status,
+            deliveryMode = if (incoming.deliveryMode.isNotBlank()) incoming.deliveryMode else existing.deliveryMode,
+            paymentMethod = if (hasOperationalUpdate && incoming.paymentMethod.isNotBlank()) incoming.paymentMethod else existing.paymentMethod,
+            paymentStatus = if (hasOperationalUpdate && incoming.paymentMethod.isNotBlank()) incoming.paymentStatus else existing.paymentStatus,
+            paidAt = if (hasOperationalUpdate) incoming.paidAt ?: existing.paidAt else existing.paidAt,
+            deadlineAt = if (hasOperationalUpdate) incoming.deadlineAt ?: existing.deadlineAt else existing.deadlineAt,
             updatedAt = incoming.updatedAt.ifBlank { existing.updatedAt },
             lastStatusAt = incoming.lastStatusAt.ifBlank { existing.lastStatusAt },
+            deliveryPersonId = incoming.deliveryPersonId ?: existing.deliveryPersonId,
             estimatedDeliveryTime = incoming.estimatedDeliveryTime ?: existing.estimatedDeliveryTime,
             items = if (hasItemChanges) incoming.items else existing.items,
             discounts = if (incoming.discounts.isNotEmpty()) incoming.discounts else existing.discounts,
@@ -632,11 +661,9 @@ class OrdersViewModel(
 
     fun getActiveOrdersCount(): Int {
         return _orders.value.count {
-            it.status in listOf(
-                OrderStatus.PENDING_ACCEPTANCE,
-                OrderStatus.MODIFIED_BY_STORE,
-                OrderStatus.ACCEPTED,
-                OrderStatus.READY_FOR_PICKUP
+            it.status !in listOf(
+                OrderStatus.DELIVERED,
+                OrderStatus.CANCELLED
             )
         }
     }
@@ -648,6 +675,65 @@ class OrdersViewModel(
     }
 
     fun clearActionError() = clearError()
+
+    fun loadActivePaymentAttempt(orderId: String) {
+        viewModelScope.launch {
+            repository.getActivePaymentAttempt(orderId)
+                .onSuccess { attempt ->
+                    _activePaymentAttempt.value = attempt
+                }
+                .onFailure {
+                    _activePaymentAttempt.value = null
+                }
+        }
+    }
+
+    fun clearActivePaymentAttempt() {
+        _activePaymentAttempt.value = null
+    }
+
+    fun loadCustomerCashKycStatus(
+        merchantId: String,
+        branchId: String?,
+        customerId: String
+    ) {
+        viewModelScope.launch {
+            repository.getCustomerCashKycStatus(
+                merchantId = merchantId,
+                branchId = branchId,
+                customerId = customerId
+            )
+                .onSuccess { status ->
+                    _customerCashKycStatus.value = status
+                }
+                .onFailure {
+                    _customerCashKycStatus.value = null
+                }
+        }
+    }
+
+    fun clearCustomerCashKycStatus() {
+        _customerCashKycStatus.value = null
+    }
+
+    fun confirmPaymentReceived(orderId: String, paymentAttemptId: String) {
+        viewModelScope.launch {
+            _uiState.value = OrdersUiState.ActionInProgress(orderId)
+
+            repository.confirmPaymentReceived(paymentAttemptId)
+                .onSuccess { confirmedAttempt ->
+                    _activePaymentAttempt.value = confirmedAttempt
+                    refreshOrderById(orderId)
+                    if (confirmedAttempt.status != PaymentAttemptStatus.AWAITING_BUSINESS) {
+                        loadActivePaymentAttempt(orderId)
+                    }
+                    _uiState.value = OrdersUiState.Success
+                }
+                .onFailure { error ->
+                    _uiState.value = OrdersUiState.ActionError(error.message ?: "Error al confirmar pago")
+                }
+        }
+    }
 
     fun loadMenuItems(branchId: String? = null) {
         // Intentionally no-op for now.

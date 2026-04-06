@@ -61,6 +61,7 @@ import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.invitations.ui.viewmodel.RedeemState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
+import com.llego.shared.data.model.avatarSmallUrl
 
 /**
  * Business card section matching the Pencil design:
@@ -105,7 +106,7 @@ internal fun BusinessSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BusinessAvatar(
-                        avatarUrl = business.avatarUrl,
+                        avatarUrl = business.avatarSmallUrl(),
                         name = business.name,
                         size = 48,
                         backgroundColor = MaterialTheme.colorScheme.primary

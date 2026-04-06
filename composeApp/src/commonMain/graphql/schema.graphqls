@@ -275,6 +275,11 @@ type Query {
   activePaymentAttempt(orderId: String!, jwt: String!): PaymentAttemptType
 
   """
+  Estado KYC de efectivo de un cliente para un merchant/sucursal.
+  """
+  cashKycStatusByAccount(merchantId: String!, branchId: String = null, customerId: String!, jwt: String!): CashKycStatusType!
+
+  """
   Obtener balance de wallet del usuario actual
   """
   myWallet(jwt: String!): WalletStatusType!
@@ -503,6 +508,8 @@ type UserType {
 
   defaultAddressId: String
 
+  deliveredOrdersCount: Int!
+
   """
   URL firmada del avatar del usuario
   """
@@ -589,6 +596,16 @@ type BusinessType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 """
@@ -625,6 +642,16 @@ type BusinessWithBranchesType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 type BranchType {
@@ -657,6 +684,8 @@ type BranchType {
   tipos: [BranchTipo!]!
 
   paymentMethodIds: [String!]!
+
+  pickupEnabled: Boolean!
 
   useAppMessaging: Boolean!
 
@@ -694,9 +723,29 @@ type BranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Products from this branch
@@ -1090,6 +1139,8 @@ type ScoredBranchType {
 
   paymentMethodIds: [String!]!
 
+  pickupEnabled: Boolean!
+
   useAppMessaging: Boolean!
 
   vehicles: [BranchVehicle!]!
@@ -1130,9 +1181,29 @@ type ScoredBranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Distance in kilometers from user
@@ -1253,9 +1324,29 @@ type NearbyBranchType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 
   """
   Distance in kilometers
@@ -2003,6 +2094,8 @@ type OrderType {
 
   lastStatusAt: DateTime!
 
+  deadlineAt: DateTime
+
   deliveryPersonId: String
 
   deliveryZoneId: String
@@ -2098,6 +2191,14 @@ type OrderType {
 }
 
 enum OrderStatusEnum {
+  AWAITING_DELIVERY_ACCEPTANCE
+
+  PENDING_PAYMENT
+
+  PAYMENT_IN_PROGRESS
+
+  REJECTED_BY_STORE
+
   PENDING_ACCEPTANCE
 
   MODIFIED_BY_STORE
@@ -2762,6 +2863,22 @@ type PaymentAttemptType {
   updatedAt: DateTime!
 }
 
+type CashKycStatusType {
+  verificationId: String
+
+  kycEvalStatus: String
+
+  cashCoverageStatus: String
+
+  allowCash: Boolean!
+
+  appCoversCash: Boolean!
+
+  nextAction: String
+
+  expiresAt: DateTime
+}
+
 enum PaymentAttemptStatusEnum {
   PENDING
 
@@ -3347,6 +3464,16 @@ type BusinessSyncType {
   Presigned URL for the business avatar
   """
   avatarUrl: String
+
+  """
+  Presigned URL for the business avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the business avatar (high quality)
+  """
+  avatarUrlAlta: String
 }
 
 type BranchSyncType {
@@ -3394,9 +3521,29 @@ type BranchSyncType {
   avatarUrl: String
 
   """
+  Presigned URL for the branch avatar (low quality)
+  """
+  avatarUrlBaja: String
+
+  """
+  Presigned URL for the branch avatar (high quality)
+  """
+  avatarUrlAlta: String
+
+  """
   Presigned URL for the branch cover image
   """
   coverUrl: String
+
+  """
+  Presigned URL for the branch cover image (low quality)
+  """
+  coverUrlBaja: String
+
+  """
+  Presigned URL for the branch cover image (high quality)
+  """
+  coverUrlAlta: String
 }
 
 type CoordinatesSyncType {
@@ -3769,7 +3916,7 @@ type Mutation {
   """
   Confirmar que el cliente envió el pago (para métodos manuales)
   """
-  confirmPaymentSent(paymentAttemptId: String!, proofUrl: String!, jwt: String!): PaymentAttemptType!
+  confirmPaymentSent(paymentAttemptId: String!, proofUrl: String = null, jwt: String!): PaymentAttemptType!
 
   """
   Negocio confirma que recibió el pago
@@ -4123,6 +4270,8 @@ input RegisterBranchInput {
 
   paymentMethodIds: [String!]!
 
+  pickupEnabled: Boolean! = false
+
   address: String = null
 
   managerIds: [String!] = null
@@ -4254,6 +4403,8 @@ input UpdateBranchInput {
   tipos: [BranchTipo!] = null
 
   paymentMethodIds: [String!] = null
+
+  pickupEnabled: Boolean = null
 
   useAppMessaging: Boolean = null
 

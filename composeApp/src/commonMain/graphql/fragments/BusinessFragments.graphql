@@ -9,6 +9,8 @@ fragment BusinessCoreFields on BusinessType {
   isActive
   createdAt
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
 }
 
 fragment BusinessOwnedFields on BusinessType {
@@ -26,6 +28,8 @@ fragment BusinessRoleFields on BusinessWithBranchesType {
   isActive
   createdAt
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
   isOwner
   role
 }
@@ -41,6 +45,8 @@ fragment BusinessUpdateFields on BusinessType {
   globalRating
   createdAt
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
 }
 
 fragment BusinessAccessFields on BusinessType {
@@ -59,4 +65,6 @@ fragment BusinessOrderInfoFields on BusinessType {
   id
   name
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
 }

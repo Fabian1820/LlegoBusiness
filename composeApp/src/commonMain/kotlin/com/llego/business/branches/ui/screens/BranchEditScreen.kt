@@ -27,6 +27,7 @@ import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.business.formatQrPaymentsInput
 import com.llego.shared.ui.business.formatTransferAccountsInput
 import com.llego.shared.ui.business.formatTransferPhonesInput
+import com.llego.shared.ui.business.findInvalidTransferAccountsInputLines
 import com.llego.shared.ui.business.parseQrPaymentsInput
 import com.llego.shared.ui.business.parseTransferAccountsInput
 import com.llego.shared.ui.business.parseTransferPhonesInput
@@ -91,6 +92,8 @@ fun BranchEditScreen(
         branchCoverState is ImageUploadState.Uploading
 
     fun saveBranchChanges() {
+        if (isLoading) return
+
         if (name.isBlank() || phone.isBlank()) {
             statusMessage = "Completa los campos requeridos"
             onError(statusMessage ?: "")
@@ -121,6 +124,12 @@ fun BranchEditScreen(
             onError(statusMessage ?: "")
             return
         }
+        val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
+        if (invalidAccountLines.isNotEmpty()) {
+            statusMessage = "Formato invalido en cuentas. Usa numero|banco, numero|titular|banco o JSON con accounts[]. Bancos: BPA, BANDEC, METROPOLITANO."
+            onError(statusMessage ?: "")
+            return
+        }
 
         val latValue = latitude.toDoubleOrNull()
         val lngValue = longitude.toDoubleOrNull()
@@ -141,9 +150,9 @@ fun BranchEditScreen(
                 facebook = facebook,
                 whatsapp = whatsapp
             ) ?: emptyMap()
-            val accountsValue = parseTransferAccountsInput(accountsInput)
-            val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput)
-            val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput)
+            val accountsValue = parseTransferAccountsInput(accountsInput, branch.accounts)
+            val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput, branch.qrPayments)
+            val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput, branch.phones)
             val scheduleValue = branchSchedule.toBackendSchedule()
             val parsedManagerIds = parseManagerIds(managerIds)
             val exchangeRateValue = parseExchangeRate(exchangeRateInput)
@@ -359,7 +368,7 @@ fun BranchEditScreen(
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
             )
             Text(
-                text = "Cuentas: una por linea en formato numero|titular|banco",
+                text = "Cuentas: numero|banco o numero|titular|banco. Bancos: BPA, BANDEC, METROPOLITANO",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

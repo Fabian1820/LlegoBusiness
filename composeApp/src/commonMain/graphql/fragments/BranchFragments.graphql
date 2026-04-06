@@ -15,6 +15,7 @@ fragment BranchCoreFields on BranchType {
   address
   phone
   tipos
+  pickupEnabled
   useAppMessaging
   vehicles
   accounts {
@@ -38,7 +39,11 @@ fragment BranchCoreFields on BranchType {
   avatar
   coverImage
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
   coverUrl
+  coverUrlBaja
+  coverUrlAlta
   isActive
   socialMedia
   coordinates {
@@ -60,6 +65,7 @@ fragment BranchUpdateFields on BranchType {
   phone
   address
   tipos
+  pickupEnabled
   useAppMessaging
   vehicles
   accounts {
@@ -83,7 +89,11 @@ fragment BranchUpdateFields on BranchType {
   avatar
   coverImage
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
   coverUrl
+  coverUrlBaja
+  coverUrlAlta
   socialMedia
   coordinates {
     ...CoordinatesFields
@@ -103,6 +113,7 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   phone
   isActive
   tipos
+  pickupEnabled
   useAppMessaging
   vehicles
   accounts {
@@ -132,7 +143,11 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   managerIds
   createdAt
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
   coverUrl
+  coverUrlBaja
+  coverUrlAlta
   wallet {
     ...WalletBalanceFields
   }
@@ -150,4 +165,9 @@ fragment BranchOrderInfoFields on BranchType {
   address
   phone
   avatarUrl
+  avatarUrlBaja
+  avatarUrlAlta
+  coverUrl
+  coverUrlBaja
+  coverUrlAlta
 }

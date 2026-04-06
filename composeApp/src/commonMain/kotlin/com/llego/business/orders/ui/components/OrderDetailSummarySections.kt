@@ -24,6 +24,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +41,9 @@ import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.utils.formatDouble
+import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 @Composable
 fun OrderStatusSection(order: Order) {
@@ -54,8 +62,12 @@ fun OrderStatusSection(order: Order) {
         ) {
             Icon(
                 imageVector = when (order.status) {
+                    OrderStatus.AWAITING_DELIVERY_ACCEPTANCE -> Icons.Default.LocalShipping
+                    OrderStatus.PENDING_PAYMENT -> Icons.Default.HourglassEmpty
+                    OrderStatus.PAYMENT_IN_PROGRESS -> Icons.Default.Timer
                     OrderStatus.PENDING_ACCEPTANCE -> Icons.Default.HourglassEmpty
                     OrderStatus.MODIFIED_BY_STORE -> Icons.Default.Edit
+                    OrderStatus.REJECTED_BY_STORE -> Icons.Default.Cancel
                     OrderStatus.ACCEPTED -> Icons.Default.CheckCircle
                     OrderStatus.PREPARING -> Icons.Default.Restaurant
                     OrderStatus.READY_FOR_PICKUP -> Icons.Default.Done
@@ -79,6 +91,26 @@ fun OrderStatusSection(order: Order) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = order.status.getColor()
                 )
+                val showDeadline = order.status in listOf(
+                    OrderStatus.PENDING_ACCEPTANCE,
+                    OrderStatus.MODIFIED_BY_STORE,
+                    OrderStatus.REJECTED_BY_STORE,
+                    OrderStatus.AWAITING_DELIVERY_ACCEPTANCE,
+                    OrderStatus.PENDING_PAYMENT,
+                    OrderStatus.PAYMENT_IN_PROGRESS
+                )
+                val countdownText = rememberDeadlineCountdownText(
+                    deadlineAt = order.deadlineAt,
+                    enabled = showDeadline
+                )
+                if (countdownText != null) {
+                    Text(
+                        text = "Limite: $countdownText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             order.estimatedMinutesRemaining?.let { minutes ->
@@ -313,6 +345,17 @@ fun PaymentSummarySection(order: Order) {
             }
         }
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Modalidad", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = if (order.isPickupOrder()) "Recogida en tienda" else "Delivery",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+        }
+
         order.discounts.forEach { discount ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -353,7 +396,7 @@ fun PaymentSummarySection(order: Order) {
             Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = order.paymentMethod,
+                    text = order.paymentMethodDisplayName(),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Surface(
@@ -386,5 +429,64 @@ fun PaymentSummarySection(order: Order) {
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean): String? {
+    if (!enabled || deadlineAt.isNullOrBlank()) return null
+
+    val deadlineEpochSeconds = remember(deadlineAt) { parseDeadlineToEpochSeconds(deadlineAt) }
+        ?: return deadlineAt
+
+    var nowEpochSeconds by remember(deadlineAt) {
+        mutableStateOf(Clock.System.now().toEpochMilliseconds() / 1000)
+    }
+
+    LaunchedEffect(deadlineAt, enabled) {
+        if (!enabled) return@LaunchedEffect
+        while (true) {
+            nowEpochSeconds = Clock.System.now().toEpochMilliseconds() / 1000
+            delay(1000)
+        }
+    }
+
+    val remainingSeconds = deadlineEpochSeconds - nowEpochSeconds
+    return if (remainingSeconds <= 0L) "Vencido" else formatCountdown(remainingSeconds)
+}
+
+private fun parseDeadlineToEpochSeconds(rawDeadline: String): Long? {
+    val value = rawDeadline.trim()
+    if (value.isBlank()) return null
+
+    val candidates = buildList {
+        add(value)
+        if (!value.endsWith("Z") && !value.contains("+")) {
+            add("${value}Z")
+        }
+    }
+
+    candidates.forEach { candidate ->
+        runCatching { Instant.parse(candidate) }
+            .getOrNull()
+            ?.let { parsed -> return parsed.toEpochMilliseconds() / 1000 }
+    }
+
+    return null
+}
+
+private fun formatCountdown(totalSeconds: Long): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    val mm = minutes.toString().padStart(2, '0')
+    val ss = seconds.toString().padStart(2, '0')
+
+    return if (hours > 0) {
+        val hh = hours.toString().padStart(2, '0')
+        "$hh:$mm:$ss restantes"
+    } else {
+        "$mm:$ss restantes"
     }
 }

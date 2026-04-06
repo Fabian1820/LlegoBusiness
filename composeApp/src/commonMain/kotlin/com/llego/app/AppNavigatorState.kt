@@ -236,7 +236,8 @@ class AppNavigatorState {
     private fun toSaveMap(): Map<String, Any?> {
         val shouldRestoreAddProduct = showAddProduct && productToEdit == null
         val shouldRestoreAddCombo = showAddCombo && comboToEdit == null
-        val shouldRestoreAddShowcase = showAddShowcase && showcaseToEdit == null
+        // MVP: no restaurar pantallas de vitrina.
+        val shouldRestoreAddShowcase = false
 
         return mapOf(
             KEY_SHOW_PROFILE to showProfile,
@@ -267,7 +268,8 @@ class AppNavigatorState {
         showInvitations = values[KEY_SHOW_INVITATIONS] as? Boolean ?: false
         showDeliveryManagement = values[KEY_SHOW_DELIVERY_MANAGEMENT] as? Boolean ?: false
         showAddProduct = values[KEY_SHOW_ADD_PRODUCT] as? Boolean ?: false
-        showAddShowcase = values[KEY_SHOW_ADD_SHOWCASE] as? Boolean ?: false
+        // MVP: no restaurar navegación de vitrina.
+        showAddShowcase = false
         showShowcaseDetail = false
         showProductDetail = false
         showProductSearch = values[KEY_SHOW_PRODUCT_SEARCH] as? Boolean ?: false

@@ -54,7 +54,9 @@ private fun BusinessCoreFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -73,7 +75,9 @@ private fun BusinessRoleFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -88,7 +92,9 @@ private fun BusinessUpdateFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
-        avatarUrl = avatarUrl
+        avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta
     )
 }
 
@@ -119,6 +125,7 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         phone = phone,
         schedule = parseSchedule(schedule),
         tipos = branchTipos,
+        pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
@@ -149,7 +156,11 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate
@@ -169,6 +180,7 @@ private fun BranchCoreFields.toDomain(): Branch {
         phone = phone,
         schedule = parseSchedule(schedule),
         tipos = branchTipos,
+        pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
@@ -199,7 +211,11 @@ private fun BranchCoreFields.toDomain(): Branch {
         },
         createdAt = createdAt.toString(),
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate
@@ -219,6 +235,7 @@ private fun BranchUpdateFields.toDomain(): Branch {
         phone = phone,
         schedule = parseSchedule(schedule),
         tipos = branchTipos,
+        pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
         vehicles = branchVehicles,
         paymentMethodIds = paymentMethodIds,
@@ -249,7 +266,11 @@ private fun BranchUpdateFields.toDomain(): Branch {
         },
         createdAt = "",
         avatarUrl = avatarUrl,
+        avatarUrlBaja = avatarUrlBaja,
+        avatarUrlAlta = avatarUrlAlta,
         coverUrl = coverUrl,
+        coverUrlBaja = coverUrlBaja,
+        coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate
@@ -298,6 +319,7 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         phone = phone,
         schedule = schedule,
         tipos = tipos.toGraphQLList(),
+        pickupEnabled = Optional.present(pickupEnabled),
         paymentMethodIds = paymentMethodIds,
         address = Optional.presentIfNotNull(address),
         managerIds = Optional.presentIfNotNull(managerIds),
@@ -353,6 +375,7 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         socialMedia = Optional.presentIfNotNull(socialMedia),
         managerIds = Optional.presentIfNotNull(managerIds),
         tipos = Optional.presentIfNotNull(tipos?.toGraphQLList()),
+        pickupEnabled = Optional.presentIfNotNull(pickupEnabled),
         acceptedCurrency = Optional.presentIfNotNull(
             exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
         ),

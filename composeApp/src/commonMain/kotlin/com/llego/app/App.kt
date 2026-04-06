@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
@@ -67,9 +68,13 @@ import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
+import com.llego.shared.ui.components.modifiers.dismissKeyboardOnScroll
+import com.llego.shared.ui.components.modifiers.dismissKeyboardOnTapOutside
 import kotlinx.coroutines.launch
 
 private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
+// MVP: el frontend de vitrinas queda deshabilitado temporalmente.
+private const val SHOWCASE_FRONTEND_ENABLED = false
 
 private fun normalizeCategoryId(raw: String?): String? {
     val value = raw?.trim().orEmpty()
@@ -105,6 +110,7 @@ data class AppViewModels(
 fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
         val authViewModel = viewModels.auth
+        val focusManager = LocalFocusManager.current
 
 
         var isAuthenticated by remember { mutableStateOf(false) }
@@ -293,7 +299,12 @@ fun App(viewModels: AppViewModels) {
             }
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .dismissKeyboardOnTapOutside(focusManager)
+                .dismissKeyboardOnScroll(focusManager)
+        ) {
             when {
                 // Caso 0: Carga inicial - sesion + datos de negocio/sucursales
                 isCheckingSession || (!initialLoadComplete && isAuthenticated) -> {
@@ -559,6 +570,7 @@ private fun MainBusinessFlow(
     onNavigateBackToBranchSelector: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    var isSavingProduct by remember { mutableStateOf(false) }
     val productsState by productViewModel.productsState.collectAsState()
     val productCategoriesState by productViewModel.productCategoriesState.collectAsState()
     val variantListsState by productViewModel.variantListsState.collectAsState()
@@ -601,6 +613,27 @@ private fun MainBusinessFlow(
         }
     }
 
+    LaunchedEffect(navigator.showAddProduct) {
+        if (!navigator.showAddProduct) {
+            isSavingProduct = false
+        }
+    }
+
+    LaunchedEffect(
+        navigator.showAddShowcase,
+        navigator.showShowcaseDetail,
+        navigator.showcaseToEdit,
+        navigator.showcaseToView
+    ) {
+        // MVP: evitar abrir/recuperar navegación de vitrinas.
+        if (!SHOWCASE_FRONTEND_ENABLED) {
+            navigator.showAddShowcase = false
+            navigator.showShowcaseDetail = false
+            navigator.showcaseToEdit = null
+            navigator.showcaseToView = null
+        }
+    }
+
     Box(modifier = Modifier) {
         when {
             navigator.showProductSearch -> {
@@ -633,6 +666,7 @@ private fun MainBusinessFlow(
                         OrderDetailScreen(
                             order = order,
                             ordersViewModel = ordersViewModel,
+                            authViewModel = authViewModel,
                             onNavigateBack = {
                                 navigator.showOrderDetail = false
                                 navigator.selectedOrderId = null
@@ -689,7 +723,7 @@ private fun MainBusinessFlow(
                 )
             }
 
-            navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
+            SHOWCASE_FRONTEND_ENABLED && navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
                 ShowcaseDetailScreen(
                     showcase = navigator.showcaseToView!!,
                     onNavigateBack = {
@@ -712,6 +746,7 @@ private fun MainBusinessFlow(
                     variantLists = variantListsState.variantLists,
                     variantListsLoading = variantListsState.isLoading,
                     variantListsError = variantListsState.error,
+                    isSaving = isSavingProduct,
                     onCreateVariantList = { branchId, name, description, options ->
                         productViewModel.createVariantList(
                             branchId = branchId,
@@ -721,63 +756,80 @@ private fun MainBusinessFlow(
                         )
                     },
                     onNavigateBack = {
+                        if (isSavingProduct) return@AddProductScreen
                         navigator.showAddProduct = false
                         navigator.productToEdit = null
                     },
                     onSave = { form ->
+                        if (isSavingProduct) return@AddProductScreen
+                        isSavingProduct = true
                         val currentBranchId = authViewModel.getCurrentBranchId()
                         scope.launch {
-                            if (currentBranchId == null) {
-                                println("❌ Error: No hay sucursal seleccionada")
-                                return@launch
-                            }
-                            if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) {
-                                println("❌ Error: No hay imagen subida para el nuevo producto")
-                                return@launch
-                            }
-
-                            println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
-
-                            val result = if (navigator.productToEdit == null) {
-                                productViewModel.createProductWithImagePath(
-                                    name = form.name,
-                                    description = form.description.ifBlank { form.name },
-                                    price = form.price,
-                                    imagePath = form.imagePath ?: "",
-                                    branchId = currentBranchId,
-                                    currency = form.currency,
-                                    weight = form.weight,
-                                    categoryId = normalizeCategoryId(form.categoryId),
-                                    variantListIds = form.variantListIds.takeIf { it.isNotEmpty() }
-                                )
-                            } else {
-                                productViewModel.updateProductWithImagePath(
-                                    productId = navigator.productToEdit!!.id,
-                                    name = form.name,
-                                    description = form.description,
-                                    price = form.price,
-                                    currency = form.currency,
-                                    weight = form.weight,
-                                    availability = form.availability,
-                                    categoryId = normalizeCategoryId(form.categoryId),
-                                    imagePath = form.imagePath,
-                                    variantListIds = form.variantListIds
-                                )
-                            }
-
-                            when (result) {
-                                is ProductsResult.Success -> {
-                                    println("✅ Producto guardado exitosamente")
-                                    productViewModel.loadProducts(branchId = currentBranchId)
-                                    navigator.showAddProduct = false
-                                    navigator.productToEdit = null
+                            try {
+                                if (currentBranchId == null) {
+                                    println("❌ Error: No hay sucursal seleccionada")
+                                    return@launch
+                                }
+                                if (form.imagePath.isNullOrBlank() && navigator.productToEdit == null) {
+                                    println("❌ Error: No hay imagen subida para el nuevo producto")
+                                    return@launch
                                 }
 
-                                is ProductsResult.Error -> {
-                                    println("❌ Error al guardar producto: ${result.message}")
+                                println("📤 Guardando producto: ${form.name}, imagen: ${form.imagePath}")
+
+                                val editingProduct = navigator.productToEdit
+                                val imagePathForUpdate = if (
+                                    editingProduct != null &&
+                                    form.imagePath == editingProduct.image
+                                ) {
+                                    null
+                                } else {
+                                    form.imagePath
                                 }
 
-                                is ProductsResult.Loading -> {}
+                                val result = if (editingProduct == null) {
+                                    productViewModel.createProductWithImagePath(
+                                        name = form.name,
+                                        description = form.description.ifBlank { form.name },
+                                        price = form.price,
+                                        imagePath = form.imagePath ?: "",
+                                        branchId = currentBranchId,
+                                        currency = form.currency,
+                                        weight = form.weight,
+                                        categoryId = normalizeCategoryId(form.categoryId),
+                                        variantListIds = form.variantListIds.takeIf { it.isNotEmpty() }
+                                    )
+                                } else {
+                                    productViewModel.updateProductWithImagePath(
+                                        productId = editingProduct.id,
+                                        name = form.name,
+                                        description = form.description,
+                                        price = form.price,
+                                        currency = form.currency,
+                                        weight = form.weight,
+                                        availability = form.availability,
+                                        categoryId = normalizeCategoryId(form.categoryId),
+                                        imagePath = imagePathForUpdate,
+                                        variantListIds = form.variantListIds
+                                    )
+                                }
+
+                                when (result) {
+                                    is ProductsResult.Success -> {
+                                        println("✅ Producto guardado exitosamente")
+                                        productViewModel.loadProducts(branchId = currentBranchId)
+                                        navigator.showAddProduct = false
+                                        navigator.productToEdit = null
+                                    }
+
+                                    is ProductsResult.Error -> {
+                                        println("❌ Error al guardar producto: ${result.message}")
+                                    }
+
+                                    is ProductsResult.Loading -> {}
+                                }
+                            } finally {
+                                isSavingProduct = false
                             }
                         }
                     },
@@ -785,7 +837,7 @@ private fun MainBusinessFlow(
                 )
             }
 
-            navigator.showAddShowcase -> {
+            SHOWCASE_FRONTEND_ENABLED && navigator.showAddShowcase -> {
                 AddShowcaseScreen(
                     viewModel = showcaseViewModel,
                     branchId = authViewModel.getCurrentBranchId(),
@@ -963,22 +1015,10 @@ private fun MainBusinessFlow(
                         navigator.productToEdit = product
                         navigator.showAddProduct = true
                     },
-                    onNavigateToAddShowcase = {
-                        navigator.showShowcaseDetail = false
-                        navigator.showcaseToView = null
-                        navigator.showcaseToEdit = null
-                        navigator.showAddShowcase = true
-                    },
-                    onNavigateToShowcaseDetail = { showcase ->
-                        navigator.showShowcaseDetail = true
-                        navigator.showcaseToView = showcase
-                    },
-                    onNavigateToEditShowcase = { showcase ->
-                        navigator.showShowcaseDetail = false
-                        navigator.showcaseToView = null
-                        navigator.showcaseToEdit = showcase
-                        navigator.showAddShowcase = true
-                    },
+                    // MVP: callbacks de vitrina deshabilitados.
+                    onNavigateToAddShowcase = {},
+                    onNavigateToShowcaseDetail = { _ -> },
+                    onNavigateToEditShowcase = { _ -> },
                     onNavigateToAddCombo = { combo ->
                         navigator.comboToEdit = combo
                         navigator.showAddCombo = true

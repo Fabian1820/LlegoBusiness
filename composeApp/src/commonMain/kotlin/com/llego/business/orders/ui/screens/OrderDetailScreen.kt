@@ -2,11 +2,11 @@ package com.llego.business.orders.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,8 +53,11 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
+import com.llego.business.orders.data.model.PaymentAttemptStatus
+import com.llego.business.orders.data.model.PaymentStatus
+import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.ui.components.OrderActionsSection
-import com.llego.business.orders.ui.components.OrderCommentsSection
+import com.llego.business.orders.ui.components.CustomerInfoSection
 import com.llego.business.orders.ui.components.OrderItemsSection
 import com.llego.business.orders.ui.components.OrderStatusSection
 import com.llego.business.orders.ui.components.OrderTimelineSection
@@ -61,23 +65,103 @@ import com.llego.business.orders.ui.components.PaymentSummarySection
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.shared.ui.components.NetworkImage
+import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.UpdateBranchInput
+import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.utils.formatDouble
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private const val PICKUP_DISABLED_REJECTION_REASON =
+    "No estamos aceptando recogida en tienda en estos momentos"
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun OrderDetailScreen(
     order: Order,
     ordersViewModel: OrdersViewModel,
+    authViewModel: AuthViewModel,
     onNavigateBack: () -> Unit,
     onCallPhone: ((String) -> Unit)? = null
 ) {
     val uiState by ordersViewModel.uiState.collectAsState()
     val orders by ordersViewModel.orders.collectAsState()
     val modificationState by ordersViewModel.modificationState.collectAsState()
+    val activePaymentAttempt by ordersViewModel.activePaymentAttempt.collectAsState()
+    val customerCashKycStatus by ordersViewModel.customerCashKycStatus.collectAsState()
+    val currentBranch by authViewModel.currentBranch.collectAsState()
     val currentOrder = orders.firstOrNull { it.id == order.id } ?: order
+    val coroutineScope = rememberCoroutineScope()
+    val shouldShowDeliveryFeeInput = !currentOrder.isPickupOrder() && currentBranch?.useAppMessaging == false
+    val shouldLoadActivePaymentAttempt = currentOrder.status in setOf(
+        OrderStatus.PENDING_PAYMENT,
+        OrderStatus.PAYMENT_IN_PROGRESS
+    ) && currentOrder.paymentStatus != PaymentStatus.COMPLETED
+    val shouldShowConfirmPaymentReceived = shouldLoadActivePaymentAttempt &&
+        activePaymentAttempt?.status == PaymentAttemptStatus.AWAITING_BUSINESS
+    val paymentProofUrl = activePaymentAttempt?.proofUrl?.takeIf { it.isNotBlank() }
 
     val isActionInProgress = (uiState as? OrdersUiState.ActionInProgress)?.orderId == currentOrder.id
+    var showPickupEnableDialog by rememberSaveable(order.id) { mutableStateOf(false) }
+    var pickupPromptHandledForOrder by rememberSaveable(order.id) { mutableStateOf(false) }
+    var isPickupPromptActionInProgress by remember { mutableStateOf(false) }
+    var pickupPromptError by remember { mutableStateOf<String?>(null) }
+    var showPaymentProofDialog by rememberSaveable(order.id) { mutableStateOf(false) }
+
+    LaunchedEffect(
+        currentOrder.id,
+        currentOrder.deliveryMode,
+        currentOrder.status,
+        currentBranch?.id,
+        currentBranch?.pickupEnabled
+    ) {
+        val shouldPromptPickupActivation = !pickupPromptHandledForOrder &&
+            currentOrder.isPickupOrder() &&
+            currentOrder.status == OrderStatus.PENDING_ACCEPTANCE &&
+            currentBranch?.pickupEnabled == false
+
+        if (shouldPromptPickupActivation) {
+            pickupPromptHandledForOrder = true
+            pickupPromptError = null
+            showPickupEnableDialog = true
+        }
+    }
+
+    LaunchedEffect(
+        currentOrder.id,
+        currentOrder.status,
+        currentOrder.paymentStatus
+    ) {
+        if (shouldLoadActivePaymentAttempt) {
+            ordersViewModel.loadActivePaymentAttempt(currentOrder.id)
+        } else {
+            ordersViewModel.clearActivePaymentAttempt()
+        }
+    }
+
+    LaunchedEffect(
+        currentOrder.id,
+        currentOrder.customerId,
+        currentOrder.branchId,
+        currentOrder.businessId,
+        currentBranch?.id,
+        currentBranch?.businessId
+    ) {
+        val merchantId = currentOrder.businessId.takeIf { it.isNotBlank() } ?: currentBranch?.businessId
+        val branchId = currentOrder.branchId.takeIf { it.isNotBlank() } ?: currentBranch?.id
+        val customerId = currentOrder.customer?.id?.takeIf { it.isNotBlank() }
+            ?: currentOrder.customerId.takeIf { it.isNotBlank() }
+
+        if (merchantId.isNullOrBlank() || customerId.isNullOrBlank()) {
+            ordersViewModel.clearCustomerCashKycStatus()
+        } else {
+            ordersViewModel.loadCustomerCashKycStatus(
+                merchantId = merchantId,
+                branchId = branchId,
+                customerId = customerId
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -114,11 +198,23 @@ fun OrderDetailScreen(
             OrderActionsSection(
                 order = currentOrder,
                 isActionInProgress = isActionInProgress,
-                onAcceptOrder = { minutes ->
-                    ordersViewModel.acceptOrder(currentOrder.id, minutes)
+                showDeliveryFeeInput = shouldShowDeliveryFeeInput,
+                showConfirmPaymentReceived = shouldShowConfirmPaymentReceived,
+                onConfirmPaymentReceived = {
+                    val paymentAttemptId = activePaymentAttempt?.id ?: return@OrderActionsSection
+                    ordersViewModel.confirmPaymentReceived(currentOrder.id, paymentAttemptId)
+                },
+                onAcceptOrder = { minutes, deliveryFee ->
+                    ordersViewModel.acceptOrder(currentOrder.id, minutes, deliveryFee)
+                },
+                onRejectOrder = { reason ->
+                    ordersViewModel.rejectOrder(currentOrder.id, reason)
                 },
                 onCancelOrder = { reason ->
                     ordersViewModel.cancelOrder(currentOrder.id, reason)
+                },
+                onStartPreparing = {
+                    ordersViewModel.startPreparingOrder(currentOrder.id)
                 },
                 onMarkReady = {
                     ordersViewModel.markOrderReady(currentOrder.id)
@@ -141,26 +237,31 @@ fun OrderDetailScreen(
             OrderStatusSection(order = currentOrder)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+            CustomerInfoSection(
+                customer = currentOrder.customer,
+                customerCashKycStatus = customerCashKycStatus,
+                onCallCustomer = onCallPhone
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             OrderItemsSection(items = currentOrder.items)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             PaymentSummarySection(order = currentOrder)
 
+            if (shouldLoadActivePaymentAttempt) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                PaymentProofSection(
+                    paymentAttemptStatus = activePaymentAttempt?.status,
+                    proofUrl = paymentProofUrl,
+                    onOpenProof = { showPaymentProofDialog = true }
+                )
+            }
+
             if (currentOrder.timeline.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                 OrderTimelineSection(timeline = currentOrder.timeline)
             }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-            OrderCommentsSection(
-                comments = currentOrder.comments,
-                onAddComment = { message ->
-                    ordersViewModel.addOrderComment(currentOrder.id, message)
-                },
-                isAddingComment = isActionInProgress
-            )
-
-            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
@@ -191,6 +292,172 @@ fun OrderDetailScreen(
             ordersViewModel.clearActionError()
         }
     }
+
+    if (showPickupEnableDialog) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Recogida en tienda desactivada") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Esta sucursal tiene desactivada la recogida en tienda para pedidos pickup. " +
+                            "Desea activarla ahora?"
+                    )
+                    pickupPromptError?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val branch = currentBranch ?: return@Button
+                        coroutineScope.launch {
+                            isPickupPromptActionInProgress = true
+                            pickupPromptError = null
+                            when (val result = authViewModel.updateBranch(
+                                branchId = branch.id,
+                                input = UpdateBranchInput(pickupEnabled = true)
+                            )) {
+                                is BusinessResult.Success -> {
+                                    showPickupEnableDialog = false
+                                }
+                                is BusinessResult.Error -> {
+                                    pickupPromptError = result.message
+                                }
+                                BusinessResult.Loading -> Unit
+                            }
+                            isPickupPromptActionInProgress = false
+                        }
+                    },
+                    enabled = !isPickupPromptActionInProgress && currentBranch != null
+                ) {
+                    Text("Activar pickup")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPickupEnableDialog = false
+                        ordersViewModel.rejectOrder(
+                            orderId = currentOrder.id,
+                            reason = PICKUP_DISABLED_REJECTION_REASON
+                        )
+                    },
+                    enabled = !isPickupPromptActionInProgress
+                ) {
+                    Text("No activar y rechazar")
+                }
+            }
+        )
+    }
+
+    if (showPaymentProofDialog && paymentProofUrl != null) {
+        AlertDialog(
+            onDismissRequest = { showPaymentProofDialog = false },
+            title = { Text("Comprobante de pago") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    activePaymentAttempt?.let { attempt ->
+                        Text(
+                            text = "Estado: ${attempt.status.getDisplayName()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    NetworkImage(
+                        url = paymentProofUrl,
+                        contentDescription = "Comprobante de pago",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(340.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPaymentProofDialog = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun PaymentProofSection(
+    paymentAttemptStatus: PaymentAttemptStatus?,
+    proofUrl: String?,
+    onOpenProof: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Comprobante de pago",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+        )
+
+        paymentAttemptStatus?.let { status ->
+            Text(
+                text = "Estado: ${status.getDisplayName()}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (proofUrl.isNullOrBlank()) {
+            Text(
+                text = "Cliente confirmo sin comprobante.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenProof() }
+            ) {
+                Column {
+                    NetworkImage(
+                        url = proofUrl,
+                        contentDescription = "Vista previa del comprobante de pago",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                    Text(
+                        text = "Tocar para ampliar",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun PaymentAttemptStatus.getDisplayName(): String = when (this) {
+    PaymentAttemptStatus.PENDING -> "Pendiente"
+    PaymentAttemptStatus.PROCESSING -> "Procesando"
+    PaymentAttemptStatus.AWAITING_PROOF -> "Esperando comprobante"
+    PaymentAttemptStatus.AWAITING_BUSINESS -> "Esperando confirmacion del negocio"
+    PaymentAttemptStatus.AWAITING_DELIVERY -> "Esperando confirmacion de reparto"
+    PaymentAttemptStatus.COMPLETED -> "Completado"
+    PaymentAttemptStatus.FAILED -> "Fallido"
+    PaymentAttemptStatus.EXPIRED -> "Expirado"
+    PaymentAttemptStatus.CANCELLED -> "Cancelado"
+    PaymentAttemptStatus.DISPUTED -> "Disputado"
+    PaymentAttemptStatus.REFUND_REQUESTED -> "Reembolso solicitado"
+    PaymentAttemptStatus.REFUND_PROCESSING -> "Reembolso en proceso"
+    PaymentAttemptStatus.REFUNDED -> "Reembolsado"
 }
 
 @Composable

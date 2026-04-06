@@ -155,6 +155,8 @@ fun BranchesManagementScreen(
                     isActive = currentBusiness!!.isActive,
                     createdAt = currentBusiness!!.createdAt,
                     avatarUrl = currentBusiness!!.avatarUrl,
+                    avatarUrlBaja = currentBusiness!!.avatarUrlBaja,
+                    avatarUrlAlta = currentBusiness!!.avatarUrlAlta,
                     branches = branches
                 )
             )

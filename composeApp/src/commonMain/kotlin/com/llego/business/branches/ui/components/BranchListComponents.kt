@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BusinessWithBranches
+import com.llego.shared.data.model.avatarSmallUrl
 
 /**
  * Branch row matching Pencil design: map-pin icon in colored rounded rect,
@@ -94,7 +95,8 @@ fun BranchCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Map pin icon in colored rounded square
-            val hasPhoto = !branch.avatarUrl.isNullOrBlank()
+            val branchAvatarUrl = branch.avatarSmallUrl()
+            val hasPhoto = !branchAvatarUrl.isNullOrBlank()
             val iconBgColor = if (isActive)
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             else
@@ -111,7 +113,7 @@ fun BranchCard(
             ) {
                 if (hasPhoto) {
                     AsyncImage(
-                        model = branch.avatarUrl,
+                        model = branchAvatarUrl,
                         contentDescription = branch.name,
                         modifier = Modifier
                             .fillMaxSize()
@@ -291,7 +293,8 @@ fun BusinessBranchesGroupCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Business avatar
-                    val hasPhoto = !business.avatarUrl.isNullOrBlank()
+                    val businessAvatarUrl = business.avatarSmallUrl()
+                    val hasPhoto = !businessAvatarUrl.isNullOrBlank()
                     Surface(
                         modifier = Modifier.size(48.dp),
                         shape = RoundedCornerShape(12.dp),
@@ -299,7 +302,7 @@ fun BusinessBranchesGroupCard(
                     ) {
                         if (hasPhoto) {
                             AsyncImage(
-                                model = business.avatarUrl,
+                                model = businessAvatarUrl,
                                 contentDescription = business.name,
                                 modifier = Modifier
                                     .fillMaxSize()
