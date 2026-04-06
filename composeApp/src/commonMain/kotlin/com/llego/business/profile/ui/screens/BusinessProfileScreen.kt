@@ -1,6 +1,5 @@
 ﻿package com.llego.business.profile.ui.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +50,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.llego.app.PlatformBackHandler
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
 import com.llego.business.branches.util.parseExchangeRate
 import com.llego.business.branches.util.validateExchangeRateInput
@@ -254,7 +254,7 @@ fun BusinessProfileScreen(
         }
     }
 
-    BackHandler(
+    PlatformBackHandler(
         enabled = !showVariantEditor &&
             !showAvatarDialog &&
             !showCoverDialog &&
