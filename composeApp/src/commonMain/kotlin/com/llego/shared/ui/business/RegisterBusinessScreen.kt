@@ -356,34 +356,14 @@ fun RegisterBusinessScreen(
                                     placeholder = "+53 5XXXXXXX"
                                 )
 
-                                LlegoTextField(
-                                    value = branch.transferAccounts,
-                                    onValueChange = { value ->
-                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(transferAccounts = value) }
+                                TransferAccountsEditor(
+                                    accounts = branch.transferAccounts,
+                                    onAccountsChange = { accounts ->
+                                        updateBranch(businessIndex, branchIndex) { current ->
+                                            current.copy(transferAccounts = accounts)
+                                        }
                                     },
-                                    label = "Cuentas (Opcional)",
-                                    placeholder = "numero|titular|banco (una por linea)",
-                                    singleLine = false
-                                )
-
-                                LlegoTextField(
-                                    value = branch.qrPayments,
-                                    onValueChange = { value ->
-                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(qrPayments = value) }
-                                    },
-                                    label = "Pagos QR (Opcional)",
-                                    placeholder = "valor QR (uno por linea)",
-                                    singleLine = false
-                                )
-
-                                LlegoTextField(
-                                    value = branch.transferPhones,
-                                    onValueChange = { value ->
-                                        updateBranch(businessIndex, branchIndex) { current -> current.copy(transferPhones = value) }
-                                    },
-                                    label = "Telefonos de transferencia (Opcional)",
-                                    placeholder = "telefono (uno por linea)",
-                                    singleLine = false
+                                    title = "Cuentas (Opcional)"
                                 )
 
                                 MapLocationPickerReal(
@@ -688,9 +668,8 @@ fun RegisterBusinessScreen(
                                         whatsapp = branch.whatsapp
                                     ),
                                     exchangeRate = parseExchangeRate(branch.exchangeRate),
-                                    accounts = parseTransferAccountsInput(branch.transferAccounts).takeIf { it.isNotEmpty() },
-                                    qrPayments = parseQrPaymentsInput(branch.qrPayments).takeIf { it.isNotEmpty() },
-                                    phones = parseTransferPhonesInput(branch.transferPhones).takeIf { it.isNotEmpty() },
+                                    accounts = normalizeTransferAccountsInput(branch.transferAccounts)
+                                        .takeIf { it.isNotEmpty() },
                                     avatar = (branch.avatarState as? ImageUploadState.Success)?.s3Path,
                                     coverImage = (branch.coverState as? ImageUploadState.Success)?.s3Path
                                 )

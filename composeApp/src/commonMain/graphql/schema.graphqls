@@ -799,11 +799,13 @@ enum BranchVehicle {
 type TransferAccountType {
   cardNumber: String!
 
-  cardHolderName: String!
+  confirmPhone: String!
 
-  bankName: String!
+  cardHolderName: String
 
   isActive: Boolean!
+
+  pagoQr: String
 }
 
 type QrPaymentType {
@@ -4302,9 +4304,9 @@ input CoordinatesInput {
 input TransferAccountInput {
   cardNumber: String!
 
-  cardHolderName: String!
+  confirmPhone: String!
 
-  bankName: String!
+  cardHolderName: String = null
 
   isActive: Boolean! = true
 }

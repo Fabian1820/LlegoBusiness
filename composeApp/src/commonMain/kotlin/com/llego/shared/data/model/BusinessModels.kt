@@ -181,8 +181,9 @@ data class PaymentMethod(
 @Serializable
 data class TransferAccount(
     val cardNumber: String,
-    val cardHolderName: String,
-    val bankName: String,
+    val confirmPhone: String,
+    val cardHolderName: String? = null,
+    val pagoQr: String? = null,
     val isActive: Boolean = true
 )
 

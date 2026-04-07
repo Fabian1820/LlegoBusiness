@@ -70,6 +70,7 @@ import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
 import com.llego.shared.ui.components.modifiers.dismissKeyboardOnScroll
 import com.llego.shared.ui.components.modifiers.dismissKeyboardOnTapOutside
+import com.llego.shared.utils.isAndroid
 import kotlinx.coroutines.launch
 
 private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
@@ -302,8 +303,15 @@ fun App(viewModels: AppViewModels) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .dismissKeyboardOnTapOutside(focusManager)
-                .dismissKeyboardOnScroll(focusManager)
+                .let { base ->
+                    if (isAndroid) {
+                        base
+                    } else {
+                        base
+                            .dismissKeyboardOnTapOutside(focusManager)
+                            .dismissKeyboardOnScroll(focusManager)
+                    }
+                }
         ) {
             when {
                 // Caso 0: Carga inicial - sesion + datos de negocio/sucursales

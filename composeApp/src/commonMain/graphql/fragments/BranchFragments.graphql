@@ -20,16 +20,9 @@ fragment BranchCoreFields on BranchType {
   vehicles
   accounts {
     cardNumber
+    confirmPhone
     cardHolderName
-    bankName
-    isActive
-  }
-  qrPayments {
-    value
-    isActive
-  }
-  phones {
-    phone
+    pagoQr
     isActive
   }
   acceptedCurrency
@@ -70,16 +63,9 @@ fragment BranchUpdateFields on BranchType {
   vehicles
   accounts {
     cardNumber
+    confirmPhone
     cardHolderName
-    bankName
-    isActive
-  }
-  qrPayments {
-    value
-    isActive
-  }
-  phones {
-    phone
+    pagoQr
     isActive
   }
   acceptedCurrency
@@ -118,16 +104,9 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   vehicles
   accounts {
     cardNumber
+    confirmPhone
     cardHolderName
-    bankName
-    isActive
-  }
-  qrPayments {
-    value
-    isActive
-  }
-  phones {
-    phone
+    pagoQr
     isActive
   }
   acceptedCurrency

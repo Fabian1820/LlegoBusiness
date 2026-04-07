@@ -137,21 +137,10 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
+                confirmPhone = account.confirmPhone,
                 cardHolderName = account.cardHolderName,
-                bankName = account.bankName,
+                pagoQr = account.pagoQr,
                 isActive = account.isActive
-            )
-        },
-        qrPayments = qrPayments.map { qr ->
-            QrPayment(
-                value = qr.value,
-                isActive = qr.isActive
-            )
-        },
-        phones = phones.map { phone ->
-            TransferPhone(
-                phone = phone.phone,
-                isActive = phone.isActive
             )
         },
         createdAt = createdAt.toString(),
@@ -192,21 +181,10 @@ private fun BranchCoreFields.toDomain(): Branch {
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
+                confirmPhone = account.confirmPhone,
                 cardHolderName = account.cardHolderName,
-                bankName = account.bankName,
+                pagoQr = account.pagoQr,
                 isActive = account.isActive
-            )
-        },
-        qrPayments = qrPayments.map { qr ->
-            QrPayment(
-                value = qr.value,
-                isActive = qr.isActive
-            )
-        },
-        phones = phones.map { phone ->
-            TransferPhone(
-                phone = phone.phone,
-                isActive = phone.isActive
             )
         },
         createdAt = createdAt.toString(),
@@ -247,21 +225,10 @@ private fun BranchUpdateFields.toDomain(): Branch {
         accounts = accounts.map { account ->
             TransferAccount(
                 cardNumber = account.cardNumber,
+                confirmPhone = account.confirmPhone,
                 cardHolderName = account.cardHolderName,
-                bankName = account.bankName,
+                pagoQr = account.pagoQr,
                 isActive = account.isActive
-            )
-        },
-        qrPayments = qrPayments.map { qr ->
-            QrPayment(
-                value = qr.value,
-                isActive = qr.isActive
-            )
-        },
-        phones = phones.map { phone ->
-            TransferPhone(
-                phone = phone.phone,
-                isActive = phone.isActive
             )
         },
         createdAt = "",
@@ -330,9 +297,7 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
             exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
         ),
         exchangeRate = Optional.presentIfNotNull(exchangeRate),
-        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
-        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
-        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList())
     )
 }
 
@@ -356,9 +321,7 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
             exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
         ),
         exchangeRate = Optional.presentIfNotNull(exchangeRate),
-        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
-        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
-        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList())
     )
 }
 
@@ -383,9 +346,7 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         useAppMessaging = Optional.presentIfNotNull(useAppMessaging),
         vehicles = Optional.presentIfNotNull(vehicles?.toGraphQLVehicleList()),
         paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds),
-        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
-        qrPayments = Optional.presentIfNotNull(qrPayments?.toGraphQLQrPaymentList()),
-        phones = Optional.presentIfNotNull(phones?.toGraphQLPhoneList())
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList())
     )
 }
 
@@ -410,27 +371,9 @@ private fun List<TransferAccount>.toGraphQLAccountList(): List<com.llego.multipl
     return map { account ->
         com.llego.multiplatform.graphql.type.TransferAccountInput(
             cardNumber = account.cardNumber,
-            cardHolderName = account.cardHolderName,
-            bankName = account.bankName,
+            confirmPhone = account.confirmPhone,
+            cardHolderName = Optional.presentIfNotNull(account.cardHolderName),
             isActive = Optional.present(account.isActive)
-        )
-    }
-}
-
-private fun List<QrPayment>.toGraphQLQrPaymentList(): List<com.llego.multiplatform.graphql.type.QrPaymentInput> {
-    return map { qr ->
-        com.llego.multiplatform.graphql.type.QrPaymentInput(
-            value = qr.value,
-            isActive = Optional.present(qr.isActive)
-        )
-    }
-}
-
-private fun List<TransferPhone>.toGraphQLPhoneList(): List<com.llego.multiplatform.graphql.type.TransferPhoneInput> {
-    return map { phone ->
-        com.llego.multiplatform.graphql.type.TransferPhoneInput(
-            phone = phone.phone,
-            isActive = Optional.present(phone.isActive)
         )
     }
 }

@@ -24,13 +24,9 @@ import com.llego.business.branches.util.parseManagerIds
 import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
-import com.llego.shared.ui.business.formatQrPaymentsInput
-import com.llego.shared.ui.business.formatTransferAccountsInput
-import com.llego.shared.ui.business.formatTransferPhonesInput
-import com.llego.shared.ui.business.findInvalidTransferAccountsInputLines
-import com.llego.shared.ui.business.parseQrPaymentsInput
-import com.llego.shared.ui.business.parseTransferAccountsInput
-import com.llego.shared.ui.business.parseTransferPhonesInput
+import com.llego.shared.ui.business.TransferAccountsEditor
+import com.llego.shared.ui.business.findInvalidTransferAccountItems
+import com.llego.shared.ui.business.normalizeTransferAccountsInput
 import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -61,9 +57,7 @@ fun BranchEditScreen(
     var instagram by remember(branch) { mutableStateOf(branch.socialMedia?.get("instagram").orEmpty()) }
     var facebook by remember(branch) { mutableStateOf(branch.socialMedia?.get("facebook").orEmpty()) }
     var whatsapp by remember(branch) { mutableStateOf(branch.socialMedia?.get("whatsapp").orEmpty()) }
-    var accountsInput by remember(branch) { mutableStateOf(formatTransferAccountsInput(branch.accounts)) }
-    var qrPaymentsInput by remember(branch) { mutableStateOf(formatQrPaymentsInput(branch.qrPayments)) }
-    var transferPhonesInput by remember(branch) { mutableStateOf(formatTransferPhonesInput(branch.phones)) }
+    var transferAccounts by remember(branch) { mutableStateOf(branch.accounts) }
     var latitude by remember { mutableStateOf(branch.coordinates.latitude.toString()) }
     var longitude by remember { mutableStateOf(branch.coordinates.longitude.toString()) }
     var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
@@ -124,9 +118,9 @@ fun BranchEditScreen(
             onError(statusMessage ?: "")
             return
         }
-        val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
-        if (invalidAccountLines.isNotEmpty()) {
-            statusMessage = "Formato invalido en cuentas. Usa numero|banco, numero|titular|banco o JSON con accounts[]. Bancos: BPA, BANDEC, METROPOLITANO."
+        val invalidAccounts = findInvalidTransferAccountItems(transferAccounts)
+        if (invalidAccounts.isNotEmpty()) {
+            statusMessage = "Revisa las cuentas #${invalidAccounts.joinToString(", ")}: tarjeta (16 dígitos) y teléfono de confirmación (8 dígitos) son obligatorios."
             onError(statusMessage ?: "")
             return
         }
@@ -150,9 +144,7 @@ fun BranchEditScreen(
                 facebook = facebook,
                 whatsapp = whatsapp
             ) ?: emptyMap()
-            val accountsValue = parseTransferAccountsInput(accountsInput, branch.accounts)
-            val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput, branch.qrPayments)
-            val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput, branch.phones)
+            val accountsValue = normalizeTransferAccountsInput(transferAccounts, branch.accounts)
             val scheduleValue = branchSchedule.toBackendSchedule()
             val parsedManagerIds = parseManagerIds(managerIds)
             val exchangeRateValue = parseExchangeRate(exchangeRateInput)
@@ -175,8 +167,6 @@ fun BranchEditScreen(
                 isActive = isActive.takeIf { it != branch.isActive },
                 socialMedia = socialMediaValue.takeIf { it != (branch.socialMedia ?: emptyMap<String, String>()) },
                 accounts = accountsValue.takeIf { it != branch.accounts },
-                qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
-                phones = transferPhonesValue.takeIf { it != branch.phones },
                 exchangeRate = exchangeRateValue.takeIf { it != branch.exchangeRate },
                 managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
                 avatar = avatarPath,
@@ -367,62 +357,9 @@ fun BranchEditScreen(
                 text = "Cobros por transferencia (opcional)",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
             )
-            Text(
-                text = "Cuentas: numero|banco o numero|titular|banco. Bancos: BPA, BANDEC, METROPOLITANO",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = accountsInput,
-                onValueChange = { accountsInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-            Text(
-                text = "Pagos QR: uno por linea",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = qrPaymentsInput,
-                onValueChange = { qrPaymentsInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-            Text(
-                text = "Telefonos de transferencia: uno por linea",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = transferPhonesInput,
-                onValueChange = { transferPhonesInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+            TransferAccountsEditor(
+                accounts = transferAccounts,
+                onAccountsChange = { transferAccounts = it }
             )
 
             Row(

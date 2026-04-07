@@ -22,9 +22,9 @@ import com.llego.business.branches.util.parseManagerIds
 import com.llego.business.branches.util.validateExchangeRateInput
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.auth.AuthViewModel
-import com.llego.shared.ui.business.parseQrPaymentsInput
-import com.llego.shared.ui.business.parseTransferAccountsInput
-import com.llego.shared.ui.business.parseTransferPhonesInput
+import com.llego.shared.ui.business.TransferAccountsEditor
+import com.llego.shared.ui.business.findInvalidTransferAccountItems
+import com.llego.shared.ui.business.normalizeTransferAccountsInput
 import com.llego.shared.ui.components.molecules.*
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -53,9 +53,7 @@ fun BranchCreateScreen(
     var instagram by remember { mutableStateOf("") }
     var facebook by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
-    var accountsInput by remember { mutableStateOf("") }
-    var qrPaymentsInput by remember { mutableStateOf("") }
-    var transferPhonesInput by remember { mutableStateOf("") }
+    var transferAccounts by remember { mutableStateOf(emptyList<TransferAccount>()) }
     // Coordenadas default: La Habana, Cuba
     var branchLatitude by remember { mutableStateOf(23.1136) }
     var branchLongitude by remember { mutableStateOf(-82.3666) }
@@ -242,64 +240,9 @@ fun BranchCreateScreen(
                 text = "Cobros por transferencia (opcional)",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
             )
-            Text(
-                text = "Cuentas: una por linea en formato numero|titular|banco",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = accountsInput,
-                onValueChange = { accountsInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
-            Text(
-                text = "Pagos QR: uno por linea",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = qrPaymentsInput,
-                onValueChange = { qrPaymentsInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-
-            Text(
-                text = "Telefonos de transferencia: uno por linea",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedTextField(
-                value = transferPhonesInput,
-                onValueChange = { transferPhonesInput = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = LlegoCustomShapes.inputField,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+            TransferAccountsEditor(
+                accounts = transferAccounts,
+                onAccountsChange = { transferAccounts = it }
             )
 
             // Selector de ubicacion con mapa
@@ -467,6 +410,12 @@ fun BranchCreateScreen(
                         onError(error)
                         return@Button
                     }
+                    val invalidAccounts = findInvalidTransferAccountItems(transferAccounts)
+                    if (invalidAccounts.isNotEmpty()) {
+                        statusMessage = "Revisa las cuentas #${invalidAccounts.joinToString(", ")}: tarjeta (16 dígitos) y teléfono de confirmación (8 dígitos) son obligatorios."
+                        onError(statusMessage ?: "")
+                        return@Button
+                    }
                     if (isUploading) {
                         statusMessage = "Espera a que terminen las subidas de imagen"
                         onError(statusMessage ?: "")
@@ -500,9 +449,8 @@ fun BranchCreateScreen(
                                 whatsapp = whatsapp
                             ),
                             exchangeRate = parseExchangeRate(exchangeRateInput),
-                            accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
-                            qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
-                            phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }
+                            accounts = normalizeTransferAccountsInput(transferAccounts)
+                                .takeIf { it.isNotEmpty() }
                         )
 
                         when (val result = authViewModel.createBranch(input)) {

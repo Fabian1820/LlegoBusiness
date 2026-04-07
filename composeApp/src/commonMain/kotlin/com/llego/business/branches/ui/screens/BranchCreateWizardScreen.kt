@@ -71,12 +71,13 @@ import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.TransferAccount
 import com.llego.shared.data.model.VariantOptionDraft
 import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.ui.auth.AuthViewModel
-import com.llego.shared.ui.business.parseQrPaymentsInput
-import com.llego.shared.ui.business.parseTransferAccountsInput
-import com.llego.shared.ui.business.parseTransferPhonesInput
+import com.llego.shared.ui.business.TransferAccountsEditor
+import com.llego.shared.ui.business.findInvalidTransferAccountItems
+import com.llego.shared.ui.business.normalizeTransferAccountsInput
 import com.llego.shared.ui.business.state.defaultBranchSchedule
 import com.llego.shared.ui.components.molecules.MapLocationPickerReal
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
@@ -131,9 +132,7 @@ fun BranchCreateWizardScreen(
     var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
     var useAppMessaging by remember { mutableStateOf(true) }
     var selectedVehicles by remember { mutableStateOf(setOf<BranchVehicle>()) }
-    var accountsInput by remember { mutableStateOf("") }
-    var qrPaymentsInput by remember { mutableStateOf("") }
-    var transferPhonesInput by remember { mutableStateOf("") }
+    var transferAccounts by remember { mutableStateOf(emptyList<TransferAccount>()) }
     var schedule by remember { mutableStateOf(defaultBranchSchedule()) }
     var selectedPaymentMethodIds by remember { mutableStateOf(emptyList<String>()) }
     var exchangeRateInput by remember { mutableStateOf("") }
@@ -166,6 +165,8 @@ fun BranchCreateWizardScreen(
                 schedule.values.none { it.isOpen } -> "Debes configurar al menos un dia abierto."
                 !useAppMessaging && selectedVehicles.isEmpty() -> "Selecciona al menos un vehiculo para delivery propio."
                 validateExchangeRateInput(exchangeRateInput) != null -> validateExchangeRateInput(exchangeRateInput)
+                findInvalidTransferAccountItems(transferAccounts).isNotEmpty() ->
+                    "Revisa las cuentas de transferencia: tarjeta (16 dígitos) y teléfono de confirmación (8 dígitos) son obligatorios."
                 else -> null
             }
 
@@ -214,9 +215,7 @@ fun BranchCreateWizardScreen(
             useAppMessaging = useAppMessaging,
             vehicles = selectedVehicles.toList(),
             exchangeRate = exchangeRateValue,
-            accounts = parseTransferAccountsInput(accountsInput).takeIf { it.isNotEmpty() },
-            qrPayments = parseQrPaymentsInput(qrPaymentsInput).takeIf { it.isNotEmpty() },
-            phones = parseTransferPhonesInput(transferPhonesInput).takeIf { it.isNotEmpty() }
+            accounts = normalizeTransferAccountsInput(transferAccounts).takeIf { it.isNotEmpty() }
         )
 
         coroutineScope.launch {
@@ -595,55 +594,9 @@ fun BranchCreateWizardScreen(
                             text = "Cobros por transferencia (opcional)",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                         )
-                        Text(
-                            text = "Cuentas: una por linea en formato numero|titular|banco",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedTextField(
-                            value = accountsInput,
-                            onValueChange = { accountsInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Pagos QR: uno por linea",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedTextField(
-                            value = qrPaymentsInput,
-                            onValueChange = { qrPaymentsInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Telefonos de transferencia: uno por linea",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedTextField(
-                            value = transferPhonesInput,
-                            onValueChange = { transferPhonesInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
+                        TransferAccountsEditor(
+                            accounts = transferAccounts,
+                            onAccountsChange = { transferAccounts = it }
                         )
                     }
 
@@ -920,9 +873,7 @@ fun BranchCreateWizardScreen(
                                         ReviewRow("Tasa de cambio", "1 USD = ${exchangeRateInput.trim()} CUP")
                                     }
                                     ReviewRow("Listas de variantes", variantLists.size.toString())
-                                    ReviewRow("Cuentas", parseTransferAccountsInput(accountsInput).size.toString())
-                                    ReviewRow("QR", parseQrPaymentsInput(qrPaymentsInput).size.toString())
-                                    ReviewRow("Telefonos", parseTransferPhonesInput(transferPhonesInput).size.toString())
+                                    ReviewRow("Cuentas", normalizeTransferAccountsInput(transferAccounts).size.toString())
                                 }
                             }
                         }

@@ -250,21 +250,10 @@ internal class BusinessDomainRepository(
                             accounts = fields.accounts.map { account ->
                                 com.llego.shared.data.model.TransferAccount(
                                     cardNumber = account.cardNumber,
+                                    confirmPhone = account.confirmPhone,
                                     cardHolderName = account.cardHolderName,
-                                    bankName = account.bankName,
+                                    pagoQr = account.pagoQr,
                                     isActive = account.isActive
-                                )
-                            },
-                            qrPayments = fields.qrPayments.map { qr ->
-                                com.llego.shared.data.model.QrPayment(
-                                    value = qr.value,
-                                    isActive = qr.isActive
-                                )
-                            },
-                            phones = fields.phones.map { phone ->
-                                com.llego.shared.data.model.TransferPhone(
-                                    phone = phone.phone,
-                                    isActive = phone.isActive
                                 )
                             },
                             createdAt = fields.createdAt.toString(),

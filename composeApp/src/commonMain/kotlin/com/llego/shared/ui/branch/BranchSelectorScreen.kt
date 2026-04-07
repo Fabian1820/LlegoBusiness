@@ -13,15 +13,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -52,7 +59,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
@@ -81,6 +90,7 @@ fun BranchSelectorScreen(
     invitationViewModel: InvitationViewModel,
     authViewModel: AuthViewModel
 ) {
+    val focusManager = LocalFocusManager.current
     val branchSelectorState by branchSelectorViewModel.uiState.collectAsState()
     val authUiState by authViewModel.uiState.collectAsState()
     val redeemState by invitationViewModel.redeemState.collectAsState()
@@ -140,6 +150,7 @@ fun BranchSelectorScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             BranchSelectorTopBar(
                 searchEnabled = searchEnabled,
@@ -147,6 +158,7 @@ fun BranchSelectorScreen(
                 onSearchQueryChange = { searchQuery = it },
                 onOpenSearch = { searchEnabled = true },
                 onCloseSearch = {
+                    focusManager.clearFocus(force = true)
                     searchEnabled = false
                     searchQuery = ""
                 },
@@ -177,6 +189,7 @@ fun BranchSelectorScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
         ) {
             when {
                 branchSelectorState.isLoading -> LoadingState()
@@ -282,6 +295,7 @@ private fun BranchSelectorTopBar(
     onCloseSearch: () -> Unit,
     onRequestLogout: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
     Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.background) {
         AnimatedContent(
             targetState = searchEnabled,
@@ -316,6 +330,16 @@ private fun BranchSelectorTopBar(
                                 Text("Busca por negocio o sucursal")
                             },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    // Keep search text, just dismiss keyboard
+                                    focusManager.clearFocus(force = true)
+                                },
+                                onDone = {
+                                    focusManager.clearFocus(force = true)
+                                }
+                            ),
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Search,
@@ -339,7 +363,8 @@ private fun BranchSelectorTopBar(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
-                    )
+                    ),
+                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
                 )
             } else {
                 TopAppBar(
@@ -398,7 +423,8 @@ private fun BranchSelectorTopBar(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
-                    )
+                    ),
+                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
                 )
             }
         }

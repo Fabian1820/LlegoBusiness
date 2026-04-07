@@ -4,6 +4,7 @@ package com.llego.business.orders.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.llego.business.orders.data.model.MenuItem
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderActor
 import com.llego.business.orders.data.model.OrderComment
@@ -15,6 +16,7 @@ import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.DashboardStats
+import com.llego.business.orders.data.model.toMenuItem
 import com.llego.business.orders.data.repository.DashboardStatsPeriod
 import com.llego.business.orders.data.repository.OrderItemInput
 import com.llego.business.orders.data.repository.OrderRepository
@@ -22,6 +24,8 @@ import com.llego.business.orders.data.repository.OrderRepositoryImpl
 import com.llego.business.orders.data.repository.OrdersResult
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.data.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +46,7 @@ class OrdersViewModel(
 ) : ViewModel() {
 
     private val repository: OrderRepository = OrderRepositoryImpl.getInstance(tokenManager)
+    private val productRepository = ProductRepository(tokenManager)
     private val subscriptionManager = SubscriptionManager.getInstance()
 
     private val _uiState = MutableStateFlow<OrdersUiState>(OrdersUiState.Loading)
@@ -83,6 +88,8 @@ class OrdersViewModel(
 
     private val _customerCashKycStatus = MutableStateFlow<CustomerCashKycStatus?>(null)
     val customerCashKycStatus: StateFlow<CustomerCashKycStatus?> = _customerCashKycStatus.asStateFlow()
+    private val _menuItemsState = MutableStateFlow(MenuItemsUiState())
+    val menuItemsState: StateFlow<MenuItemsUiState> = _menuItemsState.asStateFlow()
 
     private var currentOffset = 0
     private var hasMore = true
@@ -90,6 +97,7 @@ class OrdersViewModel(
 
     private var lastSubscribedBranchIds: List<String> = emptyList()
     private var lastSubscribedActiveBranchId: String? = null
+    private var lastLoadedMenuBranchId: String? = null
     private val pendingBusinessCommentsByOrder = mutableMapOf<String, MutableList<String>>()
 
     init {
@@ -104,6 +112,8 @@ class OrdersViewModel(
             _currentBranchId.value = null
             _orders.value = emptyList()
             _uiState.value = OrdersUiState.Loading
+            _menuItemsState.value = MenuItemsUiState()
+            lastLoadedMenuBranchId = null
             subscriptionManager.cancelAllSubscriptions()
             lastSubscribedBranchIds = emptyList()
             lastSubscribedActiveBranchId = null
@@ -380,7 +390,8 @@ class OrdersViewModel(
     }
 
     fun enterEditMode(order: Order) {
-        if (!order.isEditable || order.status != OrderStatus.PENDING_ACCEPTANCE) return
+        val canEditItems = order.canBusinessModifyItems()
+        if (!canEditItems) return
         _modificationState.value = OrderModificationState.fromItems(
             items = order.items,
             originalTotal = order.total
@@ -411,6 +422,20 @@ class OrdersViewModel(
     fun addItem(productId: String, name: String, price: Double, quantity: Int, imageUrl: String) {
         val state = _modificationState.value ?: return
         val safeQuantity = quantity.coerceAtLeast(1)
+        val updatedItems = state.modifiedItems.toMutableList()
+        val existingItemIndex = updatedItems.indexOfFirst { item ->
+            item.itemType.equals("PRODUCT", ignoreCase = true) && item.productId == productId
+        }
+
+        if (existingItemIndex >= 0) {
+            val existingItem = updatedItems[existingItemIndex]
+            updatedItems[existingItemIndex] = existingItem.copy(
+                quantity = existingItem.quantity + safeQuantity,
+                wasModifiedByStore = true
+            )
+            updateModificationState(state, updatedItems)
+            return
+        }
 
         val newItem = OrderItem(
             itemId = "new_${productId}_${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
@@ -425,7 +450,7 @@ class OrdersViewModel(
             wasModifiedByStore = true
         )
 
-        updateModificationState(state, state.modifiedItems + newItem)
+        updateModificationState(state, updatedItems + newItem)
     }
 
     fun cancelEdit() {
@@ -434,6 +459,14 @@ class OrdersViewModel(
 
     fun applyModification(orderId: String, reason: String = "Modificado por el negocio") {
         val state = _modificationState.value ?: return
+        val currentOrder = getOrderById(orderId)
+        if (currentOrder != null && !currentOrder.canBusinessModifyItems()) {
+            _modificationState.value = null
+            _uiState.value = OrdersUiState.ActionError(
+                "Este pedido ya no permite modificar items en el flujo del negocio."
+            )
+            return
+        }
 
         viewModelScope.launch {
             _uiState.value = OrdersUiState.ActionInProgress(orderId)
@@ -735,8 +768,83 @@ class OrdersViewModel(
         }
     }
 
-    fun loadMenuItems(branchId: String? = null) {
-        // Intentionally no-op for now.
+    fun loadMenuItems(branchId: String? = null, forceRefresh: Boolean = false) {
+        val effectiveBranchId = branchId?.takeIf { it.isNotBlank() }
+            ?: _currentBranchId.value?.takeIf { it.isNotBlank() }
+
+        if (effectiveBranchId == null) {
+            _menuItemsState.value = MenuItemsUiState()
+            lastLoadedMenuBranchId = null
+            return
+        }
+
+        val currentMenuState = _menuItemsState.value
+        if (!forceRefresh &&
+            effectiveBranchId == lastLoadedMenuBranchId &&
+            currentMenuState.items.isNotEmpty() &&
+            currentMenuState.error == null
+        ) {
+            return
+        }
+
+        viewModelScope.launch {
+            _menuItemsState.value = if (effectiveBranchId == lastLoadedMenuBranchId) {
+                currentMenuState.copy(isLoading = true, error = null)
+            } else {
+                MenuItemsUiState(isLoading = true)
+            }
+
+            val allProducts = mutableListOf<com.llego.shared.data.model.Product>()
+            var cursor: String? = null
+            var hasNextPage = true
+
+            while (hasNextPage) {
+                when (
+                    val result = productRepository.getProducts(
+                        branchId = effectiveBranchId,
+                        availableOnly = true,
+                        first = 100,
+                        after = cursor
+                    )
+                ) {
+                    is ProductsResult.Success -> {
+                        allProducts += result.products
+                        hasNextPage = result.hasNextPage && !result.endCursor.isNullOrBlank()
+                        cursor = result.endCursor
+                    }
+
+                    is ProductsResult.Error -> {
+                        _menuItemsState.value = MenuItemsUiState(
+                            isLoading = false,
+                            items = emptyList(),
+                            error = result.message
+                        )
+                        return@launch
+                    }
+
+                    ProductsResult.Loading -> {
+                        _menuItemsState.value = MenuItemsUiState(
+                            isLoading = false,
+                            items = emptyList(),
+                            error = "No se pudieron cargar los productos"
+                        )
+                        return@launch
+                    }
+                }
+            }
+
+            val menuItems = allProducts
+                .distinctBy { it.id }
+                .map { it.toMenuItem() }
+                .sortedBy { it.name.lowercase() }
+
+            lastLoadedMenuBranchId = effectiveBranchId
+            _menuItemsState.value = MenuItemsUiState(
+                isLoading = false,
+                items = menuItems,
+                error = null
+            )
+        }
     }
 
     fun loadDashboardStats(
@@ -789,6 +897,12 @@ sealed class DashboardStatsUiState {
     data class Success(val stats: DashboardStats) : DashboardStatsUiState()
     data class Error(val message: String) : DashboardStatsUiState()
 }
+
+data class MenuItemsUiState(
+    val isLoading: Boolean = false,
+    val items: List<MenuItem> = emptyList(),
+    val error: String? = null
+)
 
 enum class DateRangeFilter(val displayName: String) {
     TODAY("Hoy"),

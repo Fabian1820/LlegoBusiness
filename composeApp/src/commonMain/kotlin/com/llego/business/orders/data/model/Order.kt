@@ -57,6 +57,20 @@ data class Order(
 
     fun canStartPreparingAccordingToPaymentRule(): Boolean =
         isCashPaymentMethod() || paymentStatus == PaymentStatus.COMPLETED
+
+    /**
+     * Permiso de negocio para modificar items del pedido.
+     * No depende de `isEditable` (ese campo aplica al flujo del cliente).
+     *
+     * Alineado al flujo de tienda antes de preparación.
+     */
+    fun canBusinessModifyItems(): Boolean = status in setOf(
+        OrderStatus.PENDING_ACCEPTANCE,
+        OrderStatus.PENDING_PAYMENT,
+        OrderStatus.PAYMENT_IN_PROGRESS,
+        OrderStatus.ACCEPTED,
+        OrderStatus.MODIFIED_BY_STORE
+    )
 }
 
 private object PaymentMethodClassifier {

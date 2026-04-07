@@ -11,26 +11,35 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-private val supportedBanks = setOf("BPA", "BANDEC", "METROPOLITANO")
 private val jsonParser = Json { ignoreUnknownKeys = true }
 
 private data class ParsedTransferAccountInput(
     val cardNumber: String,
-    val cardHolderName: String,
-    val bankName: String,
+    val confirmPhone: String,
+    val cardHolderName: String?,
+    val pagoQr: String?,
     val isActive: Boolean?
 )
 
-private fun normalizeBankName(bankName: String): String {
-    return bankName.trim().uppercase()
+private fun digits(value: String): String {
+    return value.filter { it.isDigit() }
 }
 
-private fun isSupportedBank(bankName: String): Boolean {
-    return normalizeBankName(bankName) in supportedBanks
+fun normalizeCardNumber(cardNumber: String): String? {
+    val normalized = digits(cardNumber)
+    return normalized.takeIf { it.length == 16 }
 }
 
-private fun buildAccountKey(cardNumber: String, bankName: String): String {
-    return "${cardNumber.trim()}|${normalizeBankName(bankName)}"
+fun normalizeConfirmPhone(confirmPhone: String): String? {
+    var normalized = digits(confirmPhone)
+    if (normalized.length == 10 && normalized.startsWith("53")) {
+        normalized = normalized.drop(2)
+    }
+    return normalized.takeIf { it.length == 8 }
+}
+
+private fun buildAccountKey(cardNumber: String, confirmPhone: String): String {
+    return "${cardNumber.trim()}|${confirmPhone.trim()}"
 }
 
 private fun isJsonAccountsInput(text: String): Boolean {
@@ -43,20 +52,19 @@ private fun parseLineAccount(line: String): ParsedTransferAccountInput? {
     if (parts.size < 2) return null
 
     val cardNumber = parts.firstOrNull().orEmpty()
-    val bankName = parts.lastOrNull().orEmpty()
+    val confirmPhone = parts.getOrElse(1) { "" }
     val cardHolderName = if (parts.size > 2) {
-        parts.subList(1, parts.lastIndex).joinToString("|").trim()
+        parts.subList(2, parts.size).joinToString("|").trim()
     } else {
-        ""
+        null
     }
-
-    if (cardNumber.isBlank() || bankName.isBlank()) return null
-    if (!isSupportedBank(bankName)) return null
+    if (cardNumber.isBlank() || confirmPhone.isBlank()) return null
 
     return ParsedTransferAccountInput(
         cardNumber = cardNumber,
+        confirmPhone = confirmPhone,
         cardHolderName = cardHolderName,
-        bankName = normalizeBankName(bankName),
+        pagoQr = null,
         isActive = null
     )
 }
@@ -65,17 +73,18 @@ private fun parseJsonAccountElement(element: JsonElement): ParsedTransferAccount
     val accountObject = element as? JsonObject ?: return null
 
     val cardNumber = accountObject["cardNumber"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-    val cardHolderName = accountObject["cardHolderName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
-    val bankName = accountObject["bankName"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+    val confirmPhone = accountObject["confirmPhone"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
+    val cardHolderName = accountObject["cardHolderName"]?.jsonPrimitive?.contentOrNull?.trim()
+    val pagoQr = accountObject["pagoQr"]?.jsonPrimitive?.contentOrNull?.trim()
     val isActive = accountObject["isActive"]?.jsonPrimitive?.booleanOrNull
 
-    if (cardNumber.isBlank() || bankName.isBlank()) return null
-    if (!isSupportedBank(bankName)) return null
+    if (cardNumber.isBlank() || confirmPhone.isBlank()) return null
 
     return ParsedTransferAccountInput(
         cardNumber = cardNumber,
+        confirmPhone = confirmPhone,
         cardHolderName = cardHolderName,
-        bankName = normalizeBankName(bankName),
+        pagoQr = pagoQr,
         isActive = isActive
     )
 }
@@ -119,18 +128,26 @@ fun parseTransferAccountsInput(
     if (text.isBlank()) return emptyList()
 
     val existingStatusByAccount = existingAccounts.associate { account ->
-        buildAccountKey(account.cardNumber, account.bankName) to account.isActive
+        buildAccountKey(account.cardNumber, account.confirmPhone) to account.isActive
+    }
+    val existingQrByAccount = existingAccounts.associate { account ->
+        buildAccountKey(account.cardNumber, account.confirmPhone) to account.pagoQr
     }
 
     if (isJsonAccountsInput(text)) {
         val parsedAccounts = parseJsonAccountsInput(text) ?: return emptyList()
-        return parsedAccounts.map { parsed ->
+        return parsedAccounts.mapNotNull { parsed ->
+            val normalizedCard = normalizeCardNumber(parsed.cardNumber) ?: return@mapNotNull null
+            val normalizedPhone = normalizeConfirmPhone(parsed.confirmPhone) ?: return@mapNotNull null
             TransferAccount(
-                cardNumber = parsed.cardNumber,
+                cardNumber = normalizedCard,
+                confirmPhone = normalizedPhone,
                 cardHolderName = parsed.cardHolderName,
-                bankName = parsed.bankName,
+                pagoQr = parsed.pagoQr ?: existingQrByAccount[
+                    buildAccountKey(normalizedCard, normalizedPhone)
+                ],
                 isActive = parsed.isActive ?: existingStatusByAccount[
-                    buildAccountKey(parsed.cardNumber, parsed.bankName)
+                    buildAccountKey(normalizedCard, normalizedPhone)
                 ] ?: true
             )
         }
@@ -142,16 +159,68 @@ fun parseTransferAccountsInput(
         .filter { it.isNotEmpty() }
         .mapNotNull { line ->
             val parsed = parseLineAccount(line) ?: return@mapNotNull null
+            val normalizedCard = normalizeCardNumber(parsed.cardNumber) ?: return@mapNotNull null
+            val normalizedPhone = normalizeConfirmPhone(parsed.confirmPhone) ?: return@mapNotNull null
             TransferAccount(
-                cardNumber = parsed.cardNumber,
+                cardNumber = normalizedCard,
+                confirmPhone = normalizedPhone,
                 cardHolderName = parsed.cardHolderName,
-                bankName = parsed.bankName,
+                pagoQr = existingQrByAccount[
+                    buildAccountKey(normalizedCard, normalizedPhone)
+                ],
                 isActive = existingStatusByAccount[
-                    buildAccountKey(parsed.cardNumber, parsed.bankName)
+                    buildAccountKey(normalizedCard, normalizedPhone)
                 ] ?: true
             )
         }
         .toList()
+}
+
+fun findInvalidTransferAccountItems(accounts: List<TransferAccount>): List<Int> {
+    return accounts.mapIndexedNotNull { index, account ->
+        val cardNumber = account.cardNumber.trim()
+        val confirmPhone = account.confirmPhone.trim()
+        val cardHolderName = account.cardHolderName.orEmpty().trim()
+        val isEmptyRow = cardNumber.isEmpty() && confirmPhone.isEmpty() && cardHolderName.isEmpty()
+        if (isEmptyRow) return@mapIndexedNotNull null
+
+        val isValid = normalizeCardNumber(cardNumber) != null &&
+            normalizeConfirmPhone(confirmPhone) != null
+        if (isValid) null else index + 1
+    }
+}
+
+fun normalizeTransferAccountsInput(
+    accounts: List<TransferAccount>,
+    existingAccounts: List<TransferAccount> = emptyList()
+): List<TransferAccount> {
+    val existingStatusByAccount = existingAccounts.associate { account ->
+        buildAccountKey(account.cardNumber, account.confirmPhone) to account.isActive
+    }
+    val existingQrByAccount = existingAccounts.associate { account ->
+        buildAccountKey(account.cardNumber, account.confirmPhone) to account.pagoQr
+    }
+
+    return accounts.mapNotNull { account ->
+        val cardNumber = account.cardNumber.trim()
+        val confirmPhone = account.confirmPhone.trim()
+        val cardHolderName = account.cardHolderName.orEmpty().trim()
+
+        val isEmptyRow = cardNumber.isEmpty() && confirmPhone.isEmpty() && cardHolderName.isEmpty()
+        if (isEmptyRow) return@mapNotNull null
+        val normalizedCard = normalizeCardNumber(cardNumber) ?: return@mapNotNull null
+        val normalizedPhone = normalizeConfirmPhone(confirmPhone) ?: return@mapNotNull null
+
+        TransferAccount(
+            cardNumber = normalizedCard,
+            confirmPhone = normalizedPhone,
+            cardHolderName = cardHolderName.ifBlank { null },
+            pagoQr = account.pagoQr ?: existingQrByAccount[
+                buildAccountKey(normalizedCard, normalizedPhone)
+            ],
+            isActive = account.isActive
+        )
+    }
 }
 
 fun parseQrPaymentsInput(
@@ -175,6 +244,24 @@ fun parseQrPaymentsInput(
         .toList()
 }
 
+fun normalizeQrPaymentsInput(
+    qrPayments: List<QrPayment>,
+    existingQrPayments: List<QrPayment> = emptyList()
+): List<QrPayment> {
+    val existingStatusByValue = existingQrPayments.associate { qr ->
+        qr.value.trim() to qr.isActive
+    }
+
+    return qrPayments.mapNotNull { qr ->
+        val value = qr.value.trim()
+        if (value.isEmpty()) return@mapNotNull null
+        QrPayment(
+            value = value,
+            isActive = qr.isActive.takeIf { it } ?: existingStatusByValue[value] ?: true
+        )
+    }
+}
+
 fun parseTransferPhonesInput(
     text: String,
     existingPhones: List<TransferPhone> = emptyList()
@@ -196,9 +283,32 @@ fun parseTransferPhonesInput(
         .toList()
 }
 
+fun normalizeTransferPhonesInput(
+    phones: List<TransferPhone>,
+    existingPhones: List<TransferPhone> = emptyList()
+): List<TransferPhone> {
+    val existingStatusByPhone = existingPhones.associate { phone ->
+        phone.phone.trim() to phone.isActive
+    }
+
+    return phones.mapNotNull { phone ->
+        val value = phone.phone.trim()
+        if (value.isEmpty()) return@mapNotNull null
+        TransferPhone(
+            phone = value,
+            isActive = phone.isActive.takeIf { it } ?: existingStatusByPhone[value] ?: true
+        )
+    }
+}
+
 fun formatTransferAccountsInput(accounts: List<TransferAccount>): String {
     return accounts.joinToString("\n") { account ->
-        "${account.cardNumber}|${account.cardHolderName}|${account.bankName}"
+        val holder = account.cardHolderName.orEmpty()
+        if (holder.isBlank()) {
+            "${account.cardNumber}|${account.confirmPhone}"
+        } else {
+            "${account.cardNumber}|${account.confirmPhone}|$holder"
+        }
     }
 }
 

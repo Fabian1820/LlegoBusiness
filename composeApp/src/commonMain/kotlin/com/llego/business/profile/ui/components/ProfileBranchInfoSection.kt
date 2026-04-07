@@ -25,13 +25,21 @@ fun BranchInfoSection(
     onTiposChange: (Set<BranchTipo>) -> Unit = {},
     onSave: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
-    var branchName by remember(branch) { mutableStateOf(branch?.name ?: "") }
-    var branchPhone by remember(branch) { mutableStateOf(branch?.phone ?: "") }
-    var branchAddress by remember(branch) { mutableStateOf(branch?.address ?: "") }
-
     var isEditingName by remember { mutableStateOf(false) }
     var isEditingPhone by remember { mutableStateOf(false) }
     var isEditingAddress by remember { mutableStateOf(false) }
+    val branchId = branch?.id
+
+    var branchName by remember(branchId) { mutableStateOf(branch?.name.orEmpty()) }
+    var branchPhone by remember(branchId) { mutableStateOf(branch?.phone.orEmpty()) }
+    var branchAddress by remember(branchId) { mutableStateOf(branch?.address.orEmpty()) }
+
+    // Keep local editable values synced with latest branch data, without interrupting active edits.
+    LaunchedEffect(branch?.name, branch?.phone, branch?.address) {
+        if (!isEditingName) branchName = branch?.name.orEmpty()
+        if (!isEditingPhone) branchPhone = branch?.phone.orEmpty()
+        if (!isEditingAddress) branchAddress = branch?.address.orEmpty()
+    }
 
     val saveChanges = {
         onSave(

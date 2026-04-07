@@ -1,6 +1,7 @@
 package com.llego.shared.ui.business.state
 
 import com.llego.shared.data.model.BranchTipo
+import com.llego.shared.data.model.TransferAccount
 import com.llego.shared.data.model.BranchVehicle
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.ui.components.molecules.DaySchedule
@@ -24,9 +25,7 @@ data class BranchFormState(
     val instagram: String = "",
     val facebook: String = "",
     val whatsapp: String = "",
-    val transferAccounts: String = "",
-    val qrPayments: String = "",
-    val transferPhones: String = "",
+    val transferAccounts: List<TransferAccount> = emptyList(),
     val latitude: Double = 23.1136,
     val longitude: Double = -82.3666,
     val schedule: Map<String, DaySchedule> = defaultBranchSchedule(),

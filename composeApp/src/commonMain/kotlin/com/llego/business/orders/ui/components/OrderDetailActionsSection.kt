@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -51,7 +50,6 @@ fun OrderActionsSection(
     onCancelOrder: ((String) -> Unit)? = null,
     onStartPreparing: (() -> Unit)? = null,
     onMarkReady: (() -> Unit)? = null,
-    onEditItems: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showAcceptDialog by remember { mutableStateOf(false) }
@@ -111,17 +109,6 @@ fun OrderActionsSection(
                         }
                     }
 
-                    if (order.isEditable && onEditItems != null) {
-                        OutlinedButton(
-                            onClick = onEditItems,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !isActionInProgress
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text("Modificar items")
-                        }
-                    }
                 }
 
                 OrderStatus.MODIFIED_BY_STORE,

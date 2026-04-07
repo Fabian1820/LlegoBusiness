@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
+import com.llego.business.orders.data.model.MenuItem
 import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.OrderStatus
@@ -62,6 +64,7 @@ import com.llego.business.orders.ui.components.OrderItemsSection
 import com.llego.business.orders.ui.components.OrderStatusSection
 import com.llego.business.orders.ui.components.OrderTimelineSection
 import com.llego.business.orders.ui.components.PaymentSummarySection
+import com.llego.business.orders.ui.viewmodel.MenuItemsUiState
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.shared.ui.components.NetworkImage
@@ -87,10 +90,12 @@ fun OrderDetailScreen(
     val uiState by ordersViewModel.uiState.collectAsState()
     val orders by ordersViewModel.orders.collectAsState()
     val modificationState by ordersViewModel.modificationState.collectAsState()
+    val menuItemsState by ordersViewModel.menuItemsState.collectAsState()
     val activePaymentAttempt by ordersViewModel.activePaymentAttempt.collectAsState()
     val customerCashKycStatus by ordersViewModel.customerCashKycStatus.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
     val currentOrder = orders.firstOrNull { it.id == order.id } ?: order
+    val canEditItems = currentOrder.canBusinessModifyItems()
     val coroutineScope = rememberCoroutineScope()
     val shouldShowDeliveryFeeInput = !currentOrder.isPickupOrder() && currentBranch?.useAppMessaging == false
     val shouldLoadActivePaymentAttempt = currentOrder.status in setOf(
@@ -163,6 +168,16 @@ fun OrderDetailScreen(
         }
     }
 
+    LaunchedEffect(currentOrder.branchId) {
+        ordersViewModel.loadMenuItems(currentOrder.branchId)
+    }
+
+    LaunchedEffect(canEditItems, modificationState != null) {
+        if (!canEditItems && modificationState != null) {
+            ordersViewModel.cancelEdit()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -218,9 +233,6 @@ fun OrderDetailScreen(
                 },
                 onMarkReady = {
                     ordersViewModel.markOrderReady(currentOrder.id)
-                },
-                onEditItems = {
-                    ordersViewModel.enterEditMode(currentOrder)
                 }
             )
         },
@@ -245,6 +257,24 @@ fun OrderDetailScreen(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             OrderItemsSection(items = currentOrder.items)
+            if (canEditItems) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { ordersViewModel.enterEditMode(currentOrder) },
+                        enabled = !isActionInProgress
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("Modificar items")
+                    }
+                }
+            }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
             PaymentSummarySection(order = currentOrder)
@@ -276,6 +306,10 @@ fun OrderDetailScreen(
             onRemoveItem = { itemId ->
                 ordersViewModel.removeItem(itemId)
             },
+            onAddItem = { productId, name, price, quantity, imageUrl ->
+                ordersViewModel.addItem(productId, name, price, quantity, imageUrl)
+            },
+            menuItemsState = menuItemsState,
             onSave = { reason ->
                 ordersViewModel.applyModification(currentOrder.id, reason.ifBlank { "Modificado por el negocio" })
             },
@@ -467,6 +501,8 @@ private fun EditOrderItemsDialog(
     isSaving: Boolean,
     onChangeQuantity: (String, Int) -> Unit,
     onRemoveItem: (String) -> Unit,
+    onAddItem: (String, String, Double, Int, String) -> Unit,
+    menuItemsState: MenuItemsUiState,
     onSave: (String) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -482,6 +518,13 @@ private fun EditOrderItemsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
+                AddOrderItemSection(
+                    currency = order.currency,
+                    menuItemsState = menuItemsState,
+                    currentItems = state.modifiedItems,
+                    onAddItem = onAddItem
+                )
+
                 if (state.modifiedItems.isEmpty()) {
                     Text(
                         text = "Debes dejar al menos un item en el pedido.",
@@ -541,6 +584,281 @@ private fun EditOrderItemsDialog(
             }
         }
     )
+}
+
+@Composable
+private fun AddOrderItemSection(
+    currency: String,
+    menuItemsState: MenuItemsUiState,
+    currentItems: List<OrderItem>,
+    onAddItem: (String, String, Double, Int, String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedProductId by remember { mutableStateOf<String?>(null) }
+    var quantityToAdd by remember { mutableStateOf(1) }
+
+    val selectedItem = menuItemsState.items.firstOrNull { it.id == selectedProductId }
+    val visibleItems = remember(searchQuery, menuItemsState.items) {
+        val trimmedQuery = searchQuery.trim()
+        val baseItems = if (trimmedQuery.isBlank()) {
+            menuItemsState.items
+        } else {
+            menuItemsState.items.filter { item ->
+                item.name.contains(trimmedQuery, ignoreCase = true)
+            }
+        }
+        baseItems.take(8)
+    }
+    val alreadyInOrder = selectedItem?.id?.let { selectedId ->
+        currentItems.any { item ->
+            item.itemType.equals("PRODUCT", ignoreCase = true) && item.productId == selectedId
+        }
+    } == true
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Agregar item",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                OutlinedButton(
+                    onClick = { expanded = !expanded }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(if (expanded) "Ocultar" else "Abrir")
+                }
+            }
+
+            if (expanded) {
+                when {
+                    menuItemsState.isLoading -> {
+                        Text(
+                            text = "Cargando productos disponibles...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    menuItemsState.error != null -> {
+                        Text(
+                            text = menuItemsState.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    menuItemsState.items.isEmpty() -> {
+                        Text(
+                            text = "No hay productos disponibles para agregar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    else -> {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = {
+                                searchQuery = it
+                                if (selectedItem?.name != it) {
+                                    selectedProductId = null
+                                }
+                            },
+                            label = { Text("Buscar producto") },
+                            placeholder = { Text("Escribe para filtrar") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (visibleItems.isNotEmpty()) {
+                            Text(
+                                text = if (searchQuery.isBlank()) "Sugeridos" else "Resultados",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                visibleItems.forEach { menuItem ->
+                                    MenuItemPreviewRow(
+                                        menuItem = menuItem,
+                                        currency = currency,
+                                        isSelected = menuItem.id == selectedProductId,
+                                        onClick = {
+                                            selectedProductId = menuItem.id
+                                            searchQuery = menuItem.name
+                                        }
+                                    )
+                                }
+                            }
+                        } else if (searchQuery.isNotBlank() && selectedItem == null) {
+                            Text(
+                                text = "Sin coincidencias para \"$searchQuery\"",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        selectedItem?.let { menuItem ->
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+
+                            Text(
+                                text = "Seleccionado",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            MenuItemPreviewRow(
+                                menuItem = menuItem,
+                                currency = currency,
+                                isSelected = true,
+                                onClick = null
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { quantityToAdd = (quantityToAdd - 1).coerceAtLeast(1) }
+                                    ) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Reducir cantidad")
+                                    }
+                                    Text(
+                                        text = quantityToAdd.toString(),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    )
+                                    IconButton(onClick = { quantityToAdd += 1 }) {
+                                        Icon(Icons.Default.Add, contentDescription = "Aumentar cantidad")
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        onAddItem(
+                                            menuItem.id,
+                                            menuItem.name,
+                                            menuItem.price,
+                                            quantityToAdd,
+                                            menuItem.imageUrl.orEmpty()
+                                        )
+                                        searchQuery = ""
+                                        selectedProductId = null
+                                        quantityToAdd = 1
+                                    }
+                                ) {
+                                    Text(if (alreadyInOrder) "Sumar" else "Agregar")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuItemPreviewRow(
+    menuItem: MenuItem,
+    currency: String,
+    isSelected: Boolean,
+    onClick: (() -> Unit)?
+) {
+    val borderColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    }
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, borderColor),
+        color = containerColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { base ->
+                if (onClick != null) base.clickable(onClick = onClick) else base
+            }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val imageUrl = menuItem.imageUrl?.takeIf { it.isNotBlank() }
+            if (!imageUrl.isNullOrBlank()) {
+                NetworkImage(
+                    url = imageUrl,
+                    contentDescription = menuItem.name,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = menuItem.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = menuItem.name,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "$currency ${formatDouble("%.2f", menuItem.price)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (isSelected) {
+                Text(
+                    text = "OK",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
 }
 
 @Composable

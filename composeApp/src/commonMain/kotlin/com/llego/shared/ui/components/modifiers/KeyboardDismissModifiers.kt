@@ -1,6 +1,8 @@
 package com.llego.shared.ui.components.modifiers
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -18,8 +20,14 @@ fun Modifier.dismissKeyboardOnTapOutside(
     focusManager: FocusManager
 ): Modifier = composed {
     pointerInput(focusManager) {
-        detectTapGestures {
-            focusManager.clearFocus(force = true)
+        awaitEachGesture {
+            // Only react to taps that are not already consumed by child components
+            // (e.g. TextField). This prevents clearing focus when tapping inside inputs.
+            awaitFirstDown(requireUnconsumed = true)
+            val up = waitForUpOrCancellation()
+            if (up != null) {
+                focusManager.clearFocus(force = true)
+            }
         }
     }
 }

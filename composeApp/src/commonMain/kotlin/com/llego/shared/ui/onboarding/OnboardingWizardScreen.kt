@@ -27,10 +27,9 @@ import androidx.compose.ui.unit.sp
 import com.llego.shared.data.model.*
 import com.llego.shared.ui.business.RegisterBusinessViewModel
 import com.llego.business.branches.ui.components.BranchVehiclesSelector
+import com.llego.shared.ui.business.TransferAccountsEditor
+import com.llego.shared.ui.business.normalizeTransferAccountsInput
 import com.llego.shared.ui.business.components.BranchTipoChip
-import com.llego.shared.ui.business.parseQrPaymentsInput
-import com.llego.shared.ui.business.parseTransferAccountsInput
-import com.llego.shared.ui.business.parseTransferPhonesInput
 import com.llego.shared.ui.business.state.defaultBranchSchedule
 import com.llego.shared.ui.components.atoms.LlegoTextField
 import com.llego.shared.ui.components.molecules.*
@@ -129,9 +128,7 @@ fun OnboardingWizardScreen(
     var whatsapp by remember { mutableStateOf("") }
     var useAppMessaging by remember { mutableStateOf(true) }
     var selectedVehicles by remember { mutableStateOf(setOf<BranchVehicle>()) }
-    var transferAccounts by remember { mutableStateOf("") }
-    var qrPayments by remember { mutableStateOf("") }
-    var transferPhones by remember { mutableStateOf("") }
+    var transferAccounts by remember { mutableStateOf(emptyList<TransferAccount>()) }
 
     // Step 4: Location
     var latitude by remember { mutableStateOf(23.1136) }
@@ -299,9 +296,7 @@ fun OnboardingWizardScreen(
                                             whatsapp = whatsapp.trim(),
                                             useAppMessaging = useAppMessaging,
                                             selectedVehicles = selectedVehicles,
-                                            transferAccounts = transferAccounts.trim(),
-                                            qrPayments = qrPayments.trim(),
-                                            transferPhones = transferPhones.trim(),
+                                            transferAccounts = transferAccounts,
                                             latitude = latitude,
                                             longitude = longitude,
                                             schedule = schedule,
@@ -428,10 +423,6 @@ fun OnboardingWizardScreen(
                                 onVehiclesChange = { selectedVehicles = it },
                                 transferAccounts = transferAccounts,
                                 onTransferAccountsChange = { transferAccounts = it },
-                                qrPayments = qrPayments,
-                                onQrPaymentsChange = { qrPayments = it },
-                                transferPhones = transferPhones,
-                                onTransferPhonesChange = { transferPhones = it },
                                 showErrors = showValidationErrors
                             )
 
@@ -489,9 +480,7 @@ fun OnboardingWizardScreen(
                                 ),
                                 useAppMessaging = useAppMessaging,
                                 selectedVehicles = selectedVehicles,
-                                accountsCount = parseTransferAccountsInput(transferAccounts).size,
-                                qrCount = parseQrPaymentsInput(qrPayments).size,
-                                transferPhonesCount = parseTransferPhonesInput(transferPhones).size,
+                                accountsCount = normalizeTransferAccountsInput(transferAccounts).size,
                                 locationSelected = locationSelected,
                                 schedule = schedule,
                                 paymentMethods = paymentMethodsUiState.methods,
@@ -541,10 +530,6 @@ fun OnboardingWizardScreen(
                                 onVehiclesChange = { selectedVehicles = it },
                                 transferAccounts = transferAccounts,
                                 onTransferAccountsChange = { transferAccounts = it },
-                                qrPayments = qrPayments,
-                                onQrPaymentsChange = { qrPayments = it },
-                                transferPhones = transferPhones,
-                                onTransferPhonesChange = { transferPhones = it },
                                 showErrors = showValidationErrors
                             )
 
@@ -606,9 +591,7 @@ fun OnboardingWizardScreen(
                                 ),
                                 useAppMessaging = useAppMessaging,
                                 selectedVehicles = selectedVehicles,
-                                accountsCount = parseTransferAccountsInput(transferAccounts).size,
-                                qrCount = parseQrPaymentsInput(qrPayments).size,
-                                transferPhonesCount = parseTransferPhonesInput(transferPhones).size,
+                                accountsCount = normalizeTransferAccountsInput(transferAccounts).size,
                                 locationSelected = locationSelected,
                                 schedule = schedule,
                                 paymentMethods = paymentMethodsUiState.methods,
@@ -1119,12 +1102,8 @@ private fun StepContact(
     onUseAppMessagingChange: (Boolean) -> Unit,
     selectedVehicles: Set<BranchVehicle>,
     onVehiclesChange: (Set<BranchVehicle>) -> Unit,
-    transferAccounts: String,
-    onTransferAccountsChange: (String) -> Unit,
-    qrPayments: String,
-    onQrPaymentsChange: (String) -> Unit,
-    transferPhones: String,
-    onTransferPhonesChange: (String) -> Unit,
+    transferAccounts: List<TransferAccount>,
+    onTransferAccountsChange: (List<TransferAccount>) -> Unit,
     showErrors: Boolean = false
 ) {
     val hasPhoneError = showErrors && phoneNumber.isBlank()
@@ -1236,31 +1215,10 @@ private fun StepContact(
         Spacer(modifier = Modifier.height(24.dp))
         OptionalFieldLabel("Cobros por transferencia")
         Spacer(modifier = Modifier.height(8.dp))
-        LlegoTextField(
-            value = transferAccounts,
-            onValueChange = onTransferAccountsChange,
-            label = "",
-            placeholder = "numero|titular|banco (una por linea)",
-            singleLine = false,
-            maxLines = 4
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LlegoTextField(
-            value = qrPayments,
-            onValueChange = onQrPaymentsChange,
-            label = "",
-            placeholder = "valor QR (uno por linea)",
-            singleLine = false,
-            maxLines = 4
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LlegoTextField(
-            value = transferPhones,
-            onValueChange = onTransferPhonesChange,
-            label = "",
-            placeholder = "telefono (uno por linea)",
-            singleLine = false,
-            maxLines = 4
+        TransferAccountsEditor(
+            accounts = transferAccounts,
+            onAccountsChange = onTransferAccountsChange,
+            title = "Cuentas para transferencias"
         )
     }
 }
@@ -1714,8 +1672,6 @@ private fun StepReview(
     useAppMessaging: Boolean,
     selectedVehicles: Set<BranchVehicle>,
     accountsCount: Int,
-    qrCount: Int,
-    transferPhonesCount: Int,
     locationSelected: Boolean,
     schedule: Map<String, DaySchedule>,
     paymentMethods: List<PaymentMethod>,
@@ -1799,8 +1755,6 @@ private fun StepReview(
                 )
             }
             ReviewItem(label = "Cuentas", value = accountsCount.toString())
-            ReviewItem(label = "QR", value = qrCount.toString())
-            ReviewItem(label = "Telefonos", value = transferPhonesCount.toString())
             ReviewItem(
                 label = "Ubicacion",
                 value = if (locationSelected) "Seleccionada" else "No seleccionada"
@@ -2025,9 +1979,7 @@ private fun submitRegistration(
     whatsapp: String,
     useAppMessaging: Boolean,
     selectedVehicles: Set<BranchVehicle>,
-    transferAccounts: String,
-    qrPayments: String,
-    transferPhones: String,
+    transferAccounts: List<TransferAccount>,
     latitude: Double,
     longitude: Double,
     schedule: Map<String, DaySchedule>,
@@ -2058,9 +2010,7 @@ private fun submitRegistration(
         ),
         useAppMessaging = useAppMessaging,
         vehicles = selectedVehicles.toList(),
-        accounts = parseTransferAccountsInput(transferAccounts).takeIf { it.isNotEmpty() },
-        qrPayments = parseQrPaymentsInput(qrPayments).takeIf { it.isNotEmpty() },
-        phones = parseTransferPhonesInput(transferPhones).takeIf { it.isNotEmpty() },
+        accounts = normalizeTransferAccountsInput(transferAccounts).takeIf { it.isNotEmpty() },
         avatar = branchAvatarUrl,
         coverImage = branchCoverUrl
     )

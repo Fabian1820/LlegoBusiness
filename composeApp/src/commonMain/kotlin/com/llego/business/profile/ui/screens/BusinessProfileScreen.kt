@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -59,7 +60,6 @@ import com.llego.business.profile.ui.components.BannerWithLogoSection
 import com.llego.business.profile.ui.components.BranchInfoSection
 import com.llego.business.profile.ui.components.BranchScheduleSection
 import com.llego.business.profile.ui.components.LocationMapSection
-import com.llego.business.profile.ui.components.ProfileFieldWithInput
 import com.llego.business.profile.ui.components.ProfileSaveMessageCard
 import com.llego.business.profile.ui.components.ProfileSectionCard
 import com.llego.business.profile.ui.components.SectionHeader
@@ -69,6 +69,7 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CoordinatesInput
 import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.ImageUploadState
+import com.llego.shared.data.model.TransferAccount
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.VariantList
 import com.llego.shared.data.model.VariantOptionDraft
@@ -76,13 +77,9 @@ import com.llego.shared.data.model.avatarLargeUrl
 import com.llego.shared.data.model.coverBestUrl
 import com.llego.shared.data.model.extractFilename
 import com.llego.shared.ui.auth.AuthViewModel
-import com.llego.shared.ui.business.formatQrPaymentsInput
-import com.llego.shared.ui.business.formatTransferAccountsInput
-import com.llego.shared.ui.business.formatTransferPhonesInput
-import com.llego.shared.ui.business.findInvalidTransferAccountsInputLines
-import com.llego.shared.ui.business.parseQrPaymentsInput
-import com.llego.shared.ui.business.parseTransferAccountsInput
-import com.llego.shared.ui.business.parseTransferPhonesInput
+import com.llego.shared.ui.business.TransferAccountsEditor
+import com.llego.shared.ui.business.findInvalidTransferAccountItems
+import com.llego.shared.ui.business.normalizeTransferAccountsInput
 import com.llego.shared.ui.components.molecules.PaymentMethodSelector
 import com.llego.shared.ui.components.molecules.PaymentMethodSelectorLayout
 import com.llego.shared.ui.theme.LlegoCustomShapes
@@ -138,27 +135,7 @@ fun BusinessProfileScreen(
         )
     }
     var socialMedia by remember(currentBranch?.id) { mutableStateOf(currentBranch?.socialMedia ?: emptyMap()) }
-    var accountsInput by remember(currentBranch?.id) {
-        mutableStateOf(
-            formatTransferAccountsInput(
-                currentBranch?.accounts ?: emptyList()
-            )
-        )
-    }
-    var qrPaymentsInput by remember(currentBranch?.id) {
-        mutableStateOf(
-            formatQrPaymentsInput(
-                currentBranch?.qrPayments ?: emptyList()
-            )
-        )
-    }
-    var transferPhonesInput by remember(currentBranch?.id) {
-        mutableStateOf(
-            formatTransferPhonesInput(
-                currentBranch?.phones ?: emptyList()
-            )
-        )
-    }
+    var transferAccounts by remember(currentBranch?.id) { mutableStateOf(currentBranch?.accounts ?: emptyList()) }
     var isActive by remember(currentBranch?.id) { mutableStateOf(currentBranch?.isActive ?: true) }
     var exchangeRateInput by remember(currentBranch?.id) {
         mutableStateOf(currentBranch?.exchangeRate?.toString().orEmpty())
@@ -231,16 +208,16 @@ fun BusinessProfileScreen(
         if (latitude != branch.coordinates.latitude || longitude != branch.coordinates.longitude) changes.add("Ubicación")
         if (branchSchedule != branch.schedule) changes.add("Horario")
         if (selectedTipos != branch.tipos.toSet()) changes.add("Tipos de servicio")
-        if (selectedPaymentMethodIds != branch.paymentMethodIds) changes.add("Métodos de pago")
+        if (selectedPaymentMethodIds.toSet() != branch.paymentMethodIds.toSet()) changes.add("Métodos de pago")
         if (useAppMessaging != branch.useAppMessaging) changes.add("Mensajería de la app")
         if (selectedVehicles != branch.vehicles.toSet()) changes.add("Vehículos de delivery")
         if (isActive != branch.isActive) changes.add("Estado de sucursal")
         val currentSocial = socialMedia.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
         val branchSocial = (branch.socialMedia ?: emptyMap()).mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
         if (currentSocial != branchSocial) changes.add("Redes sociales")
-        if (accountsInput != formatTransferAccountsInput(branch.accounts)) changes.add("Cuentas para transferencias")
-        if (qrPaymentsInput != formatQrPaymentsInput(branch.qrPayments)) changes.add("Pagos QR")
-        if (transferPhonesInput != formatTransferPhonesInput(branch.phones)) changes.add("Teléfonos de transferencia")
+        if (normalizeTransferAccountsInput(transferAccounts, branch.accounts) != branch.accounts) {
+            changes.add("Cuentas para transferencias")
+        }
         if (parseExchangeRate(exchangeRateInput) != branch.exchangeRate) changes.add("Tasa de cambio")
         if (avatarPath != null) changes.add("Avatar")
         if (coverPath != null) changes.add("Portada")
@@ -362,9 +339,9 @@ fun BusinessProfileScreen(
             saveMessage = error
             return
         }
-        val invalidAccountLines = findInvalidTransferAccountsInputLines(accountsInput)
-        if (invalidAccountLines.isNotEmpty()) {
-            saveMessage = "Formato invalido en cuentas. Usa numero|banco, numero|titular|banco o JSON con accounts[]. Bancos: BPA, BANDEC, METROPOLITANO."
+        val invalidAccounts = findInvalidTransferAccountItems(transferAccounts)
+        if (invalidAccounts.isNotEmpty()) {
+            saveMessage = "Revisa las cuentas #${invalidAccounts.joinToString(", ")}: tarjeta (16 dígitos) y teléfono de confirmación (8 dígitos) son obligatorios."
             return
         }
 
@@ -372,9 +349,7 @@ fun BusinessProfileScreen(
             .mapValues { it.value.trim() }
             .filterValues { it.isNotEmpty() }
 
-        val accountsValue = parseTransferAccountsInput(accountsInput, branch.accounts)
-        val qrPaymentsValue = parseQrPaymentsInput(qrPaymentsInput, branch.qrPayments)
-        val transferPhonesValue = parseTransferPhonesInput(transferPhonesInput, branch.phones)
+        val accountsValue = normalizeTransferAccountsInput(transferAccounts, branch.accounts)
         val exchangeRateValue = parseExchangeRate(exchangeRateInput)
 
         val input = UpdateBranchInput(
@@ -390,15 +365,13 @@ fun BusinessProfileScreen(
                 null
             },
             schedule = branchSchedule.takeIf { it != branch.schedule },
-            tipos = selectedTipos.toList().takeIf { it != branch.tipos },
-            paymentMethodIds = selectedPaymentMethodIds.takeIf { it != branch.paymentMethodIds },
+            tipos = selectedTipos.toList().takeIf { it.toSet() != branch.tipos.toSet() },
+            paymentMethodIds = selectedPaymentMethodIds.takeIf { it.toSet() != branch.paymentMethodIds.toSet() },
             useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
             vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
             isActive = isActive.takeIf { it != branch.isActive },
             socialMedia = socialMediaValue.takeIf { it != (branch.socialMedia ?: emptyMap<String, String>()) },
             accounts = accountsValue.takeIf { it != branch.accounts },
-            qrPayments = qrPaymentsValue.takeIf { it != branch.qrPayments },
-            phones = transferPhonesValue.takeIf { it != branch.phones },
             exchangeRate = exchangeRateValue.takeIf { it != branch.exchangeRate },
             avatar = avatarPath,
             coverImage = coverPath
@@ -420,9 +393,7 @@ fun BusinessProfileScreen(
                     useAppMessaging = updated.useAppMessaging
                     selectedVehicles = updated.vehicles.toSet()
                     socialMedia = updated.socialMedia ?: emptyMap()
-                    accountsInput = formatTransferAccountsInput(updated.accounts)
-                    qrPaymentsInput = formatQrPaymentsInput(updated.qrPayments)
-                    transferPhonesInput = formatTransferPhonesInput(updated.phones)
+                    transferAccounts = updated.accounts
                     isActive = updated.isActive
                     exchangeRateInput = updated.exchangeRate?.toString().orEmpty()
                     authViewModel.setCurrentBranch(updated)
@@ -599,6 +570,7 @@ fun BusinessProfileScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .padding(top = paddingValues.calculateTopPadding()),
             contentPadding = PaddingValues(bottom = paddingValues.calculateBottomPadding() + 88.dp)
         ) {
@@ -861,25 +833,10 @@ fun BusinessProfileScreen(
                         )
                     }
 
-                    ProfileFieldWithInput(
-                        label = "Cuentas para transferencias",
-                        hint = "numero|banco o numero|titular|banco (BPA/BANDEC/METROPOLITANO)",
-                        value = accountsInput,
-                        onValueChange = { accountsInput = it }
-                    )
-
-                    ProfileFieldWithInput(
-                        label = "Pagos QR",
-                        hint = "Uno por línea",
-                        value = qrPaymentsInput,
-                        onValueChange = { qrPaymentsInput = it }
-                    )
-
-                    ProfileFieldWithInput(
-                        label = "Teléfonos de transferencia",
-                        hint = "Uno por línea",
-                        value = transferPhonesInput,
-                        onValueChange = { transferPhonesInput = it }
+                    TransferAccountsEditor(
+                        accounts = transferAccounts,
+                        onAccountsChange = { transferAccounts = it },
+                        title = "Cuentas para transferencias"
                     )
 
                     Row(
