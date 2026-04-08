@@ -1,6 +1,5 @@
 package com.llego.business.orders.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,8 +48,7 @@ fun OrderStatusSection(order: Order) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = order.status.getColor().copy(alpha = 0.15f),
-        border = BorderStroke(2.dp, order.status.getColor())
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
         Row(
             modifier = Modifier
@@ -117,7 +114,7 @@ fun OrderStatusSection(order: Order) {
                 if (minutes > 0) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -127,13 +124,13 @@ fun OrderStatusSection(order: Order) {
                             Icon(
                                 imageVector = Icons.Default.Timer,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "$minutes min",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.secondary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -154,19 +151,7 @@ fun OrderItemsSection(items: List<OrderItem>) {
         items.forEach { item ->
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = if (item.wasModifiedByStore) {
-                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                border = BorderStroke(
-                    1.dp,
-                    if (item.wasModifiedByStore) {
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                    } else {
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                    }
-                )
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Row(
                     modifier = Modifier
@@ -214,26 +199,26 @@ fun OrderItemsSection(items: List<OrderItem>) {
                             if (item.wasModifiedByStore) {
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                                    color = MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
                                         text = "Modificado",
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.secondary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                             if (!item.itemType.equals("PRODUCT", ignoreCase = true)) {
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
-                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                                    color = MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
                                         text = item.itemType.uppercase(),
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.tertiary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -293,7 +278,7 @@ fun OrderItemsSection(items: List<OrderItem>) {
                             Text(
                                 text = "Descuento ${item.discountType}: ${formatDouble("%.2f", item.discountValue ?: 0.0)}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -364,25 +349,24 @@ fun PaymentSummarySection(order: Order) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = discount.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = discount.type.getColor()
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = discount.type.getColor().copy(alpha = 0.1f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = discount.type.getDisplayName(),
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                             style = MaterialTheme.typography.labelSmall,
-                            color = discount.type.getColor()
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
                 Text(
                     text = "-${order.currency} ${formatDouble("%.2f", discount.amount)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF2E7D32)
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

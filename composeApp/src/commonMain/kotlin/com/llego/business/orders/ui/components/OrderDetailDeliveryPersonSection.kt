@@ -1,8 +1,6 @@
 ﻿package com.llego.business.orders.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -38,8 +35,7 @@ fun DeliveryPersonSection(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -55,16 +51,16 @@ fun DeliveryPersonSection(
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 // Indicador de estado online
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = if (deliveryPerson.isOnline) {
-                        Color(0xFF4CAF50).copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     } else {
-                        Color.Gray.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.surfaceVariant
                     }
                 ) {
                     Row(
@@ -76,14 +72,14 @@ fun DeliveryPersonSection(
                             modifier = Modifier
                                 .size(8.dp)
                                 .background(
-                                    color = if (deliveryPerson.isOnline) Color(0xFF4CAF50) else Color.Gray,
+                                    color = if (deliveryPerson.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     shape = CircleShape
                                 )
                         )
                         Text(
-                            text = if (deliveryPerson.isOnline) "En lÃ­nea" else "Desconectado",
+                            text = if (deliveryPerson.isOnline) "En línea" else "Desconectado",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (deliveryPerson.isOnline) Color(0xFF4CAF50) else Color.Gray
+                            color = if (deliveryPerson.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -98,13 +94,13 @@ fun DeliveryPersonSection(
                 Surface(
                     modifier = Modifier.size(56.dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Default.DeliveryDining,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -126,7 +122,7 @@ fun DeliveryPersonSection(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFFB300),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
@@ -173,7 +169,7 @@ fun DeliveryPersonSection(
                     FilledIconButton(
                         onClick = { onCallDeliveryPerson(deliveryPerson.phone) },
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.tertiary
+                            containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Icon(
@@ -185,29 +181,11 @@ fun DeliveryPersonSection(
                 }
             }
 
-            // TelÃ©fono
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable(enabled = onCallDeliveryPerson != null) {
-                        onCallDeliveryPerson?.invoke(deliveryPerson.phone)
-                    }
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = deliveryPerson.phone,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
+            Text(
+                text = deliveryPerson.phone,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

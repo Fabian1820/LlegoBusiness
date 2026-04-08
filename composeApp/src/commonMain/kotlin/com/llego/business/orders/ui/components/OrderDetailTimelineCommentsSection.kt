@@ -98,14 +98,14 @@ private fun TimelineEntryItem(
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = CircleShape,
-                color = entry.actor.getColor().copy(alpha = 0.2f),
-                border = BorderStroke(2.dp, entry.actor.getColor())
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = getActorIcon(entry.actor),
                         contentDescription = null,
-                        tint = entry.actor.getColor(),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -134,10 +134,10 @@ private fun TimelineEntryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Estado con color
+                // Estado
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = entry.status.getColor().copy(alpha = 0.15f)
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = entry.status.getDisplayName(),
@@ -145,15 +145,15 @@ private fun TimelineEntryItem(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = entry.status.getColor()
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 // Actor
                 Text(
                     text = entry.actor.getDisplayName(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = entry.actor.getColor()
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
@@ -344,13 +344,13 @@ private fun CommentItem(comment: OrderComment) {
                     Surface(
                         modifier = Modifier.size(24.dp),
                         shape = CircleShape,
-                        color = comment.author.getColor().copy(alpha = 0.2f)
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = getActorIcon(comment.author),
                                 contentDescription = null,
-                                tint = comment.author.getColor(),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -360,7 +360,7 @@ private fun CommentItem(comment: OrderComment) {
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = comment.author.getColor()
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
