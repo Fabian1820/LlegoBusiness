@@ -409,8 +409,9 @@ fun OrderDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(340.dp)
-                            .clip(RoundedCornerShape(10.dp)),
-                        contentScale = ContentScale.Crop
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentScale = ContentScale.Fit
                     )
                 }
             },
@@ -463,8 +464,9 @@ private fun PaymentProofSection(
                         contentDescription = "Vista previa del comprobante de pago",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp),
-                        contentScale = ContentScale.Crop
+                            .height(180.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentScale = ContentScale.Fit
                     )
                     Text(
                         text = "Tocar para ampliar",

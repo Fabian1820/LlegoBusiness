@@ -380,8 +380,10 @@ fun PaymentSummarySection(order: Order) {
             Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = order.paymentMethodDisplayName(),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    text = order.paymentMethodDisplayNameWithCurrency(),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Surface(
                     shape = RoundedCornerShape(4.dp),
@@ -417,11 +419,11 @@ fun PaymentSummarySection(order: Order) {
 }
 
 @Composable
-private fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean): String? {
+internal fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean): String? {
     if (!enabled || deadlineAt.isNullOrBlank()) return null
 
     val deadlineEpochSeconds = remember(deadlineAt) { parseDeadlineToEpochSeconds(deadlineAt) }
-        ?: return deadlineAt
+        ?: return null
 
     var nowEpochSeconds by remember(deadlineAt) {
         mutableStateOf(Clock.System.now().toEpochMilliseconds() / 1000)

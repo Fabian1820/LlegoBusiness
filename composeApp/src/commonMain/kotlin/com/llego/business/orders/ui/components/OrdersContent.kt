@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -198,6 +199,7 @@ fun OrderCard(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             ),
+                            modifier = Modifier.weight(1f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -218,10 +220,8 @@ fun OrderCard(
                     Surface(
                         shape = LlegoCustomShapes.secondaryButton,
                         color = statusColor.copy(alpha = 0.12f),
-                        border = BorderStroke(
-                            1.dp,
-                            statusColor.copy(alpha = 0.4f)
-                        )
+                        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f)),
+                        modifier = Modifier.widthIn(max = 160.dp)
                     ) {
                         Text(
                             text = order.status.getDisplayName(),
@@ -229,7 +229,9 @@ fun OrderCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = statusColor
-                            )
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -276,16 +278,30 @@ fun OrderCard(
                                 color = MaterialTheme.colorScheme.surface
                             ) {
                                 Text(
-                                    text = order.paymentMethodDisplayName(),
+                                    text = order.paymentMethodDisplayNameWithCurrency(),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
-                            order.estimatedMinutesRemaining?.let { minutes ->
+                            val showDeadline = order.status in listOf(
+                                OrderStatus.PENDING_ACCEPTANCE,
+                                OrderStatus.MODIFIED_BY_STORE,
+                                OrderStatus.REJECTED_BY_STORE,
+                                OrderStatus.AWAITING_DELIVERY_ACCEPTANCE,
+                                OrderStatus.PENDING_PAYMENT,
+                                OrderStatus.PAYMENT_IN_PROGRESS
+                            )
+                            val countdownText = rememberDeadlineCountdownText(
+                                deadlineAt = order.deadlineAt,
+                                enabled = showDeadline
+                            )
+                            if (countdownText != null) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -294,16 +310,14 @@ fun OrderCard(
                                     Icon(
                                         imageVector = Icons.Default.Timer,
                                         contentDescription = null,
-                                        tint = if (minutes <= 5) MaterialTheme.colorScheme.error
+                                        tint = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "$minutes min",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = if (minutes <= 5) MaterialTheme.colorScheme.error
+                                        text = countdownText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
                                         else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }

@@ -52,6 +52,7 @@ data class Order(
 
     fun isCashPaymentMethod(): Boolean = PaymentMethodClassifier.isCash(paymentMethod)
     fun paymentMethodDisplayName(): String = PaymentMethodClassifier.toDisplayName(paymentMethod)
+    fun paymentMethodDisplayNameWithCurrency(): String = "${PaymentMethodClassifier.toDisplayName(paymentMethod)} · $currency"
 
     fun requiresCompletedPaymentBeforePreparing(): Boolean = !isCashPaymentMethod()
 
