@@ -174,14 +174,14 @@ private fun SearchProductRow(
         ?: product.imageUrlOriginal.takeIf { it.isNotBlank() }
         ?: product.image
 
-        Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable { onClick() },
-            shape = LlegoCustomShapes.productCard,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = LlegoCustomShapes.productCard,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
