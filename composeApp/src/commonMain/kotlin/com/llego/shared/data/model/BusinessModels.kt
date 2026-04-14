@@ -292,7 +292,8 @@ data class CreateBranchInput(
     val exchangeRate: Int? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
-    val phones: List<TransferPhone>? = null
+    val phones: List<TransferPhone>? = null,
+    val catalogOnly: Boolean = false
 )
 
 /**

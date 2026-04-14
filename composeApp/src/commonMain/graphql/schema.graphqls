@@ -4409,6 +4409,8 @@ input CreateBranchInput {
   qrPayments: [QrPaymentInput!] = null
 
   phones: [TransferPhoneInput!] = null
+
+  catalogOnly: Boolean = false
 }
 
 input UpdateBranchInput {

@@ -61,6 +61,7 @@ fun BranchCreateScreen(
     var selectedTipos by remember { mutableStateOf(setOf<BranchTipo>()) }
     var useAppMessaging by remember { mutableStateOf(true) }
     var selectedVehicles by remember { mutableStateOf(emptySet<BranchVehicle>()) }
+    var catalogOnly by remember { mutableStateOf(false) }
     var branchSchedule by remember {
         mutableStateOf(
             mapOf(
@@ -312,6 +313,35 @@ fun BranchCreateScreen(
                 onSelectionChange = { selectedVehicles = it }
             )
 
+            Text(
+                text = "Modo catalogo",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Modo solo catalogo",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Los clientes podran ver tus productos pero no podran hacer pedidos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = catalogOnly,
+                    onCheckedChange = { catalogOnly = it }
+                )
+            }
+
             SchedulePicker(
                 schedule = branchSchedule,
                 onScheduleChange = { branchSchedule = it }
@@ -450,7 +480,8 @@ fun BranchCreateScreen(
                             ),
                             exchangeRate = parseExchangeRate(exchangeRateInput),
                             accounts = normalizeTransferAccountsInput(transferAccounts)
-                                .takeIf { it.isNotEmpty() }
+                                .takeIf { it.isNotEmpty() },
+                            catalogOnly = catalogOnly
                         )
 
                         when (val result = authViewModel.createBranch(input)) {

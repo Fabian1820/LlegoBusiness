@@ -324,7 +324,8 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
             exchangeRate?.let { com.llego.multiplatform.graphql.type.AcceptedCurrency.BOTH }
         ),
         exchangeRate = Optional.presentIfNotNull(exchangeRate),
-        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList())
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
+        catalogOnly = Optional.present(catalogOnly)
     )
 }
 
