@@ -38,7 +38,7 @@ fun BranchScheduleSection(
 ) {
     var isEditing by remember { mutableStateOf(false) }
     val backendSchedule = branch?.schedule ?: emptyMap()
-    var editableSchedule by remember(branch) { mutableStateOf(backendSchedule.toDaySchedule()) }
+    var editableSchedule by remember(branch?.id) { mutableStateOf(backendSchedule.toDaySchedule()) }
 
     val dayNames = listOf(
         "mon" to "Lunes",
@@ -68,7 +68,10 @@ fun BranchScheduleSection(
         if (isEditing) {
             SchedulePicker(
                 schedule = editableSchedule,
-                onScheduleChange = { editableSchedule = it }
+                onScheduleChange = { newSchedule ->
+                    editableSchedule = newSchedule
+                    onSave(newSchedule.toBackendSchedule())
+                }
             )
         } else {
             val scheduleForDisplay = backendSchedule.toDaySchedule()

@@ -129,6 +129,7 @@ fun BusinessProfileScreen(
         )
     }
     var useAppMessaging by remember(currentBranch?.id) { mutableStateOf(currentBranch?.useAppMessaging ?: true) }
+    var catalogOnly by remember(currentBranch?.id) { mutableStateOf(currentBranch?.catalogOnly ?: false) }
     var selectedVehicles by remember(currentBranch?.id) {
         mutableStateOf(
             currentBranch?.vehicles?.toSet() ?: emptySet()
@@ -193,6 +194,7 @@ fun BusinessProfileScreen(
         socialMedia = socialMedia.ifEmpty { null },
         tipos = selectedTipos.toList(),
         useAppMessaging = useAppMessaging,
+        catalogOnly = catalogOnly,
         vehicles = selectedVehicles.toList(),
         paymentMethodIds = selectedPaymentMethodIds,
         isActive = isActive,
@@ -210,6 +212,7 @@ fun BusinessProfileScreen(
         if (selectedTipos != branch.tipos.toSet()) changes.add("Tipos de servicio")
         if (selectedPaymentMethodIds.toSet() != branch.paymentMethodIds.toSet()) changes.add("Métodos de pago")
         if (useAppMessaging != branch.useAppMessaging) changes.add("Mensajería de la app")
+        if (catalogOnly != branch.catalogOnly) changes.add("Modo catálogo")
         if (selectedVehicles != branch.vehicles.toSet()) changes.add("Vehículos de delivery")
         if (isActive != branch.isActive) changes.add("Estado de sucursal")
         val currentSocial = socialMedia.mapValues { it.value.trim() }.filterValues { it.isNotEmpty() }
@@ -368,6 +371,7 @@ fun BusinessProfileScreen(
             tipos = selectedTipos.toList().takeIf { it.toSet() != branch.tipos.toSet() },
             paymentMethodIds = selectedPaymentMethodIds.takeIf { it.toSet() != branch.paymentMethodIds.toSet() },
             useAppMessaging = useAppMessaging.takeIf { it != branch.useAppMessaging },
+            catalogOnly = catalogOnly.takeIf { it != branch.catalogOnly },
             vehicles = selectedVehicles.toList().takeIf { it.toSet() != branch.vehicles.toSet() },
             isActive = isActive.takeIf { it != branch.isActive },
             socialMedia = socialMediaValue.takeIf { it != (branch.socialMedia ?: emptyMap<String, String>()) },
@@ -391,6 +395,7 @@ fun BusinessProfileScreen(
                     selectedTipos = updated.tipos.toSet()
                     selectedPaymentMethodIds = updated.paymentMethodIds
                     useAppMessaging = updated.useAppMessaging
+                    catalogOnly = updated.catalogOnly
                     selectedVehicles = updated.vehicles.toSet()
                     socialMedia = updated.socialMedia ?: emptyMap()
                     transferAccounts = updated.accounts
@@ -880,6 +885,31 @@ fun BusinessProfileScreen(
                                 onSelectionChange = { selectedVehicles = it }
                             )
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Modo solo catálogo",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                            )
+                            Text(
+                                text = "Los clientes ven productos pero no pueden hacer pedidos.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = catalogOnly,
+                            onCheckedChange = { catalogOnly = it }
+                        )
                     }
                 }
                 }

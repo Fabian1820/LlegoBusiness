@@ -485,6 +485,30 @@ fun BranchCreateWizardScreen(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary
                             )
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Modo solo catálogo",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                                Text(
+                                    text = "Los clientes ven productos pero no pueden hacer pedidos.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Switch(
+                                checked = catalogOnly,
+                                onCheckedChange = { catalogOnly = it }
+                            )
+                        }
                     }
 
                     1 -> OnboardingStepLayout(
@@ -600,35 +624,6 @@ fun BranchCreateWizardScreen(
                             accounts = transferAccounts,
                             onAccountsChange = { transferAccounts = it }
                         )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Modo catalogo",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Modo solo catalogo",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = "Los clientes podran ver tus productos pero no podran hacer pedidos.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Switch(
-                                checked = catalogOnly,
-                                onCheckedChange = { catalogOnly = it }
-                            )
-                        }
                     }
 
                     3 -> OnboardingStepLayout(
