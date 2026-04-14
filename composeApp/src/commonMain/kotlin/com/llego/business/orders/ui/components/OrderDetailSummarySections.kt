@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.orders.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -40,8 +42,8 @@ import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.utils.formatDouble
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlin.time.Clock
 
 @Composable
 fun OrderStatusSection(order: Order) {
@@ -426,13 +428,13 @@ internal fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean
         ?: return null
 
     var nowEpochSeconds by remember(deadlineAt) {
-        mutableStateOf(Clock.System.now().toEpochMilliseconds() / 1000)
+        mutableStateOf(Clock.System.now().toEpochMilliseconds() / 1000L)
     }
 
     LaunchedEffect(deadlineAt, enabled) {
         if (!enabled) return@LaunchedEffect
         while (true) {
-            nowEpochSeconds = Clock.System.now().toEpochMilliseconds() / 1000
+            nowEpochSeconds = Clock.System.now().toEpochMilliseconds() / 1000L
             delay(1000)
         }
     }
@@ -445,17 +447,18 @@ private fun parseDeadlineToEpochSeconds(rawDeadline: String): Long? {
     val value = rawDeadline.trim()
     if (value.isBlank()) return null
 
-    val candidates = buildList {
-        add(value)
-        if (!value.endsWith("Z") && !value.contains("+")) {
-            add("${value}Z")
-        }
+    val candidates = if (!value.endsWith("Z") && !value.contains("+")) {
+        listOf(value, "${value}Z")
+    } else {
+        listOf(value)
     }
 
-    candidates.forEach { candidate ->
-        runCatching { Instant.parse(candidate) }
-            .getOrNull()
-            ?.let { parsed -> return parsed.toEpochMilliseconds() / 1000 }
+    for (candidate in candidates) {
+        try {
+            return Instant.parse(candidate).toEpochMilliseconds() / 1000L
+        } catch (_: Exception) {
+            // Keep trying with the next candidate format.
+        }
     }
 
     return null
