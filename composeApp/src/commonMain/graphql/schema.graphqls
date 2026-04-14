@@ -4289,6 +4289,29 @@ input CreateBusinessInput {
   tags: [String!] = null
 }
 
+input TimeRangeInput {
+  open: String!
+  close: String!
+}
+
+input TemporaryStatusInput {
+  temporallyClosed: Boolean!
+  temporallyOpen: Boolean!
+  reason: String
+}
+
+input DayRangeInput {
+  fromDay: Int!
+  toDay: Int!
+  isOpen: Boolean!
+  hours: [TimeRangeInput!]!
+}
+
+input BranchScheduleInput {
+  ranges: [DayRangeInput!]!
+  temporaryStatus: TemporaryStatusInput
+}
+
 input RegisterBranchInput {
   name: String!
 
