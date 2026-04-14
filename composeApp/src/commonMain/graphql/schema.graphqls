@@ -4323,6 +4323,8 @@ input RegisterBranchInput {
   qrPayments: [QrPaymentInput!] = null
 
   phones: [TransferPhoneInput!] = null
+
+  catalogOnly: Boolean = false
 }
 
 input CoordinatesInput {

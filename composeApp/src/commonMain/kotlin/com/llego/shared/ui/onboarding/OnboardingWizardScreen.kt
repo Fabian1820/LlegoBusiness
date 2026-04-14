@@ -127,6 +127,7 @@ fun OnboardingWizardScreen(
     var facebook by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
     var useAppMessaging by remember { mutableStateOf(true) }
+    var catalogOnly by remember { mutableStateOf(false) }
     var selectedVehicles by remember { mutableStateOf(setOf<BranchVehicle>()) }
     var transferAccounts by remember { mutableStateOf(emptyList<TransferAccount>()) }
 
@@ -295,6 +296,7 @@ fun OnboardingWizardScreen(
                                             facebook = facebook.trim(),
                                             whatsapp = whatsapp.trim(),
                                             useAppMessaging = useAppMessaging,
+                                            catalogOnly = catalogOnly,
                                             selectedVehicles = selectedVehicles,
                                             transferAccounts = transferAccounts,
                                             latitude = latitude,
@@ -419,6 +421,8 @@ fun OnboardingWizardScreen(
                                 onWhatsappChange = { whatsapp = it },
                                 useAppMessaging = useAppMessaging,
                                 onUseAppMessagingChange = { useAppMessaging = it },
+                                catalogOnly = catalogOnly,
+                                onCatalogOnlyChange = { catalogOnly = it },
                                 selectedVehicles = selectedVehicles,
                                 onVehiclesChange = { selectedVehicles = it },
                                 transferAccounts = transferAccounts,
@@ -526,6 +530,8 @@ fun OnboardingWizardScreen(
                                 onWhatsappChange = { whatsapp = it },
                                 useAppMessaging = useAppMessaging,
                                 onUseAppMessagingChange = { useAppMessaging = it },
+                                catalogOnly = catalogOnly,
+                                onCatalogOnlyChange = { catalogOnly = it },
                                 selectedVehicles = selectedVehicles,
                                 onVehiclesChange = { selectedVehicles = it },
                                 transferAccounts = transferAccounts,
@@ -1100,6 +1106,8 @@ private fun StepContact(
     onWhatsappChange: (String) -> Unit,
     useAppMessaging: Boolean,
     onUseAppMessagingChange: (Boolean) -> Unit,
+    catalogOnly: Boolean,
+    onCatalogOnlyChange: (Boolean) -> Unit,
     selectedVehicles: Set<BranchVehicle>,
     onVehiclesChange: (Set<BranchVehicle>) -> Unit,
     transferAccounts: List<TransferAccount>,
@@ -1210,6 +1218,29 @@ private fun StepContact(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Modo solo catálogo",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "Los clientes ven productos pero no pueden hacer pedidos.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = catalogOnly,
+                onCheckedChange = onCatalogOnlyChange
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -1978,6 +2009,7 @@ private fun submitRegistration(
     facebook: String,
     whatsapp: String,
     useAppMessaging: Boolean,
+    catalogOnly: Boolean,
     selectedVehicles: Set<BranchVehicle>,
     transferAccounts: List<TransferAccount>,
     latitude: Double,
@@ -2009,6 +2041,7 @@ private fun submitRegistration(
             whatsapp = whatsapp
         ),
         useAppMessaging = useAppMessaging,
+        catalogOnly = catalogOnly,
         vehicles = selectedVehicles.toList(),
         accounts = normalizeTransferAccountsInput(transferAccounts).takeIf { it.isNotEmpty() },
         avatar = branchAvatarUrl,
