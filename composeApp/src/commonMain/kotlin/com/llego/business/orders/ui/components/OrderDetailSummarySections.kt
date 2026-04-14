@@ -40,8 +40,9 @@ import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.shared.ui.components.NetworkImage
 import com.llego.shared.utils.formatDouble
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 @Composable
 fun OrderStatusSection(order: Order) {
@@ -419,6 +420,7 @@ fun PaymentSummarySection(order: Order) {
 }
 
 @Composable
+@OptIn(ExperimentalTime::class)
 internal fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean): String? {
     if (!enabled || deadlineAt.isNullOrBlank()) return null
 
@@ -441,6 +443,7 @@ internal fun rememberDeadlineCountdownText(deadlineAt: String?, enabled: Boolean
     return if (remainingSeconds <= 0L) "Vencido" else formatCountdown(remainingSeconds)
 }
 
+@OptIn(ExperimentalTime::class)
 private fun parseDeadlineToEpochSeconds(rawDeadline: String): Long? {
     val value = rawDeadline.trim()
     if (value.isBlank()) return null
