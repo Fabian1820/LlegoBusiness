@@ -12,7 +12,7 @@ import com.llego.multiplatform.graphql.DeleteBusinessMutation
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.mappers.mapBranchTipo
 import com.llego.shared.data.mappers.mapBranchVehicle
-import com.llego.shared.data.mappers.parseSchedule
+import com.llego.shared.data.mappers.parseScheduleFromDays
 import com.llego.shared.data.mappers.parseStringMap
 import com.llego.shared.data.mappers.toDomain
 import com.llego.shared.data.mappers.toGraphQL
@@ -223,7 +223,7 @@ internal class BusinessDomainRepository(
                 val businessesList = businessesData.map { businessData ->
                     val branches = businessData.branches.map { branchData ->
                         val fields = branchData.branchCoreFields
-                        val scheduleMap = parseSchedule(fields.schedule)
+                        val scheduleMap = parseScheduleFromDays(fields.schedule.days.map { Triple(it.day, it.isOpen, it.hours.map { h -> h.open to h.close }) })
                         val branchTipos = fields.tipos.mapNotNull { mapBranchTipo(it) }
                         val branchVehicles = fields.vehicles.mapNotNull { mapBranchVehicle(it) }
 
@@ -267,7 +267,8 @@ internal class BusinessDomainRepository(
                                 local = fields.wallet.walletBalanceFields.local,
                                 usd = fields.wallet.walletBalanceFields.usd
                             ),
-                            walletStatus = fields.walletStatus
+                            walletStatus = fields.walletStatus,
+                            catalogOnly = fields.catalogOnly
                         )
                     }
 

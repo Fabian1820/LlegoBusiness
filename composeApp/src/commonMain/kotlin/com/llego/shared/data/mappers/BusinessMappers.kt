@@ -123,7 +123,7 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         address = address,
         coordinates = coordinates.coordinatesFields.toDomain(),
         phone = phone,
-        schedule = parseSchedule(schedule),
+        schedule = parseScheduleFromDays(schedule.days.map { Triple(it.day, it.isOpen, it.hours.map { h -> h.open to h.close }) }),
         tipos = branchTipos,
         pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
@@ -152,7 +152,8 @@ private fun ScoredBranchCoreFields.toDomain(): Branch {
         coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
-        exchangeRate = exchangeRate
+        exchangeRate = exchangeRate,
+        catalogOnly = false
     )
 }
 
@@ -167,7 +168,7 @@ private fun BranchCoreFields.toDomain(): Branch {
         address = address,
         coordinates = coordinates.coordinatesFields.toDomain(),
         phone = phone,
-        schedule = parseSchedule(schedule),
+        schedule = parseScheduleFromDays(schedule.days.map { Triple(it.day, it.isOpen, it.hours.map { h -> h.open to h.close }) }),
         tipos = branchTipos,
         pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
@@ -196,7 +197,8 @@ private fun BranchCoreFields.toDomain(): Branch {
         coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
-        exchangeRate = exchangeRate
+        exchangeRate = exchangeRate,
+        catalogOnly = catalogOnly
     )
 }
 
@@ -211,7 +213,7 @@ private fun BranchUpdateFields.toDomain(): Branch {
         address = address,
         coordinates = coordinates.coordinatesFields.toDomain(),
         phone = phone,
-        schedule = parseSchedule(schedule),
+        schedule = parseScheduleFromDays(schedule.days.map { Triple(it.day, it.isOpen, it.hours.map { h -> h.open to h.close }) }),
         tipos = branchTipos,
         pickupEnabled = pickupEnabled,
         useAppMessaging = useAppMessaging,
@@ -240,7 +242,8 @@ private fun BranchUpdateFields.toDomain(): Branch {
         coverUrlAlta = coverUrlAlta,
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
-        exchangeRate = exchangeRate
+        exchangeRate = exchangeRate,
+        catalogOnly = catalogOnly
     )
 }
 
@@ -346,7 +349,8 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         useAppMessaging = Optional.presentIfNotNull(useAppMessaging),
         vehicles = Optional.presentIfNotNull(vehicles?.toGraphQLVehicleList()),
         paymentMethodIds = Optional.presentIfNotNull(paymentMethodIds),
-        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList())
+        accounts = Optional.presentIfNotNull(accounts?.toGraphQLAccountList()),
+        catalogOnly = Optional.presentIfNotNull(catalogOnly)
     )
 }
 

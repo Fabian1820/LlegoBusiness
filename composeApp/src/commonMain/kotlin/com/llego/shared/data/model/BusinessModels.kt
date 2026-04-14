@@ -105,7 +105,8 @@ data class Branch(
     val coverUrlAlta: String? = null,
     val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
     val walletStatus: String = "active",  // Estado de la billetera: "active", "suspended", etc.
-    val exchangeRate: Int? = null
+    val exchangeRate: Int? = null,
+    val catalogOnly: Boolean = false
 )
 
 /**
@@ -317,7 +318,8 @@ data class UpdateBranchInput(
     val managerIds: List<String>? = null,
     val accounts: List<TransferAccount>? = null,
     val qrPayments: List<QrPayment>? = null,
-    val phones: List<TransferPhone>? = null
+    val phones: List<TransferPhone>? = null,
+    val catalogOnly: Boolean? = null
 )
 
 /**

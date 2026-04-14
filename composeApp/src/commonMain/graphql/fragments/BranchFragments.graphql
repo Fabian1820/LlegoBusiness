@@ -17,6 +17,7 @@ fragment BranchCoreFields on BranchType {
   tipos
   pickupEnabled
   useAppMessaging
+  catalogOnly
   vehicles
   accounts {
     cardNumber
@@ -42,7 +43,16 @@ fragment BranchCoreFields on BranchType {
   coordinates {
     ...CoordinatesFields
   }
-  schedule
+  schedule {
+    days {
+      day
+      isOpen
+      hours {
+        open
+        close
+      }
+    }
+  }
   createdAt
   wallet {
     ...WalletBalanceFields
@@ -60,6 +70,7 @@ fragment BranchUpdateFields on BranchType {
   tipos
   pickupEnabled
   useAppMessaging
+  catalogOnly
   vehicles
   accounts {
     cardNumber
@@ -84,7 +95,16 @@ fragment BranchUpdateFields on BranchType {
   coordinates {
     ...CoordinatesFields
   }
-  schedule
+  schedule {
+    days {
+      day
+      isOpen
+      hours {
+        open
+        close
+      }
+    }
+  }
   wallet {
     ...WalletBalanceFields
   }
@@ -118,7 +138,16 @@ fragment ScoredBranchCoreFields on ScoredBranchType {
   coordinates {
     ...CoordinatesFields
   }
-  schedule
+  schedule {
+    days {
+      day
+      isOpen
+      hours {
+        open
+        close
+      }
+    }
+  }
   managerIds
   createdAt
   avatarUrl

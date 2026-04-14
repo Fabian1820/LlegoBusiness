@@ -3,17 +3,16 @@ package com.llego.shared.data.mappers
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BranchVehicle
 
-internal fun parseSchedule(raw: Any?): Map<String, List<String>> {
-    val map = raw as? Map<*, *> ?: return emptyMap()
-    return map.mapNotNull { (key, value) ->
-        val day = key as? String ?: return@mapNotNull null
-        val hours = when (value) {
-            is String -> listOf(value)
-            is List<*> -> value.filterIsInstance<String>()
-            else -> emptyList()
+private val DAY_NAMES = listOf("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+internal fun parseScheduleFromDays(days: List<Triple<Int, Boolean, List<Pair<String, String>>>>): Map<String, List<String>> {
+    return days
+        .filter { (_, isOpen, hours) -> isOpen && hours.isNotEmpty() }
+        .mapNotNull { (day, _, hours) ->
+            val dayName = DAY_NAMES.getOrNull(day) ?: return@mapNotNull null
+            dayName to hours.map { (open, close) -> "$open-$close" }
         }
-        day to hours
-    }.toMap()
+        .toMap()
 }
 
 internal fun parseStringMap(raw: Any?): Map<String, String>? {

@@ -63,6 +63,7 @@ fun BranchEditScreen(
     var managerIds by remember { mutableStateOf(branch.managerIds.joinToString(", ")) }
     var selectedTipos by remember { mutableStateOf(branch.tipos.toSet()) }
     var useAppMessaging by remember { mutableStateOf(branch.useAppMessaging) }
+    var catalogOnly by remember { mutableStateOf(branch.catalogOnly) }
     var selectedVehicles by remember { mutableStateOf(branch.vehicles.toSet()) }
     var branchSchedule by remember(branch) { mutableStateOf(branch.schedule.toDaySchedule()) }
     var isActive by remember { mutableStateOf(branch.isActive) }
@@ -170,7 +171,8 @@ fun BranchEditScreen(
                 exchangeRate = exchangeRateValue.takeIf { it != branch.exchangeRate },
                 managerIds = parsedManagerIds.takeIf { it != branch.managerIds },
                 avatar = avatarPath,
-                coverImage = coverPath
+                coverImage = coverPath,
+                catalogOnly = catalogOnly.takeIf { it != branch.catalogOnly }
             )
 
             when (val result = authViewModel.updateBranch(branch.id, input)) {
@@ -463,6 +465,36 @@ fun BranchEditScreen(
                 BranchVehiclesSelector(
                     selectedVehicles = selectedVehicles,
                     onSelectionChange = { selectedVehicles = it }
+                )
+            }
+
+            Text(
+                text = "Modo catalogo",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Modo solo catalogo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Los clientes podran ver tus productos pero no podran hacer pedidos.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = catalogOnly,
+                    onCheckedChange = { catalogOnly = it }
                 )
             }
 

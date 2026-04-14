@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -116,6 +117,7 @@ fun BusinessHomeScreen(
 
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
+    val isCatalogOnly = currentBranch?.catalogOnly == true
     val topBarTitle = currentBranch?.name ?: currentBusiness?.name ?: "Mi negocio"
     val branchAvatarUrl = currentBranch?.avatarSmallUrl()?.takeIf { it.isNotBlank() }
         ?: currentBranch?.avatar?.takeIf { it.isNotBlank() }
@@ -315,9 +317,10 @@ fun BusinessHomeScreen(
                                     selected = isSelected,
                                     onClick = { onTabSelected(index) },
                                     icon = {
-                                        val showOrdersBadge = tab.id == "orders" && pendingCount > 0
+                                        val showOrdersBadge = tab.id == "orders" && pendingCount > 0 && !isCatalogOnly
                                         val showSettingsBadge = tab.id == "settings" &&
                                             showDeliveryManagementAction &&
+                                            !isCatalogOnly &&
                                             deliveryPendingRequestsCount > 0
 
                                         if (showOrdersBadge || showSettingsBadge) {
@@ -386,12 +389,25 @@ fun BusinessHomeScreen(
         ) {
             when (tabs[safeSelectedTabIndex].id) {
                 "orders" -> {
-                    OrdersScreen(
-                        viewModel = ordersViewModel,
-                        onNavigateToOrderDetail = onNavigateToOrderDetail,
-                        searchQuery = ordersSearchQuery,
-                        onShowConfirmation = onShowConfirmation
-                    )
+                    if (isCatalogOnly) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Esta sucursal no recibe pedidos",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        OrdersScreen(
+                            viewModel = ordersViewModel,
+                            onNavigateToOrderDetail = onNavigateToOrderDetail,
+                            searchQuery = ordersSearchQuery,
+                            onShowConfirmation = onShowConfirmation
+                        )
+                    }
                 }
 
                 "products" -> {
@@ -426,7 +442,7 @@ fun BusinessHomeScreen(
                         authViewModel = authViewModel,
                         onNavigateToDeliveryManagement = onNavigateToDeliveryManagement,
                         onNavigateToInvitations = onNavigateToInvitations,
-                        showDeliveryManagementButton = showDeliveryManagementAction,
+                        showDeliveryManagementButton = showDeliveryManagementAction && !isCatalogOnly,
                         pendingDeliveryRequestsCount = deliveryPendingRequestsCount,
                         onNavigateBack = { }
                     )

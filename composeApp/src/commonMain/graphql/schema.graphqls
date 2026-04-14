@@ -667,7 +667,7 @@ type BranchType {
 
   phone: String!
 
-  schedule: JSON!
+  schedule: BranchScheduleType!
 
   managerIds: [String!]!
 
@@ -688,6 +688,8 @@ type BranchType {
   pickupEnabled: Boolean!
 
   useAppMessaging: Boolean!
+
+  catalogOnly: Boolean!
 
   vehicles: [BranchVehicle!]!
 
@@ -766,6 +768,34 @@ type BranchType {
   Showcases from this branch
   """
   showcases(activeOnly: Boolean! = true): [ShowcaseType!]!
+}
+
+type BranchScheduleType {
+  days: [DayScheduleType!]!
+
+  temporaryStatus: TemporaryStatusType
+}
+
+type DayScheduleType {
+  day: Int!
+
+  isOpen: Boolean!
+
+  hours: [TimeRangeType!]!
+}
+
+type TimeRangeType {
+  open: String!
+
+  close: String!
+}
+
+type TemporaryStatusType {
+  temporallyClosed: Boolean!
+
+  temporallyOpen: Boolean!
+
+  reason: String
 }
 
 type CoordinatesType {
@@ -1123,7 +1153,7 @@ type ScoredBranchType {
 
   phone: String!
 
-  schedule: JSON!
+  schedule: BranchScheduleType!
 
   managerIds: [String!]!
 
@@ -1270,7 +1300,7 @@ type NearbyBranchType {
 
   phone: String!
 
-  schedule: JSON!
+  schedule: BranchScheduleType!
 
   managerIds: [String!]!
 
@@ -4409,6 +4439,8 @@ input UpdateBranchInput {
   pickupEnabled: Boolean = null
 
   useAppMessaging: Boolean = null
+
+  catalogOnly: Boolean = null
 
   vehicles: [BranchVehicle!] = null
 
