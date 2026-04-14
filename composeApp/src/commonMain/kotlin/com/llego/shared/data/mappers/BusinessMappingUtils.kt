@@ -110,10 +110,10 @@ private fun normalizeScheduleDayKey(key: String): String {
     return when (key.trim().lowercase()) {
         "mon", "lun", "monday", "lunes" -> "mon"
         "tue", "mar", "tuesday", "martes" -> "tue"
-        "wed", "mie", "mié", "wednesday", "miercoles", "miércoles" -> "wed"
+        "wed", "mie", "wednesday", "miercoles" -> "wed"
         "thu", "jue", "thursday", "jueves" -> "thu"
         "fri", "vie", "friday", "viernes" -> "fri"
-        "sat", "sab", "sábado", "sabado", "saturday" -> "sat"
+        "sat", "sab", "sabado", "saturday" -> "sat"
         "sun", "dom", "sunday", "domingo" -> "sun"
         else -> key.trim().lowercase()
     }
