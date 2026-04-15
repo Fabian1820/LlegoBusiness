@@ -1796,7 +1796,7 @@ private fun StepReview(
 
             val selectedMethodNames = paymentMethods
                 .filter { it.id in selectedPaymentMethodIds }
-                .joinToString(", ") { it.toDisplayName() }
+                .joinToString(", ") { it.name }
             if (selectedMethodNames.isNotBlank()) {
                 ReviewItem(label = "Pagos", value = selectedMethodNames)
             }

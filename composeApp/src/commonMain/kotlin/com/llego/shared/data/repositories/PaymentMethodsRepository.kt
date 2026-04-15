@@ -35,6 +35,7 @@ class PaymentMethodsRepository(
                 val paymentMethods = response.data?.paymentMethods?.mapNotNull { method ->
                     PaymentMethod(
                         id = method.id,
+                        name = method.name,
                         currency = method.currency,
                         method = method.method
                     )

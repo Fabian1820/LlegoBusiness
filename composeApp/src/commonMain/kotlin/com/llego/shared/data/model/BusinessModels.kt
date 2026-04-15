@@ -175,6 +175,7 @@ data class Coordinates(
 @Serializable
 data class PaymentMethod(
     val id: String,
+    val name: String,      // Display name from backend, e.g., "Transferencia Bancaria Cuba"
     val currency: String,  // e.g., "CUP", "USD"
     val method: String     // e.g., "tarjeta", "efectivo", "transferencia"
 )
@@ -201,18 +202,9 @@ data class TransferPhone(
 )
 
 /**
- * Returns a display name for the payment method
+ * Returns a display name for the payment method using the backend-provided name.
  */
-fun PaymentMethod.toDisplayName(): String {
-    val methodName = when (method.lowercase()) {
-        "tarjeta", "card" -> "Tarjeta"
-        "efectivo", "cash" -> "Efectivo"
-        "transferencia", "transfer" -> "Transferencia"
-        "billetera", "wallet", "digital_wallet" -> "Billetera Digital"
-        else -> method.replaceFirstChar { it.uppercase() }
-    }
-    return "$methodName ($currency)"
-}
+fun PaymentMethod.toDisplayName(): String = name
 
 // ============= INPUT MODELS =============
 

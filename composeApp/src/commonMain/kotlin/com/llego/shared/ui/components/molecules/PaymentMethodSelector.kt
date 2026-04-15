@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.PaymentMethod
-import com.llego.shared.data.model.toDisplayName
 import com.llego.shared.ui.theme.LlegoCustomShapes
 
 enum class PaymentMethodSelectorLayout {
@@ -197,7 +196,7 @@ private fun PaymentMethodChip(
         onClick = onClick,
         label = {
             Text(
-                text = paymentMethod.toDisplayName(),
+                text = paymentMethod.name,
                 style = MaterialTheme.typography.labelMedium
             )
         },

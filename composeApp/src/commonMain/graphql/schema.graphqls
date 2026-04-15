@@ -2118,6 +2118,8 @@ type OrderType {
 
   paymentMethod: String!
 
+  paymentMethodName: String
+
   paymentStatus: PaymentStatusEnum!
 
   createdAt: DateTime!

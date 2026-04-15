@@ -144,6 +144,7 @@ fragment OrderFullFields on OrderType {
   currency
   status
   paymentMethod
+  paymentMethodName
   paymentStatus
   paidAt
   createdAt
@@ -203,6 +204,7 @@ fragment OrderNewBranchFields on OrderType {
   currency
   status
   paymentMethod
+  paymentMethodName
   paymentStatus
   paidAt
   createdAt
@@ -254,6 +256,7 @@ fragment OrderUpdatedFields on OrderType {
   currency
   status
   paymentMethod
+  paymentMethodName
   paymentStatus
   paidAt
   createdAt
@@ -308,6 +311,7 @@ fragment OrderPendingFields on OrderType {
   deadlineAt
   branchId
   paymentMethod
+  paymentMethodName
   paymentStatus
   paidAt
   deliveryPersonId
@@ -331,6 +335,7 @@ fragment OrderStatusUpdateFields on OrderType {
   orderNumber
   status
   paymentMethod
+  paymentMethodName
   paymentStatus
   paidAt
   deliveryMode

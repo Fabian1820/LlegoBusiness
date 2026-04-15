@@ -848,7 +848,7 @@ fun BranchCreateWizardScreen(
                     else -> {
                         val selectedPaymentMethodNames = paymentMethodsUiState.methods
                             .filter { it.id in selectedPaymentMethodIds }
-                            .joinToString(", ") { it.toDisplayName() }
+                            .joinToString(", ") { it.name }
                         val socialMedia = buildBranchSocialMediaMap(
                             instagram = instagram,
                             facebook = facebook,

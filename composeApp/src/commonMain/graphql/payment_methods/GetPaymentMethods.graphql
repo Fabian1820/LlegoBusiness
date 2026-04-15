@@ -1,6 +1,7 @@
 query GetPaymentMethods($jwt: String) {
   paymentMethods(jwt: $jwt) {
     id
+    name
     currency
     method
   }

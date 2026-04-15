@@ -374,18 +374,16 @@ fun PaymentSummarySection(order: Order) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = order.paymentMethodDisplayNameWithCurrency(),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
                 Surface(
                     shape = RoundedCornerShape(4.dp),
                     color = order.paymentStatus.getColor().copy(alpha = 0.1f)
@@ -398,6 +396,12 @@ fun PaymentSummarySection(order: Order) {
                     )
                 }
             }
+            Text(
+                text = order.paymentMethodDisplayNameWithCurrency(),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.End
+            )
         }
 
         Row(

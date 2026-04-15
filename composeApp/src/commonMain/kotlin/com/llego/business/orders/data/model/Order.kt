@@ -20,6 +20,7 @@ data class Order(
     val currency: String,
     val status: OrderStatus,
     val paymentMethod: String,
+    val paymentMethodName: String? = null,
     val paymentStatus: PaymentStatus,
     val paidAt: String? = null,
     val deadlineAt: String? = null,
@@ -51,8 +52,8 @@ data class Order(
     fun isPickupOrder(): Boolean = deliveryMode.equals("pickup", ignoreCase = true)
 
     fun isCashPaymentMethod(): Boolean = PaymentMethodClassifier.isCash(paymentMethod)
-    fun paymentMethodDisplayName(): String = PaymentMethodClassifier.toDisplayName(paymentMethod)
-    fun paymentMethodDisplayNameWithCurrency(): String = "${PaymentMethodClassifier.toDisplayName(paymentMethod)} · $currency"
+    fun paymentMethodDisplayName(): String = paymentMethodName ?: PaymentMethodClassifier.toDisplayName(paymentMethod)
+    fun paymentMethodDisplayNameWithCurrency(): String = "${paymentMethodDisplayName()} · $currency"
 
     fun requiresCompletedPaymentBeforePreparing(): Boolean = !isCashPaymentMethod()
 
