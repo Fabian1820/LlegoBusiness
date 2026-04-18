@@ -232,7 +232,7 @@ type Query {
   """
   Estadísticas del dashboard: ingresos, pedidos completados/rechazados y productos más vendidos por período (today, week, month)
   """
-  dashboardStats(businessId: String!, period: DashboardPeriod!, jwt: String!): DashboardStatsType!
+  dashboardStats(businessId: String!, fromDate: DateTime!, toDate: DateTime!, jwt: String!, branchId: String): DashboardStatsType!
 
   """
   Get business type configurations (supports incremental sync)
@@ -592,6 +592,10 @@ type BusinessType {
 
   createdAt: DateTime!
 
+  approvalStatus: String!
+
+  rejectionReason: String
+
   """
   Presigned URL for the business avatar
   """
@@ -637,6 +641,10 @@ type BusinessWithBranchesType {
   isOwner: Boolean!
 
   role: String!
+
+  approvalStatus: String!
+
+  rejectionReason: String
 
   """
   Presigned URL for the business avatar
@@ -2108,6 +2116,8 @@ type OrderType {
 
   deliveryFee: Float!
 
+  serviceCharge: Float!
+
   deliveryMode: String!
 
   total: Float!
@@ -2222,6 +2232,11 @@ type OrderType {
   Estimated minutes remaining for delivery
   """
   estimatedMinutesRemaining: Int
+
+  """
+  Preparation time in minutes set by the business when accepting the order
+  """
+  estimatedMinutes: Int
 }
 
 enum OrderStatusEnum {

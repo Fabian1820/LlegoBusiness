@@ -1,5 +1,17 @@
-query DashboardStats($businessId: String!, $period: DashboardPeriod!, $jwt: String!) {
-  dashboardStats(businessId: $businessId, period: $period, jwt: $jwt) {
+query DashboardStats(
+  $businessId: String!
+  $fromDate: DateTime!
+  $toDate: DateTime!
+  $jwt: String!
+  $branchId: String
+) {
+  dashboardStats(
+    businessId: $businessId
+    fromDate: $fromDate
+    toDate: $toDate
+    jwt: $jwt
+    branchId: $branchId
+  ) {
     totalRevenue
     completedOrders
     cancelledOrders
@@ -7,6 +19,7 @@ query DashboardStats($businessId: String!, $period: DashboardPeriod!, $jwt: Stri
       productId
       name
       imageUrl
+      imageUrlMuyBaja
       totalQuantity
       totalRevenue
     }

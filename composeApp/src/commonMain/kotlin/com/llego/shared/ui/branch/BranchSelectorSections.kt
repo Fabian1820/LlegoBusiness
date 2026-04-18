@@ -72,6 +72,7 @@ import com.llego.shared.data.model.avatarSmallUrl
 internal fun BusinessSection(
     business: Business,
     branches: List<Branch>,
+    approvalStatus: String = "approved",
     onBranchSelected: (Branch) -> Unit,
     onEditBusiness: ((Business) -> Unit)? = null,
     onAddBranch: () -> Unit,
@@ -145,19 +146,39 @@ internal fun BusinessSection(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Status badge
-                    if (business.isActive) {
+                    val badgeText: String?
+                    val badgeBg: Color
+                    val badgeFg: Color
+                    when (approvalStatus) {
+                        "pending" -> {
+                            badgeText = "En revisión"
+                            badgeBg = Color(0xFFFFF8E1)
+                            badgeFg = Color(0xFFF57F17)
+                        }
+                        "rejected" -> {
+                            badgeText = "Rechazado"
+                            badgeBg = Color(0xFFFFEBEE)
+                            badgeFg = Color(0xFFD32F2F)
+                        }
+                        else -> {
+                            badgeText = if (business.isActive) "Activo" else "Inactivo"
+                            badgeBg = if (business.isActive) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
+                            badgeFg = if (business.isActive) Color(0xFF2E7D32) else Color(0xFF757575)
+                        }
+                    }
+                    if (badgeText != null) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE8F5E9)
+                            color = badgeBg
                         ) {
                             Text(
-                                text = "Activo",
+                                text = badgeText,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 11.sp
                                 ),
-                                color = Color(0xFF2E7D32)
+                                color = badgeFg
                             )
                         }
                     }

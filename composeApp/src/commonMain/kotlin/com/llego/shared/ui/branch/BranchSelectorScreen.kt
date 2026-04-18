@@ -68,7 +68,9 @@ import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.invitations.ui.viewmodel.RedeemState
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
+import com.llego.shared.data.model.BusinessWithBranches
 import com.llego.shared.ui.auth.AuthViewModel
+import com.llego.shared.ui.business.BusinessApprovalScreen
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
@@ -76,6 +78,14 @@ import androidx.compose.foundation.Image
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.iconbussines
 import org.jetbrains.compose.resources.painterResource
+
+// Triple de (Business domain, branches, approvalStatus) para evitar perder el estado de aprobacion
+private data class BusinessDisplayItem(
+    val business: Business,
+    val branches: List<Branch>,
+    val approvalStatus: String,
+    val source: BusinessWithBranches
+)
 
 @Composable
 fun BranchSelectorScreen(
@@ -99,25 +109,36 @@ fun BranchSelectorScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+    // Estado para el overlay de aprobacion
+    var approvalOverlayBusiness by remember { mutableStateOf<BusinessWithBranches?>(null) }
+    var approvalOverlayBranch by remember { mutableStateOf<Branch?>(null) }
+
     val currentUserId = authUiState.user?.id
     val branchesByBusiness = remember(branchSelectorState.businessesWithBranches) {
-        branchSelectorState.businessesWithBranches.map { it.toBusiness() to it.branches }
+        branchSelectorState.businessesWithBranches.map { bwb ->
+            BusinessDisplayItem(
+                business = bwb.toBusiness(),
+                branches = bwb.branches,
+                approvalStatus = bwb.approvalStatus,
+                source = bwb
+            )
+        }
     }
     val normalizedQuery = remember(searchQuery) { searchQuery.trim().lowercase() }
     val visibleBusinesses = remember(branchesByBusiness, normalizedQuery) {
         if (normalizedQuery.isBlank()) {
             branchesByBusiness
         } else {
-            branchesByBusiness.mapNotNull { (business, businessBranches) ->
-                val businessMatches = business.name.contains(normalizedQuery, ignoreCase = true)
+            branchesByBusiness.mapNotNull { item ->
+                val businessMatches = item.business.name.contains(normalizedQuery, ignoreCase = true)
                 val visibleBranches = if (businessMatches) {
-                    businessBranches
+                    item.branches
                 } else {
-                    businessBranches.filter { it.name.contains(normalizedQuery, ignoreCase = true) }
+                    item.branches.filter { it.name.contains(normalizedQuery, ignoreCase = true) }
                 }
 
                 if (businessMatches || visibleBranches.isNotEmpty()) {
-                    business to visibleBranches
+                    item.copy(branches = visibleBranches)
                 } else {
                     null
                 }
@@ -129,6 +150,15 @@ fun BranchSelectorScreen(
             val isOwnerOfAny = branchSelectorState.businessesWithBranches.any { it.ownerId == userId }
             isOwnerOfAny || branchSelectorState.businessesWithBranches.isEmpty()
         } ?: false
+    }
+
+    // Cuando el overlay esta abierto, observar si el negocio fue aprobado para sincronizar
+    LaunchedEffect(branchSelectorState.businessesWithBranches, approvalOverlayBusiness) {
+        val overlay = approvalOverlayBusiness ?: return@LaunchedEffect
+        val updated = branchSelectorState.businessesWithBranches.firstOrNull { it.id == overlay.id }
+        if (updated != null && updated.approvalStatus == "approved" && overlay.approvalStatus != "approved") {
+            approvalOverlayBusiness = updated
+        }
     }
 
     LaunchedEffect(currentUserId) {
@@ -218,16 +248,24 @@ fun BranchSelectorScreen(
                                 )
                             }
                         } else {
-                            visibleBusinesses.forEach { (business, businessBranches) ->
-                                item(key = "business_${business.id}") {
-                                    val isOwner = currentUserId != null && currentUserId == business.ownerId
+                            visibleBusinesses.forEach { item ->
+                                item(key = "business_${item.business.id}") {
+                                    val isOwner = currentUserId != null && currentUserId == item.business.ownerId
                                     Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
                                         BusinessSection(
-                                            business = business,
-                                            branches = businessBranches,
-                                            onBranchSelected = onBranchSelected,
+                                            business = item.business,
+                                            branches = item.branches,
+                                            approvalStatus = item.approvalStatus,
+                                            onBranchSelected = { branch ->
+                                                if (item.approvalStatus == "pending" || item.approvalStatus == "rejected") {
+                                                    approvalOverlayBusiness = item.source
+                                                    approvalOverlayBranch = branch
+                                                } else {
+                                                    onBranchSelected(branch)
+                                                }
+                                            },
                                             onEditBusiness = if (isOwner) onEditBusiness else null,
-                                            onAddBranch = { onAddBranch(business.id) },
+                                            onAddBranch = { onAddBranch(item.business.id) },
                                             canAddBranch = isOwner
                                         )
                                     }
@@ -280,6 +318,30 @@ fun BranchSelectorScreen(
                 TextButton(onClick = { showLogoutDialog = false }) {
                     Text("Cancelar")
                 }
+            }
+        )
+    }
+
+    // Overlay de estado de aprobacion (cubre toda la pantalla)
+    val overlayBusiness = approvalOverlayBusiness
+    if (overlayBusiness != null) {
+        BusinessApprovalScreen(
+            business = overlayBusiness,
+            selectedBranch = approvalOverlayBranch,
+            branchSelectorViewModel = branchSelectorViewModel,
+            onBranchSelected = { branch ->
+                approvalOverlayBusiness = null
+                approvalOverlayBranch = null
+                onBranchSelected(branch)
+            },
+            onStartNewBusiness = {
+                approvalOverlayBusiness = null
+                approvalOverlayBranch = null
+                onAddBusiness()
+            },
+            onDismiss = {
+                approvalOverlayBusiness = null
+                approvalOverlayBranch = null
             }
         )
     }

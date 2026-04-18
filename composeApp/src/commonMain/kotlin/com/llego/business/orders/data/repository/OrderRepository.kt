@@ -44,11 +44,6 @@ data class OrderComboSlotSelectionInput(
     val selectedOptions: List<OrderComboSelectedOptionInput>
 )
 
-enum class DashboardStatsPeriod {
-    TODAY,
-    WEEK,
-    MONTH
-}
 
 /**
  * Interfaz del repositorio de pedidos con backend GraphQL
@@ -137,11 +132,13 @@ interface OrderRepository {
     ): Result<OrderStats?>
 
     /**
-     * Obtiene estadisticas del dashboard del negocio por periodo.
+     * Obtiene estadisticas del dashboard del negocio por rango de fechas.
      */
     suspend fun getDashboardStats(
         businessId: String,
-        period: DashboardStatsPeriod
+        fromDate: String,
+        toDate: String,
+        branchId: String? = null
     ): Result<DashboardStats?>
 
     // ==================== MUTATIONS ====================

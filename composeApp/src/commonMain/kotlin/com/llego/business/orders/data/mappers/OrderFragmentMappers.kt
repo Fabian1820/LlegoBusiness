@@ -11,6 +11,7 @@ internal fun OrderFullFields.toDomain(): Order = Order(
     businessId = businessId,
     subtotal = subtotal,
     deliveryFee = deliveryFee,
+    serviceCharge = serviceCharge,
     deliveryMode = deliveryMode,
     total = total,
     currency = currency,
@@ -40,7 +41,8 @@ internal fun OrderFullFields.toDomain(): Order = Order(
     deliveryPerson = deliveryPerson?.deliveryPersonFields?.toDomain(),
     isEditable = isEditable,
     canCancel = canCancel,
-    estimatedMinutesRemaining = estimatedMinutesRemaining
+    estimatedMinutesRemaining = estimatedMinutesRemaining,
+    estimatedMinutes = estimatedMinutes
 )
 
 internal fun OrderUpdatedFields.toDomain(): Order = Order(
@@ -51,6 +53,7 @@ internal fun OrderUpdatedFields.toDomain(): Order = Order(
     businessId = businessId,
     subtotal = subtotal,
     deliveryFee = deliveryFee,
+    serviceCharge = serviceCharge,
     deliveryMode = deliveryMode,
     total = total,
     currency = currency,
@@ -77,7 +80,8 @@ internal fun OrderUpdatedFields.toDomain(): Order = Order(
     deliveryPerson = deliveryPerson?.deliveryPersonFields?.toDomain(),
     isEditable = isEditable,
     canCancel = canCancel,
-    estimatedMinutesRemaining = estimatedMinutesRemaining
+    estimatedMinutesRemaining = estimatedMinutesRemaining,
+    estimatedMinutes = estimatedMinutes
 )
 
 internal fun OrderNewBranchFields.toDomain(): Order = Order(
@@ -88,6 +92,7 @@ internal fun OrderNewBranchFields.toDomain(): Order = Order(
     businessId = businessId,
     subtotal = subtotal,
     deliveryFee = deliveryFee,
+    serviceCharge = serviceCharge,
     deliveryMode = deliveryMode,
     total = total,
     currency = currency,
@@ -111,7 +116,8 @@ internal fun OrderNewBranchFields.toDomain(): Order = Order(
     business = business.businessOrderInfoFields.toDomain(),
     isEditable = isEditable,
     canCancel = canCancel,
-    estimatedMinutesRemaining = estimatedMinutesRemaining
+    estimatedMinutesRemaining = estimatedMinutesRemaining,
+    estimatedMinutes = estimatedMinutes
 )
 
 internal fun OrderPendingFields.toDomain(): Order = Order(
@@ -144,7 +150,8 @@ internal fun OrderPendingFields.toDomain(): Order = Order(
     customer = customer.userOrderPendingCustomerFields.toDomain(),
     isEditable = isEditable,
     canCancel = canCancel,
-    estimatedMinutesRemaining = estimatedMinutesRemaining
+    estimatedMinutesRemaining = estimatedMinutesRemaining,
+    estimatedMinutes = estimatedMinutes
 )
 
 internal fun OrderAcceptUpdateFields.toPartialDomain(): Order = Order(
@@ -173,6 +180,7 @@ internal fun OrderAcceptUpdateFields.toPartialDomain(): Order = Order(
     isEditable = orderStatusUpdateFields.isEditable,
     canCancel = orderStatusUpdateFields.canCancel,
     estimatedMinutesRemaining = orderStatusUpdateFields.estimatedMinutesRemaining,
+    estimatedMinutes = orderStatusUpdateFields.estimatedMinutes,
     timeline = orderStatusUpdateFields.timeline.map { it.orderTimelineFields.toDomain() }
 )
 
@@ -202,6 +210,7 @@ internal fun OrderStatusUpdateFields.toPartialDomain(): Order = Order(
     isEditable = isEditable,
     canCancel = canCancel,
     estimatedMinutesRemaining = estimatedMinutesRemaining,
+    estimatedMinutes = estimatedMinutes,
     timeline = timeline.map { it.orderTimelineFields.toDomain() }
 )
 
@@ -213,6 +222,7 @@ internal fun OrderModifyItemsUpdateFields.toPartialDomain(): Order = Order(
     businessId = "",
     subtotal = subtotal,
     deliveryFee = deliveryFee,
+    serviceCharge = serviceCharge,
     total = total,
     currency = "",
     status = status.toDomain(),

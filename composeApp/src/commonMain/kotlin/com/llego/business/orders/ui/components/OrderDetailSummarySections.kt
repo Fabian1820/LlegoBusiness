@@ -331,6 +331,19 @@ fun PaymentSummarySection(order: Order) {
             }
         }
 
+        if (order.serviceCharge > 0) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Cargo de servicio", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "${order.currency} ${formatDouble("%.2f", order.serviceCharge)}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween

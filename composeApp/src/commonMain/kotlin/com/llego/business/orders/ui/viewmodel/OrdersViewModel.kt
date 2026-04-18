@@ -17,7 +17,6 @@ import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.DashboardStats
 import com.llego.business.orders.data.model.toMenuItem
-import com.llego.business.orders.data.repository.DashboardStatsPeriod
 import com.llego.business.orders.data.repository.OrderItemInput
 import com.llego.business.orders.data.repository.OrderRepository
 import com.llego.business.orders.data.repository.OrderRepositoryImpl
@@ -67,7 +66,7 @@ class OrdersViewModel(
     private val _availableBranchIds = MutableStateFlow<List<String>>(emptyList())
     private val _dashboardStatsState = MutableStateFlow<DashboardStatsUiState>(DashboardStatsUiState.Idle)
     val dashboardStatsState: StateFlow<DashboardStatsUiState> = _dashboardStatsState.asStateFlow()
-    private var lastDashboardRequest: Pair<String, DashboardStatsPeriod>? = null
+    private var lastDashboardRequest: Triple<String, String, String?>? = null
 
     val filteredOrders: StateFlow<List<Order>> = combine(
         _orders,
@@ -90,6 +89,9 @@ class OrdersViewModel(
     val customerCashKycStatus: StateFlow<CustomerCashKycStatus?> = _customerCashKycStatus.asStateFlow()
     private val _menuItemsState = MutableStateFlow(MenuItemsUiState())
     val menuItemsState: StateFlow<MenuItemsUiState> = _menuItemsState.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private var currentOffset = 0
     private var hasMore = true
@@ -199,6 +201,7 @@ class OrdersViewModel(
                 hasMore = false
                 _uiState.value = OrdersUiState.Success
             }
+            _isRefreshing.value = false
         }
     }
 
@@ -231,6 +234,7 @@ class OrdersViewModel(
     }
 
     fun refreshOrders() {
+        _isRefreshing.value = true
         resetPagination()
         loadOrders()
     }
@@ -588,6 +592,41 @@ class OrdersViewModel(
         }
     }
 
+    fun refreshOrderDetail(orderId: String, branchId: String) {
+        _isRefreshing.value = true
+        viewModelScope.launch {
+            repository.getOrder(orderId)
+                .onSuccess { freshOrder ->
+                    if (freshOrder != null) {
+                        updateOrderInList(freshOrder)
+
+                        val shouldLoadPayment = freshOrder.status in setOf(
+                            OrderStatus.PENDING_PAYMENT,
+                            OrderStatus.PAYMENT_IN_PROGRESS
+                        ) && freshOrder.paymentStatus != PaymentStatus.COMPLETED
+                        if (shouldLoadPayment) {
+                            loadActivePaymentAttempt(orderId)
+                        } else {
+                            clearActivePaymentAttempt()
+                        }
+
+                        val merchantId = freshOrder.businessId.takeIf { it.isNotBlank() }
+                        val customerId = (freshOrder.customer?.id?.takeIf { it.isNotBlank() }
+                            ?: freshOrder.customerId.takeIf { it.isNotBlank() })
+                        if (!merchantId.isNullOrBlank() && !customerId.isNullOrBlank()) {
+                            loadCustomerCashKycStatus(
+                                merchantId = merchantId,
+                                branchId = branchId.takeIf { it.isNotBlank() },
+                                customerId = customerId
+                            )
+                        }
+                    }
+                }
+            loadMenuItems(branchId, forceRefresh = true)
+            _isRefreshing.value = false
+        }
+    }
+
     private fun registerPendingBusinessComment(orderId: String, message: String) {
         pendingBusinessCommentsByOrder.getOrPut(orderId) { mutableListOf() }.add(message.trim())
     }
@@ -676,7 +715,8 @@ class OrdersViewModel(
             comments = if (hasCommentUpdate) normalizeIncomingComments(existing.id, incoming.comments) else existing.comments,
             isEditable = if (hasItemChanges || hasStatusUpdate) incoming.isEditable else existing.isEditable,
             canCancel = if (hasItemChanges || hasStatusUpdate) incoming.canCancel else existing.canCancel,
-            estimatedMinutesRemaining = incoming.estimatedMinutesRemaining ?: existing.estimatedMinutesRemaining
+            estimatedMinutesRemaining = incoming.estimatedMinutesRemaining ?: existing.estimatedMinutesRemaining,
+            estimatedMinutes = incoming.estimatedMinutes ?: existing.estimatedMinutes
         )
     }
 
@@ -849,7 +889,9 @@ class OrdersViewModel(
 
     fun loadDashboardStats(
         businessId: String,
-        period: DashboardStatsPeriod,
+        fromDate: String,
+        toDate: String,
+        branchId: String? = null,
         forceRefresh: Boolean = false
     ) {
         if (businessId.isBlank()) {
@@ -857,14 +899,14 @@ class OrdersViewModel(
             return
         }
 
-        val currentRequest = businessId to period
+        val currentRequest = Triple(businessId, fromDate, branchId)
         if (!forceRefresh && lastDashboardRequest == currentRequest && _dashboardStatsState.value is DashboardStatsUiState.Success) {
             return
         }
 
         viewModelScope.launch {
             _dashboardStatsState.value = DashboardStatsUiState.Loading
-            val result = repository.getDashboardStats(businessId, period)
+            val result = repository.getDashboardStats(businessId, fromDate, toDate, branchId)
             result
                 .onSuccess { stats ->
                     if (stats == null) {

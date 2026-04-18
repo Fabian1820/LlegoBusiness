@@ -45,8 +45,10 @@ import kotlinx.coroutines.delay
 fun StatisticsScreen(
     ordersViewModel: OrdersViewModel,
     businessId: String,
+    branchId: String? = null,
     onNavigateBack: () -> Unit = {},
-    embeddedInHome: Boolean = false
+    embeddedInHome: Boolean = false,
+    onNavigateToProductById: ((String) -> Unit)? = null
 ) {
     var animateContent by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf(PeriodFilter.DAY) }
@@ -57,20 +59,26 @@ fun StatisticsScreen(
         animateContent = true
     }
 
-    LaunchedEffect(businessId, selectedPeriod) {
+    LaunchedEffect(businessId, branchId, selectedPeriod) {
         if (businessId.isNotBlank()) {
+            val (fromDate, toDate) = selectedPeriod.toDateRange()
             ordersViewModel.loadDashboardStats(
                 businessId = businessId,
-                period = selectedPeriod.toDashboardPeriod()
+                fromDate = fromDate,
+                toDate = toDate,
+                branchId = branchId
             )
         }
     }
 
     val retryLoad = {
         if (businessId.isNotBlank()) {
+            val (fromDate, toDate) = selectedPeriod.toDateRange()
             ordersViewModel.loadDashboardStats(
                 businessId = businessId,
-                period = selectedPeriod.toDashboardPeriod(),
+                fromDate = fromDate,
+                toDate = toDate,
+                branchId = branchId,
                 forceRefresh = true
             )
         }
@@ -113,6 +121,7 @@ fun StatisticsScreen(
                     TopProductsSection(
                         statsState = dashboardState,
                         onRetry = retryLoad,
+                        onNavigateToProductById = onNavigateToProductById,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }

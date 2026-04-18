@@ -43,6 +43,7 @@ fun DashboardStatsQuery.TopProduct.toDomain(): TopProductStats = TopProductStats
     productId = productId,
     name = name,
     imageUrl = imageUrl,
+    imageUrlMuyBaja = imageUrlMuyBaja,
     totalQuantity = totalQuantity,
     totalRevenue = totalRevenue
 )

@@ -100,6 +100,7 @@ fun BusinessProfileScreen(
     authViewModel: AuthViewModel,
     productViewModel: ProductViewModel,
     onNavigateBack: () -> Unit = {},
+    onDataChanged: () -> Unit = {},
     onOpenMapSelection: ((String, Double, Double, (Double, Double) -> Unit) -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -330,7 +331,7 @@ fun BusinessProfileScreen(
             saveMessage = "Selecciona al menos un metodo de pago"
             return
         }
-        if (!useAppMessaging && selectedVehicles.isEmpty()) {
+        if (!useAppMessaging && selectedVehicles.isEmpty() && !catalogOnly) {
             saveMessage = "Si usas delivery propio debes seleccionar vehiculos"
             return
         }
@@ -402,7 +403,7 @@ fun BusinessProfileScreen(
                     isActive = updated.isActive
                     exchangeRateInput = updated.exchangeRate?.toString().orEmpty()
                     authViewModel.setCurrentBranch(updated)
-                    authViewModel.reloadUserData()
+                    onDataChanged()
                     saveMessage = "Perfil de sucursal actualizado"
                     avatarState = ImageUploadState.Idle
                     coverState = ImageUploadState.Idle

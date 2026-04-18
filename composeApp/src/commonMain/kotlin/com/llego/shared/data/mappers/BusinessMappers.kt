@@ -54,6 +54,8 @@ private fun BusinessCoreFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
+        approvalStatus = approvalStatus,
+        rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
         avatarUrlAlta = avatarUrlAlta
@@ -75,6 +77,8 @@ private fun BusinessRoleFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
+        approvalStatus = approvalStatus,
+        rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
         avatarUrlAlta = avatarUrlAlta
@@ -92,6 +96,8 @@ private fun BusinessUpdateFields.toDomain(): Business {
         tags = tags ?: emptyList(),
         isActive = isActive,
         createdAt = createdAt.toString(),
+        approvalStatus = approvalStatus,
+        rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
         avatarUrlAlta = avatarUrlAlta

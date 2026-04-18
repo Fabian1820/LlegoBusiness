@@ -101,9 +101,12 @@ data class TopProductStats(
     val productId: String,
     val name: String,
     val imageUrl: String? = null,
+    val imageUrlMuyBaja: String? = null,
     val totalQuantity: Int,
     val totalRevenue: Double
-)
+) {
+    fun thumbnailUrl(): String? = imageUrlMuyBaja?.takeIf { it.isNotBlank() } ?: imageUrl?.takeIf { it.isNotBlank() }
+}
 
 /**
  * Estadisticas del dashboard por periodo.

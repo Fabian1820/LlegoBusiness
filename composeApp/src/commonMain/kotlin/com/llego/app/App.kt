@@ -344,7 +344,7 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
 
-                // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada â†’ Dashboard
+                // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada → Dashboard
                 isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
                     MainBusinessFlow(
                         navigator = navigator,
@@ -861,10 +861,10 @@ private fun MainBusinessFlow(
             }
 
             navigator.showStatistics -> {
-                val currentBusiness by authViewModel.currentBusiness.collectAsState()
                 StatisticsScreen(
                     ordersViewModel = ordersViewModel,
-                    businessId = currentBusiness?.id.orEmpty(),
+                    businessId = currentBranch?.businessId.orEmpty(),
+                    branchId = currentBranch?.id,
                     onNavigateBack = { navigator.showStatistics = false }
                 )
             }
@@ -997,6 +997,7 @@ private fun MainBusinessFlow(
                     authViewModel = authViewModel,
                     productViewModel = productViewModel,
                     onNavigateBack = { navigator.showProfile = false },
+                    onDataChanged = { branchSelectorViewModel.loadBusinesses(forceLoading = true) },
                     onOpenMapSelection = onOpenMapSelection
                 )
             }

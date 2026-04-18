@@ -27,7 +27,6 @@ import com.llego.multiplatform.graphql.BranchOrderUpdatedSubscription
 import com.llego.multiplatform.graphql.type.UpdateOrderStatusInput
 import com.llego.multiplatform.graphql.type.ModifyOrderItemsInput
 import com.llego.multiplatform.graphql.type.AddOrderCommentInput
-import com.llego.multiplatform.graphql.type.DashboardPeriod
 import com.llego.multiplatform.graphql.type.OrderComboModifierInput as GraphQLOrderComboModifierInput
 import com.llego.multiplatform.graphql.type.OrderComboSelectedOptionInput as GraphQLOrderComboSelectedOptionInput
 import com.llego.multiplatform.graphql.type.OrderComboSlotSelectionInput as GraphQLOrderComboSlotSelectionInput
@@ -251,7 +250,9 @@ class OrderRepositoryImpl(
 
     override suspend fun getDashboardStats(
         businessId: String,
-        period: DashboardStatsPeriod
+        fromDate: String,
+        toDate: String,
+        branchId: String?
     ): Result<DashboardStats?> {
         return try {
             val token = tokenManager.getToken() ?: return Result.failure(Exception("No authentication token"))
@@ -259,13 +260,16 @@ class OrderRepositoryImpl(
             val response = apolloClient.query(
                 DashboardStatsQuery(
                     businessId = businessId,
-                    period = period.toGraphQL(),
-                    jwt = token
+                    fromDate = fromDate,
+                    toDate = toDate,
+                    jwt = token,
+                    branchId = Optional.presentIfNotNull(branchId)
                 )
             ).execute()
 
             if (response.hasErrors()) {
-                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error al obtener dashboard"))
+                val errMsg = response.errors?.firstOrNull()?.message ?: "Error al obtener dashboard"
+                Result.failure(Exception(errMsg))
             } else {
                 val stats = response.data?.dashboardStats?.toDomain()
                 Result.success(stats)
@@ -653,8 +657,3 @@ class OrderRepositoryImpl(
     }
 }
 
-private fun DashboardStatsPeriod.toGraphQL(): DashboardPeriod = when (this) {
-    DashboardStatsPeriod.TODAY -> DashboardPeriod.TODAY
-    DashboardStatsPeriod.WEEK -> DashboardPeriod.WEEK
-    DashboardStatsPeriod.MONTH -> DashboardPeriod.MONTH
-}

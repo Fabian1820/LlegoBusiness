@@ -278,8 +278,7 @@ fun OrderCard(
                         ) {
                             Surface(
                                 shape = LlegoCustomShapes.secondaryButton,
-                                color = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.fillMaxWidth()
+                                color = MaterialTheme.colorScheme.surface
                             ) {
                                 Text(
                                     text = order.paymentMethodDisplayNameWithCurrency(),
@@ -289,8 +288,7 @@ fun OrderCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 

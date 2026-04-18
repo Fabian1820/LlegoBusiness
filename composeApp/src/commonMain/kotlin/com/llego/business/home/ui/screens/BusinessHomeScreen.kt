@@ -117,6 +117,7 @@ fun BusinessHomeScreen(
 
     val currentBusiness by authViewModel.currentBusiness.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
+    val productsResult by productViewModel.productsState.collectAsState()
     val isCatalogOnly = currentBranch?.catalogOnly == true
     val topBarTitle = currentBranch?.name ?: currentBusiness?.name ?: "Mi negocio"
     val branchAvatarUrl = currentBranch?.avatarSmallUrl()?.takeIf { it.isNotBlank() }
@@ -135,6 +136,9 @@ fun BusinessHomeScreen(
     LaunchedEffect(selectedTabId, currentBranch?.id) {
         if (selectedTabId == "settings" && currentBranch?.id != null) {
             settingsViewModel.loadSettings()
+        }
+        if (selectedTabId == "statistics" && currentBranch?.id != null) {
+            productViewModel.loadProducts(branchId = currentBranch!!.id)
         }
     }
 
@@ -431,8 +435,14 @@ fun BusinessHomeScreen(
                 "statistics" -> {
                     StatisticsScreen(
                         ordersViewModel = ordersViewModel,
-                        businessId = businessId,
-                        embeddedInHome = true
+                        businessId = currentBranch?.businessId ?: businessId,
+                        branchId = currentBranch?.id,
+                        embeddedInHome = true,
+                        onNavigateToProductById = { productId ->
+                            val product = (productsResult as? com.llego.shared.data.model.ProductsResult.Success)
+                                ?.products?.find { it.id == productId }
+                            if (product != null) onNavigateToProductDetail(product)
+                        }
                     )
                 }
 

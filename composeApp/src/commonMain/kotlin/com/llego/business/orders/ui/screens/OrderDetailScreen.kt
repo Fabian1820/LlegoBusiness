@@ -25,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +89,7 @@ fun OrderDetailScreen(
     onCallPhone: ((String) -> Unit)? = null
 ) {
     val uiState by ordersViewModel.uiState.collectAsState()
+    val isRefreshing by ordersViewModel.isRefreshing.collectAsState()
     val orders by ordersViewModel.orders.collectAsState()
     val modificationState by ordersViewModel.modificationState.collectAsState()
     val menuItemsState by ordersViewModel.menuItemsState.collectAsState()
@@ -238,59 +240,74 @@ fun OrderDetailScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                ordersViewModel.refreshOrderDetail(
+                    orderId = currentOrder.id,
+                    branchId = currentOrder.branchId.ifBlank { currentBranch?.id.orEmpty() }
+                )
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OrderStatusSection(order = currentOrder)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OrderStatusSection(order = currentOrder)
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-            CustomerInfoSection(
-                customer = currentOrder.customer,
-                customerCashKycStatus = customerCashKycStatus,
-                onCallCustomer = onCallPhone
-            )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                CustomerInfoSection(
+                    customer = currentOrder.customer,
+                    customerCashKycStatus = customerCashKycStatus,
+                    onCallCustomer = onCallPhone
+                )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-            OrderItemsSection(items = currentOrder.items)
-            if (canEditItems) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = { ordersViewModel.enterEditMode(currentOrder) },
-                        enabled = !isActionInProgress
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                OrderItemsSection(items = currentOrder.items)
+                if (canEditItems) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text("Modificar items")
+                        TextButton(
+                            onClick = {
+                                ordersViewModel.loadMenuItems(currentOrder.branchId, forceRefresh = true)
+                                ordersViewModel.enterEditMode(currentOrder)
+                            },
+                            enabled = !isActionInProgress
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("Modificar items")
+                        }
                     }
                 }
-            }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-            PaymentSummarySection(order = currentOrder)
-
-            if (shouldLoadActivePaymentAttempt) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                PaymentProofSection(
-                    paymentAttemptStatus = activePaymentAttempt?.status,
-                    proofUrl = paymentProofUrl,
-                    onOpenProof = { showPaymentProofDialog = true }
-                )
-            }
+                PaymentSummarySection(order = currentOrder)
 
-            if (currentOrder.timeline.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-                OrderTimelineSection(timeline = currentOrder.timeline)
+                if (shouldLoadActivePaymentAttempt) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                    PaymentProofSection(
+                        paymentAttemptStatus = activePaymentAttempt?.status,
+                        proofUrl = paymentProofUrl,
+                        onOpenProof = { showPaymentProofDialog = true }
+                    )
+                }
+
+                if (currentOrder.timeline.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                    OrderTimelineSection(timeline = currentOrder.timeline)
+                }
             }
         }
     }

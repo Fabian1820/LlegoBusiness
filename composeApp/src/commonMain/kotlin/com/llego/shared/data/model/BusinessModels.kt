@@ -25,6 +25,8 @@ data class Business(
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
+    val approvalStatus: String = "approved",
+    val rejectionReason: String? = null,
     val avatarUrl: String? = null,
     val avatarUrlBaja: String? = null,
     val avatarUrlAlta: String? = null
@@ -39,14 +41,16 @@ data class BusinessWithBranches(
     val id: String,
     val name: String,
     val ownerId: String,
-    val isOwner: Boolean = false,              // ✨ NUEVO: true si el usuario es owner del negocio
-    val role: String = "employee",              // ✨ NUEVO: "owner" | "manager" | "employee"
+    val isOwner: Boolean = false,
+    val role: String = "employee",
     val globalRating: Double = 0.0,
     val avatar: String? = null,
     val description: String? = null,
     val tags: List<String> = emptyList(),
     val isActive: Boolean = true,
     val createdAt: String,
+    val approvalStatus: String = "approved",
+    val rejectionReason: String? = null,
     val avatarUrl: String? = null,
     val avatarUrlBaja: String? = null,
     val avatarUrlAlta: String? = null,
@@ -63,6 +67,8 @@ data class BusinessWithBranches(
             tags = tags,
             isActive = isActive,
             createdAt = createdAt,
+            approvalStatus = approvalStatus,
+            rejectionReason = rejectionReason,
             avatarUrl = avatarUrl,
             avatarUrlBaja = avatarUrlBaja,
             avatarUrlAlta = avatarUrlAlta

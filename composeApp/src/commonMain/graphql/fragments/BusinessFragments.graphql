@@ -8,6 +8,8 @@ fragment BusinessCoreFields on BusinessType {
   globalRating
   isActive
   createdAt
+  approvalStatus
+  rejectionReason
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta
@@ -27,6 +29,8 @@ fragment BusinessRoleFields on BusinessWithBranchesType {
   globalRating
   isActive
   createdAt
+  approvalStatus
+  rejectionReason
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta
@@ -44,6 +48,8 @@ fragment BusinessUpdateFields on BusinessType {
   isActive
   globalRating
   createdAt
+  approvalStatus
+  rejectionReason
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta

@@ -89,10 +89,10 @@ internal class BusinessDomainRepository(
                 val businessesList = businessesData.map { it.toDomain() }
                 state.setBusinesses(businessesList)
 
-                when {
-                    businessesList.size == 1 -> state.setCurrentBusiness(businessesList.first())
-                    businessesList.isNotEmpty() -> state.setCurrentBusiness(businessesList.first())
-                    else -> state.setCurrentBusiness(null)
+                // No sobreescribir si ya hay un negocio activo válido en la lista
+                val existing = state.currentBusiness.value
+                if (existing == null || businessesList.none { it.id == existing.id }) {
+                    state.setCurrentBusiness(businessesList.firstOrNull())
                 }
 
                 BusinessResult.Success(businessesList)
@@ -285,6 +285,8 @@ internal class BusinessDomainRepository(
                         tags = businessFields.tags ?: emptyList(),
                         isActive = businessFields.isActive,
                         createdAt = businessFields.createdAt.toString(),
+                        approvalStatus = businessFields.approvalStatus,
+                        rejectionReason = businessFields.rejectionReason,
                         avatarUrl = businessFields.avatarUrl,
                         avatarUrlBaja = businessFields.avatarUrlBaja,
                         avatarUrlAlta = businessFields.avatarUrlAlta,
@@ -292,12 +294,18 @@ internal class BusinessDomainRepository(
                     )
                 }
 
+                val allBranches = businessesList.flatMap { it.branches }
                 state.setBusinesses(businessesList.map { it.toBusiness() })
-                state.setBranches(businessesList.flatMap { it.branches })
+                state.setBranches(allBranches)
 
-                if (state.businesses.value.isNotEmpty()) {
-                    state.setCurrentBusiness(state.businesses.value.first())
-                }
+                // Intentar mantener el negocio que corresponde a la sucursal actual o guardada.
+                // Solo caer al primero si no hay ninguna referencia válida.
+                val savedBranchId = tokenManager.getLastSelectedBranchId()
+                val currentBranchId = state.currentBranch.value?.id ?: savedBranchId
+                val targetBusinessId = allBranches.firstOrNull { it.id == currentBranchId }?.businessId
+                val resolvedBusiness = state.businesses.value.firstOrNull { it.id == targetBusinessId }
+                    ?: state.businesses.value.firstOrNull()
+                state.setCurrentBusiness(resolvedBusiness)
 
                 BusinessResult.Success(businessesList)
             } ?: BusinessResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")

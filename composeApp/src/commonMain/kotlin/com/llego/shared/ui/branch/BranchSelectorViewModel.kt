@@ -111,6 +111,18 @@ class BranchSelectorViewModel(
         }
     }
 
+    /**
+     * Retorna el primer negocio owned por el usuario que esté pending o rejected,
+     * solo si NO existe ningún negocio owned con approvalStatus == "approved".
+     * Null si hay negocios aprobados o si no hay negocios owned no aprobados.
+     */
+    fun getPendingApprovalBusiness(): com.llego.shared.data.model.BusinessWithBranches? {
+        val businesses = _uiState.value.businessesWithBranches
+        val hasApproved = businesses.any { it.isOwner && it.approvalStatus == "approved" }
+        if (hasApproved) return null
+        return businesses.firstOrNull { it.isOwner && it.approvalStatus in listOf("pending", "rejected") }
+    }
+
     fun refreshBusinesses() {
         if (activeUserId == null) {
             return

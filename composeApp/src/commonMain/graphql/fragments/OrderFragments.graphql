@@ -139,6 +139,7 @@ fragment OrderFullFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  serviceCharge
   deliveryMode
   total
   currency
@@ -159,6 +160,7 @@ fragment OrderFullFields on OrderType {
   isEditable
   canCancel
   estimatedMinutesRemaining
+  estimatedMinutes
   items {
     ...OrderItemFields
   }
@@ -199,6 +201,7 @@ fragment OrderNewBranchFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  serviceCharge
   deliveryMode
   total
   currency
@@ -214,6 +217,7 @@ fragment OrderNewBranchFields on OrderType {
   isEditable
   canCancel
   estimatedMinutesRemaining
+  estimatedMinutes
   items {
     ...OrderItemFields
   }
@@ -251,6 +255,7 @@ fragment OrderUpdatedFields on OrderType {
   businessId
   subtotal
   deliveryFee
+  serviceCharge
   deliveryMode
   total
   currency
@@ -268,6 +273,7 @@ fragment OrderUpdatedFields on OrderType {
   isEditable
   canCancel
   estimatedMinutesRemaining
+  estimatedMinutes
   items {
     ...OrderItemFields
   }
@@ -319,6 +325,7 @@ fragment OrderPendingFields on OrderType {
   isEditable
   canCancel
   estimatedMinutesRemaining
+  estimatedMinutes
   items {
     ...OrderItemPendingFields
   }
@@ -344,6 +351,7 @@ fragment OrderStatusUpdateFields on OrderType {
   isEditable
   canCancel
   estimatedMinutesRemaining
+  estimatedMinutes
   updatedAt
   lastStatusAt
   deadlineAt
@@ -362,6 +370,7 @@ fragment OrderModifyItemsUpdateFields on OrderType {
   status
   subtotal
   deliveryFee
+  serviceCharge
   total
   updatedAt
   lastStatusAt

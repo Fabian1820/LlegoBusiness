@@ -15,6 +15,7 @@ data class Order(
     val businessId: String,
     val subtotal: Double,
     val deliveryFee: Double,
+    val serviceCharge: Double = 0.0,
     val deliveryMode: String = "",
     val total: Double,
     val currency: String,
@@ -47,7 +48,8 @@ data class Order(
     // Campos computados del backend
     val isEditable: Boolean = false,
     val canCancel: Boolean = false,
-    val estimatedMinutesRemaining: Int? = null
+    val estimatedMinutesRemaining: Int? = null,
+    val estimatedMinutes: Int? = null
 ) {
     fun isPickupOrder(): Boolean = deliveryMode.equals("pickup", ignoreCase = true)
 
