@@ -22,10 +22,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalMall
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
@@ -149,10 +149,16 @@ fun OrderCard(
     isActionInProgress: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val isPickup = order.isPickupOrder()
+    val shortNum = orderCardShortNumber(order.orderNumber)
+    val prefix = orderCardPrefix(order.orderNumber)
+    val dateStr = orderCardFormatDate(order.createdAt)
+    val statusColor = order.status.getColor()
+
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isActionInProgress, onClick = onClick),
+        onClick = onClick,
+        enabled = !isActionInProgress,
+        modifier = modifier.fillMaxWidth(),
         shape = LlegoCustomShapes.productCard,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -169,6 +175,7 @@ fun OrderCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Cabecera: icono + número/fecha + estado
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -176,56 +183,82 @@ fun OrderCard(
                 ) {
                     Row(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val isPickup = order.isPickupOrder()
+                        // Ícono de orden (bolsa)
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ) {
                             Icon(
-                                imageVector = if (isPickup) Icons.Default.Storefront else Icons.Default.TwoWheeler,
-                                contentDescription = if (isPickup) "Recogida en tienda" else "Delivery",
+                                imageVector = if (isPickup) Icons.Default.Storefront else Icons.Default.LocalMall,
+                                contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
-                                    .size(30.dp)
-                                    .padding(6.dp)
+                                    .size(34.dp)
+                                    .padding(7.dp)
                             )
                         }
-                        Text(
-                            text = order.orderNumber,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Surface(
-                            shape = LlegoCustomShapes.secondaryButton,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(
-                                text = if (isPickup) "PICKUP" else "DELIVERY",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+
+                        // Número corto + fecha en la misma línea / prefijo debajo
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "#$shortNum",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                                if (dateStr.isNotBlank()) {
+                                    Text(
+                                        text = "·",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = dateStr,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            if (prefix.isNotBlank()) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = prefix,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                                    )
+                                    Text(
+                                        text = "·",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                    Text(
+                                        text = if (isPickup) "Recogida" else "Delivery",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    val statusColor = order.status.getColor()
+                    // Badge de estado
                     Surface(
                         shape = LlegoCustomShapes.secondaryButton,
                         color = statusColor.copy(alpha = 0.12f),
                         border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f)),
-                        modifier = Modifier.widthIn(max = 160.dp)
+                        modifier = Modifier.widthIn(max = 150.dp)
                     ) {
                         Text(
                             text = order.status.getDisplayName(),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = statusColor
@@ -238,6 +271,7 @@ fun OrderCard(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
 
+                // Sección inferior: total + método de pago + countdown
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = LlegoCustomShapes.infoCard,
@@ -250,22 +284,22 @@ fun OrderCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 text = "Total",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${order.currency} ${order.total}",
+                                text = "${order.total} ${order.currency}",
                                 style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                             order.customer?.let { customer ->
                                 Text(
-                                    text = "Cliente: ${customer.deliveredOrdersCount} entregados",
+                                    text = "${customer.deliveredOrdersCount} pedidos entregados",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -274,17 +308,16 @@ fun OrderCard(
 
                         Column(
                             horizontalAlignment = Alignment.End,
-                            modifier = Modifier.widthIn(max = 160.dp)
+                            modifier = Modifier.widthIn(max = 160.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Surface(
                                 shape = LlegoCustomShapes.secondaryButton,
                                 color = MaterialTheme.colorScheme.surface
                             ) {
                                 Text(
-                                    text = order.paymentMethodDisplayNameWithCurrency(),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
+                                    text = order.paymentMethodDisplayName(),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     maxLines = 2,
@@ -307,8 +340,7 @@ fun OrderCard(
                             if (countdownText != null) {
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(top = 4.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Timer,
@@ -348,6 +380,41 @@ fun OrderCard(
             }
         }
     }
+}
+
+private fun orderCardShortNumber(orderNumber: String): String {
+    val parts = orderNumber.split("-")
+    return if (parts.size >= 2) parts.last() else orderNumber
+}
+
+private fun orderCardPrefix(orderNumber: String): String {
+    val lastDash = orderNumber.lastIndexOf("-")
+    return if (lastDash > 0) orderNumber.substring(0, lastDash) else ""
+}
+
+private fun orderCardFormatDate(timestamp: String): String {
+    return try {
+        val parts = timestamp.split("T")
+        if (parts.size == 2) {
+            val dateParts = parts[0].split("-")
+            val timePart = parts[1].substringBefore(".")
+            val timeComponents = timePart.split(":")
+            if (dateParts.size == 3 && timeComponents.size >= 2) {
+                val year = dateParts[0].takeLast(2)
+                val month = dateParts[1]
+                val day = dateParts[2]
+                val hourInt = timeComponents[0].toIntOrNull() ?: 0
+                val minute = timeComponents[1]
+                val ampm = if (hourInt < 12) "am" else "pm"
+                val hour12 = when {
+                    hourInt == 0 -> 12
+                    hourInt > 12 -> hourInt - 12
+                    else -> hourInt
+                }
+                "$hour12:$minute$ampm $day/$month/$year"
+            } else ""
+        } else ""
+    } catch (_: Exception) { "" }
 }
 
 /**

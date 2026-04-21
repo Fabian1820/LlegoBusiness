@@ -9,6 +9,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import com.llego.shared.data.network.ServerClock
+import kotlinx.coroutines.launch
 import com.llego.app.AppViewModels
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
@@ -82,6 +85,9 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
         ImageUploadServiceFactory.initialize(applicationContext)
+
+        // Sincronizar reloj con servidor para countdowns correctos
+        lifecycleScope.launch { ServerClock.sync() }
 
         // Inicializar composition root
         appContainer = AppContainer()

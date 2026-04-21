@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
@@ -53,9 +54,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
+import com.llego.business.orders.data.model.OrderComboModifier
+import com.llego.business.orders.data.model.OrderComboSelectedOption
+import com.llego.business.orders.data.model.OrderComboSelection
 import com.llego.business.orders.data.model.OrderItem
 import com.llego.business.orders.data.model.OrderModificationState
 import com.llego.business.orders.data.model.MenuItem
+import com.llego.shared.data.model.Combo
+import com.llego.shared.data.model.ComboOption
+import com.llego.shared.data.model.ComboSlot
 import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.OrderStatus
@@ -93,6 +100,8 @@ fun OrderDetailScreen(
     val orders by ordersViewModel.orders.collectAsState()
     val modificationState by ordersViewModel.modificationState.collectAsState()
     val menuItemsState by ordersViewModel.menuItemsState.collectAsState()
+    val comboDefinitions by ordersViewModel.comboDefinitions.collectAsState()
+    val loadingComboIds by ordersViewModel.loadingComboIds.collectAsState()
     val activePaymentAttempt by ordersViewModel.activePaymentAttempt.collectAsState()
     val customerCashKycStatus by ordersViewModel.customerCashKycStatus.collectAsState()
     val currentBranch by authViewModel.currentBranch.collectAsState()
@@ -184,16 +193,36 @@ fun OrderDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Pedido ${currentOrder.orderNumber}",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                        Text(
-                            text = formatOrderDate(currentOrder.createdAt),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        // Número corto destacado + fecha en la misma línea
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "#${orderShortNumber(currentOrder.orderNumber)}",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = formatOrderDate(currentOrder.createdAt),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        // Prefijo del número completo en gris pequeño
+                        val prefix = orderNumberPrefix(currentOrder.orderNumber)
+                        if (prefix.isNotBlank()) {
+                            Text(
+                                text = prefix,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -312,6 +341,8 @@ fun OrderDetailScreen(
         }
     }
 
+    var comboBeingEdited by remember(order.id) { mutableStateOf<OrderItem?>(null) }
+
     if (modificationState != null && currentOrder.id == order.id) {
         EditOrderItemsDialog(
             order = currentOrder,
@@ -327,12 +358,35 @@ fun OrderDetailScreen(
                 ordersViewModel.addItem(productId, name, price, quantity, imageUrl)
             },
             menuItemsState = menuItemsState,
+            onEditCombo = { item ->
+                val comboId = item.comboId ?: item.itemId
+                ordersViewModel.loadComboDefinition(comboId)
+                comboBeingEdited = item
+            },
             onSave = { reason ->
                 ordersViewModel.applyModification(currentOrder.id, reason.ifBlank { "Modificado por el negocio" })
             },
             onCancel = {
                 ordersViewModel.cancelEdit()
             }
+        )
+    }
+
+    // Diálogo dedicado de edición de opciones del combo (superpuesto al diálogo principal)
+    comboBeingEdited?.let { editingItem ->
+        // Busca la versión actualizada del item en modificationState (puede haber cambiado)
+        val currentItem = modificationState?.modifiedItems?.find { it.itemId == editingItem.itemId }
+            ?: editingItem
+        val comboId = currentItem.comboId ?: currentItem.itemId
+        ComboOptionsDialog(
+            item = currentItem,
+            comboDef = comboDefinitions[comboId],
+            isLoading = comboId in loadingComboIds,
+            onConfirm = { newSelections ->
+                ordersViewModel.updateComboItemSelections(currentItem.itemId, newSelections)
+                comboBeingEdited = null
+            },
+            onDismiss = { comboBeingEdited = null }
         )
     }
 
@@ -522,19 +576,18 @@ private fun EditOrderItemsDialog(
     onRemoveItem: (String) -> Unit,
     onAddItem: (String, String, Double, Int, String) -> Unit,
     menuItemsState: MenuItemsUiState,
+    onEditCombo: (OrderItem) -> Unit,
     onSave: (String) -> Unit,
     onCancel: () -> Unit
 ) {
     var reason by rememberSaveable(order.id) { mutableStateOf("Modificado por el negocio") }
 
     AlertDialog(
-        onDismissRequest = {
-            if (!isSaving) onCancel()
-        },
+        onDismissRequest = { if (!isSaving) onCancel() },
         title = { Text("Modificar items") },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 AddOrderItemSection(
@@ -555,16 +608,11 @@ private fun EditOrderItemsDialog(
                         EditableOrderItemRow(
                             item = item,
                             onDecrease = {
-                                if (item.quantity > 1) {
-                                    onChangeQuantity(item.itemId, item.quantity - 1)
-                                }
+                                if (item.quantity > 1) onChangeQuantity(item.itemId, item.quantity - 1)
                             },
-                            onIncrease = {
-                                onChangeQuantity(item.itemId, item.quantity + 1)
-                            },
-                            onRemove = {
-                                onRemoveItem(item.itemId)
-                            }
+                            onIncrease = { onChangeQuantity(item.itemId, item.quantity + 1) },
+                            onRemove = { onRemoveItem(item.itemId) },
+                            onEditCombo = if (item.isCombo) ({ onEditCombo(item) }) else null
                         )
                     }
                 }
@@ -572,12 +620,12 @@ private fun EditOrderItemsDialog(
                 HorizontalDivider()
 
                 Text(
-                    text = "Total original: ${order.currency} ${formatDouble("%.2f", state.originalTotal)}",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Total original: ${formatAmount(state.originalTotal, order.currency)}",
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Nuevo total: ${order.currency} ${formatDouble("%.2f", state.newTotal)}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    text = "Nuevo total: ${formatAmount(state.newTotal, order.currency)}",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
 
                 OutlinedTextField(
@@ -598,9 +646,7 @@ private fun EditOrderItemsDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancel, enabled = !isSaving) {
-                Text("Cerrar")
-            }
+            TextButton(onClick = onCancel, enabled = !isSaving) { Text("Cerrar") }
         }
     )
 }
@@ -885,7 +931,8 @@ private fun EditableOrderItemRow(
     item: OrderItem,
     onDecrease: () -> Unit,
     onIncrease: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onEditCombo: (() -> Unit)? = null
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
@@ -930,16 +977,44 @@ private fun EditableOrderItemRow(
                     }
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if (item.isCombo) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = "Combo",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Text(
                         text = item.name,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
-                    Text(
-                        text = "$${formatDouble("%.2f", item.finalPrice)} c/u",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (item.isCombo && item.comboSelections.isNotEmpty()) {
+                        val summary = item.comboSelections.joinToString("  ·  ") { slot ->
+                            "${slot.slotName}: ${slot.selectedOptions.joinToString(", ") { it.name }}"
+                        }
+                        Text(
+                            text = summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3
+                        )
+                    } else {
+                        Text(
+                            text = "$${formatDouble("%.2f", item.finalPrice)} c/u",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 IconButton(onClick = onRemove) {
@@ -970,25 +1045,402 @@ private fun EditableOrderItemRow(
                     }
                 }
 
-                Text(
-                    text = "$${formatDouble("%.2f", item.lineTotal)}",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (onEditCombo != null) {
+                        TextButton(onClick = onEditCombo) {
+                            Text(
+                                text = "Opciones",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                    Text(
+                        text = "$${formatDouble("%.2f", item.lineTotal)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Diálogo dedicado de edición de opciones del combo
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun ComboOptionsDialog(
+    item: OrderItem,
+    comboDef: Combo?,
+    isLoading: Boolean,
+    onConfirm: (List<OrderComboSelection>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Estado local: el usuario edita aquí sin tocar el ViewModel hasta confirmar
+    var localSelections by remember(item.itemId) { mutableStateOf(item.comboSelections) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Cambiar opciones", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            when {
+                isLoading -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Cargando opciones disponibles...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                comboDef == null -> {
+                    Text(
+                        text = "No se pudieron cargar las opciones del combo.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                else -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    ) {
+                        comboDef.slots.sortedBy { it.displayOrder }.forEach { slot ->
+                            val slotKey = slot.id ?: slot.name
+                            val currentSelected = localSelections
+                                .find { it.slotId == slotKey }
+                                ?.selectedOptions ?: emptyList()
+
+                            ComboSlotEditor(
+                                slot = slot,
+                                currentSelected = currentSelected,
+                                onToggleOption = { option, shouldSelect ->
+                                    val updated = currentSelected.toMutableList()
+                                    if (shouldSelect && updated.size < slot.maxSelections) {
+                                        updated.add(
+                                            OrderComboSelectedOption(
+                                                productId = option.productId,
+                                                name = option.product?.name ?: option.productId,
+                                                price = option.product?.price ?: 0.0,
+                                                quantity = 1,
+                                                priceAdjustment = option.priceAdjustment,
+                                                modifiers = emptyList()
+                                            )
+                                        )
+                                    } else if (!shouldSelect && updated.size > slot.minSelections) {
+                                        updated.removeAll { it.productId == option.productId }
+                                    }
+                                    localSelections = buildComboSelections(
+                                        localSelections, comboDef, slotKey, updated
+                                    )
+                                },
+                                onToggleModifier = { productId, modName, isActive ->
+                                    val updated = currentSelected.toMutableList()
+                                    val idx = updated.indexOfFirst { it.productId == productId }
+                                    if (idx >= 0) {
+                                        val opt = updated[idx]
+                                        val mods = opt.modifiers.toMutableList()
+                                        if (isActive) {
+                                            if (mods.none { it.name == modName }) {
+                                                mods.add(OrderComboModifier(name = modName, priceAdjustment = 0.0))
+                                            }
+                                        } else {
+                                            mods.removeAll { it.name == modName }
+                                        }
+                                        updated[idx] = opt.copy(modifiers = mods)
+                                    }
+                                    localSelections = buildComboSelections(
+                                        localSelections, comboDef, slotKey, updated
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(localSelections) },
+                enabled = comboDef != null && !isLoading
+            ) {
+                Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+private fun ComboSlotEditor(
+    slot: ComboSlot,
+    currentSelected: List<OrderComboSelectedOption>,
+    onToggleOption: (ComboOption, Boolean) -> Unit,
+    onToggleModifier: (productId: String, modifierName: String, isActive: Boolean) -> Unit
+) {
+    val selectedCount = currentSelected.size
+    val maxReached = selectedCount >= slot.maxSelections
+    val atMin = selectedCount <= slot.minSelections
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Encabezado del slot con regla
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = slot.name,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            val ruleText = when {
+                slot.minSelections == slot.maxSelections -> "Elige ${slot.maxSelections}"
+                slot.minSelections == 0 -> "Hasta ${slot.maxSelections}"
+                else -> "${slot.minSelections}–${slot.maxSelections}"
+            }
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(
+                    text = ruleText,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Opciones disponibles
+        slot.options.forEach { option ->
+            val optName = option.product?.name ?: option.productId
+            val isSelected = currentSelected.any { it.productId == option.productId }
+            val canToggle = if (isSelected) !atMin else !maxReached
+
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)
+                    maxReached -> MaterialTheme.colorScheme.surface
+                    else -> MaterialTheme.colorScheme.surface
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = canToggle) {
+                        onToggleOption(option, !isSelected)
+                    }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = optName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (maxReached && !isSelected)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (option.priceAdjustment != 0.0) {
+                                val sign = if (option.priceAdjustment > 0) "+" else ""
+                                Text(
+                                    text = "$sign${formatDouble("%.2f", option.priceAdjustment)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            // Indicador de selección (checkbox visual)
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            ) {
+                                if (isSelected) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Done,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Modificadores (solo cuando la opción está seleccionada y tiene modificadores disponibles)
+                    if (isSelected && option.availableModifiers.isNotEmpty()) {
+                        val selectedOpt = currentSelected.find { it.productId == option.productId }
+                        val activeMods = selectedOpt?.modifiers?.map { it.name } ?: emptyList()
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Agregos:",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            option.availableModifiers.forEach { modifier ->
+                                val isModActive = activeMods.contains(modifier.name)
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isModActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isModActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onToggleModifier(option.productId, modifier.name, !isModActive)
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = modifier.name,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (isModActive) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (modifier.priceAdjustment != 0.0) {
+                                            val sign = if (modifier.priceAdjustment > 0) "+" else ""
+                                            Text(
+                                                text = "$sign${formatDouble("%.2f", modifier.priceAdjustment)}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Mensajes de validación
+        when {
+            selectedCount < slot.minSelections -> Text(
+                text = "Mínimo ${slot.minSelections} requerido(s) en este slot",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+            maxReached -> Text(
+                text = "Máximo ${slot.maxSelections} alcanzado — quita uno para cambiar",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Reconstruye la lista completa de selecciones del combo actualizando solo el slot modificado.
+ * [currentSelections] es el estado local actual (independiente del item del ViewModel).
+ */
+private fun buildComboSelections(
+    currentSelections: List<OrderComboSelection>,
+    comboDef: Combo,
+    updatedSlotKey: String,
+    updatedOptions: List<OrderComboSelectedOption>
+): List<OrderComboSelection> {
+    return comboDef.slots.mapNotNull { slot ->
+        val key = slot.id ?: slot.name
+        val selected = if (key == updatedSlotKey) updatedOptions
+        else currentSelections.find { it.slotId == key }?.selectedOptions ?: emptyList()
+        if (selected.isEmpty()) null
+        else OrderComboSelection(slotId = key, slotName = slot.name, selectedOptions = selected)
+    }
+}
+
+/** Extrae el sufijo corto: "EL.TABL-20260420-005" → "005" */
+private fun orderShortNumber(orderNumber: String): String {
+    val parts = orderNumber.split("-")
+    return if (parts.size >= 2) parts.last() else orderNumber
+}
+
+/** Extrae el prefijo sin el último segmento: "EL.TABL-20260420-005" → "EL.TABL-20260420" */
+private fun orderNumberPrefix(orderNumber: String): String {
+    val lastDash = orderNumber.lastIndexOf("-")
+    return if (lastDash > 0) orderNumber.substring(0, lastDash) else ""
+}
+
+private fun formatAmount(amount: Double, currency: String): String {
+    val rounded = (amount * 100).toLong()
+    val intPortion = rounded / 100
+    val decPortion = rounded % 100
+    val formatted = "$intPortion.${decPortion.toString().padStart(2, '0')}"
+    val parts = formatted.split(".")
+    val intPart = parts[0]
+    val decPart = if (parts.size > 1) parts[1] else "00"
+    val spaced = intPart.reversed().chunked(3).joinToString(" ").reversed()
+    return "$spaced.$decPart $currency"
 }
 
 private fun formatOrderDate(timestamp: String): String {
     return try {
         val parts = timestamp.split("T")
         if (parts.size == 2) {
-            val datePart = parts[0]
+            val dateParts = parts[0].split("-")
             val timePart = parts[1].substringBefore(".")
             val timeComponents = timePart.split(":")
-            if (timeComponents.size >= 2) {
-                "$datePart ${timeComponents[0]}:${timeComponents[1]}"
+            if (dateParts.size == 3 && timeComponents.size >= 2) {
+                val year = dateParts[0].takeLast(2)
+                val month = dateParts[1]
+                val day = dateParts[2]
+                val hourInt = timeComponents[0].toIntOrNull() ?: 0
+                val minute = timeComponents[1]
+                val ampm = if (hourInt < 12) "am" else "pm"
+                val hour12 = when {
+                    hourInt == 0 -> 12
+                    hourInt > 12 -> hourInt - 12
+                    else -> hourInt
+                }
+                "$day-$month-$year $hour12:$minute$ampm"
             } else {
                 timestamp
             }

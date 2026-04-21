@@ -192,16 +192,25 @@ private fun getActorIcon(actor: OrderActor): ImageVector {
  * Formatea un timestamp ISO a formato legible
  */
 private fun formatTimestamp(timestamp: String): String {
-    // Formato simple - en producciÃ³n usar librerÃ­a de fechas
     return try {
-        // Asume formato ISO: "2024-01-15T14:30:00"
         val parts = timestamp.split("T")
         if (parts.size == 2) {
-            val datePart = parts[0]
+            val dateParts = parts[0].split("-")
             val timePart = parts[1].substringBefore(".")
             val timeComponents = timePart.split(":")
-            if (timeComponents.size >= 2) {
-                "${timeComponents[0]}:${timeComponents[1]} - $datePart"
+            if (dateParts.size == 3 && timeComponents.size >= 2) {
+                val year = dateParts[0].takeLast(2)
+                val month = dateParts[1]
+                val day = dateParts[2]
+                val hourInt = timeComponents[0].toIntOrNull() ?: 0
+                val minute = timeComponents[1]
+                val ampm = if (hourInt < 12) "am" else "pm"
+                val hour12 = when {
+                    hourInt == 0 -> 12
+                    hourInt > 12 -> hourInt - 12
+                    else -> hourInt
+                }
+                "$hour12:$minute$ampm · $day/$month/$year"
             } else {
                 timestamp
             }

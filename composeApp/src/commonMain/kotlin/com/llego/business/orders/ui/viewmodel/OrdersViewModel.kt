@@ -23,8 +23,12 @@ import com.llego.business.orders.data.repository.OrderRepositoryImpl
 import com.llego.business.orders.data.repository.OrdersResult
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.auth.TokenManager
+import com.llego.shared.data.model.Combo
+import com.llego.shared.data.model.CombosResult
 import com.llego.shared.data.model.ProductsResult
+import com.llego.shared.data.repositories.ComboRepository
 import com.llego.shared.data.repositories.ProductRepository
+import com.llego.business.orders.data.model.OrderComboSelection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +50,7 @@ class OrdersViewModel(
 
     private val repository: OrderRepository = OrderRepositoryImpl.getInstance(tokenManager)
     private val productRepository = ProductRepository(tokenManager)
+    private val comboRepository = ComboRepository(tokenManager)
     private val subscriptionManager = SubscriptionManager.getInstance()
 
     private val _uiState = MutableStateFlow<OrdersUiState>(OrdersUiState.Loading)
@@ -89,6 +94,12 @@ class OrdersViewModel(
     val customerCashKycStatus: StateFlow<CustomerCashKycStatus?> = _customerCashKycStatus.asStateFlow()
     private val _menuItemsState = MutableStateFlow(MenuItemsUiState())
     val menuItemsState: StateFlow<MenuItemsUiState> = _menuItemsState.asStateFlow()
+
+    private val _comboDefinitions = MutableStateFlow<Map<String, Combo>>(emptyMap())
+    val comboDefinitions: StateFlow<Map<String, Combo>> = _comboDefinitions.asStateFlow()
+
+    private val _loadingComboIds = MutableStateFlow<Set<String>>(emptySet())
+    val loadingComboIds: StateFlow<Set<String>> = _loadingComboIds.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -459,6 +470,32 @@ class OrdersViewModel(
 
     fun cancelEdit() {
         _modificationState.value = null
+    }
+
+    fun loadComboDefinition(comboId: String) {
+        if (_comboDefinitions.value.containsKey(comboId)) return
+        if (_loadingComboIds.value.contains(comboId)) return
+        _loadingComboIds.update { it + comboId }
+        viewModelScope.launch {
+            when (val result = comboRepository.getCombo(comboId)) {
+                is CombosResult.Success -> {
+                    val combo = result.combos.firstOrNull()
+                    if (combo != null) {
+                        _comboDefinitions.update { it + (comboId to combo) }
+                    }
+                }
+                else -> Unit
+            }
+            _loadingComboIds.update { it - comboId }
+        }
+    }
+
+    fun updateComboItemSelections(itemId: String, newSelections: List<OrderComboSelection>) {
+        val state = _modificationState.value ?: return
+        val updatedItems = state.modifiedItems.map { item ->
+            if (item.itemId == itemId) item.copy(comboSelections = newSelections, wasModifiedByStore = true) else item
+        }
+        updateModificationState(state, updatedItems)
     }
 
     fun applyModification(orderId: String, reason: String = "Modificado por el negocio") {
