@@ -86,13 +86,17 @@ enum class PaymentStatus {
     COMPLETED,
 
     @SerialName("FAILED")
-    FAILED;
+    FAILED,
+
+    @SerialName("CANCELLED")
+    CANCELLED;
 
     fun getDisplayName(): String = when (this) {
         PENDING -> "Pendiente"
         VALIDATED -> "Validado"
         COMPLETED -> "Completado"
         FAILED -> "Fallido"
+        CANCELLED -> "Cancelado"
     }
 
     fun getColor(): Color = when (this) {
@@ -100,6 +104,7 @@ enum class PaymentStatus {
         VALIDATED -> Color(0xFF2196F3)
         COMPLETED -> Color(0xFF4CAF50)
         FAILED -> Color(0xFFF44336)
+        CANCELLED -> Color(0xFF9E9E9E)
     }
 }
 

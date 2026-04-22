@@ -63,6 +63,7 @@ fun PaymentStatusEnum.toDomain(): PaymentStatus = when (this) {
     PaymentStatusEnum.VALIDATED -> PaymentStatus.VALIDATED
     PaymentStatusEnum.COMPLETED -> PaymentStatus.COMPLETED
     PaymentStatusEnum.FAILED -> PaymentStatus.FAILED
+    PaymentStatusEnum.CANCELLED -> PaymentStatus.CANCELLED
     PaymentStatusEnum.UNKNOWN__ -> PaymentStatus.PENDING
 }
 
