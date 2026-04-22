@@ -312,7 +312,7 @@ fun BusinessHomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
                     ) {
-                            val pendingCount = ordersViewModel.getPendingOrdersCount()
+                            val pendingCount by ordersViewModel.pendingOrdersCount.collectAsState()
 
                             tabs.forEachIndexed { index, tab ->
                                 val isSelected = safeSelectedTabIndex == index

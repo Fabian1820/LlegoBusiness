@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -58,6 +59,10 @@ class OrdersViewModel(
 
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
+
+    val pendingOrdersCount: StateFlow<Int> = _orders
+        .map { list -> list.count { it.status == OrderStatus.PENDING_ACCEPTANCE } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     private val _selectedFilter = MutableStateFlow<OrderStatus?>(null)
     val selectedFilter: StateFlow<OrderStatus?> = _selectedFilter.asStateFlow()
