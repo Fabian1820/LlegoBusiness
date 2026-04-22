@@ -660,34 +660,34 @@ fun PaymentSummarySection(order: Order) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Metodo de pago", style = MaterialTheme.typography.bodyMedium)
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = order.paymentStatus.getColor().copy(alpha = 0.1f)
-                ) {
-                    Text(
-                        text = order.paymentStatus.getDisplayName(),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = order.paymentStatus.getColor()
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Método de pago",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = order.paymentMethodDisplayName(),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
-            Text(
-                text = order.paymentMethodDisplayNameWithCurrency(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.End
-            )
+            val statusColor = order.paymentStatus.getColor()
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = statusColor.copy(alpha = 0.1f)
+            ) {
+                Text(
+                    text = order.paymentStatus.getDisplayName(),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = statusColor
+                )
+            }
         }
 
         Row(
