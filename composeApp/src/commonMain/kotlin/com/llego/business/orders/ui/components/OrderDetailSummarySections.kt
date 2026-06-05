@@ -809,7 +809,7 @@ private fun parseDeadlineToEpochSeconds(rawDeadline: String): Long? {
 }
 
 private fun formatAmount(amount: Double, currency: String): String {
-    val formatted = "%.2f".format(amount)
+    val formatted = formatDouble("%.2f", amount)
     val parts = formatted.split(".")
     val intPart = parts[0]
     val decPart = if (parts.size > 1) parts[1] else "00"
