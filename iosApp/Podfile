@@ -37,6 +37,18 @@ post_install do |installer|
     end
   end
   
+  # Fix del bug de rsync al ARCHIVAR: el script generado *-frameworks.sh resuelve
+  # symlinks relativos con readlink y rsync no los encuentra
+  # ("framework: stat: No such file or directory"). Parcheamos el .sh en disco
+  # porque el loop de arriba solo toca build phases inline, no los scripts generados.
+  Dir.glob(File.join(__dir__, 'Pods', 'Target Support Files', '**', '*-frameworks.sh')).each do |script|
+    contents = File.read(script)
+    if contents.include?(readlink_fix_old) && !contents.include?(readlink_fix_new)
+      contents = contents.sub(readlink_fix_old, readlink_fix_new)
+      File.write(script, contents)
+    end
+  end
+
   # Agregar PATH para que Xcode encuentre CocoaPods y otros comandos de Homebrew
   # Modificar scripts de build para que carguen .xcode.env
   xcode_env_path = File.join(__dir__, '.xcode.env')
