@@ -1,6 +1,5 @@
 ﻿package com.llego.shared.ui.business
 
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -41,7 +40,6 @@ import com.llego.shared.ui.business.state.defaultBusinessFormState
 import com.llego.shared.ui.payment.PaymentMethodsViewModel
 import com.llego.shared.ui.upload.ImageUploadViewModel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 
@@ -97,20 +95,6 @@ fun RegisterBusinessScreen(
         businessForms[businessIndex] = business.copy(branches = updatedBranches)
     }
 
-    val scrollState = rememberScrollState()
-    // Workaround iOS (Compose Multiplatform): el gesto de verticalScroll no queda
-    // enganchado hasta la primera recomposicion/relayout tras el layout inicial,
-    // por eso la pantalla no scrollea hasta enfocar un campo (que muestra el teclado
-    // y dispara ese relayout). Cuando el contenido ya excede el viewport, hacemos un
-    // nudge imperceptible (1px) para forzar ese relayout e inicializar el gesto.
-    LaunchedEffect(Unit) {
-        snapshotFlow { scrollState.maxValue }
-            .filter { it > 0 }
-            .first()
-        scrollState.scrollBy(1f)
-        scrollState.scrollBy(-1f)
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -141,7 +125,7 @@ fun RegisterBusinessScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

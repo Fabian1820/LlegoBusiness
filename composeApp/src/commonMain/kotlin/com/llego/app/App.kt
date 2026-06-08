@@ -69,7 +69,6 @@ import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
 import com.llego.shared.ui.components.modifiers.dismissKeyboardOnScroll
-import com.llego.shared.ui.components.modifiers.dismissKeyboardOnTapOutside
 import com.llego.shared.utils.isAndroid
 import kotlinx.coroutines.launch
 
@@ -307,9 +306,14 @@ fun App(viewModels: AppViewModels) {
                     if (isAndroid) {
                         base
                     } else {
-                        base
-                            .dismissKeyboardOnTapOutside(focusManager)
-                            .dismissKeyboardOnScroll(focusManager)
+                        // En iOS NO aplicamos dismissKeyboardOnTapOutside: su deteccion de
+                        // "tap fuera" depende de que el hijo consuma el evento, cosa que el
+                        // TextField de Compose iOS no hace. Resultado: limpiaba el foco al
+                        // tocar el propio campo (el teclado se abria y se cerraba) y su
+                        // awaitEachGesture raiz se quedaba con el primer gesto, bloqueando el
+                        // scroll hasta una recomposicion. Dejamos solo dismiss-on-scroll, que
+                        // via nestedScroll no consume el gesto y es inocuo.
+                        base.dismissKeyboardOnScroll(focusManager)
                     }
                 }
         ) {

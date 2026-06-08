@@ -15,6 +15,14 @@ import androidx.compose.ui.unit.Velocity
 
 /**
  * Cierra el teclado cuando el usuario toca fuera de un campo de texto.
+ *
+ * ADVERTENCIA — NO usar en iOS. La deteccion de "tap fuera" depende de que el hijo
+ * (TextField) consuma el evento de puntero. En Compose iOS el TextField NO marca el
+ * `up` como consumido, asi que este modifier limpia el foco al tocar el propio campo
+ * (el teclado se abre y se cierra al instante). Ademas, su `awaitEachGesture` aplicado
+ * en la raiz se queda con el primer gesto e impide que el `verticalScroll` hijo scrollee
+ * hasta una recomposicion. En Android funciona porque alli el TextField si consume el up.
+ * Para cerrar el teclado en iOS usa [dismissKeyboardOnScroll] (via nestedScroll, inocuo).
  */
 fun Modifier.dismissKeyboardOnTapOutside(
     focusManager: FocusManager

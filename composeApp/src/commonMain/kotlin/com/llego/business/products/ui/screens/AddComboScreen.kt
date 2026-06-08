@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
@@ -80,8 +79,6 @@ fun AddComboScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
     val productsState by productViewModel.productsState.collectAsState()
     val imageUploadViewModel = remember { ImageUploadViewModel() }
 
@@ -253,43 +250,44 @@ fun AddComboScreen(
             )
         },
         bottomBar = {
-            if (!isKeyboardVisible) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 4.dp,
-                    tonalElevation = 0.dp,
-                    shape = LlegoCustomShapes.bottomSheet
+            // bottomBar siempre montado: no condicionarlo al IME (ver nota en
+            // AddProductScreen). imePadding() en el Column scrolleable mantiene el
+            // campo enfocado sobre el teclado.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp,
+                tonalElevation = 0.dp,
+                shape = LlegoCustomShapes.bottomSheet
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.weight(1f),
+                        shape = LlegoCustomShapes.secondaryButton
                     ) {
-                        OutlinedButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier.weight(1f),
-                            shape = LlegoCustomShapes.secondaryButton
-                        ) {
-                            Text("Cancelar")
-                        }
+                        Text("Cancelar")
+                    }
 
-                        Button(
-                            onClick = { saveCombo() },
-                            modifier = Modifier.weight(1f),
-                            enabled = canSave,
-                            shape = LlegoCustomShapes.primaryButton
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(if (combo == null) "Crear combo" else "Guardar cambios")
-                            }
+                    Button(
+                        onClick = { saveCombo() },
+                        modifier = Modifier.weight(1f),
+                        enabled = canSave,
+                        shape = LlegoCustomShapes.primaryButton
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(if (combo == null) "Crear combo" else "Guardar cambios")
                         }
                     }
                 }
