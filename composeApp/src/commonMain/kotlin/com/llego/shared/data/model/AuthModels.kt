@@ -101,7 +101,8 @@ data class User(
     val applePrivateEmail: String? = null, // Email privado de Apple (si aplica)
     val wallet: WalletBalance,
     val walletStatus: String, // "active", "frozen", "closed"
-    val avatarUrl: String? = null // Presigned URL para mostrar (generada por backend)
+    val avatarUrl: String? = null, // Presigned URL para mostrar (generada por backend)
+    val scheduledDeletionAt: String? = null // ISO-8601 si hay solicitud de borrado pendiente (Apple 5.1.1(v))
 )
 
 // ============= RESULT TYPES =============

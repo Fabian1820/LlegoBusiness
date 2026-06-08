@@ -108,6 +108,20 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
+     * Programa la eliminación de la cuenta con 30 días de gracia (Apple 5.1.1(v)).
+     */
+    suspend fun requestAccountDeletion(): AuthResult<User> {
+        return authRepository.requestAccountDeletion()
+    }
+
+    /**
+     * Cancela una solicitud de eliminación pendiente.
+     */
+    suspend fun cancelAccountDeletion(): AuthResult<User> {
+        return authRepository.cancelAccountDeletion()
+    }
+
+    /**
      * Realiza el logout del usuario y limpia datos de negocio
      */
     suspend fun logout(): AuthResult<Unit> {

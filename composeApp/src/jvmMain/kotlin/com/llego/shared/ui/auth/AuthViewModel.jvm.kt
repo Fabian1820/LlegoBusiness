@@ -303,6 +303,14 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         authManager.clearCurrentBranch()
     }
 
+    actual suspend fun requestAccountDeletion(): AuthResult<User> {
+        return authManager.requestAccountDeletion()
+    }
+
+    actual suspend fun cancelAccountDeletion(): AuthResult<User> {
+        return authManager.cancelAccountDeletion()
+    }
+
     actual fun reloadUserData() {
         viewModelScope.launch {
             authManager.getCurrentUser()

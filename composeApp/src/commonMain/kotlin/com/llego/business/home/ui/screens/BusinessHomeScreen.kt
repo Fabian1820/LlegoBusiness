@@ -7,9 +7,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -165,9 +168,13 @@ fun BusinessHomeScreen(
         }
     }
 
+    val authUiState by authViewModel.uiState.collectAsState()
+    val scheduledDeletionAt = authUiState.user?.scheduledDeletionAt
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
+            Column {
             Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.background) {
                 AnimatedContent(
                     targetState = isSearchMode && searchEnabledForCurrentTab,
@@ -297,6 +304,10 @@ fun BusinessHomeScreen(
                         )
                     }
                 }
+            }
+            scheduledDeletionAt?.let { iso ->
+                AccountDeletionPendingBanner(scheduledAtIso = iso)
+            }
             }
         },
         bottomBar = {
@@ -460,6 +471,39 @@ fun BusinessHomeScreen(
 
                 else -> Unit
             }
+        }
+    }
+}
+
+/**
+ * Banner persistente que avisa al usuario que su cuenta está programada para eliminación.
+ * Apple Guideline 5.1.1(v): el usuario debe poder confirmar que tiene un periodo de gracia antes
+ * del borrado definitivo y revertirlo desde la app.
+ */
+@Composable
+private fun AccountDeletionPendingBanner(scheduledAtIso: String) {
+    val displayDate = scheduledAtIso.take(10)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.errorContainer
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.WarningAmber,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = "Tu cuenta se eliminará el $displayDate. Cancela la solicitud desde Ajustes › Cuenta.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
         }
     }
 }

@@ -404,10 +404,116 @@ class AuthRepository(
     }
 
     /**
+     * Programa la eliminación de la cuenta con 30 días de gracia (Apple Guideline 5.1.1(v)).
+     * El usuario puede cancelarla iniciando sesión de nuevo.
+     */
+    suspend fun requestAccountDeletion(): AuthResult<User> {
+        val token = tokenManager.getToken()
+            ?: return AuthResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                RequestAccountDeletionMutation(jwt = token)
+            ).execute()
+
+            if (response.hasErrors()) {
+                val message = response.errors?.firstOrNull()?.message ?: "Error al programar la eliminación"
+                return AuthResult.Error(message, "GRAPHQL_ERROR")
+            }
+
+            val updated = response.data?.requestAccountDeletion?.userCoreFields
+                ?: return AuthResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")
+
+            val current = _currentUser.value
+            val newUser = current?.copy(scheduledDeletionAt = updated.scheduledDeletionAt?.toString())
+                ?: User(
+                    id = updated.id,
+                    name = updated.name,
+                    email = updated.email,
+                    username = updated.username,
+                    phone = updated.phone,
+                    role = updated.role,
+                    avatar = updated.avatar,
+                    businessIds = updated.businessIds,
+                    branchIds = updated.branchIds,
+                    createdAt = updated.createdAt.toString(),
+                    authProvider = updated.authProvider,
+                    providerUserId = updated.providerUserId,
+                    applePrivateEmail = updated.applePrivateEmail,
+                    wallet = WalletBalance(local = updated.wallet.local, usd = updated.wallet.usd),
+                    walletStatus = updated.walletStatus,
+                    avatarUrl = updated.avatarUrl,
+                    scheduledDeletionAt = updated.scheduledDeletionAt?.toString()
+                )
+            _currentUser.value = newUser
+            AuthResult.Success(newUser)
+        } catch (e: ApolloException) {
+            AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
+        }
+    }
+
+    /**
+     * Cancela una solicitud de eliminación pendiente, restaurando el acceso normal.
+     */
+    suspend fun cancelAccountDeletion(): AuthResult<User> {
+        val token = tokenManager.getToken()
+            ?: return AuthResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                CancelAccountDeletionMutation(jwt = token)
+            ).execute()
+
+            if (response.hasErrors()) {
+                val message = response.errors?.firstOrNull()?.message ?: "Error al cancelar la eliminación"
+                return AuthResult.Error(message, "GRAPHQL_ERROR")
+            }
+
+            val updated = response.data?.cancelAccountDeletion?.userCoreFields
+                ?: return AuthResult.Error("No se recibio respuesta del servidor", "EMPTY_RESPONSE")
+
+            val current = _currentUser.value
+            val newUser = current?.copy(scheduledDeletionAt = null)
+                ?: User(
+                    id = updated.id,
+                    name = updated.name,
+                    email = updated.email,
+                    username = updated.username,
+                    phone = updated.phone,
+                    role = updated.role,
+                    avatar = updated.avatar,
+                    businessIds = updated.businessIds,
+                    branchIds = updated.branchIds,
+                    createdAt = updated.createdAt.toString(),
+                    authProvider = updated.authProvider,
+                    providerUserId = updated.providerUserId,
+                    applePrivateEmail = updated.applePrivateEmail,
+                    wallet = WalletBalance(local = updated.wallet.local, usd = updated.wallet.usd),
+                    walletStatus = updated.walletStatus,
+                    avatarUrl = updated.avatarUrl,
+                    scheduledDeletionAt = null
+                )
+            _currentUser.value = newUser
+            AuthResult.Success(newUser)
+        } catch (e: ApolloException) {
+            AuthResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            AuthResult.Error(e.message ?: "Error inesperado", "UNKNOWN_ERROR")
+        }
+    }
+
+    /**
      * Logout del usuario.
      */
     suspend fun logout(): AuthResult<Unit> {
         tokenManager.clearAll()
+        // Apple 5.1.1: limpiar cache normalizado de Apollo para evitar que el siguiente login
+        // vea datos del usuario anterior.
+        try {
+            client.apolloStore.clearAll()
+        } catch (_: Throwable) { /* cache puede estar vacío en primer arranque */ }
         _currentUser.value = null
         _isAuthenticated.value = false
         return AuthResult.Success(Unit)

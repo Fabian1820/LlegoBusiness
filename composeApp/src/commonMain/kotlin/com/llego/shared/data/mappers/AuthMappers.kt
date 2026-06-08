@@ -125,7 +125,8 @@ internal fun MeQuery.Me.toDomain(): User {
             usd = fields.wallet.usd
         ),
         walletStatus = fields.walletStatus,
-        avatarUrl = fields.avatarUrl
+        avatarUrl = fields.avatarUrl,
+        scheduledDeletionAt = fields.scheduledDeletionAt?.toString()
     )
 }
 

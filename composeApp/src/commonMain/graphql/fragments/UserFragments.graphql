@@ -27,6 +27,7 @@ fragment UserCoreFields on UserType {
   }
   walletStatus
   avatarUrl
+  scheduledDeletionAt
 }
 
 fragment UserUpdateFields on UserType {

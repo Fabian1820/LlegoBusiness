@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.settings.data.model.*
@@ -45,6 +46,9 @@ fun SettingsScreen(
 ) {
     var animateContent by remember { mutableStateOf(false) }
     var ownerSaveMessage by remember { mutableStateOf<String?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var deletionProcessing by remember { mutableStateOf(false) }
+    var deletionFeedback by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     val uiState by settingsViewModel.uiState.collectAsState()
@@ -214,6 +218,42 @@ fun SettingsScreen(
                                 SupportSection()
                             }
                         }
+
+                        // Cuenta (Apple Guideline 5.1.1(v) — Delete Account)
+                        item {
+                            SettingsSection(
+                                title = "Cuenta",
+                                icon = Icons.Default.ManageAccounts,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            ) {
+                                AccountDeletionSection(
+                                    isScheduled = currentUser?.scheduledDeletionAt != null,
+                                    scheduledAtIso = currentUser?.scheduledDeletionAt,
+                                    isProcessing = deletionProcessing,
+                                    onRequestDeletion = { showDeleteConfirm = true },
+                                    onCancelDeletion = {
+                                        coroutineScope.launch {
+                                            deletionProcessing = true
+                                            val result = authViewModel.cancelAccountDeletion()
+                                            deletionProcessing = false
+                                            deletionFeedback = when (result) {
+                                                is AuthResult.Success -> "Solicitud de eliminación cancelada."
+                                                is AuthResult.Error -> result.message
+                                                else -> null
+                                            }
+                                        }
+                                    }
+                                )
+                                deletionFeedback?.let { msg ->
+                                    Text(
+                                        text = msg,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 is SettingsUiState.Loading -> {
@@ -261,6 +301,55 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { if (!deletionProcessing) showDeleteConfirm = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.DeleteForever,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                title = { Text("Eliminar cuenta") },
+                text = {
+                    Text(
+                        "Tu cuenta y todos sus datos se eliminarán de forma permanente 30 días después de esta solicitud. " +
+                                "Puedes cancelar el proceso iniciando sesión durante ese período. ¿Deseas continuar?"
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                deletionProcessing = true
+                                val result = authViewModel.requestAccountDeletion()
+                                deletionProcessing = false
+                                showDeleteConfirm = false
+                                deletionFeedback = when (result) {
+                                    is AuthResult.Success -> "Eliminación programada. Tu cuenta se borrará en 30 días."
+                                    is AuthResult.Error -> result.message
+                                    else -> null
+                                }
+                            }
+                        },
+                        enabled = !deletionProcessing
+                    ) {
+                        Text(
+                            if (deletionProcessing) "Procesando..." else "Eliminar",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeleteConfirm = false },
+                        enabled = !deletionProcessing
+                    ) { Text("Cancelar") }
+                }
+            )
         }
     }
 }
@@ -384,19 +473,59 @@ private fun NotificationSettingsSection(
 
 @Composable
 private fun DataPrivacySection() {
+    val uriHandler = LocalUriHandler.current
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SettingsRow(
             title = "Politica de Privacidad",
             subtitle = "Lee nuestra politica de privacidad",
             icon = Icons.Default.PrivacyTip,
-            onClick = { /* TODO */ }
+            onClick = { runCatching { uriHandler.openUri("https://llegobackend-production.up.railway.app/privacy") } }
         )
         SettingsRow(
             title = "Terminos y Condiciones",
             subtitle = "Consulta los terminos de servicio",
             icon = Icons.Default.Description,
-            onClick = { /* TODO */ }
+            onClick = { runCatching { uriHandler.openUri("https://llegobackend-production.up.railway.app/terms") } }
         )
+    }
+}
+
+@Composable
+private fun AccountDeletionSection(
+    isScheduled: Boolean,
+    scheduledAtIso: String?,
+    isProcessing: Boolean,
+    onRequestDeletion: () -> Unit,
+    onCancelDeletion: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (isScheduled) {
+            val displayDate = scheduledAtIso?.take(10) ?: ""
+            Text(
+                text = "Tu cuenta está programada para eliminarse el $displayDate. Puedes cancelar la solicitud en cualquier momento antes de esa fecha.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SettingsRow(
+                title = if (isProcessing) "Cancelando..." else "Cancelar eliminación",
+                subtitle = "Restaurar el acceso normal a tu cuenta",
+                icon = Icons.Default.Restore,
+                onClick = { if (!isProcessing) onCancelDeletion() }
+            )
+        } else {
+            Text(
+                text = "Al solicitar la eliminación, tu cuenta y todos sus datos asociados se borrarán de forma permanente 30 días después. Durante ese período puedes cancelar la solicitud iniciando sesión.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SettingsRow(
+                title = if (isProcessing) "Procesando..." else "Eliminar mi cuenta",
+                subtitle = "Programa la eliminación permanente en 30 días",
+                icon = Icons.Default.DeleteForever,
+                onClick = { if (!isProcessing) onRequestDeletion() },
+                isDestructive = true
+            )
+        }
     }
 }
 

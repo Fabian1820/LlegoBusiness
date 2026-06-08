@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -79,6 +80,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val loginError by viewModel.loginError.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     var headerVisible by remember { mutableStateOf(false) }
     var cardVisible by remember { mutableStateOf(false) }
@@ -354,7 +356,7 @@ fun LoginScreen(
                                             start = offset,
                                             end = offset
                                         ).firstOrNull()?.let {
-                                            // TODO: Mostrar Terminos y Condiciones
+                                            runCatching { uriHandler.openUri("https://llegobackend-production.up.railway.app/terms") }
                                         }
 
                                         termsText.getStringAnnotations(
@@ -362,7 +364,7 @@ fun LoginScreen(
                                             start = offset,
                                             end = offset
                                         ).firstOrNull()?.let {
-                                            // TODO: Mostrar Politica de Privacidad
+                                            runCatching { uriHandler.openUri("https://llegobackend-production.up.railway.app/privacy") }
                                         }
                                     }
                                 )

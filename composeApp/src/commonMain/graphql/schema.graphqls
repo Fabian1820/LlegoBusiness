@@ -510,6 +510,8 @@ type UserType {
 
   deliveredOrdersCount: Int!
 
+  scheduledDeletionAt: DateTime
+
   """
   URL firmada del avatar del usuario
   """
@@ -3708,6 +3710,16 @@ type Mutation {
   Eliminar cuenta de usuario
   """
   deleteUser(jwt: String = null): Boolean!
+
+  """
+  Programar la eliminación de la cuenta con 30 días de gracia (Apple Guideline 5.1.1(v))
+  """
+  requestAccountDeletion(jwt: String = null): UserType!
+
+  """
+  Cancelar una solicitud de eliminación de cuenta pendiente
+  """
+  cancelAccountDeletion(jwt: String = null): UserType!
 
   """
   Actualizar ubicación del usuario

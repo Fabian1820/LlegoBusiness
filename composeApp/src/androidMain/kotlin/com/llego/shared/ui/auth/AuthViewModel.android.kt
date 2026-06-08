@@ -479,6 +479,16 @@ actual class AuthViewModel : ViewModel {
         authManager.clearCurrentBranch()
     }
 
+    actual suspend fun requestAccountDeletion(): AuthResult<User> {
+        ensureInitialized()
+        return authManager.requestAccountDeletion()
+    }
+
+    actual suspend fun cancelAccountDeletion(): AuthResult<User> {
+        ensureInitialized()
+        return authManager.cancelAccountDeletion()
+    }
+
     /**
      * Recarga los datos del usuario y sus negocios/sucursales desde el backend
      * Ãštil despuÃ©s de aceptar una invitaciÃ³n o cualquier cambio que afecte businessIds/branchIds

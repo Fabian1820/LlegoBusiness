@@ -1,0 +1,5 @@
+mutation CancelAccountDeletion($jwt: String!) {
+  cancelAccountDeletion(jwt: $jwt) {
+    ...UserCoreFields
+  }
+}

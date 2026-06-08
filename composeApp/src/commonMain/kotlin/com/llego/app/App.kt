@@ -149,7 +149,7 @@ fun App(viewModels: AppViewModels) {
             navigator.canConsumeBackPress() ||
                 (!isAuthenticated && preAuthScreen == PreAuthScreen.LOGIN) ||
                 (isAuthenticated && needsBusinessRegistration && !isExploringWithoutBusiness) ||
-                (isAuthenticated && !needsBusinessRegistration && currentBranch != null)
+                (isAuthenticated && currentBranch != null)
 
         PlatformBackHandler(enabled = shouldHandleNativeBack) {
             if (navigator.consumeBackPress()) {
@@ -171,7 +171,7 @@ fun App(viewModels: AppViewModels) {
                     }
                 }
 
-                isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
+                isAuthenticated && currentBranch != null -> {
                     authViewModel.clearCurrentBranch()
                 }
             }
@@ -344,8 +344,11 @@ fun App(viewModels: AppViewModels) {
                     )
                 }
 
-                // Caso 2: Usuario autenticado CON negocio y sucursal seleccionada → Dashboard
-                isAuthenticated && !needsBusinessRegistration && currentBranch != null -> {
+                // Caso 2: Usuario autenticado CON sucursal seleccionada → Dashboard.
+                // Una sucursal seleccionada implica acceso a un negocio, así que tiene
+                // prioridad sobre needsBusinessRegistration (que puede quedar obsoleto si el
+                // objeto User llega sin businessIds/branchIds, p. ej. tras login con Apple).
+                isAuthenticated && currentBranch != null -> {
                     MainBusinessFlow(
                         navigator = navigator,
                         authViewModel = authViewModel,
@@ -485,7 +488,7 @@ private fun BranchSelectionFlow(
 ) {
     when {
         navigator.businessToEdit != null -> {
-            val business = navigator.businessToEdit!!
+            val business = navigator.businessToEdit ?: return
             BusinessEditScreen(
                 business = business,
                 branches = branches.filter { it.businessId == business.id },
@@ -503,8 +506,9 @@ private fun BranchSelectionFlow(
         }
 
         navigator.branchToEdit != null -> {
+            val branch = navigator.branchToEdit ?: return
             BranchEditScreen(
-                branch = navigator.branchToEdit!!,
+                branch = branch,
                 onNavigateBack = { navigator.branchToEdit = null },
                 onSuccess = { _ ->
                     navigator.branchToEdit = null
@@ -669,7 +673,8 @@ private fun MainBusinessFlow(
                         animationSpec = tween(durationMillis = 350)
                     ) + fadeOut(animationSpec = tween(durationMillis = 350))
                 ) {
-                    val order = ordersViewModel.getOrderById(navigator.selectedOrderId!!)
+                    val orderId = navigator.selectedOrderId
+                    val order = orderId?.let { ordersViewModel.getOrderById(it) }
                     if (order != null) {
                         OrderDetailScreen(
                             order = order,
@@ -685,8 +690,9 @@ private fun MainBusinessFlow(
             }
 
             navigator.showProductDetail && navigator.productToView != null -> {
+                val product = navigator.productToView ?: return
                 ProductDetailScreen(
-                    product = navigator.productToView!!,
+                    product = product,
                     categoryNameById = categoryNameById,
                     variantListNameById = variantListNameById,
                     onNavigateBack = {
@@ -716,8 +722,9 @@ private fun MainBusinessFlow(
             }
 
             navigator.showComboDetail && navigator.comboToView != null -> {
+                val combo = navigator.comboToView ?: return
                 ComboDetailScreen(
-                    combo = navigator.comboToView!!,
+                    combo = combo,
                     onNavigateBack = {
                         navigator.showComboDetail = false
                         navigator.comboToView = null
@@ -732,8 +739,9 @@ private fun MainBusinessFlow(
             }
 
             SHOWCASE_FRONTEND_ENABLED && navigator.showShowcaseDetail && navigator.showcaseToView != null -> {
+                val showcase = navigator.showcaseToView ?: return
                 ShowcaseDetailScreen(
-                    showcase = navigator.showcaseToView!!,
+                    showcase = showcase,
                     onNavigateBack = {
                         navigator.showShowcaseDetail = false
                         navigator.showcaseToView = null
@@ -870,7 +878,7 @@ private fun MainBusinessFlow(
             }
 
             navigator.businessToEdit != null -> {
-                val business = navigator.businessToEdit!!
+                val business = navigator.businessToEdit ?: return
                 BusinessEditScreen(
                     business = business,
                     branches = branches.filter { it.businessId == business.id },
@@ -904,8 +912,9 @@ private fun MainBusinessFlow(
             }
 
             navigator.branchToEdit != null -> {
+                val branch = navigator.branchToEdit ?: return
                 BranchEditScreen(
-                    branch = navigator.branchToEdit!!,
+                    branch = branch,
                     onNavigateBack = { navigator.branchToEdit = null },
                     onSuccess = { _ ->
                         navigator.branchToEdit = null
@@ -980,12 +989,12 @@ private fun MainBusinessFlow(
 
             navigator.showInvitations -> {
                 val currentBusiness by authViewModel.currentBusiness.collectAsState()
-
-                if (currentBusiness != null) {
+                val business = currentBusiness
+                if (business != null) {
                     InvitationDashboard(
                         viewModel = invitationViewModel,
-                        businessId = currentBusiness!!.id,
-                        businessName = currentBusiness!!.name,
+                        businessId = business.id,
+                        businessName = business.name,
                         branches = branches.map { it.id to it.name },
                         onNavigateBack = { navigator.showInvitations = false }
                     )
