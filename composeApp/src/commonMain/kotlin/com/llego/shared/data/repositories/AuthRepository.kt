@@ -2,6 +2,7 @@ package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.apollographql.apollo.cache.normalized.apolloStore
 import com.apollographql.apollo.exception.ApolloException
 import com.llego.multiplatform.graphql.*
 import com.llego.multiplatform.graphql.type.AddBranchToUserInput as GQLAddBranchToUserInput
