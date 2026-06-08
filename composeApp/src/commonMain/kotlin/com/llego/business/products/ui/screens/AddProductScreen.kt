@@ -5,11 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -50,7 +48,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -127,8 +124,6 @@ fun AddProductScreen(
 ) {
     val imageUploadViewModel = remember { ImageUploadViewModel() }
     val coroutineScope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
 
     val formKey = existingProduct?.id ?: "new:${branchId ?: "none"}"
 
@@ -274,76 +269,79 @@ fun AddProductScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (!isKeyboardVisible) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 4.dp,
-                    tonalElevation = 0.dp,
-                    shape = LlegoCustomShapes.bottomSheet
+            // El bottomBar se mantiene SIEMPRE montado. No condicionarlo a la
+            // visibilidad del teclado: en iOS, quitar/agregar un slot del Scaffold
+            // durante la animacion del IME provoca un relayout que roba el foco al
+            // TextField y cierra el teclado de inmediato. imePadding() en el Column
+            // scrolleable mantiene el campo enfocado por encima del teclado.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp,
+                tonalElevation = 0.dp,
+                shape = LlegoCustomShapes.bottomSheet
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.weight(1f),
+                        shape = LlegoCustomShapes.secondaryButton,
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        )
                     ) {
-                        OutlinedButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier.weight(1f),
-                            shape = LlegoCustomShapes.secondaryButton,
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        Text(
+                            "Cancelar",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.SemiBold
                             )
-                        ) {
-                            Text(
-                                "Cancelar",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            val normalizedWeight = weight.trim().takeIf { it.isNotBlank() }
+                            val normalizedDescription = description.trim()
+                            val normalizedName = name.trim()
+
+                            onSave(
+                                ProductFormData(
+                                    name = normalizedName,
+                                    description = normalizedDescription,
+                                    price = priceValue ?: 0.0,
+                                    categoryId = selectedCategoryId,
+                                    weight = normalizedWeight,
+                                    currency = currency,
+                                    imagePath = imagePath,
+                                    availability = isAvailable,
+                                    variantListIds = selectedVariantListIds
                                 )
                             )
-                        }
-
-                        Button(
-                            onClick = {
-                                val normalizedWeight = weight.trim().takeIf { it.isNotBlank() }
-                                val normalizedDescription = description.trim()
-                                val normalizedName = name.trim()
-
-                                onSave(
-                                    ProductFormData(
-                                        name = normalizedName,
-                                        description = normalizedDescription,
-                                        price = priceValue ?: 0.0,
-                                        categoryId = selectedCategoryId,
-                                        weight = normalizedWeight,
-                                        currency = currency,
-                                        imagePath = imagePath,
-                                        availability = isAvailable,
-                                        variantListIds = selectedVariantListIds
-                                    )
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                            enabled = isSaveEnabled,
-                            shape = LlegoCustomShapes.primaryButton
-                        ) {
-                            if (isSaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier
-                                        .padding(end = 8.dp)
-                                        .height(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Text("Guardando...")
-                            } else {
-                                Text("Guardar")
-                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = isSaveEnabled,
+                        shape = LlegoCustomShapes.primaryButton
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .height(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Text("Guardando...")
+                        } else {
+                            Text("Guardar")
                         }
                     }
                 }

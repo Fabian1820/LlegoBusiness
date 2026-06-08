@@ -14,11 +14,18 @@ end
 
 # Configuración post-install para evitar warnings
 post_install do |installer|
+  # Fix del bug de rsync al ARCHIVAR ("framework: stat: No such file or directory").
+  # CocoaPods genera install_framework con $1 ABSOLUTO, y al archivar el framework
+  # en BUILT_PRODUCTS_DIR es un symlink RELATIVO a UninstalledProducts. Hay que
+  # resolverlo contra el dir del propio symlink (no contra BUILT_PRODUCTS_DIR/$1,
+  # que duplicaría la ruta porque $1 ya es absoluto).
   readlink_fix_old = 'source="$(readlink "${source}")"'
   readlink_fix_new = <<~'SCRIPT'.strip
-    source="$(readlink "${source}")"
-    if [[ "$source" != /* ]]; then
-      source="$(dirname "${BUILT_PRODUCTS_DIR}/$1")/${source}"
+    link_target="$(readlink "${source}")"
+    if [[ "$link_target" == /* ]]; then
+      source="$link_target"
+    else
+      source="$(dirname "${source}")/${link_target}"
     fi
   SCRIPT
 
