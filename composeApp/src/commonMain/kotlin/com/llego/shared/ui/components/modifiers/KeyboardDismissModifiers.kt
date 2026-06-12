@@ -42,6 +42,14 @@ fun Modifier.dismissKeyboardOnTapOutside(
 
 /**
  * Cierra el teclado cuando el usuario hace scroll manualmente.
+ *
+ * ADVERTENCIA — NO usar en iOS. `onPreScroll` llama `clearFocus(force=true)` ante
+ * cualquier delta de scroll de usuario. En iOS, al tocar un TextField dentro de un
+ * `verticalScroll`, el contacto del dedo (sub-slop) y el bring-into-view del campo
+ * generan micro-deltas que se clasifican como UserInput, asi que limpiaba el foco al
+ * instante y el teclado se abria y se cerraba en TODOS los inputs dentro de scrolls.
+ * Ademas, su nestedScroll en la raiz interfiere con el primer gesto de scroll. En iOS
+ * preferimos no interceptar el scroll; el teclado se cierra con su tecla de retorno.
  */
 fun Modifier.dismissKeyboardOnScroll(
     focusManager: FocusManager

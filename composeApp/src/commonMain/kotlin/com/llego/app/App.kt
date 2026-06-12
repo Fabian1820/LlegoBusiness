@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.llego.shared.ui.auth.AuthViewModel
 import com.llego.shared.ui.auth.LoginScreen
@@ -68,8 +67,6 @@ import com.llego.shared.ui.onboarding.OnboardingIntroScreen
 import com.llego.shared.ui.onboarding.OnboardingWizardScreen
 import com.llego.shared.data.model.hasBusiness
 import com.llego.shared.ui.components.atoms.LoadingOverlay
-import com.llego.shared.ui.components.modifiers.dismissKeyboardOnScroll
-import com.llego.shared.utils.isAndroid
 import kotlinx.coroutines.launch
 
 private val mongoObjectIdRegex = Regex("^[a-fA-F0-9]{24}$")
@@ -110,7 +107,6 @@ data class AppViewModels(
 fun App(viewModels: AppViewModels) {
     LlegoBusinessTheme {
         val authViewModel = viewModels.auth
-        val focusManager = LocalFocusManager.current
 
 
         var isAuthenticated by remember { mutableStateOf(false) }
@@ -300,22 +296,7 @@ fun App(viewModels: AppViewModels) {
         }
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .let { base ->
-                    if (isAndroid) {
-                        base
-                    } else {
-                        // En iOS NO aplicamos dismissKeyboardOnTapOutside: su deteccion de
-                        // "tap fuera" depende de que el hijo consuma el evento, cosa que el
-                        // TextField de Compose iOS no hace. Resultado: limpiaba el foco al
-                        // tocar el propio campo (el teclado se abria y se cerraba) y su
-                        // awaitEachGesture raiz se quedaba con el primer gesto, bloqueando el
-                        // scroll hasta una recomposicion. Dejamos solo dismiss-on-scroll, que
-                        // via nestedScroll no consume el gesto y es inocuo.
-                        base.dismissKeyboardOnScroll(focusManager)
-                    }
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             when {
                 // Caso 0: Carga inicial - sesion + datos de negocio/sucursales

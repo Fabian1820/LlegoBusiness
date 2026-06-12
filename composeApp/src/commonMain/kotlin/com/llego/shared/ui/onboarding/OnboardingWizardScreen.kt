@@ -3,6 +3,7 @@ package com.llego.shared.ui.onboarding
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +42,8 @@ import com.llego.shared.ui.theme.LlegoAccent
 import com.llego.shared.ui.theme.LlegoPrimary
 import com.llego.shared.ui.theme.LlegoSecondary
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.roundToLong
 
@@ -102,6 +105,20 @@ fun OnboardingWizardScreen(
     var showValidationErrors by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
+
+    // Workaround iOS (Compose Multiplatform): el verticalScroll que vive dentro del
+    // AnimatedContent del wizard no engancha el gesto tactil hasta una recomposicion,
+    // por eso la pantalla no scrollea hasta enfocar un campo (que muestra el teclado y
+    // dispara ese relayout). Tras cada paso, cuando el contenido excede el viewport,
+    // un nudge de 1px imperceptible inicializa el gesto. Si el contenido cabe en
+    // pantalla, maxValue se queda en 0 y el effect simplemente espera sin hacer nada.
+    LaunchedEffect(currentStep, wizardMode) {
+        snapshotFlow { scrollState.maxValue }
+            .filter { it > 0 }
+            .first()
+        scrollState.scrollBy(1f)
+        scrollState.scrollBy(-1f)
+    }
 
     val totalSteps = when (wizardMode) {
         WizardMode.SINGLE_BRANCH -> 8  // 0=modo, 1=nombre+tipos, 2=contacto, 3=mapa, 4=horario, 5=pago, 6=imágenes, 7=resumen
