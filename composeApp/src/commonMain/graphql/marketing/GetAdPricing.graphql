@@ -1,0 +1,10 @@
+query GetAdPricing {
+  adPricing {
+    id
+    placement
+    durationDays
+    price
+    currency
+    label
+  }
+}

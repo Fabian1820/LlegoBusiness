@@ -1,0 +1,7 @@
+mutation PurchaseAdCampaign($id: String!, $paymentMethodId: String!, $jwt: String) {
+  purchaseAdCampaign(id: $id, paymentMethodId: $paymentMethodId, jwt: $jwt) {
+    id
+    status
+    paymentStatus
+  }
+}

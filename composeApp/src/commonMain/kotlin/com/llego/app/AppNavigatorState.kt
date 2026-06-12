@@ -19,6 +19,7 @@ import com.llego.shared.data.model.Showcase
 @Stable
 class AppNavigatorState {
     var showProfile by mutableStateOf(false)
+    var showMarketing by mutableStateOf(false)
     var showBranchesManagement by mutableStateOf(false)
     var showStatistics by mutableStateOf(false)
     var showInvitations by mutableStateOf(false)
@@ -98,6 +99,7 @@ class AppNavigatorState {
             showBranchesManagement ||
             showDeliveryManagement ||
             showInvitations ||
+            showMarketing ||
             showProfile
     }
 
@@ -200,12 +202,18 @@ class AppNavigatorState {
                 true
             }
 
+            showMarketing -> {
+                showMarketing = false
+                true
+            }
+
             else -> false
         }
     }
 
     fun resetForNewSession(homeTabIndex: Int = 0) {
         showProfile = false
+        showMarketing = false
         showBranchesManagement = false
         showStatistics = false
         showInvitations = false

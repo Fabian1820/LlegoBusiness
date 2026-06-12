@@ -40,6 +40,7 @@ fun SettingsScreen(
     authViewModel: AuthViewModel,
     onNavigateToDeliveryManagement: () -> Unit = {},
     onNavigateToInvitations: () -> Unit = {},
+    onNavigateToMarketing: () -> Unit = {},
     showDeliveryManagementButton: Boolean = true,
     pendingDeliveryRequestsCount: Int = 0,
     onNavigateBack: () -> Unit = {}
@@ -168,6 +169,13 @@ fun SettingsScreen(
                                     subtitle = "Crea y administra accesos al negocio",
                                     icon = Icons.Default.CardGiftcard,
                                     onClick = onNavigateToInvitations
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                SettingsRow(
+                                    title = "Promociones",
+                                    subtitle = "Disena promociones que aparecen en el feed",
+                                    icon = Icons.Default.Campaign,
+                                    onClick = onNavigateToMarketing
                                 )
                             }
                         }

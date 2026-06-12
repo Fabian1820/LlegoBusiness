@@ -1,0 +1,43 @@
+query MyAdCampaigns($jwt: String) {
+  myAdCampaigns(jwt: $jwt) {
+    id
+    name
+    placement
+    status
+    paymentStatus
+    price
+    currency
+    durationDays
+    startAt
+    endAt
+    impressions
+    clicks
+    createdAt
+    rejectionReason
+    creative {
+      aspectRatio
+      animationPreset
+      background {
+        type
+        colors
+        angle
+        imageUrl
+      }
+      texts {
+        role
+        value
+        color
+        size
+        weight
+      }
+      badge {
+        text
+        style
+      }
+      cta {
+        label
+        deeplink
+      }
+    }
+  }
+}

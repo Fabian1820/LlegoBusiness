@@ -93,6 +93,7 @@ fun BusinessHomeScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToProfile: () -> Unit,
     onNavigateToInvitations: () -> Unit = {},
+    onNavigateToMarketing: () -> Unit = {},
     onNavigateToDeliveryManagement: () -> Unit = {},
     showDeliveryManagementAction: Boolean = false,
     deliveryPendingRequestsCount: Int = 0,
@@ -463,6 +464,7 @@ fun BusinessHomeScreen(
                         authViewModel = authViewModel,
                         onNavigateToDeliveryManagement = onNavigateToDeliveryManagement,
                         onNavigateToInvitations = onNavigateToInvitations,
+                        onNavigateToMarketing = onNavigateToMarketing,
                         showDeliveryManagementButton = showDeliveryManagementAction && !isCatalogOnly,
                         pendingDeliveryRequestsCount = deliveryPendingRequestsCount,
                         onNavigateBack = { }

@@ -1,0 +1,12 @@
+mutation CreateAdCampaign($input: CreateAdCampaignInput!, $jwt: String) {
+  createAdCampaign(input: $input, jwt: $jwt) {
+    id
+    name
+    placement
+    status
+    paymentStatus
+    price
+    currency
+    durationDays
+  }
+}

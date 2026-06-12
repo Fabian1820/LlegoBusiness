@@ -1015,12 +1015,24 @@ private fun MainBusinessFlow(
                 )
             }
 
+            navigator.showMarketing -> {
+                val marketingViewModel =
+                    remember { com.llego.business.marketing.ui.viewmodel.MarketingViewModel() }
+                com.llego.business.marketing.ui.screens.MarketingScreen(
+                    viewModel = marketingViewModel,
+                    businessId = currentBusiness?.id.orEmpty(),
+                    branchId = authViewModel.getCurrentBranchId(),
+                    onNavigateBack = { navigator.showMarketing = false }
+                )
+            }
+
             else -> {
                 BusinessHomeScreen(
                     authViewModel = authViewModel,
                     onNavigateBack = onNavigateBackToBranchSelector,
                     onNavigateToProfile = { navigator.showProfile = true },
                     onNavigateToInvitations = { navigator.showInvitations = true },
+                    onNavigateToMarketing = { navigator.showMarketing = true },
                     onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },
                     showDeliveryManagementAction = true,
                     deliveryPendingRequestsCount = deliveryEntryPointState.pendingRequestCount,
