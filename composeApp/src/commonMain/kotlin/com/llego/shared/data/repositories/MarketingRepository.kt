@@ -8,19 +8,9 @@ import com.llego.multiplatform.graphql.GetPaymentMethodsQuery
 import com.llego.multiplatform.graphql.MyAdCampaignsQuery
 import com.llego.multiplatform.graphql.PurchaseAdCampaignMutation
 import com.llego.multiplatform.graphql.type.CreateAdCampaignInput
-import com.llego.multiplatform.graphql.type.CreativeBackgroundInput
-import com.llego.multiplatform.graphql.type.CreativeBadgeInput
-import com.llego.multiplatform.graphql.type.CreativeCTAInput
-import com.llego.multiplatform.graphql.type.CreativeSpecInput
-import com.llego.multiplatform.graphql.type.CreativeTextInput
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.AdCampaign
 import com.llego.shared.data.model.AdPricing
-import com.llego.shared.data.model.CreativeBackground
-import com.llego.shared.data.model.CreativeBadge
-import com.llego.shared.data.model.CreativeCta
-import com.llego.shared.data.model.CreativeSpec
-import com.llego.shared.data.model.CreativeText
 import com.llego.shared.data.model.PaymentMethod
 import com.llego.shared.data.network.GraphQLClient
 
@@ -51,34 +41,20 @@ class MarketingRepository(
             Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Error"))
         } else {
             Result.success(response.data!!.myAdCampaigns.map { c ->
-                val cr = c.creative
                 AdCampaign(
                     id = c.id,
                     name = c.name,
                     placement = c.placement,
                     status = c.status,
                     paymentStatus = c.paymentStatus,
+                    approved = c.approved,
                     price = c.price,
                     currency = c.currency,
                     durationDays = c.durationDays,
                     impressions = c.impressions,
                     clicks = c.clicks,
                     rejectionReason = c.rejectionReason,
-                    creative = CreativeSpec(
-                        aspectRatio = cr.aspectRatio,
-                        animationPreset = cr.animationPreset,
-                        background = CreativeBackground(
-                            type = cr.background.type,
-                            colors = cr.background.colors,
-                            angle = cr.background.angle,
-                            imageUrl = cr.background.imageUrl
-                        ),
-                        texts = cr.texts.map {
-                            CreativeText(it.role, it.value, it.color, it.size, it.weight)
-                        },
-                        badge = cr.badge?.let { CreativeBadge(it.text, it.style) },
-                        cta = cr.cta?.let { CreativeCta(it.label, it.deeplink) }
-                    )
+                    creativeImageUrl = c.creativeImageUrl
                 )
             })
         }
@@ -107,14 +83,14 @@ class MarketingRepository(
         Result.failure(e)
     }
 
-    /** Crea la campaña (borrador). Devuelve el id. */
+    /** Crea la campaña (borrador) con la foto exportada ya subida. Devuelve el id. */
     suspend fun createCampaign(
         businessId: String,
         branchId: String,
         name: String,
         placement: String,
         durationDays: Int,
-        creative: CreativeSpec
+        creativeImagePath: String
     ): Result<String> = try {
         val token = tokenManager.getToken()
         val input = CreateAdCampaignInput(
@@ -123,7 +99,7 @@ class MarketingRepository(
             name = name,
             placement = placement,
             durationDays = durationDays,
-            creative = creative.toInput()
+            creativeImagePath = creativeImagePath
         )
         val response = client.mutation(
             CreateAdCampaignMutation(input = input, jwt = Optional.presentIfNotNull(token))
@@ -156,38 +132,3 @@ class MarketingRepository(
         Result.failure(e)
     }
 }
-
-private fun CreativeSpec.toInput(): CreativeSpecInput = CreativeSpecInput(
-    aspectRatio = Optional.present(aspectRatio),
-    animationPreset = Optional.present(animationPreset),
-    background = Optional.present(
-        CreativeBackgroundInput(
-            type = Optional.present(background.type),
-            colors = Optional.present(background.colors),
-            angle = Optional.present(background.angle),
-            imagePath = Optional.presentIfNotNull(background.imagePath)
-        )
-    ),
-    texts = Optional.present(
-        texts.map {
-            CreativeTextInput(
-                role = it.role,
-                value = it.value,
-                color = Optional.present(it.color),
-                size = Optional.present(it.size),
-                weight = Optional.present(it.weight)
-            )
-        }
-    ),
-    badge = badge?.let {
-        Optional.present(CreativeBadgeInput(text = it.text, style = Optional.present(it.style)))
-    } ?: Optional.absent(),
-    cta = cta?.let {
-        Optional.present(
-            CreativeCTAInput(
-                label = Optional.present(it.label),
-                deeplink = Optional.presentIfNotNull(it.deeplink)
-            )
-        )
-    } ?: Optional.absent()
-)

@@ -83,6 +83,19 @@ interface ImageUploadService {
         filePath: String,
         token: String?
     ): ImageUploadResult
+
+    /**
+     * Sube la foto exportada del creativo de una campaña (lienzo estilo Canva
+     * aplanado a una sola imagen). A diferencia del resto, recibe los bytes
+     * directamente porque la imagen se genera en memoria, no desde un archivo.
+     * @param imageBytes PNG de la tarjeta exportada
+     * @param token JWT token para autenticación
+     * @return ImageUploadResult con la respuesta del servidor (image_path)
+     */
+    suspend fun uploadAdCreative(
+        imageBytes: ByteArray,
+        token: String?
+    ): ImageUploadResult
 }
 
 /**

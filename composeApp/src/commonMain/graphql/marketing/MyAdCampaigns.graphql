@@ -5,6 +5,7 @@ query MyAdCampaigns($jwt: String) {
     placement
     status
     paymentStatus
+    approved
     price
     currency
     durationDays
@@ -14,30 +15,6 @@ query MyAdCampaigns($jwt: String) {
     clicks
     createdAt
     rejectionReason
-    creative {
-      aspectRatio
-      animationPreset
-      background {
-        type
-        colors
-        angle
-        imageUrl
-      }
-      texts {
-        role
-        value
-        color
-        size
-        weight
-      }
-      badge {
-        text
-        style
-      }
-      cta {
-        label
-        deeplink
-      }
-    }
+    creativeImageUrl
   }
 }

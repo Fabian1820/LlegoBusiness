@@ -233,6 +233,33 @@ class IosImageUploadService : ImageUploadService {
     override suspend fun uploadBranchCover(filePath: String, token: String?): ImageUploadResult {
         return uploadImage("/upload/branch/cover", filePath, token)
     }
+
+    override suspend fun uploadAdCreative(imageBytes: ByteArray, token: String?): ImageUploadResult {
+        return try {
+            val response = client.submitFormWithBinaryData(
+                url = "$baseUrl/upload/ad-campaign/creative",
+                formData = formData {
+                    append("image", imageBytes, Headers.build {
+                        append(HttpHeaders.ContentType, "image/png")
+                        append(HttpHeaders.ContentDisposition, "filename=\"creative.png\"")
+                    })
+                }
+            ) {
+                if (token != null) {
+                    header("Authorization", "Bearer $token")
+                }
+            }
+
+            if (response.status.isSuccess()) {
+                val uploadResponse: ImageUploadResponse = response.body()
+                ImageUploadResult.Success(uploadResponse)
+            } else {
+                ImageUploadResult.Error("Error del servidor (${response.status.value}): ${response.status.description}")
+            }
+        } catch (e: Exception) {
+            ImageUploadResult.Error("Error al subir creativo: ${e.message ?: "Error desconocido"}")
+        }
+    }
 }
 
 /**

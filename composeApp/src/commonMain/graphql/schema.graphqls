@@ -5748,53 +5748,20 @@ type AdPricingType {
   label: String
 }
 
-type CreativeBackgroundType {
-  type: String!
-  colors: [String!]!
-  angle: Int!
-  imagePath: String
-  imageUrl: String
-}
-
-type CreativeTextType {
-  role: String!
-  value: String!
-  color: String!
-  size: String!
-  weight: String!
-}
-
-type CreativeBadgeType {
-  text: String!
-  style: String!
-}
-
-type CreativeCTAType {
-  label: String!
-  deeplink: String
-}
-
-type CreativeSpecType {
-  aspectRatio: String!
-  background: CreativeBackgroundType!
-  texts: [CreativeTextType!]!
-  animationPreset: String!
-  badge: CreativeBadgeType
-  cta: CreativeCTAType
-}
-
 type AdCampaignType {
   id: String!
   businessId: String!
   branchId: String!
   name: String!
   placement: String!
-  creative: CreativeSpecType!
+  creativeImagePath: String
+  creativeImageUrl: String
   durationDays: Int!
   price: Float!
   currency: String!
   paymentStatus: String!
   status: String!
+  approved: Boolean!
   impressions: Int!
   clicks: Int!
   createdAt: DateTime!
@@ -5807,45 +5774,11 @@ type AdCampaignType {
   updatedAt: DateTime
 }
 
-input CreativeBackgroundInput {
-  type: String! = "gradient"
-  colors: [String!]! = ["#023133", "#0A5C3F"]
-  angle: Int! = 45
-  imagePath: String = null
-}
-
-input CreativeTextInput {
-  role: String!
-  value: String!
-  color: String! = "#FFFFFF"
-  size: String! = "md"
-  weight: String! = "regular"
-}
-
-input CreativeBadgeInput {
-  text: String!
-  style: String! = "offer"
-}
-
-input CreativeCTAInput {
-  label: String! = "Ver tienda"
-  deeplink: String = null
-}
-
-input CreativeSpecInput {
-  aspectRatio: String! = "wide"
-  animationPreset: String! = "none"
-  background: CreativeBackgroundInput = null
-  texts: [CreativeTextInput!]! = []
-  badge: CreativeBadgeInput = null
-  cta: CreativeCTAInput = null
-}
-
 input CreateAdCampaignInput {
   businessId: String!
   branchId: String!
   name: String!
   placement: String!
   durationDays: Int!
-  creative: CreativeSpecInput!
+  creativeImagePath: String!
 }

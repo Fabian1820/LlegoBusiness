@@ -5,18 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.model.AdCampaign
 import com.llego.shared.data.model.AdPricing
-import com.llego.shared.data.model.CreativeSpec
+import com.llego.shared.data.model.ImageUploadResult
 import com.llego.shared.data.model.PaymentMethod
 import com.llego.shared.data.repositories.MarketingRepository
+import com.llego.shared.data.upload.ImageUploadServiceFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MarketingViewModel(
-    tokenManager: TokenManager = TokenManager()
+    private val tokenManager: TokenManager = TokenManager()
 ) : ViewModel() {
     private val repository = MarketingRepository(tokenManager = tokenManager)
+    private val uploadService = ImageUploadServiceFactory.create()
 
     private val _pricing = MutableStateFlow<List<AdPricing>>(emptyList())
     val pricing: StateFlow<List<AdPricing>> = _pricing.asStateFlow()
@@ -32,6 +34,9 @@ class MarketingViewModel(
 
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
+
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -55,20 +60,46 @@ class MarketingViewModel(
     fun priceFor(placement: String, durationDays: Int): AdPricing? =
         _pricing.value.firstOrNull { it.placement == placement && it.durationDays == durationDays }
 
+    /**
+     * Sube la foto exportada del lienzo y devuelve su S3 path + URL presignada
+     * (o null si falla).
+     */
+    fun uploadCreative(imageBytes: ByteArray, onDone: (imagePath: String?, imageUrl: String?) -> Unit) {
+        viewModelScope.launch {
+            _isUploading.value = true
+            _error.value = null
+            when (val result = uploadService.uploadAdCreative(imageBytes, tokenManager.getToken())) {
+                is ImageUploadResult.Success -> {
+                    _isUploading.value = false
+                    onDone(result.response.imagePath, result.response.imageUrl)
+                }
+                is ImageUploadResult.Error -> {
+                    _error.value = result.message
+                    _isUploading.value = false
+                    onDone(null, null)
+                }
+                ImageUploadResult.Loading -> {
+                    _isUploading.value = false
+                    onDone(null, null)
+                }
+            }
+        }
+    }
+
     fun createAndPurchase(
         businessId: String,
         branchId: String,
         name: String,
         placement: String,
         durationDays: Int,
-        creative: CreativeSpec,
+        creativeImagePath: String,
         paymentMethodId: String,
         onDone: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
             _isSubmitting.value = true
             _error.value = null
-            repository.createCampaign(businessId, branchId, name, placement, durationDays, creative)
+            repository.createCampaign(businessId, branchId, name, placement, durationDays, creativeImagePath)
                 .onSuccess { id ->
                     repository.purchaseCampaign(id, paymentMethodId)
                         .onSuccess {

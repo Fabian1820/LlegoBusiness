@@ -1003,6 +1003,7 @@ private fun MainBusinessFlow(
                     viewModel = marketingViewModel,
                     businessId = currentBusiness?.id.orEmpty(),
                     branchId = authViewModel.getCurrentBranchId(),
+                    businessAvatarUrl = currentBusiness?.avatarUrl,
                     onNavigateBack = { navigator.showMarketing = false }
                 )
             }

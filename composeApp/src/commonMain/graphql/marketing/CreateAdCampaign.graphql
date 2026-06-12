@@ -5,6 +5,7 @@ mutation CreateAdCampaign($input: CreateAdCampaignInput!, $jwt: String) {
     placement
     status
     paymentStatus
+    approved
     price
     currency
     durationDays
