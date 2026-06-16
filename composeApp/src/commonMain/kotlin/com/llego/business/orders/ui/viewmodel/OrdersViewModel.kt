@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
@@ -117,6 +118,7 @@ class OrdersViewModel(
     private var lastSubscribedActiveBranchId: String? = null
     private var lastLoadedMenuBranchId: String? = null
     private val pendingBusinessCommentsByOrder = mutableMapOf<String, MutableList<String>>()
+    private var loadOrdersJob: Job? = null
 
     init {
         observeNewOrders()
@@ -177,8 +179,8 @@ class OrdersViewModel(
 
     fun loadOrders() {
         val branchId = _currentBranchId.value ?: return
-
-        viewModelScope.launch {
+        loadOrdersJob?.cancel()
+        loadOrdersJob = viewModelScope.launch {
             val shouldShowLoading = _orders.value.isEmpty()
             if (shouldShowLoading) {
                 _uiState.value = OrdersUiState.Loading

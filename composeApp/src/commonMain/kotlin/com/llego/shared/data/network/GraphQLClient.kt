@@ -1,6 +1,8 @@
 package com.llego.shared.data.network
 
 import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.cache.normalized.api.MemoryCacheFactory
+import com.apollographql.apollo.cache.normalized.normalizedCache
 import com.apollographql.apollo.network.http.HttpInterceptor
 import com.apollographql.apollo.network.http.HttpInterceptorChain
 import com.apollographql.apollo.api.http.HttpRequest
@@ -36,7 +38,8 @@ object GraphQLClient {
             .serverUrl(BackendConfig.GRAPHQL_URL)
             .addHttpHeader("Content-Type", "application/json")
             .addHttpInterceptor(AuthInterceptor())
-            .httpExposeErrorBody(true) // Expone el body del error para mejor debugging
+            .httpExposeErrorBody(true)
+            .normalizedCache(MemoryCacheFactory(maxSizeBytes = 10 * 1024 * 1024))
             .build()
     }
 
