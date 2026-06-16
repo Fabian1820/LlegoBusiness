@@ -4,6 +4,7 @@ import com.apollographql.apollo.ApolloClient
 import com.llego.business.orders.data.mappers.toDomain
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderStatus
+import com.llego.multiplatform.graphql.DeliveryLocationUpdatedSubscription
 import com.llego.multiplatform.graphql.NewBranchOrderSubscription
 import com.llego.multiplatform.graphql.BranchOrderUpdatedSubscription
 import com.llego.shared.data.network.GraphQLClient
@@ -12,10 +13,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.pow
@@ -52,6 +55,20 @@ data class OrderUpdateEvent(
     val newStatus: OrderStatus,
     val updatedAt: String,
     val order: Order? = null
+)
+
+/**
+ * Ubicación del chofer mientras va a entregar el pedido.
+ * AppMensajeros la publica vía `updateDeliveryLocation`; el backend la emite por
+ * la subscription `deliveryLocationUpdated`.
+ */
+data class DeliveryLocationEvent(
+    val orderId: String,
+    val latitude: Double,
+    val longitude: Double,
+    val timestamp: String,
+    val estimatedMinutesRemaining: Int? = null,
+    val distanceRemainingKm: Double? = null
 )
 
 /**
@@ -169,6 +186,30 @@ class SubscriptionManager(
      */
     fun updateActiveBranch(newActiveBranchId: String) {
         activeBranchId = newActiveBranchId
+    }
+
+    /**
+     * Stream de actualizaciones de ubicación del chofer para un pedido.
+     * El flujo se cancela al colectar fuera de scope; el caller decide cuándo escuchar.
+     */
+    fun subscribeToDriverLocation(orderId: String): Flow<DeliveryLocationEvent> {
+        return apolloClient
+            .subscription(DeliveryLocationUpdatedSubscription(orderId = orderId))
+            .toFlow()
+            .mapNotNull { response ->
+                response.data?.deliveryLocationUpdated?.let { upd ->
+                    val coords = upd.location.coordinates
+                    if (coords.size < 2) return@let null
+                    DeliveryLocationEvent(
+                        orderId = upd.orderId,
+                        longitude = coords[0],
+                        latitude = coords[1],
+                        timestamp = upd.timestamp.toString(),
+                        estimatedMinutesRemaining = upd.estimatedMinutesRemaining,
+                        distanceRemainingKm = upd.distanceRemainingKm
+                    )
+                }
+            }
     }
 
     /**

@@ -1,0 +1,8 @@
+mutation ClearBranchDailyOverride(
+  $branchId: String!
+  $jwt: String
+) {
+  clearBranchDailyOverride(branchId: $branchId, jwt: $jwt) {
+    ...BranchUpdateFields
+  }
+}

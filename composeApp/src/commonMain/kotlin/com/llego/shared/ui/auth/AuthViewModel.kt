@@ -62,6 +62,17 @@ expect class AuthViewModel() : ViewModel {
     suspend fun updateBranch(branchId: String, input: UpdateBranchInput): BusinessResult<Branch>
     suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch>
     suspend fun deleteBranch(branchId: String): BusinessResult<Boolean>
+    suspend fun setAcceptingOrders(branchId: String, accepting: Boolean): BusinessResult<Branch>
+    suspend fun setBranchDailyOverride(
+        branchId: String,
+        date: String,
+        temporallyClosed: Boolean = false,
+        temporallyOpen: Boolean = false,
+        openTime: String? = null,
+        closeTime: String? = null,
+        reason: String? = null
+    ): BusinessResult<Branch>
+    suspend fun clearBranchDailyOverride(branchId: String): BusinessResult<Branch>
 
     /** Obtiene el ID de la sucursal actual */
     fun getCurrentBranchId(): String?

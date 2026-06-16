@@ -1,0 +1,12 @@
+subscription DeliveryLocationUpdated($orderId: String!) {
+  deliveryLocationUpdated(orderId: $orderId) {
+    orderId
+    location {
+      type
+      coordinates
+    }
+    timestamp
+    estimatedMinutesRemaining
+    distanceRemainingKm
+  }
+}

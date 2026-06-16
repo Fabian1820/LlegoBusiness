@@ -112,7 +112,19 @@ data class Branch(
     val wallet: WalletBalance = WalletBalance(local = 0.0, usd = 0.0),  // Balance de la billetera
     val walletStatus: String = "active",  // Estado de la billetera: "active", "suspended", etc.
     val exchangeRate: Int? = null,
-    val catalogOnly: Boolean = false
+    val catalogOnly: Boolean = false,
+    val acceptingOrders: Boolean = true,
+    val temporaryStatus: BranchTemporaryStatus? = null
+)
+
+@Serializable
+data class BranchTemporaryStatus(
+    val temporallyClosed: Boolean = false,
+    val temporallyOpen: Boolean = false,
+    val reason: String? = null,
+    val date: String? = null,        // YYYY-MM-DD, ignorar si != hoy
+    val openTime: String? = null,    // HH:MM 24h
+    val closeTime: String? = null    // HH:MM 24h
 )
 
 /**

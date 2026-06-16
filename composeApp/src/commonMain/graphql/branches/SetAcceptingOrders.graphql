@@ -1,0 +1,9 @@
+mutation SetAcceptingOrders(
+  $branchId: String!
+  $accepting: Boolean!
+  $jwt: String
+) {
+  setAcceptingOrders(branchId: $branchId, accepting: $accepting, jwt: $jwt) {
+    ...BranchUpdateFields
+  }
+}

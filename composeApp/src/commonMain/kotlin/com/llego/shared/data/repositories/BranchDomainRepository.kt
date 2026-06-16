@@ -8,6 +8,9 @@ import com.llego.multiplatform.graphql.DeleteBranchMutation
 import com.llego.multiplatform.graphql.GetBranchQuery
 import com.llego.multiplatform.graphql.GetBranchesQuery
 import com.llego.multiplatform.graphql.MeQuery
+import com.llego.multiplatform.graphql.SetAcceptingOrdersMutation
+import com.llego.multiplatform.graphql.SetBranchDailyOverrideMutation
+import com.llego.multiplatform.graphql.ClearBranchDailyOverrideMutation
 import com.llego.multiplatform.graphql.UpdateBranchMutation
 import com.llego.shared.data.auth.TokenManager
 import com.llego.shared.data.mappers.toDomain
@@ -136,6 +139,108 @@ internal class BranchDomainRepository(
             BusinessResult.Error(e.message ?: "Error de conexion al actualizar sucursal", "APOLLO_ERROR")
         } catch (e: Exception) {
             BusinessResult.Error(e.message ?: "Error desconocido al actualizar sucursal", "UNKNOWN_ERROR")
+        }
+    }
+
+    suspend fun setAcceptingOrders(branchId: String, accepting: Boolean): BusinessResult<Branch> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                SetAcceptingOrdersMutation(
+                    branchId = branchId,
+                    accepting = accepting,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            response.data?.setAcceptingOrders?.let { branchData ->
+                val updatedBranch = branchData.toDomain()
+                state.setBranches(
+                    state.branches.value.map { if (it.id == branchId) updatedBranch else it }
+                )
+                if (state.currentBranch.value?.id == branchId) {
+                    state.setCurrentBranch(updatedBranch)
+                }
+                BusinessResult.Success(updatedBranch)
+            } ?: BusinessResult.Error("No se pudo actualizar la sucursal", "UPDATE_FAILED")
+        } catch (e: ApolloException) {
+            BusinessResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            BusinessResult.Error(e.message ?: "Error desconocido", "UNKNOWN_ERROR")
+        }
+    }
+
+    suspend fun setBranchDailyOverride(
+        branchId: String,
+        date: String,
+        temporallyClosed: Boolean = false,
+        temporallyOpen: Boolean = false,
+        openTime: String? = null,
+        closeTime: String? = null,
+        reason: String? = null
+    ): BusinessResult<Branch> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                SetBranchDailyOverrideMutation(
+                    branchId = branchId,
+                    date = date,
+                    temporallyClosed = Optional.present(temporallyClosed),
+                    temporallyOpen = Optional.present(temporallyOpen),
+                    openTime = Optional.presentIfNotNull(openTime),
+                    closeTime = Optional.presentIfNotNull(closeTime),
+                    reason = Optional.presentIfNotNull(reason),
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            response.data?.setBranchDailyOverride?.let { branchData ->
+                val updatedBranch = branchData.toDomain()
+                state.setBranches(
+                    state.branches.value.map { if (it.id == branchId) updatedBranch else it }
+                )
+                if (state.currentBranch.value?.id == branchId) {
+                    state.setCurrentBranch(updatedBranch)
+                }
+                BusinessResult.Success(updatedBranch)
+            } ?: BusinessResult.Error("No se pudo aplicar el override", "UPDATE_FAILED")
+        } catch (e: ApolloException) {
+            BusinessResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            BusinessResult.Error(e.message ?: "Error desconocido", "UNKNOWN_ERROR")
+        }
+    }
+
+    suspend fun clearBranchDailyOverride(branchId: String): BusinessResult<Branch> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.mutation(
+                ClearBranchDailyOverrideMutation(
+                    branchId = branchId,
+                    jwt = Optional.presentIfNotNull(token)
+                )
+            ).execute()
+
+            response.data?.clearBranchDailyOverride?.let { branchData ->
+                val updatedBranch = branchData.toDomain()
+                state.setBranches(
+                    state.branches.value.map { if (it.id == branchId) updatedBranch else it }
+                )
+                if (state.currentBranch.value?.id == branchId) {
+                    state.setCurrentBranch(updatedBranch)
+                }
+                BusinessResult.Success(updatedBranch)
+            } ?: BusinessResult.Error("No se pudo limpiar el override", "UPDATE_FAILED")
+        } catch (e: ApolloException) {
+            BusinessResult.Error(e.message ?: "Error de conexion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            BusinessResult.Error(e.message ?: "Error desconocido", "UNKNOWN_ERROR")
         }
     }
 

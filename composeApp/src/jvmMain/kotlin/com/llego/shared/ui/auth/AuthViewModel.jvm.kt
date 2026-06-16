@@ -291,6 +291,34 @@ actual class AuthViewModel actual constructor() : ViewModel() {
         return authManager.deleteBranch(branchId)
     }
 
+    actual suspend fun setAcceptingOrders(branchId: String, accepting: Boolean): BusinessResult<Branch> {
+        return authManager.setAcceptingOrders(branchId, accepting)
+    }
+
+    actual suspend fun setBranchDailyOverride(
+        branchId: String,
+        date: String,
+        temporallyClosed: Boolean,
+        temporallyOpen: Boolean,
+        openTime: String?,
+        closeTime: String?,
+        reason: String?
+    ): BusinessResult<Branch> {
+        return authManager.setBranchDailyOverride(
+            branchId = branchId,
+            date = date,
+            temporallyClosed = temporallyClosed,
+            temporallyOpen = temporallyOpen,
+            openTime = openTime,
+            closeTime = closeTime,
+            reason = reason
+        )
+    }
+
+    actual suspend fun clearBranchDailyOverride(branchId: String): BusinessResult<Branch> {
+        return authManager.clearBranchDailyOverride(branchId)
+    }
+
     actual fun getCurrentBranchId(): String? = authManager.currentBranch.value?.id
 
     actual fun getCurrentBusinessId(): String? = authManager.currentBusiness.value?.id

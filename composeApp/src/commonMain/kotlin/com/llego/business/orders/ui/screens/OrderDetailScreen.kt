@@ -66,6 +66,9 @@ import com.llego.shared.data.model.ComboSlot
 import com.llego.business.orders.data.model.PaymentAttemptStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.OrderStatus
+import androidx.compose.material.icons.filled.LocationOn
+import com.llego.business.orders.data.subscription.SubscriptionManager
+import com.llego.business.orders.ui.components.DriverLocationDialog
 import com.llego.business.orders.ui.components.OrderActionsSection
 import com.llego.business.orders.ui.components.CustomerInfoSection
 import com.llego.business.orders.ui.components.OrderItemsSection
@@ -123,6 +126,7 @@ fun OrderDetailScreen(
     var isPickupPromptActionInProgress by remember { mutableStateOf(false) }
     var pickupPromptError by remember { mutableStateOf<String?>(null) }
     var showPaymentProofDialog by rememberSaveable(order.id) { mutableStateOf(false) }
+    var showDriverLocationDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(
         currentOrder.id,
@@ -337,6 +341,25 @@ fun OrderDetailScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
                     OrderTimelineSection(timeline = currentOrder.timeline)
                 }
+
+                val canTrackDriver = currentOrder.deliveryPersonId != null &&
+                    currentOrder.status in setOf(OrderStatus.READY_FOR_PICKUP, OrderStatus.ON_THE_WAY)
+                if (canTrackDriver) {
+                    OutlinedButton(
+                        onClick = { showDriverLocationDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Ver ubicacion del chofer",
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -491,6 +514,14 @@ fun OrderDetailScreen(
                     Text("Cerrar")
                 }
             }
+        )
+    }
+
+    if (showDriverLocationDialog) {
+        DriverLocationDialog(
+            orderId = currentOrder.id,
+            subscriptionManager = SubscriptionManager.getInstance(),
+            onDismiss = { showDriverLocationDialog = false }
         )
     }
 }

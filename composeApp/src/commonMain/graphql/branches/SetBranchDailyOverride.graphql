@@ -1,0 +1,23 @@
+mutation SetBranchDailyOverride(
+  $branchId: String!
+  $date: String!
+  $temporallyClosed: Boolean = false
+  $temporallyOpen: Boolean = false
+  $openTime: String
+  $closeTime: String
+  $reason: String
+  $jwt: String
+) {
+  setBranchDailyOverride(
+    branchId: $branchId
+    date: $date
+    temporallyClosed: $temporallyClosed
+    temporallyOpen: $temporallyOpen
+    openTime: $openTime
+    closeTime: $closeTime
+    reason: $reason
+    jwt: $jwt
+  ) {
+    ...BranchUpdateFields
+  }
+}

@@ -212,6 +212,34 @@ class AuthManager(private val tokenManager: TokenManager) {
         return businessRepository.deleteBranch(branchId)
     }
 
+    suspend fun setAcceptingOrders(branchId: String, accepting: Boolean): BusinessResult<Branch> {
+        return businessRepository.setAcceptingOrders(branchId, accepting)
+    }
+
+    suspend fun setBranchDailyOverride(
+        branchId: String,
+        date: String,
+        temporallyClosed: Boolean = false,
+        temporallyOpen: Boolean = false,
+        openTime: String? = null,
+        closeTime: String? = null,
+        reason: String? = null
+    ): BusinessResult<Branch> {
+        return businessRepository.setBranchDailyOverride(
+            branchId = branchId,
+            date = date,
+            temporallyClosed = temporallyClosed,
+            temporallyOpen = temporallyOpen,
+            openTime = openTime,
+            closeTime = closeTime,
+            reason = reason
+        )
+    }
+
+    suspend fun clearBranchDailyOverride(branchId: String): BusinessResult<Branch> {
+        return businessRepository.clearBranchDailyOverride(branchId)
+    }
+
     /**
      * Establece la sucursal actual
      */

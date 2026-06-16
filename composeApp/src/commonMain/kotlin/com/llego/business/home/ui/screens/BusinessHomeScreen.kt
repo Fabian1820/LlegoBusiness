@@ -69,6 +69,7 @@ import coil3.compose.AsyncImage
 import com.llego.business.home.config.HomeTabConfig
 import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
+import com.llego.business.home.ui.components.BranchStatusChip
 import com.llego.business.more.ui.screens.MoreScreen
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
@@ -310,6 +311,36 @@ fun BusinessHomeScreen(
             }
             scheduledDeletionAt?.let { iso ->
                 AccountDeletionPendingBanner(scheduledAtIso = iso)
+            }
+            currentBranch?.takeIf { !isCatalogOnly }?.let { activeBranch ->
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BranchStatusChip(
+                            branch = activeBranch,
+                            onSetAcceptingOrders = { accepting ->
+                                authViewModel.setAcceptingOrders(activeBranch.id, accepting)
+                            },
+                            onSetDailyOverride = { date, closed, open, openTime, closeTime ->
+                                authViewModel.setBranchDailyOverride(
+                                    branchId = activeBranch.id,
+                                    date = date,
+                                    temporallyClosed = closed,
+                                    temporallyOpen = open,
+                                    openTime = openTime,
+                                    closeTime = closeTime
+                                )
+                            },
+                            onClearDailyOverride = {
+                                authViewModel.clearBranchDailyOverride(activeBranch.id)
+                            }
+                        )
+                    }
+                }
             }
             }
         },

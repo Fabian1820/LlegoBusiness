@@ -204,7 +204,18 @@ private fun BranchCoreFields.toDomain(): Branch {
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate,
-        catalogOnly = catalogOnly
+        catalogOnly = catalogOnly,
+        acceptingOrders = acceptingOrders,
+        temporaryStatus = schedule.temporaryStatus?.let { ts ->
+            com.llego.shared.data.model.BranchTemporaryStatus(
+                temporallyClosed = ts.temporallyClosed,
+                temporallyOpen = ts.temporallyOpen,
+                reason = ts.reason,
+                date = ts.date,
+                openTime = ts.openTime,
+                closeTime = ts.closeTime
+            )
+        }
     )
 }
 
@@ -249,7 +260,18 @@ private fun BranchUpdateFields.toDomain(): Branch {
         wallet = wallet.walletBalanceFields.toDomain(),
         walletStatus = walletStatus,
         exchangeRate = exchangeRate,
-        catalogOnly = catalogOnly
+        catalogOnly = catalogOnly,
+        acceptingOrders = acceptingOrders,
+        temporaryStatus = schedule.temporaryStatus?.let { ts ->
+            com.llego.shared.data.model.BranchTemporaryStatus(
+                temporallyClosed = ts.temporallyClosed,
+                temporallyOpen = ts.temporallyOpen,
+                reason = ts.reason,
+                date = ts.date,
+                openTime = ts.openTime,
+                closeTime = ts.closeTime
+            )
+        }
     )
 }
 

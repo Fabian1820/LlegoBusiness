@@ -448,6 +448,37 @@ actual class AuthViewModel : ViewModel {
         return authManager.deleteBranch(branchId)
     }
 
+    actual suspend fun setAcceptingOrders(branchId: String, accepting: Boolean): BusinessResult<Branch> {
+        ensureInitialized()
+        return authManager.setAcceptingOrders(branchId, accepting)
+    }
+
+    actual suspend fun setBranchDailyOverride(
+        branchId: String,
+        date: String,
+        temporallyClosed: Boolean,
+        temporallyOpen: Boolean,
+        openTime: String?,
+        closeTime: String?,
+        reason: String?
+    ): BusinessResult<Branch> {
+        ensureInitialized()
+        return authManager.setBranchDailyOverride(
+            branchId = branchId,
+            date = date,
+            temporallyClosed = temporallyClosed,
+            temporallyOpen = temporallyOpen,
+            openTime = openTime,
+            closeTime = closeTime,
+            reason = reason
+        )
+    }
+
+    actual suspend fun clearBranchDailyOverride(branchId: String): BusinessResult<Branch> {
+        ensureInitialized()
+        return authManager.clearBranchDailyOverride(branchId)
+    }
+
     /**
      * Obtiene el ID de la sucursal actual
      * @return branchId de la sucursal actual o null si no hay sucursal seleccionada
