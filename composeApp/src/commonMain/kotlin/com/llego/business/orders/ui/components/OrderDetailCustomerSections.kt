@@ -7,9 +7,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.CustomerCashKycStatus
@@ -97,20 +102,10 @@ fun CustomerInfoSection(
                 }
 
                 customer.phone?.let { phone ->
-                    if (onCallCustomer != null) {
-                        FilledIconButton(
-                            onClick = { onCallCustomer(phone) },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Call,
-                                contentDescription = "Llamar al cliente",
-                                tint = Color.White
-                            )
-                        }
-                    }
+                    CustomerContactButton(
+                        phone = phone,
+                        onCallCustomer = onCallCustomer
+                    )
                 }
             }
 
@@ -163,6 +158,73 @@ fun CustomerInfoSection(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Botón compacto con dropdown para contactar al cliente:
+ * abre un menú con las opciones Llamar (tel:) y WhatsApp (wa.me).
+ */
+@Composable
+private fun CustomerContactButton(
+    phone: String,
+    onCallCustomer: ((String) -> Unit)?
+) {
+    val uriHandler = LocalUriHandler.current
+    var expanded by remember { mutableStateOf(false) }
+    val normalizedPhone = remember(phone) { phone.filter { it.isDigit() } }
+
+    Box {
+        FilledIconButton(
+            onClick = { expanded = true },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.PhoneInTalk,
+                contentDescription = "Contactar al cliente",
+                tint = Color.White
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Llamar") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    if (onCallCustomer != null) {
+                        onCallCustomer(phone)
+                    } else {
+                        runCatching { uriHandler.openUri("tel:$phone") }
+                    }
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("WhatsApp") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Chat,
+                        contentDescription = null,
+                        tint = Color(0xFF25D366)
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    runCatching { uriHandler.openUri("https://wa.me/$normalizedPhone") }
+                }
+            )
         }
     }
 }

@@ -18,6 +18,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
 import com.llego.business.orders.data.model.OrderStatus
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderActionsSection(
     order: Order,
@@ -55,7 +59,9 @@ fun OrderActionsSection(
     var showAcceptDialog by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
-    var estimatedMinutes by remember { mutableStateOf("30") }
+    var estimatedMinutes by remember { mutableStateOf(30) }
+    var customMinutesActive by remember { mutableStateOf(false) }
+    var customMinutesText by remember { mutableStateOf("45") }
     var deliveryFee by remember { mutableStateOf("") }
     var rejectReason by remember { mutableStateOf("") }
     var cancelReason by remember { mutableStateOf("") }
@@ -248,18 +254,51 @@ fun OrderActionsSection(
             title = { Text("Aceptar pedido") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Tiempo estimado de preparacion (minutos)")
-                    OutlinedTextField(
-                        value = estimatedMinutes,
-                        onValueChange = { value ->
-                            if (value.all { it.isDigit() }) {
-                                estimatedMinutes = value
-                            }
-                        },
-                        label = { Text("Minutos") },
+                    Text("Tiempo estimado de preparacion")
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(15, 30).forEach { minutes ->
+                            FilterChip(
+                                selected = !customMinutesActive && estimatedMinutes == minutes,
+                                onClick = {
+                                    customMinutesActive = false
+                                    estimatedMinutes = minutes
+                                },
+                                label = { Text("$minutes min") },
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
+                        FilterChip(
+                            selected = customMinutesActive,
+                            onClick = { customMinutesActive = true },
+                            label = { Text("+30") },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+
+                    if (customMinutesActive) {
+                        OutlinedTextField(
+                            value = customMinutesText,
+                            onValueChange = { value ->
+                                if (value.length <= 3 && value.all { it.isDigit() }) {
+                                    customMinutesText = value
+                                }
+                            },
+                            label = { Text("Minutos") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
 
                     if (showDeliveryFeeInput) {
                         OutlinedTextField(
@@ -279,7 +318,11 @@ fun OrderActionsSection(
             confirmButton = {
                 Button(
                     onClick = {
-                        val minutes = estimatedMinutes.toIntOrNull() ?: 30
+                        val minutes = if (customMinutesActive) {
+                            customMinutesText.toIntOrNull()?.coerceAtLeast(1) ?: 45
+                        } else {
+                            estimatedMinutes
+                        }
                         val fee = if (showDeliveryFeeInput) {
                             deliveryFee
                                 .replace(',', '.')
@@ -290,7 +333,7 @@ fun OrderActionsSection(
                         onAcceptOrder?.invoke(minutes, fee)
                         showAcceptDialog = false
                     },
-                    enabled = estimatedMinutes.isNotBlank()
+                    enabled = !customMinutesActive || customMinutesText.toIntOrNull()?.let { it > 0 } == true
                 ) {
                     Text("Aceptar")
                 }

@@ -17,6 +17,7 @@ import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.model.PaymentStatus
 import com.llego.business.orders.data.model.DashboardStats
 import com.llego.business.orders.data.model.toMenuItem
+import com.llego.business.orders.data.notification.NotificationService
 import com.llego.business.orders.data.repository.OrderItemInput
 import com.llego.business.orders.data.repository.OrderRepository
 import com.llego.business.orders.data.repository.OrderRepositoryImpl
@@ -47,7 +48,8 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 
 class OrdersViewModel(
-    tokenManager: TokenManager
+    tokenManager: TokenManager,
+    private val notificationService: NotificationService? = null
 ) : ViewModel() {
 
     private val repository: OrderRepository = OrderRepositoryImpl.getInstance(tokenManager)
@@ -265,6 +267,13 @@ class OrdersViewModel(
     private fun observeNewOrders() {
         viewModelScope.launch {
             subscriptionManager.newOrders.collect { event ->
+                if (event.order.status == OrderStatus.PENDING_ACCEPTANCE) {
+                    runCatching {
+                        notificationService?.showNewOrderNotification(event)
+                        notificationService?.playNewOrderSound()
+                    }
+                }
+
                 if (event.branchId != _currentBranchId.value) return@collect
 
                 _orders.update { currentOrders ->

@@ -5,6 +5,8 @@ import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.delivery.data.repository.DeliveryLinkRepository
 import com.llego.business.delivery.ui.viewmodel.DeliveryLinkViewModel
 import com.llego.business.branches.ui.viewmodel.BranchesManagementViewModel
+import com.llego.business.orders.data.notification.NotificationService
+import com.llego.business.orders.data.notification.NotificationServiceFactory
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ComboViewModel
@@ -58,10 +60,14 @@ class AppContainer(
         DeliveryLinkRepository(tokenManager = tokenManager)
     }
 
+    val notificationService: NotificationService by lazy {
+        NotificationServiceFactory.create()
+    }
+
     // Factories de ViewModel
     fun createAuthViewModel(): AuthViewModel = AuthViewModel()
 
-    fun createOrdersViewModel(): OrdersViewModel = OrdersViewModel(tokenManager)
+    fun createOrdersViewModel(): OrdersViewModel = OrdersViewModel(tokenManager, notificationService)
 
     fun createProductViewModel(): ProductViewModel = ProductViewModel(tokenManager)
 

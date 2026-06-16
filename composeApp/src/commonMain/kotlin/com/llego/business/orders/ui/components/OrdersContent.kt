@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.llego.business.orders.data.model.Order
@@ -338,6 +339,20 @@ fun OrderCard(
                                 enabled = showDeadline
                             )
                             if (countdownText != null) {
+                                val isExpired = countdownText == "Vencido"
+                                val isPendingAcceptance = order.status == OrderStatus.PENDING_ACCEPTANCE
+                                val urgentColor = Color(0xFFE65100) // naranja fuerte
+                                val timerTint = when {
+                                    isExpired -> MaterialTheme.colorScheme.error
+                                    isPendingAcceptance -> urgentColor
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                val timerStyle = if (isPendingAcceptance || isExpired) {
+                                    MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                } else {
+                                    MaterialTheme.typography.labelSmall
+                                }
+                                val iconSize = if (isPendingAcceptance || isExpired) 18.dp else 14.dp
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -345,15 +360,13 @@ fun OrderCard(
                                     Icon(
                                         imageVector = Icons.Default.Timer,
                                         contentDescription = null,
-                                        tint = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
+                                        tint = timerTint,
+                                        modifier = Modifier.size(iconSize)
                                     )
                                     Text(
-                                        text = countdownText,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (countdownText == "Vencido") MaterialTheme.colorScheme.error
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = if (isPendingAcceptance && !isExpired) "Responde en $countdownText" else countdownText,
+                                        style = timerStyle,
+                                        color = timerTint
                                     )
                                 }
                             }

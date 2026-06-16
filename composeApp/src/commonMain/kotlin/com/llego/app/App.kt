@@ -1016,6 +1016,7 @@ private fun MainBusinessFlow(
                     onNavigateToInvitations = { navigator.showInvitations = true },
                     onNavigateToMarketing = { navigator.showMarketing = true },
                     onNavigateToDeliveryManagement = { navigator.showDeliveryManagement = true },
+                    onNavigateToChangeBranch = { navigator.showBranchesManagement = true },
                     showDeliveryManagementAction = true,
                     deliveryPendingRequestsCount = deliveryEntryPointState.pendingRequestCount,
                     selectedTabIndex = navigator.selectedHomeTabIndex,

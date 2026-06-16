@@ -2,7 +2,7 @@ package com.llego.business.home.config
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
 import llegobusiness.composeapp.generated.resources.Res
 import llegobusiness.composeapp.generated.resources.nav_orders
@@ -32,7 +32,7 @@ object HomeTabsProvider {
             HomeTabConfig("orders", "Pedidos", HomeTabIcon.Drawable(Res.drawable.nav_orders)),
             HomeTabConfig("products", "Productos", HomeTabIcon.Drawable(Res.drawable.nav_products)),
             HomeTabConfig("statistics", "Estadisticas", HomeTabIcon.Vector(Icons.Default.BarChart)),
-            HomeTabConfig("settings", "Ajustes", HomeTabIcon.Vector(Icons.Default.Settings))
+            HomeTabConfig("more", "Mas", HomeTabIcon.Vector(Icons.Default.MoreHoriz))
         )
     }
 }

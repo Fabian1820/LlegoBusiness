@@ -69,6 +69,7 @@ import coil3.compose.AsyncImage
 import com.llego.business.home.config.HomeTabConfig
 import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
+import com.llego.business.more.ui.screens.MoreScreen
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.analytics.ui.screens.StatisticsScreen
@@ -95,6 +96,7 @@ fun BusinessHomeScreen(
     onNavigateToInvitations: () -> Unit = {},
     onNavigateToMarketing: () -> Unit = {},
     onNavigateToDeliveryManagement: () -> Unit = {},
+    onNavigateToChangeBranch: () -> Unit = {},
     showDeliveryManagementAction: Boolean = false,
     deliveryPendingRequestsCount: Int = 0,
     selectedTabIndex: Int = 0,
@@ -138,7 +140,7 @@ fun BusinessHomeScreen(
     }
 
     LaunchedEffect(selectedTabId, currentBranch?.id) {
-        if (selectedTabId == "settings" && currentBranch?.id != null) {
+        if (selectedTabId == "more" && currentBranch?.id != null) {
             settingsViewModel.loadSettings()
         }
         if (selectedTabId == "statistics" && currentBranch?.id != null) {
@@ -334,12 +336,12 @@ fun BusinessHomeScreen(
                                     onClick = { onTabSelected(index) },
                                     icon = {
                                         val showOrdersBadge = tab.id == "orders" && pendingCount > 0 && !isCatalogOnly
-                                        val showSettingsBadge = tab.id == "settings" &&
+                                        val showMoreBadge = tab.id == "more" &&
                                             showDeliveryManagementAction &&
                                             !isCatalogOnly &&
                                             deliveryPendingRequestsCount > 0
 
-                                        if (showOrdersBadge || showSettingsBadge) {
+                                        if (showOrdersBadge || showMoreBadge) {
                                             val badgeCount = if (showOrdersBadge) pendingCount else deliveryPendingRequestsCount
                                             BadgedBox(
                                                 badge = {
@@ -458,16 +460,17 @@ fun BusinessHomeScreen(
                     )
                 }
 
-                "settings" -> {
-                    com.llego.business.settings.ui.screens.SettingsScreen(
+                "more" -> {
+                    MoreScreen(
                         settingsViewModel = settingsViewModel,
                         authViewModel = authViewModel,
+                        onNavigateToProfile = onNavigateToProfile,
+                        onNavigateToChangeBranch = onNavigateToChangeBranch,
+                        onNavigateToMarketing = onNavigateToMarketing,
                         onNavigateToDeliveryManagement = onNavigateToDeliveryManagement,
                         onNavigateToInvitations = onNavigateToInvitations,
-                        onNavigateToMarketing = onNavigateToMarketing,
                         showDeliveryManagementButton = showDeliveryManagementAction && !isCatalogOnly,
-                        pendingDeliveryRequestsCount = deliveryPendingRequestsCount,
-                        onNavigateBack = { }
+                        pendingDeliveryRequestsCount = deliveryPendingRequestsCount
                     )
                 }
 

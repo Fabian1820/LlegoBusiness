@@ -1100,11 +1100,16 @@ private fun ProductRow(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
+                                val tint = if (product.availability) {
+                                    Color(0xFF22C55E) // verde "disponible"
+                                } else {
+                                    Color(0xFFE65100) // naranja "agotado"
+                                }
                                 Icon(
                                     if (product.availability) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "Cambiar disponibilidad",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
+                                    contentDescription = if (product.availability) "Marcar como agotado" else "Marcar como disponible",
+                                    tint = tint,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }

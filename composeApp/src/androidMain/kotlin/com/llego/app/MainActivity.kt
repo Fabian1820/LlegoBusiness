@@ -1,12 +1,18 @@
 ﻿package com.llego.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
+import com.llego.business.orders.data.notification.NotificationServiceFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -32,6 +38,10 @@ private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
     private lateinit var appContainer: AppContainer
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* el resultado se inspecciona vía hasNotificationPermission cuando se necesita */ }
 
     private fun <VM : ViewModel> appViewModelFactory(create: () -> VM): ViewModelProvider.Factory {
         return object : ViewModelProvider.Factory {
@@ -85,6 +95,10 @@ class MainActivity : ComponentActivity() {
 
         // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
         ImageUploadServiceFactory.initialize(applicationContext)
+
+        // Inicializar NotificationServiceFactory para alertas de pedidos nuevos
+        NotificationServiceFactory.initialize(applicationContext)
+        requestNotificationPermissionIfNeeded()
 
         // Sincronizar reloj con servidor para countdowns correctos
         lifecycleScope.launch { ServerClock.sync() }
@@ -160,6 +174,17 @@ class MainActivity : ComponentActivity() {
                 Log.e(TAG, "handleAppleAuthDeepLink: deep link sin token ni error")
                 AppleSignInHelper.notifyError("Respuesta invÃ¡lida de Apple Sign-In")
             }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }
