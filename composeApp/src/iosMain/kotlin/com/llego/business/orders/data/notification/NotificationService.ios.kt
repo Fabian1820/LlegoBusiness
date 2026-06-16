@@ -1,24 +1,45 @@
+@file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class, kotlinx.cinterop.BetaInteropApi::class)
+
 package com.llego.business.orders.data.notification
 
 import com.llego.business.orders.data.model.OrderStatus
 import com.llego.business.orders.data.subscription.NewOrderEvent
+import platform.AudioToolbox.AudioServicesPlaySystemSound
+import platform.Foundation.NSError
+import platform.UIKit.UIApplication
+import platform.UserNotifications.UNAuthorizationOptionAlert
+import platform.UserNotifications.UNAuthorizationOptionBadge
+import platform.UserNotifications.UNAuthorizationOptionSound
+import platform.UserNotifications.UNAuthorizationStatusAuthorized
+import platform.UserNotifications.UNAuthorizationStatusProvisional
+import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotificationRequest
+import platform.UserNotifications.UNNotificationSound
+import platform.UserNotifications.UNUserNotificationCenter
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 /**
- * Implementación iOS del servicio de notificaciones para pedidos
+ * Implementación iOS del servicio de notificaciones.
+ * Usa APIs nativas (UNUserNotificationCenter + AudioToolbox + UIKit) directamente
+ * desde Kotlin/Native — no requiere código Swift adicional.
  *
- * Esta implementación proporciona la estructura base para notificaciones.
- * La integración completa con UNUserNotificationCenter requiere configuración
- * adicional en el proyecto Xcode (capabilities y entitlements).
- *
- * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 12.1, 12.2
+ * NotificationBridge se conserva como mecanismo opcional de extensión si en el
+ * futuro alguien quiere sobreescribir comportamientos desde Swift.
  */
 class IosNotificationService : NotificationService {
 
     private val branchSwitchHandler = BranchSwitchHandler.getInstance()
+    private val center = UNUserNotificationCenter.currentNotificationCenter()
 
-    // Estado local para permisos y badge (en producción usar NSUserDefaults via bridge)
+    // Cache del último estado conocido; hasNotificationPermission() es síncrono
+    // pero las settings de iOS se consultan async — refrescamos cada vez que pedimos
+    // o solicitamos autorización.
     private var notificationPermissionGranted = false
     private var currentBadgeCount = 0
+
+    // Sonido del sistema "1007" = «new mail / notification» (sonoro + breve vibración).
+    private val systemSoundNewMail: UInt = 1007u
 
     companion object {
         // Category identifiers (para uso futuro con UNUserNotificationCenter)
@@ -44,20 +65,41 @@ class IosNotificationService : NotificationService {
     override fun showNewOrderNotification(event: NewOrderEvent) {
         val order = event.order
 
-        val notificationTitle = "🛒 Nuevo Pedido #${order.orderNumber}"
+        val notificationTitle = "Nuevo pedido #${order.orderNumber}"
         val notificationBody = if (event.isActiveBranch) {
             "Total: ${order.currency} ${formatCurrency(order.total)}"
         } else {
             val branchName = order.branch?.name ?: "otra sucursal"
-            "Pedido en $branchName - Total: ${order.currency} ${formatCurrency(order.total)}"
+            "Pedido en $branchName · ${order.currency} ${formatCurrency(order.total)}"
         }
 
-        // Log para debugging y para que el bridge Swift pueda interceptar
-
-        // Incrementar badge count
         incrementBadgeCount()
 
-        // Notificar al sistema (el bridge Swift debe escuchar estos eventos)
+        val content = UNMutableNotificationContent().apply {
+            setTitle(notificationTitle)
+            setBody(notificationBody)
+            setSound(UNNotificationSound.defaultSound())
+            setCategoryIdentifier(
+                if (event.isActiveBranch) CATEGORY_NEW_ORDER else CATEGORY_NEW_ORDER_OTHER_BRANCH
+            )
+            setUserInfo(
+                mapOf(
+                    KEY_BRANCH_ID to event.branchId,
+                    KEY_ORDER_ID to order.id,
+                    KEY_BRANCH_NAME to (order.branch?.name ?: "")
+                )
+            )
+        }
+
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier = "new_order_${order.id}",
+            content = content,
+            trigger = null // disparar inmediatamente
+        )
+
+        center.addNotificationRequest(request) { _: NSError? -> }
+
+        // Hook para extensión futura desde Swift (opcional)
         NotificationBridge.onNewOrderNotification?.invoke(
             NotificationData(
                 id = "new_order_${order.id}",
@@ -80,9 +122,23 @@ class IosNotificationService : NotificationService {
      */
     override fun showOrderUpdateNotification(orderId: String, status: OrderStatus) {
         val statusText = status.getDisplayName()
-        val notificationTitle = "📦 Pedido Actualizado"
+        val notificationTitle = "Pedido actualizado"
         val notificationBody = "Estado: $statusText"
 
+        val content = UNMutableNotificationContent().apply {
+            setTitle(notificationTitle)
+            setBody(notificationBody)
+            setSound(UNNotificationSound.defaultSound())
+            setCategoryIdentifier(CATEGORY_ORDER_UPDATE)
+            setUserInfo(mapOf(KEY_ORDER_ID to orderId))
+        }
+
+        val request = UNNotificationRequest.requestWithIdentifier(
+            identifier = "order_update_$orderId",
+            content = content,
+            trigger = null
+        )
+        center.addNotificationRequest(request) { _: NSError? -> }
 
         NotificationBridge.onOrderUpdateNotification?.invoke(
             NotificationData(
@@ -102,51 +158,51 @@ class IosNotificationService : NotificationService {
      */
     override fun updateBadgeCount(pendingCount: Int) {
         currentBadgeCount = pendingCount
-
-        // Notificar al bridge Swift para actualizar el badge real
+        // El acceso a UIApplication.applicationIconBadgeNumber debe hacerse en main thread
+        dispatch_async(dispatch_get_main_queue()) {
+            UIApplication.sharedApplication.setApplicationIconBadgeNumber(pendingCount.toLong())
+        }
         NotificationBridge.onBadgeUpdate?.invoke(pendingCount)
     }
 
-    /**
-     * Reproduce sonido de nuevo pedido
-     *
-     * Requirements: 4.4
-     */
     override fun playNewOrderSound() {
+        // 1007 = sonido de "nueva notificación" (incluye vibración corta)
+        AudioServicesPlaySystemSound(systemSoundNewMail)
         NotificationBridge.onPlaySound?.invoke()
     }
 
-    /**
-     * Solicita permisos de notificación
-     */
     override fun requestNotificationPermission(onResult: (Boolean) -> Unit) {
-
-        // Delegar al bridge Swift que tiene acceso a UNUserNotificationCenter
-        NotificationBridge.requestPermission { granted ->
+        val options = UNAuthorizationOptionAlert or UNAuthorizationOptionBadge or UNAuthorizationOptionSound
+        center.requestAuthorizationWithOptions(options) { granted: Boolean, _: NSError? ->
             notificationPermissionGranted = granted
             onResult(granted)
         }
     }
 
-    /**
-     * Verifica si hay permisos de notificación
-     */
     override fun hasNotificationPermission(): Boolean {
+        // Refresca el cache de forma asíncrona; el valor devuelto puede estar un tick
+        // por detrás del estado real, pero showNewOrderNotification es no-op sin perms
+        // gracias a iOS (cae silente).
+        center.getNotificationSettingsWithCompletionHandler { settings ->
+            val status = settings?.authorizationStatus
+            notificationPermissionGranted =
+                status == UNAuthorizationStatusAuthorized ||
+                status == UNAuthorizationStatusProvisional
+        }
         return notificationPermissionGranted
     }
 
-    /**
-     * Cancela todas las notificaciones de pedidos
-     */
     override fun cancelAllOrderNotifications() {
         resetBadgeCount()
+        center.removeAllDeliveredNotifications()
+        center.removeAllPendingNotificationRequests()
         NotificationBridge.onCancelAllNotifications?.invoke()
     }
 
-    /**
-     * Cancela notificación de un pedido específico
-     */
     override fun cancelOrderNotification(orderId: String) {
+        val ids = listOf("new_order_$orderId", "order_update_$orderId")
+        center.removePendingNotificationRequestsWithIdentifiers(ids)
+        center.removeDeliveredNotificationsWithIdentifiers(ids)
         NotificationBridge.onCancelNotification?.invoke(orderId)
     }
 
