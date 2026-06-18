@@ -118,6 +118,15 @@ fun CreateBranchMutation.CreateBranch.toDomain(): Branch =
 fun UpdateBranchMutation.UpdateBranch.toDomain(): Branch =
     branchUpdateFields.toDomain()
 
+fun SetAcceptingOrdersMutation.SetAcceptingOrders.toDomain(): Branch =
+    branchUpdateFields.toDomain()
+
+fun SetBranchDailyOverrideMutation.SetBranchDailyOverride.toDomain(): Branch =
+    branchUpdateFields.toDomain()
+
+fun ClearBranchDailyOverrideMutation.ClearBranchDailyOverride.toDomain(): Branch =
+    branchUpdateFields.toDomain()
+
 private fun ScoredBranchCoreFields.toDomain(): Branch {
     val branchTipos = tipos.mapNotNull { gqlTipo -> mapBranchTipo(gqlTipo) }
     val branchVehicles = vehicles.mapNotNull { gqlVehicle -> mapBranchVehicle(gqlVehicle) }
@@ -315,7 +324,7 @@ fun RegisterBranchInput.toGraphQL(): GQLRegisterBranchInput {
         name = name,
         coordinates = coordinates.toGraphQL(),
         phone = phone,
-        schedule = normalizeBranchScheduleForMutation(schedule) ?: schedule,
+        schedule = toBranchScheduleInput(schedule) ?: error("Schedule inválido"),
         tipos = tipos.toGraphQLList(),
         pickupEnabled = Optional.present(pickupEnabled),
         paymentMethodIds = paymentMethodIds,
@@ -339,7 +348,7 @@ fun CreateBranchInput.toGraphQL(): GQLCreateBranchInput {
         name = name,
         coordinates = coordinates.toGraphQL(),
         phone = phone,
-        schedule = normalizeBranchScheduleForMutation(schedule) ?: schedule,
+        schedule = toBranchScheduleInput(schedule) ?: error("Schedule inválido"),
         tipos = tipos.toGraphQLList(),
         useAppMessaging = Optional.present(useAppMessaging),
         vehicles = Optional.presentIfNotNull(vehicles.takeIf { it.isNotEmpty() }?.toGraphQLVehicleList()),
@@ -363,7 +372,7 @@ fun UpdateBranchInput.toGraphQL(): GQLUpdateBranchInput {
         name = Optional.presentIfNotNull(name),
         coordinates = Optional.presentIfNotNull(coordinates?.toGraphQL()),
         phone = Optional.presentIfNotNull(phone),
-        schedule = Optional.presentIfNotNull(schedule?.let { normalizeBranchScheduleForMutation(it) }),
+        schedule = Optional.presentIfNotNull(schedule?.let { toBranchScheduleInput(it) }),
         address = Optional.presentIfNotNull(address),
         avatar = Optional.presentIfNotNull(avatar),
         coverImage = Optional.presentIfNotNull(coverImage),

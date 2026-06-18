@@ -26,6 +26,7 @@ enum class PaymentAttemptStatus {
     AWAITING_PROOF,
     AWAITING_BUSINESS,
     AWAITING_DELIVERY,
+    AWAITING_KYC,
     COMPLETED,
     FAILED,
     EXPIRED,

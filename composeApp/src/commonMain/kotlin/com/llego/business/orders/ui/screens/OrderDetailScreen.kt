@@ -588,6 +588,7 @@ private fun PaymentAttemptStatus.getDisplayName(): String = when (this) {
     PaymentAttemptStatus.AWAITING_PROOF -> "Esperando comprobante"
     PaymentAttemptStatus.AWAITING_BUSINESS -> "Esperando confirmacion del negocio"
     PaymentAttemptStatus.AWAITING_DELIVERY -> "Esperando confirmacion de reparto"
+    PaymentAttemptStatus.AWAITING_KYC -> "Esperando KYC"
     PaymentAttemptStatus.COMPLETED -> "Completado"
     PaymentAttemptStatus.FAILED -> "Fallido"
     PaymentAttemptStatus.EXPIRED -> "Expirado"

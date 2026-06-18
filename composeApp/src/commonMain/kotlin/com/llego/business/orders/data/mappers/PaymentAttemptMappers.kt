@@ -44,6 +44,7 @@ private fun PaymentAttemptStatusEnum.toDomain(): PaymentAttemptStatus = when (th
     PaymentAttemptStatusEnum.AWAITING_PROOF -> PaymentAttemptStatus.AWAITING_PROOF
     PaymentAttemptStatusEnum.AWAITING_BUSINESS -> PaymentAttemptStatus.AWAITING_BUSINESS
     PaymentAttemptStatusEnum.AWAITING_DELIVERY -> PaymentAttemptStatus.AWAITING_DELIVERY
+    PaymentAttemptStatusEnum.AWAITING_KYC -> PaymentAttemptStatus.AWAITING_KYC
     PaymentAttemptStatusEnum.COMPLETED -> PaymentAttemptStatus.COMPLETED
     PaymentAttemptStatusEnum.FAILED -> PaymentAttemptStatus.FAILED
     PaymentAttemptStatusEnum.EXPIRED -> PaymentAttemptStatus.EXPIRED

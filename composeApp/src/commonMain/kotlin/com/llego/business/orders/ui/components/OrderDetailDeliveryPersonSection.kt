@@ -199,5 +199,6 @@ private fun getVehicleIcon(vehicleType: VehicleType): ImageVector {
         VehicleType.BICICLETA -> Icons.Default.PedalBike
         VehicleType.AUTO -> Icons.Default.DirectionsCar
         VehicleType.A_PIE -> Icons.Default.DirectionsWalk
+        VehicleType.TRICICLO -> Icons.Default.PedalBike
     }
 }

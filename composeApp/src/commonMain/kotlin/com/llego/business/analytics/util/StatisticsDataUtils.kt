@@ -1,8 +1,6 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package com.llego.business.analytics.util
 
-import kotlin.time.Clock
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone

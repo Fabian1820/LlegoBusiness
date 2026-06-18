@@ -92,11 +92,9 @@ fun DiscountTypeEnum.toDomain(): DiscountType = when (this) {
  * Convierte VehicleTypeEnum de GraphQL a VehicleType
  */
 fun VehicleTypeEnum.toDomain(): VehicleType = when (this) {
-    VehicleTypeEnum.MOTO -> VehicleType.MOTO
     VehicleTypeEnum.BICICLETA -> VehicleType.BICICLETA
-    VehicleTypeEnum.AUTO -> VehicleType.AUTO
-    VehicleTypeEnum.A_PIE -> VehicleType.A_PIE
-    VehicleTypeEnum.UNKNOWN__ -> VehicleType.MOTO
+    VehicleTypeEnum.TRICICLO -> VehicleType.TRICICLO
+    VehicleTypeEnum.UNKNOWN__ -> VehicleType.BICICLETA
 }
 
 

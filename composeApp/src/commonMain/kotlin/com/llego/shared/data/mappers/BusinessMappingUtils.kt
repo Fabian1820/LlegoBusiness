@@ -1,5 +1,9 @@
 package com.llego.shared.data.mappers
 
+import com.apollographql.apollo.api.Optional
+import com.llego.multiplatform.graphql.type.BranchScheduleInput
+import com.llego.multiplatform.graphql.type.DayRangeInput
+import com.llego.multiplatform.graphql.type.TimeRangeInput
 import com.llego.shared.data.model.BranchTipo
 import com.llego.shared.data.model.BranchVehicle
 
@@ -14,6 +18,36 @@ internal fun parseScheduleFromDays(days: List<Triple<Int, Boolean, List<Pair<Str
             dayName to hours.map { (open, close) -> "$open-$close" }
         }
         .toMap()
+}
+
+/**
+ * Convierte el `schedule: Any` del dominio (legacy `Map<String, List<String>>` o un
+ * Map con la forma {"ranges": [...]} ya estructurada) a un BranchScheduleInput tipado.
+ */
+internal fun toBranchScheduleInput(rawSchedule: Any?): BranchScheduleInput? {
+    val normalized = normalizeBranchScheduleForMutation(rawSchedule) ?: return null
+    val map = normalized as? Map<*, *> ?: return null
+    val rangesRaw = map["ranges"] as? List<*> ?: return null
+    val ranges: List<DayRangeInput> = rangesRaw.mapNotNull { entry ->
+        val rangeMap = entry as? Map<*, *> ?: return@mapNotNull null
+        val fromDay = (rangeMap["fromDay"] as? Number)?.toInt() ?: return@mapNotNull null
+        val toDay = (rangeMap["toDay"] as? Number)?.toInt() ?: return@mapNotNull null
+        val isOpen = rangeMap["isOpen"] as? Boolean ?: true
+        val hoursRaw = rangeMap["hours"] as? List<*> ?: emptyList<Any>()
+        val hours = hoursRaw.mapNotNull { hour ->
+            val hourMap = hour as? Map<*, *> ?: return@mapNotNull null
+            val open = hourMap["open"] as? String ?: return@mapNotNull null
+            val close = hourMap["close"] as? String ?: return@mapNotNull null
+            TimeRangeInput(open = open, close = close)
+        }
+        DayRangeInput(
+            fromDay = fromDay,
+            toDay = toDay,
+            isOpen = Optional.present(isOpen),
+            hours = Optional.present(hours)
+        )
+    }
+    return BranchScheduleInput(ranges = ranges)
 }
 
 internal fun normalizeBranchScheduleForMutation(rawSchedule: Any?): Any? {

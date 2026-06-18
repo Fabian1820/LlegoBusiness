@@ -173,13 +173,17 @@ enum class VehicleType {
     AUTO,
 
     @SerialName("A_PIE")
-    A_PIE;
+    A_PIE,
+
+    @SerialName("TRICICLO")
+    TRICICLO;
 
     fun getDisplayName(): String = when (this) {
         MOTO -> "Moto"
         BICICLETA -> "Bicicleta"
         AUTO -> "Auto"
         A_PIE -> "A pie"
+        TRICICLO -> "Triciclo"
     }
 
     fun getColor(): Color = when (this) {
@@ -187,5 +191,6 @@ enum class VehicleType {
         BICICLETA -> Color(0xFF4CAF50)
         AUTO -> Color(0xFF2196F3)
         A_PIE -> Color(0xFF9E9E9E)
+        TRICICLO -> Color(0xFFFFA000)
     }
 }
