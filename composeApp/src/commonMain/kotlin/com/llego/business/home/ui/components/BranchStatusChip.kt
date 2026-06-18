@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalMaterial3Api::class, kotlin.time.ExperimentalTime::class)
+@file:Suppress("OPT_IN_USAGE")
 
 package com.llego.business.home.ui.components
 
@@ -44,7 +45,6 @@ import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.BranchTemporaryStatus
 import com.llego.shared.data.model.BusinessResult
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -394,7 +394,7 @@ private fun BranchStatusBottomSheet(
 }
 
 private fun LocalDate.Companion.todayIso(): String {
-    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val now = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val month = now.monthNumber.toString().padStart(2, '0')
     val day = now.dayOfMonth.toString().padStart(2, '0')
     return "${now.year}-$month-$day"

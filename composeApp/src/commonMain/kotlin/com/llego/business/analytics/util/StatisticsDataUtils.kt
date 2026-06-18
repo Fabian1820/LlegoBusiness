@@ -1,6 +1,7 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.llego.business.analytics.util
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -14,7 +15,7 @@ enum class PeriodFilter(val displayName: String) {
     MONTH("Mes");
 
     fun toDateRange(): Pair<String, String> {
-        val now = Clock.System.now()
+        val now = kotlin.time.Clock.System.now()
         val timezone = TimeZone.currentSystemDefault()
         val today = now.toLocalDateTime(timezone).date
         val toDate = now.toString()
