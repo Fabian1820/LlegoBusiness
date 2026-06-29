@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.llego.business.orders.ui.components.OrdersContent
 import com.llego.business.orders.ui.viewmodel.OrdersViewModel
 import com.llego.business.orders.ui.viewmodel.OrdersUiState
@@ -40,6 +42,19 @@ fun OrdersScreen(
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val selectedDateRange by viewModel.selectedDateRange.collectAsState()
     val ordersListState = rememberLazyListState()
+
+    // Al volver a primer plano (p. ej. tras desbloquear el móvil en iOS), la subscription
+    // pudo haber perdido pedidos llegados mientras la app estaba suspendida. Refrescamos
+    // para traerlos sin que el usuario tenga que tirar manualmente. Saltamos el primer
+    // ON_RESUME porque la carga inicial ya ocurre al entrar.
+    var hasResumedOnce by remember { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (hasResumedOnce) {
+            viewModel.refreshOrders()
+        } else {
+            hasResumedOnce = true
+        }
+    }
 
     var animateContent by remember { mutableStateOf(false) }
     var isPullRefreshing by remember { mutableStateOf(false) }

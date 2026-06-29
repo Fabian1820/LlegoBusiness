@@ -3,6 +3,7 @@
 package com.llego.business.analytics.util
 
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -15,7 +16,10 @@ enum class PeriodFilter(val displayName: String) {
     MONTH("Mes");
 
     fun toDateRange(): Pair<String, String> {
-        val now = kotlin.time.Clock.System.now()
+        // kotlin.time.Clock.System es la única variante que resuelve en todos los targets
+        // (KMP 0.6.1 desincroniza el companion de kotlinx.datetime.Clock entre Android/iOS);
+        // convertimos vía epoch a kotlinx Instant para tener toLocalDateTime().
+        val now = Instant.fromEpochMilliseconds(kotlin.time.Clock.System.now().toEpochMilliseconds())
         val timezone = TimeZone.currentSystemDefault()
         val today = now.toLocalDateTime(timezone).date
         val toDate = now.toString()

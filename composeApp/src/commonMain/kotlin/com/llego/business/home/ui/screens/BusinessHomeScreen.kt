@@ -64,6 +64,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.llego.business.home.config.HomeTabConfig
@@ -262,10 +263,39 @@ fun BusinessHomeScreen(
                                 }
                             },
                             title = {
-                                Text(
-                                    topBarTitle,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        topBarTitle,
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    currentBranch?.takeIf { !isCatalogOnly }?.let { activeBranch ->
+                                        BranchStatusChip(
+                                            branch = activeBranch,
+                                            onSetAcceptingOrders = { accepting ->
+                                                authViewModel.setAcceptingOrders(activeBranch.id, accepting)
+                                            },
+                                            onSetDailyOverride = { date, closed, open, openTime, closeTime ->
+                                                authViewModel.setBranchDailyOverride(
+                                                    branchId = activeBranch.id,
+                                                    date = date,
+                                                    temporallyClosed = closed,
+                                                    temporallyOpen = open,
+                                                    openTime = openTime,
+                                                    closeTime = closeTime
+                                                )
+                                            },
+                                            onClearDailyOverride = {
+                                                authViewModel.clearBranchDailyOverride(activeBranch.id)
+                                            }
+                                        )
+                                    }
+                                }
                             },
                             actions = {
                                 if (searchEnabledForCurrentTab) {
@@ -311,36 +341,6 @@ fun BusinessHomeScreen(
             }
             scheduledDeletionAt?.let { iso ->
                 AccountDeletionPendingBanner(scheduledAtIso = iso)
-            }
-            currentBranch?.takeIf { !isCatalogOnly }?.let { activeBranch ->
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        BranchStatusChip(
-                            branch = activeBranch,
-                            onSetAcceptingOrders = { accepting ->
-                                authViewModel.setAcceptingOrders(activeBranch.id, accepting)
-                            },
-                            onSetDailyOverride = { date, closed, open, openTime, closeTime ->
-                                authViewModel.setBranchDailyOverride(
-                                    branchId = activeBranch.id,
-                                    date = date,
-                                    temporallyClosed = closed,
-                                    temporallyOpen = open,
-                                    openTime = openTime,
-                                    closeTime = closeTime
-                                )
-                            },
-                            onClearDailyOverride = {
-                                authViewModel.clearBranchDailyOverride(activeBranch.id)
-                            }
-                        )
-                    }
-                }
             }
             }
         },

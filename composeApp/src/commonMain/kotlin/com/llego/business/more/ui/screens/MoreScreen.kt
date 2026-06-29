@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llego.business.settings.data.model.NotificationSettings
 import com.llego.business.settings.ui.viewmodel.SettingsUiState
@@ -139,29 +140,15 @@ fun MoreScreen(
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             ) {
                                 MoreRow(
-                                    title = "Perfil del negocio",
-                                    subtitle = "Logo, banner, horarios y ubicación",
-                                    icon = Icons.Default.Storefront,
-                                    onClick = onNavigateToProfile
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MoreRow(
-                                    title = "Cambiar sucursal",
-                                    subtitle = "Administrar otra de tus sucursales",
-                                    icon = Icons.Default.SwapHoriz,
-                                    onClick = onNavigateToChangeBranch
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                MoreRow(
                                     title = "Promociones",
-                                    subtitle = "Diseña anuncios que aparecen en el feed",
+                                    subtitle = "Diseña anuncios para el feed",
                                     icon = Icons.Default.Campaign,
                                     onClick = onNavigateToMarketing
                                 )
                                 if (showDeliveryManagementButton) {
                                     Spacer(modifier = Modifier.height(12.dp))
                                     val deliverySubtitle = if (pendingDeliveryRequestsCount > 0) {
-                                        "Vínculos de delivery propio ($pendingDeliveryRequestsCount pendientes)"
+                                        "$pendingDeliveryRequestsCount vínculos pendientes"
                                     } else {
                                         "Administra los choferes vinculados"
                                     }
@@ -178,6 +165,20 @@ fun MoreScreen(
                                     subtitle = "Da acceso a colaboradores",
                                     icon = Icons.Default.CardGiftcard,
                                     onClick = onNavigateToInvitations
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                MoreRow(
+                                    title = "Cambiar sucursal",
+                                    subtitle = "Administrar otra de tus sucursales",
+                                    icon = Icons.Default.SwapHoriz,
+                                    onClick = onNavigateToChangeBranch
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                MoreRow(
+                                    title = "Perfil del negocio",
+                                    subtitle = "Logo, banner, horarios y ubicación",
+                                    icon = Icons.Default.Storefront,
+                                    onClick = onNavigateToProfile
                                 )
                             }
                         }
@@ -447,7 +448,9 @@ private fun MoreRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Icon(

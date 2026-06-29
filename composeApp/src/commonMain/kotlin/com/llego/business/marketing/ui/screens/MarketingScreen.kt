@@ -1,6 +1,5 @@
 package com.llego.business.marketing.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,11 +21,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,6 +54,7 @@ import com.llego.shared.ui.components.molecules.PaymentMethodSelectorLayout
 
 private enum class Step { LIST, DESIGN, CHECKOUT }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketingScreen(
     viewModel: MarketingViewModel,
@@ -81,95 +85,105 @@ fun MarketingScreen(
 
     val paymentMethods by viewModel.paymentMethods.collectAsState()
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Header
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = {
-                when (step) {
-                    Step.LIST -> onNavigateBack()
-                    Step.DESIGN -> step = Step.LIST
-                    Step.CHECKOUT -> step = Step.DESIGN
-                }
-            }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-            }
-            Text(
-                text = when (step) {
-                    Step.LIST -> "Promociones"
-                    Step.DESIGN -> "Diseña tu promoción"
-                    Step.CHECKOUT -> "Publicar y pagar"
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = when (step) {
+                            Step.LIST -> "Promociones"
+                            Step.DESIGN -> "Diseña tu promoción"
+                            Step.CHECKOUT -> "Publicar y pagar"
+                        },
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
                 },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                navigationIcon = {
+                    IconButton(onClick = {
+                        when (step) {
+                            Step.LIST -> onNavigateBack()
+                            Step.DESIGN -> step = Step.LIST
+                            Step.CHECKOUT -> step = Step.DESIGN
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Box(Modifier.fillMaxSize().padding(paddingValues)) {
+            when (step) {
+                Step.LIST -> ListContent(
+                    campaigns = campaigns,
+                    isLoading = isLoading,
+                    onCreate = {
+                        name = ""
+                        placement = AdPlacement.DESTACADO
+                        creativeImagePath = null
+                        creativeImageUrl = null
+                        viewModel.clearError()
+                        step = Step.DESIGN
+                    }
+                )
 
-        when (step) {
-            Step.LIST -> ListContent(
-                campaigns = campaigns,
-                isLoading = isLoading,
-                onCreate = {
-                    name = ""
-                    placement = AdPlacement.DESTACADO
-                    creativeImagePath = null
-                    creativeImageUrl = null
-                    viewModel.clearError()
-                    step = Step.DESIGN
-                }
-            )
-
-            Step.DESIGN -> AdCanvasEditor(
-                businessAvatarUrl = businessAvatarUrl,
-                name = name, onName = { name = it },
-                placement = placement, onPlacement = { placement = it },
-                isBusy = isUploading,
-                error = error,
-                onExported = { bytes ->
-                    viewModel.uploadCreative(bytes) { path, url ->
-                        if (path != null) {
-                            creativeImagePath = path
-                            creativeImageUrl = url
-                            durationDays = viewModel.durationsFor(placement).firstOrNull() ?: 7
-                            step = Step.CHECKOUT
+                Step.DESIGN -> AdCanvasEditor(
+                    businessAvatarUrl = businessAvatarUrl,
+                    name = name, onName = { name = it },
+                    placement = placement, onPlacement = { placement = it },
+                    isBusy = isUploading,
+                    error = error,
+                    onExported = { bytes ->
+                        viewModel.uploadCreative(bytes) { path, url ->
+                            if (path != null) {
+                                creativeImagePath = path
+                                creativeImageUrl = url
+                                durationDays = viewModel.durationsFor(placement).firstOrNull() ?: 7
+                                step = Step.CHECKOUT
+                            }
                         }
                     }
-                }
-            )
+                )
 
-            Step.CHECKOUT -> CheckoutContent(
-                creativeImageUrl = creativeImageUrl,
-                durations = viewModel.durationsFor(placement),
-                durationDays = durationDays, onDuration = { durationDays = it },
-                priceLabel = viewModel.priceFor(placement, durationDays)?.let {
-                    "${it.price} ${it.currency.uppercase()}"
-                } ?: "—",
-                paymentMethods = paymentMethods,
-                paymentLoading = isLoading,
-                paymentError = null,
-                selectedPaymentMethodId = selectedPaymentMethodId,
-                onPaymentSelected = { selectedPaymentMethodId = it },
-                isSubmitting = isSubmitting,
-                error = error,
-                canPay = branchId != null && selectedPaymentMethodId != null &&
-                    name.isNotBlank() && creativeImagePath != null,
-                onPay = {
-                    val branch = branchId ?: return@CheckoutContent
-                    val pm = selectedPaymentMethodId ?: return@CheckoutContent
-                    val img = creativeImagePath ?: return@CheckoutContent
-                    viewModel.createAndPurchase(
-                        businessId = businessId,
-                        branchId = branch,
-                        name = name,
-                        placement = placement,
-                        durationDays = durationDays,
-                        creativeImagePath = img,
-                        paymentMethodId = pm
-                    ) { ok -> if (ok) step = Step.LIST }
-                }
-            )
+                Step.CHECKOUT -> CheckoutContent(
+                    creativeImageUrl = creativeImageUrl,
+                    durations = viewModel.durationsFor(placement),
+                    durationDays = durationDays, onDuration = { durationDays = it },
+                    priceLabel = viewModel.priceFor(placement, durationDays)?.let {
+                        "${it.price} ${it.currency.uppercase()}"
+                    } ?: "—",
+                    paymentMethods = paymentMethods,
+                    paymentLoading = isLoading,
+                    paymentError = null,
+                    selectedPaymentMethodId = selectedPaymentMethodId,
+                    onPaymentSelected = { selectedPaymentMethodId = it },
+                    isSubmitting = isSubmitting,
+                    error = error,
+                    canPay = branchId != null && selectedPaymentMethodId != null &&
+                        name.isNotBlank() && creativeImagePath != null,
+                    onPay = {
+                        val branch = branchId ?: return@CheckoutContent
+                        val pm = selectedPaymentMethodId ?: return@CheckoutContent
+                        val img = creativeImagePath ?: return@CheckoutContent
+                        viewModel.createAndPurchase(
+                            businessId = businessId,
+                            branchId = branch,
+                            name = name,
+                            placement = placement,
+                            durationDays = durationDays,
+                            creativeImagePath = img,
+                            paymentMethodId = pm
+                        ) { ok -> if (ok) step = Step.LIST }
+                    }
+                )
+            }
         }
     }
 }

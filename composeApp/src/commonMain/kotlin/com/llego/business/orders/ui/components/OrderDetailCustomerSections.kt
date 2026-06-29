@@ -81,7 +81,7 @@ fun CustomerInfoSection(
                         text = customer.name,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
-                    customer.phone?.let { phone ->
+                    customer.phone?.takeIf { it.isNotBlank() }?.let { phone ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -101,7 +101,7 @@ fun CustomerInfoSection(
                     }
                 }
 
-                customer.phone?.let { phone ->
+                customer.phone?.takeIf { it.isNotBlank() }?.let { phone ->
                     CustomerContactButton(
                         phone = phone,
                         onCallCustomer = onCallCustomer
