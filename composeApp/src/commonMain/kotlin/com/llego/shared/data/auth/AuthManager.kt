@@ -1,5 +1,7 @@
 package com.llego.shared.data.auth
 
+import com.llego.business.orders.data.notification.BranchSwitchHandler
+import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.model.*
 import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.data.repositories.AuthRepository
@@ -27,8 +29,12 @@ class AuthManager(private val tokenManager: TokenManager) {
 
     private suspend fun refreshUserAfterAuth(result: AuthResult<User>): AuthResult<User> {
         if (result is AuthResult.Success) {
+            SessionScope.setCurrentUser(result.data.id)
             return when (val refreshed = authRepository.getCurrentUser()) {
-                is AuthResult.Success -> refreshed
+                is AuthResult.Success -> {
+                    SessionScope.setCurrentUser(refreshed.data.id)
+                    refreshed
+                }
                 is AuthResult.Error -> result
                 AuthResult.Loading -> result
             }
@@ -37,9 +43,22 @@ class AuthManager(private val tokenManager: TokenManager) {
     }
 
     /**
+     * Limpia todo el estado en memoria antes de un login/register/social login.
+     *
+     * Evita que la nueva sesión herede `currentBranch` / `currentBusiness` /
+     * suscripciones / navegación pendiente del usuario anterior si el logout
+     * previo no llegó a ejecutarse (p. ej. cerrada por token expirado por una
+     * ruta que no dispara logout()).
+     */
+    suspend fun prepareForNewSession() {
+        tearDownSessionState()
+    }
+
+    /**
      * Realiza el login del usuario
      */
     suspend fun login(email: String, password: String): AuthResult<User> {
+        prepareForNewSession()
         return refreshUserAfterAuth(authRepository.login(email, password))
     }
 
@@ -47,6 +66,7 @@ class AuthManager(private val tokenManager: TokenManager) {
      * Registra un nuevo usuario
      */
     suspend fun register(input: RegisterInput): AuthResult<User> {
+        prepareForNewSession()
         return refreshUserAfterAuth(authRepository.register(input))
     }
 
@@ -54,6 +74,7 @@ class AuthManager(private val tokenManager: TokenManager) {
      * Login con Google
      */
     suspend fun loginWithGoogle(idToken: String, nonce: String? = null): AuthResult<User> {
+        prepareForNewSession()
         return refreshUserAfterAuth(authRepository.loginWithGoogle(idToken, nonce))
     }
 
@@ -61,6 +82,7 @@ class AuthManager(private val tokenManager: TokenManager) {
      * Login con Apple usando Identity Token (para iOS)
      */
     suspend fun loginWithApple(identityToken: String, nonce: String? = null): AuthResult<User> {
+        prepareForNewSession()
         return refreshUserAfterAuth(authRepository.loginWithApple(identityToken, nonce))
     }
 
@@ -69,7 +91,10 @@ class AuthManager(private val tokenManager: TokenManager) {
      * El JWT ya viene validado del backend, solo necesitamos guardarlo y obtener el usuario
      */
     suspend fun authenticateWithToken(token: String): AuthResult<User> {
-        return authRepository.authenticateWithToken(token)
+        prepareForNewSession()
+        val result = authRepository.authenticateWithToken(token)
+        if (result is AuthResult.Success) SessionScope.setCurrentUser(result.data.id)
+        return result
     }
 
     /**
@@ -125,10 +150,30 @@ class AuthManager(private val tokenManager: TokenManager) {
      * Realiza el logout del usuario y limpia datos de negocio
      */
     suspend fun logout(): AuthResult<Unit> {
-        businessRepository.clear()
-        tokenManager.clearLastSelectedBranchId()
+        tearDownSessionState()
         tokenManager.clearLastHomeTabIndex()
         return authRepository.logout()
+    }
+
+    /**
+     * Reset del estado en memoria que puede sobrevivir a un logout incompleto.
+     * Se ejecuta tanto en logout como antes de un nuevo login.
+     */
+    private fun tearDownSessionState() {
+        // BusinessRepository que pertenece a ESTA instancia de AuthManager.
+        businessRepository.clear()
+        // El AuthManager singleton (usado por SettingsRepository) suele ser OTRA
+        // instancia distinta a la del AuthViewModel — limpiamos también su estado.
+        val singleton = INSTANCE
+        if (singleton != null && singleton !== this) {
+            singleton.businessRepository.clear()
+        }
+        // Suscripciones GraphQL y navegación pendiente son singletons.
+        runCatching { SubscriptionManager.getInstance().cancelAllSubscriptions() }
+        runCatching { BranchSwitchHandler.getInstance().clearPendingSwitch() }
+        // Última branch persistida — no debe restaurarse para el nuevo user.
+        tokenManager.clearLastSelectedBranchId()
+        SessionScope.clear()
     }
 
     // ============= BUSINESS OPERATIONS =============

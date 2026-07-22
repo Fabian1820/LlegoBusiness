@@ -2,6 +2,8 @@ package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.apollographql.apollo.cache.normalized.FetchPolicy
+import com.apollographql.apollo.cache.normalized.fetchPolicy
 import com.apollographql.apollo.exception.ApolloException
 import com.llego.multiplatform.graphql.GetBusinessQuery
 import com.llego.multiplatform.graphql.GetMyBusinessesWithBranchesQuery
@@ -78,7 +80,7 @@ internal class BusinessDomainRepository(
         return try {
             val response = client.query(
                 GetMyBusinessesWithBranchesQuery(jwt = token)
-            ).execute()
+            ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }
@@ -212,7 +214,7 @@ internal class BusinessDomainRepository(
         return try {
             val response = client.query(
                 GetMyBusinessesWithBranchesQuery(jwt = token)
-            ).execute()
+            ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }

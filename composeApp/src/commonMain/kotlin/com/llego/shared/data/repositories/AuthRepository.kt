@@ -2,7 +2,9 @@ package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.apollographql.apollo.cache.normalized.FetchPolicy
 import com.apollographql.apollo.cache.normalized.apolloStore
+import com.apollographql.apollo.cache.normalized.fetchPolicy
 import com.apollographql.apollo.exception.ApolloException
 import com.llego.multiplatform.graphql.*
 import com.llego.multiplatform.graphql.type.AddBranchToUserInput as GQLAddBranchToUserInput
@@ -230,7 +232,7 @@ class AuthRepository(
         return try {
             val response = client.query(
                 MeQuery(jwt = token)
-            ).execute()
+            ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
 
             if (response.hasErrors()) {
                 val message = response.errors?.firstOrNull()?.message ?: "Error al obtener usuario"
@@ -511,10 +513,14 @@ class AuthRepository(
     suspend fun logout(): AuthResult<Unit> {
         tokenManager.clearAll()
         // Apple 5.1.1: limpiar cache normalizado de Apollo para evitar que el siguiente login
-        // vea datos del usuario anterior.
+        // vea datos del usuario anterior. Si falla, dejamos rastro visible en vez de
+        // tragarlo — sin este clear, la próxima query con CacheFirst devuelve entidades
+        // del usuario previo.
         try {
             client.apolloStore.clearAll()
-        } catch (_: Throwable) { /* cache puede estar vacío en primer arranque */ }
+        } catch (t: Throwable) {
+            println("[AuthRepository] apolloStore.clearAll() failed on logout: ${t.message}")
+        }
         _currentUser.value = null
         _isAuthenticated.value = false
         return AuthResult.Success(Unit)

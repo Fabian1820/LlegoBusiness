@@ -2,6 +2,8 @@ package com.llego.shared.data.repositories
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Optional
+import com.apollographql.apollo.cache.normalized.FetchPolicy
+import com.apollographql.apollo.cache.normalized.fetchPolicy
 import com.apollographql.apollo.exception.ApolloException
 import com.llego.multiplatform.graphql.CreateBranchMutation
 import com.llego.multiplatform.graphql.DeleteBranchMutation
@@ -35,7 +37,7 @@ internal class BranchDomainRepository(
                     businessId = Optional.presentIfNotNull(businessId),
                     jwt = Optional.presentIfNotNull(token)
                 )
-            ).execute()
+            ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
 
             if (response.hasErrors()) {
                 val errors = response.errors?.joinToString(", ") { "${it.message}" }
@@ -289,7 +291,9 @@ internal class BranchDomainRepository(
         businessId: String?
     ): BusinessResult<List<Branch>> {
         return try {
-            val meResponse = client.query(MeQuery(jwt = token)).execute()
+            val meResponse = client.query(MeQuery(jwt = token))
+                .fetchPolicy(FetchPolicy.NetworkOnly)
+                .execute()
             if (meResponse.hasErrors()) {
                 val errors = meResponse.errors?.joinToString(", ") { "${it.message}" }
                 return BusinessResult.Error(
@@ -350,6 +354,10 @@ internal class BranchDomainRepository(
         val current = state.currentBranch.value
         val lastSavedBranchId = tokenManager.getLastSelectedBranchId()
 
+        // Guard de sesión: solo restauramos si el branch aparece en la lista que el
+        // backend acaba de devolver para el usuario actual. Cualquier "current" que
+        // haya quedado en memoria del usuario anterior queda descartado si su id no
+        // matchea con lo que el backend nos autorizó ahora.
         val resolvedBranch = when {
             branchesList.isEmpty() -> null
             current != null -> branchesList.firstOrNull { it.id == current.id }
@@ -363,8 +371,9 @@ internal class BranchDomainRepository(
             tokenManager.saveLastSelectedBranchId(resolvedBranch.id)
         } else if (branchesList.isNotEmpty()) {
             // Solo limpiar si la lista llegó con datos pero el branch guardado ya no existe
-            // (fue eliminado o se revocó el acceso). Si la lista está vacía (error de red, etc.)
-            // NO limpiar para poder restaurar en el siguiente intento.
+            // (fue eliminado, se revocó el acceso, o pertenecía a otro user). Si la lista
+            // está vacía (error de red, etc.) NO limpiar para poder restaurar en el
+            // siguiente intento.
             tokenManager.clearLastSelectedBranchId()
         }
     }
