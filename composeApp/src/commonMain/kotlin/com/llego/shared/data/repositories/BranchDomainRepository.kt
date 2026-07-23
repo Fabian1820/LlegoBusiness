@@ -352,7 +352,13 @@ internal class BranchDomainRepository(
 
     private fun updateCurrentBranchFromList(branchesList: List<Branch>) {
         val current = state.currentBranch.value
+        // Solo consideramos el last_branch_id si su owner coincide con el user actual.
+        // Si otro user hizo un logout parcial (crash, token revocado por otra vía) su
+        // branch podría quedar en disco; con este guard nunca se restaura para el user B.
+        val activeUserId = com.llego.shared.data.auth.SessionScope.currentUserId
+        val ownerOfPersistedBranch = tokenManager.getLastBranchOwnerUserId()
         val lastSavedBranchId = tokenManager.getLastSelectedBranchId()
+            ?.takeIf { activeUserId == null || ownerOfPersistedBranch == null || ownerOfPersistedBranch == activeUserId }
 
         // Guard de sesión: solo restauramos si el branch aparece en la lista que el
         // backend acaba de devolver para el usuario actual. Cualquier "current" que
@@ -369,12 +375,14 @@ internal class BranchDomainRepository(
 
         if (resolvedBranch != null) {
             tokenManager.saveLastSelectedBranchId(resolvedBranch.id)
+            activeUserId?.let { tokenManager.saveLastBranchOwnerUserId(it) }
         } else if (branchesList.isNotEmpty()) {
             // Solo limpiar si la lista llegó con datos pero el branch guardado ya no existe
             // (fue eliminado, se revocó el acceso, o pertenecía a otro user). Si la lista
             // está vacía (error de red, etc.) NO limpiar para poder restaurar en el
             // siguiente intento.
             tokenManager.clearLastSelectedBranchId()
+            tokenManager.clearLastBranchOwnerUserId()
         }
     }
 }

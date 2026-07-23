@@ -171,8 +171,9 @@ class AuthManager(private val tokenManager: TokenManager) {
         // Suscripciones GraphQL y navegación pendiente son singletons.
         runCatching { SubscriptionManager.getInstance().cancelAllSubscriptions() }
         runCatching { BranchSwitchHandler.getInstance().clearPendingSwitch() }
-        // Última branch persistida — no debe restaurarse para el nuevo user.
+        // Última branch persistida y su owner — no deben restaurarse para el nuevo user.
         tokenManager.clearLastSelectedBranchId()
+        tokenManager.clearLastBranchOwnerUserId()
         SessionScope.clear()
     }
 
@@ -291,11 +292,15 @@ class AuthManager(private val tokenManager: TokenManager) {
     fun setCurrentBranch(branch: Branch) {
         businessRepository.setCurrentBranch(branch)
         tokenManager.saveLastSelectedBranchId(branch.id)
+        // Etiquetar el branch persistido con el user actual. Al arrancar la app,
+        // si el user es distinto, este id se descarta como "no mío".
+        SessionScope.currentUserId?.let { tokenManager.saveLastBranchOwnerUserId(it) }
     }
 
     fun clearCurrentBranch() {
         businessRepository.clearCurrentBranch()
         tokenManager.clearLastSelectedBranchId()
+        tokenManager.clearLastBranchOwnerUserId()
     }
 
     /**
@@ -332,10 +337,6 @@ class AuthManager(private val tokenManager: TokenManager) {
         fun getInstance(tokenManager: TokenManager): AuthManager {
             // Simple singleton sin synchronized (no soportado en common)
             return INSTANCE ?: AuthManager(tokenManager).also { INSTANCE = it }
-        }
-
-        fun resetInstance() {
-            INSTANCE = null
         }
     }
 }

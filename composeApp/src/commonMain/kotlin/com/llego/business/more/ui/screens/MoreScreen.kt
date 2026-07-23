@@ -22,14 +22,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ManageAccounts
@@ -62,12 +63,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.llego.business.settings.data.model.NotificationSettings
+import com.llego.shared.data.platform.appVersionString
 import com.llego.business.settings.ui.viewmodel.SettingsUiState
 import com.llego.business.settings.ui.viewmodel.SettingsViewModel
 import com.llego.shared.data.model.AuthResult
@@ -476,16 +479,18 @@ private fun NotificationsBlock(
             onCheckedChange = { onUpdate(notificationSettings.copy(newOrderSound = it)) }
         )
         SwitchRow(
-            label = "Notificaciones de horarios",
-            description = "Recordatorios de horarios de operación",
-            checked = notificationSettings.orderStatusUpdates,
-            onCheckedChange = { onUpdate(notificationSettings.copy(orderStatusUpdates = it)) }
+            label = "Recordatorios de horario",
+            description = "Próximamente",
+            checked = false,
+            enabled = false,
+            onCheckedChange = { }
         )
         SwitchRow(
             label = "Resumen diario",
-            description = "Resumen al final del día con las operaciones",
-            checked = notificationSettings.dailySummary,
-            onCheckedChange = { onUpdate(notificationSettings.copy(dailySummary = it)) }
+            description = "Próximamente",
+            checked = false,
+            enabled = false,
+            onCheckedChange = { }
         )
     }
 }
@@ -511,30 +516,63 @@ private fun PrivacyBlock() {
 
 @Composable
 private fun SupportBlock() {
+    val uriHandler = LocalUriHandler.current
+    var showContactDialog by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         MoreRow(
-            title = "Centro de ayuda",
-            subtitle = "Respuestas a preguntas frecuentes",
-            icon = Icons.Default.Help,
-            onClick = { /* TODO: enlazar centro de ayuda */ }
-        )
-        MoreRow(
             title = "Contactar soporte",
-            subtitle = "Habla con nuestro equipo",
+            subtitle = "Escríbenos por WhatsApp o correo",
             icon = Icons.Default.Support,
-            onClick = { /* TODO: enlazar canal de soporte */ }
-        )
-        MoreRow(
-            title = "Reportar un problema",
-            subtitle = "Notifica errores o problemas técnicos",
-            icon = Icons.Default.BugReport,
-            onClick = { /* TODO: enlazar reporte */ }
+            onClick = { showContactDialog = true }
         )
         MoreRow(
             title = "Versión de la app",
-            subtitle = "1.0.0",
+            subtitle = appVersionString(),
             icon = Icons.Default.Info,
             onClick = { /* informativo */ }
+        )
+    }
+
+    if (showContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showContactDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Support,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text("Contactar soporte") },
+            text = { Text("Elige cómo quieres comunicarte con nosotros.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showContactDialog = false
+                    runCatching { uriHandler.openUri("https://wa.me/5358412294") }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Chat,
+                        contentDescription = null,
+                        tint = Color(0xFF25D366),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(" WhatsApp")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showContactDialog = false
+                    runCatching { uriHandler.openUri("mailto:rubianclaude@gmail.com?subject=Soporte%20Llego%20Negocios") }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(" Correo")
+                }
+            }
         )
     }
 }
@@ -583,13 +621,14 @@ private fun SwitchRow(
     label: String,
     description: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = LlegoShapes.small,
         colors = CardDefaults.cardColors(
-            containerColor = if (checked) {
+            containerColor = if (checked && enabled) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             } else {
                 MaterialTheme.colorScheme.surface
@@ -632,6 +671,7 @@ private fun SwitchRow(
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
+                enabled = enabled,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.primary,
                     checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),

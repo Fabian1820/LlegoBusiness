@@ -267,7 +267,9 @@ class OrdersViewModel(
     private fun observeNewOrders() {
         viewModelScope.launch {
             subscriptionManager.newOrders.collect { event ->
-                if (event.order.status == OrderStatus.PENDING_ACCEPTANCE) {
+                if (event.order.status == OrderStatus.PENDING_ACCEPTANCE &&
+                    com.llego.business.orders.data.notification.NotificationPreferences.newOrderSoundEnabled
+                ) {
                     runCatching {
                         notificationService?.showNewOrderNotification(event)
                         notificationService?.playNewOrderSound()

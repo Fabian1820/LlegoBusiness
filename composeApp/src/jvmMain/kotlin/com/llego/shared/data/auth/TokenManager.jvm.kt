@@ -64,6 +64,20 @@ actual class TokenManager {
         saveProperties()
     }
 
+    actual fun saveLastBranchOwnerUserId(userId: String) {
+        properties.setProperty(KEY_LAST_BRANCH_OWNER_USER_ID, userId)
+        saveProperties()
+    }
+
+    actual fun getLastBranchOwnerUserId(): String? {
+        return properties.getProperty(KEY_LAST_BRANCH_OWNER_USER_ID)
+    }
+
+    actual fun clearLastBranchOwnerUserId() {
+        properties.remove(KEY_LAST_BRANCH_OWNER_USER_ID)
+        saveProperties()
+    }
+
     actual fun saveLastHomeTabIndex(index: Int) {
         properties.setProperty(KEY_LAST_HOME_TAB_INDEX, index.toString())
         saveProperties()
@@ -86,6 +100,7 @@ actual class TokenManager {
         private const val KEY_TOKEN = "jwt_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_LAST_BRANCH_ID = "last_branch_id"
+        private const val KEY_LAST_BRANCH_OWNER_USER_ID = "last_branch_owner_user_id"
         private const val KEY_LAST_HOME_TAB_INDEX = "last_home_tab_index"
     }
 }

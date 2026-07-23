@@ -20,6 +20,14 @@ expect class TokenManager() {
     fun getLastSelectedBranchId(): String?
     fun clearLastSelectedBranchId()
 
+    /**
+     * Owner del último branch guardado. Se usa como guard: si el user que arranca
+     * la app no coincide con éste, ignoramos el last_branch_id restaurado.
+     */
+    fun saveLastBranchOwnerUserId(userId: String)
+    fun getLastBranchOwnerUserId(): String?
+    fun clearLastBranchOwnerUserId()
+
     fun saveLastHomeTabIndex(index: Int)
     fun getLastHomeTabIndex(): Int?
     fun clearLastHomeTabIndex()

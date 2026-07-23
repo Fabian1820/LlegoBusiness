@@ -13,9 +13,17 @@ import platform.UserNotifications.UNAuthorizationOptionSound
 import platform.UserNotifications.UNAuthorizationStatusAuthorized
 import platform.UserNotifications.UNAuthorizationStatusProvisional
 import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotification
+import platform.UserNotifications.UNNotificationPresentationOptionBadge
+import platform.UserNotifications.UNNotificationPresentationOptionBanner
+import platform.UserNotifications.UNNotificationPresentationOptionList
+import platform.UserNotifications.UNNotificationPresentationOptionSound
+import platform.UserNotifications.UNNotificationPresentationOptions
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNNotificationSound
 import platform.UserNotifications.UNUserNotificationCenter
+import platform.UserNotifications.UNUserNotificationCenterDelegateProtocol
+import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
@@ -32,6 +40,11 @@ class IosNotificationService : NotificationService {
     private val branchSwitchHandler = BranchSwitchHandler.getInstance()
     private val center = UNUserNotificationCenter.currentNotificationCenter()
 
+    // Delegate que fuerza el banner+sonido+badge cuando la notificación llega con la
+    // app en primer plano. Sin este delegate iOS oculta el banner por defecto.
+    // Guardamos la referencia como property para que el runtime no la libere.
+    private val foregroundDelegate = ForegroundBannerDelegate()
+
     // Cache del último estado conocido; hasNotificationPermission() es síncrono
     // pero las settings de iOS se consultan async — refrescamos cada vez que pedimos
     // o solicitamos autorización.
@@ -40,6 +53,14 @@ class IosNotificationService : NotificationService {
 
     // Sonido del sistema "1007" = «new mail / notification» (sonoro + breve vibración).
     private val systemSoundNewMail: UInt = 1007u
+
+    init {
+        // Asignar el delegate en main thread; UNUserNotificationCenter no lo exige,
+        // pero mantiene la simetría con el resto de llamadas UIKit del servicio.
+        dispatch_async(dispatch_get_main_queue()) {
+            center.setDelegate(foregroundDelegate)
+        }
+    }
 
     companion object {
         // Category identifiers (para uso futuro con UNUserNotificationCenter)
@@ -287,6 +308,26 @@ object NotificationBridge {
             orderId = orderId,
             branchName = branchName
         )
+    }
+}
+
+/**
+ * Delegate mínimo que activa el banner del sistema cuando llega una notificación con
+ * la app en foreground. Sin esto iOS suprime la alerta visual (el sonido/vibración
+ * seguirían funcionando por AudioServicesPlaySystemSound, pero el banner no aparece).
+ */
+private class ForegroundBannerDelegate : NSObject(), UNUserNotificationCenterDelegateProtocol {
+    override fun userNotificationCenter(
+        center: UNUserNotificationCenter,
+        willPresentNotification: UNNotification,
+        withCompletionHandler: (UNNotificationPresentationOptions) -> Unit
+    ) {
+        val options: UNNotificationPresentationOptions =
+            UNNotificationPresentationOptionBanner or
+                UNNotificationPresentationOptionList or
+                UNNotificationPresentationOptionSound or
+                UNNotificationPresentationOptionBadge
+        withCompletionHandler(options)
     }
 }
 

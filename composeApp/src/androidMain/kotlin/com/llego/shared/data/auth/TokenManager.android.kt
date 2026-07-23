@@ -11,6 +11,7 @@ private const val PREFS_NAME = "llego_auth_prefs"
 private const val KEY_ACCESS_TOKEN = "access_token"
 private const val KEY_REFRESH_TOKEN = "refresh_token"
 private const val KEY_LAST_BRANCH_ID = "last_branch_id"
+private const val KEY_LAST_BRANCH_OWNER_USER_ID = "last_branch_owner_user_id"
 private const val KEY_LAST_HOME_TAB_INDEX = "last_home_tab_index"
 
 /**
@@ -95,6 +96,18 @@ actual class TokenManager actual constructor() {
 
     actual fun clearLastSelectedBranchId() {
         sharedPrefs?.edit()?.remove(KEY_LAST_BRANCH_ID)?.apply()
+    }
+
+    actual fun saveLastBranchOwnerUserId(userId: String) {
+        sharedPrefs?.edit()?.putString(KEY_LAST_BRANCH_OWNER_USER_ID, userId)?.apply()
+    }
+
+    actual fun getLastBranchOwnerUserId(): String? {
+        return sharedPrefs?.getString(KEY_LAST_BRANCH_OWNER_USER_ID, null)
+    }
+
+    actual fun clearLastBranchOwnerUserId() {
+        sharedPrefs?.edit()?.remove(KEY_LAST_BRANCH_OWNER_USER_ID)?.apply()
     }
 
     actual fun saveLastHomeTabIndex(index: Int) {

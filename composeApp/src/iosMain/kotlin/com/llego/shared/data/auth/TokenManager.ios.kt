@@ -61,6 +61,20 @@ actual class TokenManager {
         userDefaults.synchronize()
     }
 
+    actual fun saveLastBranchOwnerUserId(userId: String) {
+        userDefaults.setObject(userId, forKey = KEY_LAST_BRANCH_OWNER_USER_ID)
+        userDefaults.synchronize()
+    }
+
+    actual fun getLastBranchOwnerUserId(): String? {
+        return userDefaults.stringForKey(KEY_LAST_BRANCH_OWNER_USER_ID)
+    }
+
+    actual fun clearLastBranchOwnerUserId() {
+        userDefaults.removeObjectForKey(KEY_LAST_BRANCH_OWNER_USER_ID)
+        userDefaults.synchronize()
+    }
+
     actual fun saveLastHomeTabIndex(index: Int) {
         userDefaults.setInteger(index.toLong(), forKey = KEY_LAST_HOME_TAB_INDEX)
         userDefaults.synchronize()
@@ -83,6 +97,7 @@ actual class TokenManager {
         private const val KEY_TOKEN = "com.llego.jwt_token"
         private const val KEY_REFRESH_TOKEN = "com.llego.refresh_token"
         private const val KEY_LAST_BRANCH_ID = "com.llego.last_branch_id"
+        private const val KEY_LAST_BRANCH_OWNER_USER_ID = "com.llego.last_branch_owner_user_id"
         private const val KEY_LAST_HOME_TAB_INDEX = "com.llego.last_home_tab_index"
     }
 }

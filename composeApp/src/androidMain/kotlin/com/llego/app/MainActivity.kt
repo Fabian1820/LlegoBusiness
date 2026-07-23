@@ -93,6 +93,9 @@ class MainActivity : ComponentActivity() {
         // Inicializar TokenManager con contexto para persistencia
         TokenManager.initialize(applicationContext)
 
+        // Guardar applicationContext para consultas ligeras (versión de la app, etc.)
+        com.llego.shared.data.platform.AppContextHolder.applicationContext = applicationContext
+
         // Inicializar ImageUploadServiceFactory con contexto para manejar content:// URIs
         ImageUploadServiceFactory.initialize(applicationContext)
 

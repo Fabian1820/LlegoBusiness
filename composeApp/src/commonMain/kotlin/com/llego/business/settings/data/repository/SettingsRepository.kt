@@ -4,6 +4,7 @@ import com.llego.business.settings.data.model.BusinessHours
 import com.llego.business.settings.data.model.BusinessSettings
 import com.llego.business.settings.data.model.DaySchedule
 import com.llego.business.settings.data.model.DeliverySettings
+import com.llego.business.orders.data.notification.NotificationPreferences
 import com.llego.business.settings.data.model.NotificationSettings
 import com.llego.business.settings.data.model.OrderSettings
 import com.llego.business.settings.data.model.PaymentMethod
@@ -48,7 +49,7 @@ class SettingsRepository private constructor(
         return when (sourceMode) {
             SettingsDataSourceMode.MOCK -> {
                 val mock = getMockSettings()
-                _settings.value = mock
+                publishSettings(mock)
                 mock
             }
 
@@ -59,7 +60,7 @@ class SettingsRepository private constructor(
                 }
 
                 val resolved = branch.toBusinessSettings(previous = _settings.value)
-                _settings.value = resolved
+                publishSettings(resolved)
                 resolved
             }
         }
@@ -68,7 +69,7 @@ class SettingsRepository private constructor(
     suspend fun updateSettings(settings: BusinessSettings): Boolean {
         return when (sourceMode) {
             SettingsDataSourceMode.MOCK -> {
-                _settings.value = settings
+                publishSettings(settings)
                 true
             }
 
@@ -90,7 +91,7 @@ class SettingsRepository private constructor(
                 when (val result = authManager.updateBranch(branch.id, input)) {
                     is BusinessResult.Success -> {
                         val merged = result.data.toBusinessSettings(previous = settings)
-                        _settings.value = merged
+                        publishSettings(merged)
                         true
                     }
 
@@ -206,10 +207,20 @@ class SettingsRepository private constructor(
         _settings.value?.let { return it }
         if (allowMockFallback) {
             val mock = getMockSettings()
-            _settings.value = mock
+            publishSettings(mock)
             return mock
         }
         throw IllegalStateException(message)
+    }
+
+    /**
+     * Escribe el nuevo estado y sincroniza flags derivados que otras capas leen sin
+     * depender de este repositorio (p. ej. OrdersViewModel consulta
+     * NotificationPreferences en vez de traer SettingsRepository).
+     */
+    private fun publishSettings(settings: BusinessSettings) {
+        _settings.value = settings
+        NotificationPreferences.setNewOrderSoundEnabled(settings.notifications.newOrderSound)
     }
 
     private fun String.toSettingsPaymentMethodOrNull(): PaymentMethod? {
