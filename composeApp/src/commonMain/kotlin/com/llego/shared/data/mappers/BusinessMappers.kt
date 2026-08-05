@@ -58,7 +58,8 @@ private fun BusinessCoreFields.toDomain(): Business {
         rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
-        avatarUrlAlta = avatarUrlAlta
+        avatarUrlAlta = avatarUrlAlta,
+        predefinedDeliveryFee = predefinedDeliveryFee
     )
 }
 
@@ -81,7 +82,8 @@ private fun BusinessRoleFields.toDomain(): Business {
         rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
-        avatarUrlAlta = avatarUrlAlta
+        avatarUrlAlta = avatarUrlAlta,
+        predefinedDeliveryFee = predefinedDeliveryFee
     )
 }
 
@@ -100,9 +102,19 @@ private fun BusinessUpdateFields.toDomain(): Business {
         rejectionReason = rejectionReason,
         avatarUrl = avatarUrl,
         avatarUrlBaja = avatarUrlBaja,
-        avatarUrlAlta = avatarUrlAlta
+        avatarUrlAlta = avatarUrlAlta,
+        predefinedDeliveryFee = predefinedDeliveryFee
     )
 }
+
+fun DeliveryFeeRecommendationQuery.DeliveryFeeRecommendation.toDomain(): DeliveryFeeRecommendation =
+    DeliveryFeeRecommendation(
+        recommendedFee = recommendedFee,
+        sampleSize = sampleSize,
+        confidence = confidence,
+        oldestUsed = oldestUsed?.toString(),
+        newestUsed = newestUsed?.toString()
+    )
 
 // ============= BRANCH MAPPERS (GraphQL -> Domain) =============
 
@@ -315,7 +327,8 @@ fun UpdateBusinessInput.toGraphQL(): GQLUpdateBusinessInput {
         avatar = Optional.presentIfNotNull(avatar),
         description = Optional.presentIfNotNull(description),
         tags = Optional.presentIfNotNull(tags),
-        isActive = Optional.presentIfNotNull(isActive)
+        isActive = Optional.presentIfNotNull(isActive),
+        predefinedDeliveryFee = Optional.presentIfNotNull(predefinedDeliveryFee)
     )
 }
 

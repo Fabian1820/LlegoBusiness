@@ -217,6 +217,14 @@ class AuthManager(private val tokenManager: TokenManager) {
         return businessRepository.deleteBusiness(businessId)
     }
 
+    /**
+     * Sugerencia de tarifa de envío basada en el historial real del negocio.
+     * Solo informativa.
+     */
+    suspend fun getDeliveryFeeRecommendation(businessId: String): BusinessResult<DeliveryFeeRecommendation> {
+        return businessRepository.getDeliveryFeeRecommendation(businessId)
+    }
+
     // ============= BRANCH OPERATIONS =============
 
     /**

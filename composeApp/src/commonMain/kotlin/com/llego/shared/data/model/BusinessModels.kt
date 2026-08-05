@@ -29,7 +29,10 @@ data class Business(
     val rejectionReason: String? = null,
     val avatarUrl: String? = null,
     val avatarUrlBaja: String? = null,
-    val avatarUrlAlta: String? = null
+    val avatarUrlAlta: String? = null,
+    // Tarifa de envío predefinida por el negocio. Solo informativa — nunca
+    // sustituye el cálculo real por zona que hace el backend en cada pedido.
+    val predefinedDeliveryFee: Double? = null
 )
 
 /**
@@ -54,6 +57,7 @@ data class BusinessWithBranches(
     val avatarUrl: String? = null,
     val avatarUrlBaja: String? = null,
     val avatarUrlAlta: String? = null,
+    val predefinedDeliveryFee: Double? = null,
     val branches: List<Branch> = emptyList()
 ) {
     fun toBusiness(): Business {
@@ -71,10 +75,25 @@ data class BusinessWithBranches(
             rejectionReason = rejectionReason,
             avatarUrl = avatarUrl,
             avatarUrlBaja = avatarUrlBaja,
-            avatarUrlAlta = avatarUrlAlta
+            avatarUrlAlta = avatarUrlAlta,
+            predefinedDeliveryFee = predefinedDeliveryFee
         )
     }
 }
+
+/**
+ * Sugerencia de tarifa de envío, calculada por el backend a partir del
+ * historial real de tarifas del negocio. Solo informativa — el negocio
+ * decide si la usa o no; nunca se aplica automáticamente.
+ */
+@Serializable
+data class DeliveryFeeRecommendation(
+    val recommendedFee: Double?,
+    val sampleSize: Int,
+    val confidence: String, // "insufficient_data" | "low" | "medium" | "high"
+    val oldestUsed: String?,
+    val newestUsed: String?
+)
 
 /**
  * Modelo de sucursal (Branch)
@@ -248,7 +267,8 @@ data class UpdateBusinessInput(
     val avatar: String? = null,
     val description: String? = null,
     val tags: List<String>? = null,
-    val isActive: Boolean? = null
+    val isActive: Boolean? = null,
+    val predefinedDeliveryFee: Double? = null
 )
 
 /**
