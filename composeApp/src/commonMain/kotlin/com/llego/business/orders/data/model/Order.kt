@@ -66,15 +66,19 @@ data class Order(
      * Permiso de negocio para modificar items del pedido.
      * No depende de `isEditable` (ese campo aplica al flujo del cliente).
      *
-     * Alineado al flujo de tienda antes de preparación.
+     * Alineado con el backend (OrderService.modify_order_items): solo antes de
+     * preparar y nunca con el pedido pagado. Modificar un pedido pagado olvidaba
+     * el pago y el cliente terminaba pagando dos veces o sin reembolso.
+     * PAYMENT_IN_PROGRESS (cliente ya transfirió) tampoco. Si el cliente ya
+     * inició el pago en PENDING_PAYMENT el backend lo rechaza con un mensaje claro.
      */
-    fun canBusinessModifyItems(): Boolean = status in setOf(
-        OrderStatus.PENDING_ACCEPTANCE,
-        OrderStatus.PENDING_PAYMENT,
-        OrderStatus.PAYMENT_IN_PROGRESS,
-        OrderStatus.ACCEPTED,
-        OrderStatus.MODIFIED_BY_STORE
-    )
+    fun canBusinessModifyItems(): Boolean =
+        paymentStatus != PaymentStatus.COMPLETED && status in setOf(
+            OrderStatus.PENDING_ACCEPTANCE,
+            OrderStatus.AWAITING_DELIVERY_ACCEPTANCE,
+            OrderStatus.PENDING_PAYMENT,
+            OrderStatus.ACCEPTED
+        )
 }
 
 private object PaymentMethodClassifier {
