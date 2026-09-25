@@ -72,6 +72,7 @@ import com.llego.business.home.config.HomeTabIcon
 import com.llego.business.home.config.HomeTabsProvider
 import com.llego.business.home.ui.components.BranchStatusChip
 import com.llego.business.more.ui.screens.MoreScreen
+import com.llego.business.home.ui.components.AdvertiseWithLlegoBanner
 import com.llego.business.products.ui.viewmodel.ProductViewModel
 import com.llego.business.products.ui.viewmodel.ShowcaseViewModel
 import com.llego.business.analytics.ui.screens.StatisticsScreen
@@ -439,22 +440,34 @@ fun BusinessHomeScreen(
             when (tabs[safeSelectedTabIndex].id) {
                 "orders" -> {
                     if (isCatalogOnly) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Esta sucursal no recibe pedidos",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            AdvertiseWithLlegoBanner(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Esta sucursal no recibe pedidos",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     } else {
                         OrdersScreen(
                             viewModel = ordersViewModel,
                             onNavigateToOrderDetail = onNavigateToOrderDetail,
                             searchQuery = ordersSearchQuery,
-                            onShowConfirmation = onShowConfirmation
+                            onShowConfirmation = onShowConfirmation,
+                            listHeader = {
+                                AdvertiseWithLlegoBanner(
+                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                )
+                            }
                         )
                     }
                 }

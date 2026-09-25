@@ -64,7 +64,8 @@ fun OrdersContent(
     actionInProgressOrderId: String?,
     onDateRangeSelected: (DateRangeFilter) -> Unit,
     onStatusSelected: (OrderStatus) -> Unit,
-    onStatusCleared: () -> Unit
+    onStatusCleared: () -> Unit,
+    listHeader: (@Composable () -> Unit)? = null
 ) {
     AnimatedVisibility(
         visible = animateContent,
@@ -85,6 +86,9 @@ fun OrdersContent(
             )
 
             if (filteredOrders.isEmpty()) {
+                listHeader?.let {
+                    Box(modifier = Modifier.padding(top = 8.dp)) { it() }
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -109,6 +113,9 @@ fun OrdersContent(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    listHeader?.let { header ->
+                        item(key = "orders_list_header") { header() }
+                    }
                     items(
                         items = filteredOrders,
                         key = { it.id }

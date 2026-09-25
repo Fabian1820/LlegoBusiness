@@ -35,6 +35,7 @@ fun OrdersScreen(
     searchQuery: String = "",
     onNavigateToOrderDetail: (String) -> Unit = {},
     onShowConfirmation: ((ConfirmationType, String) -> Unit)? = null,
+    listHeader: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -207,7 +208,8 @@ fun OrdersScreen(
                         actionInProgressOrderId = null,
                         onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
                         onStatusSelected = { viewModel.setFilter(it) },
-                        onStatusCleared = { viewModel.clearFilter() }
+                        onStatusCleared = { viewModel.clearFilter() },
+                        listHeader = listHeader
                     )
                 }
             }
@@ -257,7 +259,8 @@ fun OrdersScreen(
                     actionInProgressOrderId = currentState.orderId,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
                     onStatusSelected = { viewModel.setFilter(it) },
-                    onStatusCleared = { viewModel.clearFilter() }
+                    onStatusCleared = { viewModel.clearFilter() },
+                    listHeader = listHeader
                 )
             }
             is OrdersUiState.ActionError -> {
@@ -279,7 +282,8 @@ fun OrdersScreen(
                     actionInProgressOrderId = null,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
                     onStatusSelected = { viewModel.setFilter(it) },
-                    onStatusCleared = { viewModel.clearFilter() }
+                    onStatusCleared = { viewModel.clearFilter() },
+                    listHeader = listHeader
                 )
                 // Mostrar snackbar de error
                 LaunchedEffect(currentState.message) {
@@ -306,7 +310,8 @@ fun OrdersScreen(
                     actionInProgressOrderId = null,
                     onDateRangeSelected = { viewModel.setDateRangeFilter(it) },
                     onStatusSelected = { viewModel.setFilter(it) },
-                    onStatusCleared = { viewModel.clearFilter() }
+                    onStatusCleared = { viewModel.clearFilter() },
+                    listHeader = listHeader
                 )
             }
         }
