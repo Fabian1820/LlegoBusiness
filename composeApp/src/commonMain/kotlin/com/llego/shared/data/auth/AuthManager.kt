@@ -3,6 +3,7 @@ package com.llego.shared.data.auth
 import com.llego.business.orders.data.notification.BranchSwitchHandler
 import com.llego.business.orders.data.subscription.SubscriptionManager
 import com.llego.shared.data.model.*
+import com.llego.shared.data.push.PushTokenRegistrar
 import com.llego.shared.data.repositories.BusinessRepository
 import com.llego.shared.data.repositories.AuthRepository
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class AuthManager(private val tokenManager: TokenManager) {
     private suspend fun refreshUserAfterAuth(result: AuthResult<User>): AuthResult<User> {
         if (result is AuthResult.Success) {
             SessionScope.setCurrentUser(result.data.id)
+            PushTokenRegistrar.onSessionStarted()
             return when (val refreshed = authRepository.getCurrentUser()) {
                 is AuthResult.Success -> {
                     SessionScope.setCurrentUser(refreshed.data.id)
@@ -93,7 +95,10 @@ class AuthManager(private val tokenManager: TokenManager) {
     suspend fun authenticateWithToken(token: String): AuthResult<User> {
         prepareForNewSession()
         val result = authRepository.authenticateWithToken(token)
-        if (result is AuthResult.Success) SessionScope.setCurrentUser(result.data.id)
+        if (result is AuthResult.Success) {
+            SessionScope.setCurrentUser(result.data.id)
+            PushTokenRegistrar.onSessionStarted()
+        }
         return result
     }
 
@@ -129,7 +134,9 @@ class AuthManager(private val tokenManager: TokenManager) {
      * Elimina la cuenta del usuario
      */
     suspend fun deleteUser(): AuthResult<Boolean> {
-        return authRepository.deleteUser()
+        val result = authRepository.deleteUser()
+        if (result is AuthResult.Success && result.data) PushTokenRegistrar.onSessionEnded()
+        return result
     }
 
     /**
@@ -152,7 +159,9 @@ class AuthManager(private val tokenManager: TokenManager) {
     suspend fun logout(): AuthResult<Unit> {
         tearDownSessionState()
         tokenManager.clearLastHomeTabIndex()
-        return authRepository.logout()
+        val result = authRepository.logout()
+        PushTokenRegistrar.onSessionEnded()
+        return result
     }
 
     /**

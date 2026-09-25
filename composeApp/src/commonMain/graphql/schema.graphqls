@@ -3122,6 +3122,9 @@ input RegisterDeviceTokenInput {
   platform: DevicePlatformEnum!
   appVersion: String = null
   osVersion: String = null
+
+  """Bundle ID / package de la app. Omitir = app de clientes."""
+  bundleId: String = null
 }
 
 input RegisterInput {

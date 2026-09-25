@@ -1,5 +1,6 @@
 package com.llego.app
 
+import com.llego.shared.data.push.PushTokenRegistrar
 import com.llego.business.invitations.data.repository.InvitationRepository
 import com.llego.business.invitations.ui.viewmodel.InvitationViewModel
 import com.llego.business.delivery.data.repository.DeliveryLinkRepository
@@ -35,6 +36,7 @@ class AppContainer(
 ) {
     init {
         GraphQLClient.initialize(tokenManager)
+        PushTokenRegistrar.initialize(tokenManager)
     }
 
     // Repositorios principales

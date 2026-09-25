@@ -1,0 +1,6 @@
+mutation RegisterDeviceToken($input: RegisterDeviceTokenInput!, $jwt: String) {
+  registerDeviceToken(input: $input, jwt: $jwt) {
+    id
+    isActive
+  }
+}
