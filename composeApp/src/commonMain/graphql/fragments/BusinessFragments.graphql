@@ -13,6 +13,7 @@ fragment BusinessCoreFields on BusinessType {
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta
+  predefinedDeliveryFee
 }
 
 fragment BusinessOwnedFields on BusinessType {
@@ -34,6 +35,7 @@ fragment BusinessRoleFields on BusinessWithBranchesType {
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta
+  predefinedDeliveryFee
   isOwner
   role
 }
@@ -53,6 +55,7 @@ fragment BusinessUpdateFields on BusinessType {
   avatarUrl
   avatarUrlBaja
   avatarUrlAlta
+  predefinedDeliveryFee
 }
 
 fragment BusinessAccessFields on BusinessType {

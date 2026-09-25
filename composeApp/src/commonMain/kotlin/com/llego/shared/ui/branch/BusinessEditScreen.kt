@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessResult
+import com.llego.shared.data.model.DeliveryFeeRecommendation
 import com.llego.shared.data.model.ImageUploadState
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
@@ -87,6 +89,10 @@ fun BusinessEditScreen(
     var selectedTags by remember(business.id) { mutableStateOf(business.tags) }
     var isActive by remember(business.id) { mutableStateOf(business.isActive) }
     var avatarState by remember { mutableStateOf<ImageUploadState>(ImageUploadState.Idle) }
+    var predefinedDeliveryFeeText by remember(business.id) {
+        mutableStateOf(business.predefinedDeliveryFee?.let { formatFeeInput(it) } ?: "")
+    }
+    var predefinedDeliveryFeeError by remember { mutableStateOf<String?>(null) }
 
     var localBranches by remember(business.id, branches) {
         mutableStateOf(branches.sortedBy { it.name.lowercase() })
@@ -120,19 +126,36 @@ fun BusinessEditScreen(
             return
         }
 
+        val feeText = predefinedDeliveryFeeText.trim()
+        val feeValue: Double? = if (feeText.isEmpty()) {
+            null
+        } else {
+            val parsed = feeText.replace(",", ".").toDoubleOrNull()
+            if (parsed == null || parsed < 0) {
+                predefinedDeliveryFeeError = "Ingresa una tarifa válida"
+                statusMessage = predefinedDeliveryFeeError
+                onError(statusMessage ?: "")
+                return
+            }
+            parsed
+        }
+        predefinedDeliveryFeeError = null
+
         val input = UpdateBusinessInput(
             name = nameValue.takeIf { it != originalBusiness.name },
             description = descriptionValue.takeIf { it != originalBusiness.description.orEmpty() },
             tags = tagsValue.takeIf { it != originalBusiness.tags },
             isActive = isActive.takeIf { it != originalBusiness.isActive },
-            avatar = avatarPath
+            avatar = avatarPath,
+            predefinedDeliveryFee = feeValue.takeIf { it != originalBusiness.predefinedDeliveryFee }
         )
 
         if (input.name == null &&
             input.description == null &&
             input.tags == null &&
             input.isActive == null &&
-            input.avatar == null
+            input.avatar == null &&
+            input.predefinedDeliveryFee == null
         ) {
             statusMessage = "No hay cambios para guardar"
             return
@@ -149,6 +172,7 @@ fun BusinessEditScreen(
                     selectedTags = updated.tags
                     isActive = updated.isActive
                     avatarState = ImageUploadState.Idle
+                    predefinedDeliveryFeeText = updated.predefinedDeliveryFee?.let { formatFeeInput(it) } ?: ""
                     statusMessage = "Negocio actualizado correctamente"
                     onBusinessUpdated(updated)
                     onDataChanged()
@@ -439,6 +463,40 @@ fun BusinessEditScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
+                text = "Tarifa de envío",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = "Tarifa predefinida que verás como referencia. No sustituye el cálculo real por zona de cada pedido.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value = predefinedDeliveryFeeText,
+                onValueChange = {
+                    predefinedDeliveryFeeText = it
+                    predefinedDeliveryFeeError = null
+                },
+                label = { Text("Tarifa predefinida") },
+                placeholder = { Text("Ej. 2.50") },
+                isError = predefinedDeliveryFeeError != null,
+                supportingText = predefinedDeliveryFeeError?.let { { Text(it) } },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = LlegoCustomShapes.inputField,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                )
+            )
+            DeliveryFeeSuggestionCard(
+                businessId = originalBusiness.id,
+                authViewModel = authViewModel,
+                onUseSuggestion = { fee -> predefinedDeliveryFeeText = formatFeeInput(fee) }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
                 text = "Sucursales",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
@@ -646,3 +704,72 @@ fun BusinessEditScreen(
         )
     }
 }
+
+/**
+ * Sugerencia de tarifa de envío calculada por el backend a partir del
+ * historial real de tarifas del negocio (mediana de las últimas órdenes
+ * entregadas). Solo informativa — [onUseSuggestion] únicamente rellena el
+ * campo de texto, nunca guarda el cambio por sí sola.
+ */
+@Composable
+private fun DeliveryFeeSuggestionCard(
+    businessId: String,
+    authViewModel: AuthViewModel,
+    onUseSuggestion: (Double) -> Unit
+) {
+    var recommendation by remember(businessId) { mutableStateOf<DeliveryFeeRecommendation?>(null) }
+    var isLoading by remember(businessId) { mutableStateOf(true) }
+
+    LaunchedEffect(businessId) {
+        isLoading = true
+        when (val result = authViewModel.getDeliveryFeeRecommendation(businessId)) {
+            is BusinessResult.Success -> recommendation = result.data
+            else -> recommendation = null
+        }
+        isLoading = false
+    }
+
+    if (isLoading) return
+
+    val fee = recommendation?.recommendedFee
+    Card(
+        shape = LlegoCustomShapes.infoCard,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (fee == null) {
+                Text(
+                    text = "Aún no hay suficiente historial de pedidos entregados para sugerir una tarifa.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val confidenceLabel = when (recommendation?.confidence) {
+                    "high" -> "alta confianza"
+                    "medium" -> "confianza media"
+                    else -> "confianza baja, pocos datos"
+                }
+                Text(
+                    text = "Sugerencia: ${formatFeeInput(fee)} — basada en ${recommendation?.sampleSize ?: 0} pedidos entregados ($confidenceLabel)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { onUseSuggestion(fee) }) {
+                        Text("Usar sugerencia")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** "5.0" -> "5", "5.5" -> "5.5" — cleaner default value for a text field than raw Double.toString(). */
+private fun formatFeeInput(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()

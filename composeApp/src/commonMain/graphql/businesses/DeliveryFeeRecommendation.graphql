@@ -1,0 +1,9 @@
+query DeliveryFeeRecommendation($businessId: String!, $jwt: String!) {
+  deliveryFeeRecommendation(businessId: $businessId, jwt: $jwt) {
+    recommendedFee
+    sampleSize
+    confidence
+    oldestUsed
+    newestUsed
+  }
+}

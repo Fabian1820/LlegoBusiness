@@ -5,6 +5,7 @@ import com.apollographql.apollo.api.Optional
 import com.apollographql.apollo.cache.normalized.FetchPolicy
 import com.apollographql.apollo.cache.normalized.fetchPolicy
 import com.apollographql.apollo.exception.ApolloException
+import com.llego.multiplatform.graphql.DeliveryFeeRecommendationQuery
 import com.llego.multiplatform.graphql.GetBusinessQuery
 import com.llego.multiplatform.graphql.GetMyBusinessesWithBranchesQuery
 import com.llego.multiplatform.graphql.RegisterBusinessMutation
@@ -24,6 +25,7 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.BusinessWithBranches
 import com.llego.shared.data.model.Coordinates
 import com.llego.shared.data.model.CreateBusinessInput
+import com.llego.shared.data.model.DeliveryFeeRecommendation
 import com.llego.shared.data.model.RegisterBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.data.model.WalletBalance
@@ -163,6 +165,25 @@ internal class BusinessDomainRepository(
             BusinessResult.Error(e.message ?: "Error de conexion al actualizar negocio", "APOLLO_ERROR")
         } catch (e: Exception) {
             BusinessResult.Error(e.message ?: "Error desconocido al actualizar negocio", "UNKNOWN_ERROR")
+        }
+    }
+
+    suspend fun getDeliveryFeeRecommendation(businessId: String): BusinessResult<DeliveryFeeRecommendation> {
+        val token = tokenManager.getToken()
+            ?: return BusinessResult.Error("No hay sesion activa", "NO_TOKEN")
+
+        return try {
+            val response = client.query(
+                DeliveryFeeRecommendationQuery(businessId = businessId, jwt = token)
+            ).fetchPolicy(FetchPolicy.NetworkOnly).execute()
+
+            response.data?.deliveryFeeRecommendation?.let { data ->
+                BusinessResult.Success(data.toDomain())
+            } ?: BusinessResult.Error("No se pudo obtener la recomendacion de tarifa", "RECOMMENDATION_FAILED")
+        } catch (e: ApolloException) {
+            BusinessResult.Error(e.message ?: "Error de conexion al obtener la recomendacion", "APOLLO_ERROR")
+        } catch (e: Exception) {
+            BusinessResult.Error(e.message ?: "Error desconocido al obtener la recomendacion", "UNKNOWN_ERROR")
         }
     }
 

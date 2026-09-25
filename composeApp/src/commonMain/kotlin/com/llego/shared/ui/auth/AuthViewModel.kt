@@ -7,6 +7,7 @@ import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.DeliveryFeeRecommendation
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.data.model.UpdateUserInput
@@ -59,6 +60,9 @@ expect class AuthViewModel() : ViewModel {
     suspend fun updateUser(input: UpdateUserInput): AuthResult<User>
     suspend fun updateBusiness(businessId: String, input: UpdateBusinessInput): BusinessResult<Business>
     suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean>
+
+    /** Sugerencia de tarifa de envío basada en el historial real del negocio. Solo informativa. */
+    suspend fun getDeliveryFeeRecommendation(businessId: String): BusinessResult<DeliveryFeeRecommendation>
     suspend fun updateBranch(branchId: String, input: UpdateBranchInput): BusinessResult<Branch>
     suspend fun createBranch(input: CreateBranchInput): BusinessResult<Branch>
     suspend fun deleteBranch(branchId: String): BusinessResult<Boolean>

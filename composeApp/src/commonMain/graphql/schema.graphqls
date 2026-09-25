@@ -535,6 +535,19 @@ type BusinessType {
   Presigned URL for high quality business avatar (with fallback to original)
   """
   avatarUrlAlta: String
+  predefinedDeliveryFee: Float
+}
+
+"""
+A suggested delivery fee based on a business's own recent delivery
+history — purely informational, never applied automatically.
+"""
+type DeliveryFeeRecommendationType {
+  recommendedFee: Float
+  sampleSize: Int!
+  confidence: String!
+  oldestUsed: DateTime
+  newestUsed: DateTime
 }
 
 type BusinessTypeConfigType {
@@ -589,6 +602,7 @@ type BusinessWithBranchesType {
   Presigned URL for high quality business avatar (with fallback to original)
   """
   avatarUrlAlta: String
+  predefinedDeliveryFee: Float
 }
 
 input CameraConfigInput {
@@ -2669,6 +2683,13 @@ type Query {
   """Obtener negocio por ID"""
   business(id: String!, jwt: String = null): BusinessType
 
+  """
+  Tarifa de envío sugerida para un negocio, basada en sus propias tarifas
+  reales recientes (mediana de las últimas órdenes entregadas). Solo
+  informativa — nunca sustituye el cálculo real por zona.
+  """
+  deliveryFeeRecommendation(businessId: String!, jwt: String!): DeliveryFeeRecommendationType!
+
   """Buscar negocios"""
   searchBusinesses(query: String!, limit: Int! = 10, useVectorSearch: Boolean! = true, jwt: String = null): [BusinessType!]!
 
@@ -3101,6 +3122,9 @@ input RegisterDeviceTokenInput {
   platform: DevicePlatformEnum!
   appVersion: String = null
   osVersion: String = null
+
+  """Bundle ID / package de la app. Omitir = app de clientes."""
+  bundleId: String = null
 }
 
 input RegisterInput {
@@ -3711,6 +3735,7 @@ input UpdateBusinessInput {
   tags: [String!] = null
   isActive: Boolean = null
   avatar: String = null
+  predefinedDeliveryFee: Float = null
 }
 
 input UpdateBusinessTypeConfigInput {

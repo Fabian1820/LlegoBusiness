@@ -10,6 +10,7 @@ import com.llego.shared.data.model.Branch
 import com.llego.shared.data.model.Business
 import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.CreateBranchInput
+import com.llego.shared.data.model.DeliveryFeeRecommendation
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
 import com.llego.shared.data.model.UpdateUserInput
@@ -320,6 +321,10 @@ actual class AuthViewModel actual constructor() : ViewModel() {
 
     actual suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
         return authManager.deleteBusiness(businessId)
+    }
+
+    actual suspend fun getDeliveryFeeRecommendation(businessId: String): BusinessResult<DeliveryFeeRecommendation> {
+        return authManager.getDeliveryFeeRecommendation(businessId)
     }
 
     actual suspend fun updateBranch(

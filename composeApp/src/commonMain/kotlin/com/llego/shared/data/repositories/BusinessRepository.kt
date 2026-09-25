@@ -8,6 +8,7 @@ import com.llego.shared.data.model.BusinessResult
 import com.llego.shared.data.model.BusinessWithBranches
 import com.llego.shared.data.model.CreateBranchInput
 import com.llego.shared.data.model.CreateBusinessInput
+import com.llego.shared.data.model.DeliveryFeeRecommendation
 import com.llego.shared.data.model.RegisterBranchInput
 import com.llego.shared.data.model.UpdateBranchInput
 import com.llego.shared.data.model.UpdateBusinessInput
@@ -54,6 +55,10 @@ class BusinessRepository(
 
     suspend fun deleteBusiness(businessId: String): BusinessResult<Boolean> {
         return businessDomainRepository.deleteBusiness(businessId)
+    }
+
+    suspend fun getDeliveryFeeRecommendation(businessId: String): BusinessResult<DeliveryFeeRecommendation> {
+        return businessDomainRepository.getDeliveryFeeRecommendation(businessId)
     }
 
     suspend fun getBusinessesWithBranches(): BusinessResult<List<BusinessWithBranches>> {

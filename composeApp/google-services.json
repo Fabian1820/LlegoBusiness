@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "280721300329",
+    "project_id": "llego-cd1c0",
+    "storage_bucket": "llego-cd1c0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:280721300329:android:2e47fcb0570c656d2cbbf8",
+        "android_client_info": {
+          "package_name": "com.llego.business"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkXfGebtff60n1f6lrSVJpPJwxaYWhTgc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:280721300329:android:31890c05466234402cbbf8",
+        "android_client_info": {
+          "package_name": "com.ruben.llego"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkXfGebtff60n1f6lrSVJpPJwxaYWhTgc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
